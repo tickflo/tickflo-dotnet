@@ -15,6 +15,7 @@
   "packageManager": "pnpm@10.12.1",
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.11",
+    "daisyui": "^5.0.46",
     "tailwindcss": "^4.1.11"
   }
 }
