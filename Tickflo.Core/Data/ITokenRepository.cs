@@ -5,5 +5,5 @@ namespace Tickflo.Core.Data;
 public interface ITokenRepository
 {
     Task<Token?> FindByUserIdAsync(int userId);
-    Task AddAsync(Token token);
+    Task<Token> CreateForUserIdAsync(int userId);
 }

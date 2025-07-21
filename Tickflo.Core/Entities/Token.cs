@@ -1,5 +1,8 @@
+using Microsoft.EntityFrameworkCore;
+
 namespace Tickflo.Core.Entities;
 
+[Keyless]
 public class Token
 {
     public int UserId { get; set; }
