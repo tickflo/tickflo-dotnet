@@ -1,0 +1,40 @@
+﻿@page
+@model LoginModel
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="flex min-h-screen flex-col items-center bg-base-200 pt-4">
+    <div class="card w-full max-w-sm flex-shrink-0 bg-base-100 shadow-2xl">
+        <div class="card-body">
+            <h2 class="card-title">Login</h2>
+            <form method="post">
+                <fieldset class="fieldset">
+                    <label htmlFor="email" class="fieldset-label">
+                        Email
+                    </label>
+                    <input id="email" asp-for="Input.Email" type="email" class="input" placeholder="Email" />
+                    <label htmlFor="password" class="fieldset-label">
+                        Password
+                    </label>
+                    <input id="password" asp-for="Input.Password" type="password" class="input"
+                        placeholder="Password" />
+                    <div>
+                        <a class="link link-hover" href="#forgot-password">
+                            Forgot password?
+                        </a>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-4">
+                        Login
+                    </button>
+                    <div class="text-center">
+                        Need an account?
+                        <a href="/signup" class="link link-hover text-xs">
+                            Signup
+                        </a>
+                    </div>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+</div>

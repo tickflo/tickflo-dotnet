@@ -1,0 +1,40 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tickflo.Core", "Tickflo.Core\Tickflo.Core.csproj", "{D2C1D7E8-A6C3-4DE3-ADA9-16C5853EB3F1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tickflo.CoreTest", "Tickflo.CoreTest\Tickflo.CoreTest.csproj", "{50E86556-31F5-4685-B0C9-03ECDB598D9F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tickflo.Web", "Tickflo.Web\Tickflo.Web.csproj", "{556E76C4-1DA7-49C4-AA30-26B2DBD571EC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tickflo.API", "Tickflo.API\Tickflo.API.csproj", "{6EFC2791-2959-4B51-8F56-6F8DD334CCCE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D2C1D7E8-A6C3-4DE3-ADA9-16C5853EB3F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D2C1D7E8-A6C3-4DE3-ADA9-16C5853EB3F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D2C1D7E8-A6C3-4DE3-ADA9-16C5853EB3F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D2C1D7E8-A6C3-4DE3-ADA9-16C5853EB3F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{50E86556-31F5-4685-B0C9-03ECDB598D9F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{50E86556-31F5-4685-B0C9-03ECDB598D9F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{50E86556-31F5-4685-B0C9-03ECDB598D9F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{50E86556-31F5-4685-B0C9-03ECDB598D9F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{556E76C4-1DA7-49C4-AA30-26B2DBD571EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{556E76C4-1DA7-49C4-AA30-26B2DBD571EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{556E76C4-1DA7-49C4-AA30-26B2DBD571EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{556E76C4-1DA7-49C4-AA30-26B2DBD571EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6EFC2791-2959-4B51-8F56-6F8DD334CCCE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6EFC2791-2959-4B51-8F56-6F8DD334CCCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6EFC2791-2959-4B51-8F56-6F8DD334CCCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6EFC2791-2959-4B51-8F56-6F8DD334CCCE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,46 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Tickflo</title>
+    <link rel="icon" href="~/img/icon.png" />
+    <link rel="stylesheet" href="~/css/dist.css" asp-append-version="true" />
+</head>
+
+<body>
+    <header class="navbar bg-base-100 shadow-sm">
+        <div class="flex-1">
+            <a href="/">
+                <img src="~/img/logo.png" alt="Tickflo" class="h-12" />
+            </a>
+        </div>
+        <div class="flex-none">
+            <ul class="menu menu-horizontal px-1">
+                <li>
+                    <form method="post" action="/toggle-theme">
+                        <button type="submit" class="pt-1">
+                            Toggle theme
+                        </button>
+                    </form>
+                </li>
+                <li>
+                    <a href="/notifications">
+                        <!--<FaBell className="mt-1 inline" />-->
+                        <span class="badge badge-xs badge-primary">99+</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/login">Login</a>
+                </li>
+            </ul>
+        </div>
+    </header>
+
+    @RenderBody()
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+
+</html>
