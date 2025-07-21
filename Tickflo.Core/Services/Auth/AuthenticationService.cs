@@ -3,16 +3,11 @@ using Tickflo.Core.Services.Auth;
 
 namespace Tickflo.Core.Services;
 
-public class AuthenticationService : IAuthenticationService
+public class AuthenticationService(IUserRepository userRepository, IPasswordHasher passwordHasher, ITokenRepository tokenRepository) : IAuthenticationService
 {
-    private readonly IUserRepository _userRepository;
-    private readonly IPasswordHasher _passwordHasher;
-
-    public AuthenticationService(IUserRepository userRepository, IPasswordHasher passwordHasher)
-    {
-        _userRepository = userRepository;
-        _passwordHasher = passwordHasher;
-    }
+    private readonly IUserRepository _userRepository = userRepository;
+    private readonly IPasswordHasher _passwordHasher = passwordHasher;
+    private readonly ITokenRepository _tokenRepository = tokenRepository;
 
     public async Task<AuthenticationResult> AuthenticateAsync(string email, string password)
     {
@@ -24,15 +19,18 @@ public class AuthenticationService : IAuthenticationService
             return result;
         }
 
-        bool isValid = _passwordHasher.Verify($"{email}{password}", user.PasswordHash);
+        var isValid = _passwordHasher.Verify($"{email}{password}", user.PasswordHash);
         if (!isValid)
         {
             result.ErrorMessage = "Invalid username or password, please try again";
             return result;
         }
 
+        var token = await _tokenRepository.CreateForUserIdAsync(user.Id);
+
         result.Success = true;
         result.UserId = user.Id;
+        result.Token = token.Value;
         return result;
     }
 }
