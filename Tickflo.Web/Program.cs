@@ -20,6 +20,7 @@ var connectionString = $"Host={appConfig.POSTGRES_HOST};Port=5432;Database={appC
 // Add services to the container.
 builder.Services.AddSingleton(appConfig);
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ITokenRepository, TokenRepository>();
 builder.Services.AddScoped<IPasswordHasher, Argon2idPasswordHasher>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddDbContext<TickfloDbContext>(options =>
