@@ -19,6 +19,15 @@ public class TokenRepository(TickfloDbContext db, TickfloConfig config) : IToken
             .FirstOrDefaultAsync();
     }
 
+    public Task<Token?> FindByValueAsync(string value)
+    {
+        var now = DateTime.UtcNow;
+        return _db.Tokens
+            .Where(t => t.Value == value && now < t.CreatedAt.AddSeconds(t.MaxAge))
+            .OrderByDescending(t => t.CreatedAt)
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<Token> CreateForUserIdAsync(int userId)
     {
         var token = new Token

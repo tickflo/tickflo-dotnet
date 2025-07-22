@@ -17,4 +17,9 @@ public class UserRepository(TickfloDbContext db) : IUserRepository
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
     }
+
+    public Task<User?> FindByIdAsync(int userId)
+    {
+        return _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+    }
 }

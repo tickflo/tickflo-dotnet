@@ -16,6 +16,7 @@ public class AuthenticationService(IUserRepository userRepository, IPasswordHash
         if (user == null || user.PasswordHash == null)
         {
             result.ErrorMessage = "Invalid username or password, please try again";
+            _passwordHasher.Verify("password", "$argon2id$v=19$m=16,t=2,p=1$NlJRdlBSbDZhRVUzdTFYcQ$FbtOcbMs2IMTMHFE8WcSiQ");
             return result;
         }
 

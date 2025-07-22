@@ -1,10 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages;
 
+[AllowAnonymous]
 public class LoginModel(ILogger<LoginModel> logger, IAuthenticationService authService) : PageModel
 {
     private readonly ILogger<LoginModel> _logger = logger;
@@ -12,6 +14,9 @@ public class LoginModel(ILogger<LoginModel> logger, IAuthenticationService authS
 
     [BindProperty]
     public LoginInput Input { get; set; } = new();
+
+    [FromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
 
     public string? ErrorMessage { get; set; }
 
@@ -29,7 +34,20 @@ public class LoginModel(ILogger<LoginModel> logger, IAuthenticationService authS
             return Page();
         }
 
-        return Page();
+        Response.Cookies.Append("user_token", result.Token!, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Lax,
+            Expires = DateTimeOffset.UtcNow.AddDays(30)
+        });
+
+        if (ReturnUrl != null)
+        {
+            return Redirect(ReturnUrl);
+        }
+
+        return Redirect("/workspaces");
     }
 }
 

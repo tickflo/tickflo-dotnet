@@ -1,8 +1,12 @@
+using System.Web;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Config;
 using Tickflo.Core.Data;
-using Tickflo.Core.Services;
 using Tickflo.Core.Services.Auth;
+using AuthenticationService = Tickflo.Core.Services.AuthenticationService;
+using IAuthenticationService = Tickflo.Core.Services.IAuthenticationService;
 
 DotNetEnv.Env.Load();
 
@@ -29,6 +33,31 @@ builder.Services.AddDbContext<TickfloDbContext>(options =>
 
 builder.Services.AddRazorPages();
 
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(appConfig.SESSION_TIMEOUT_MINUTES);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.IsEssential = true;
+});
+
+builder.Services.AddAuthentication("TokenAuth")
+    .AddScheme<AuthenticationSchemeOptions, TokenAuthenticationHandler>("TokenAuth", options =>
+    {
+        options.TimeProvider = TimeProvider.System;
+    });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder("TokenAuth")
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
+builder.Services.AddMiniProfiler().AddEntityFramework();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -37,13 +66,30 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
+
 }
+else
+{
+    app.UseMiniProfiler();
+}
+
+app.UseStatusCodePages(context =>
+{
+    if (context.HttpContext.Response.StatusCode == 401)
+    {
+        var path = context.HttpContext.Request.Path;
+        context.HttpContext.Response.Redirect($"/login{(path != "/" ? $"?returnUrl={HttpUtility.UrlEncode(path)}" : "")}");
+    }
+    return Task.CompletedTask;
+});
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+app.UseSession();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorPages();

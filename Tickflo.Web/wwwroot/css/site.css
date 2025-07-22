@@ -1,2 +1,6 @@
 @import "tailwindcss";
 @plugin "daisyui";
+
+.input-validation-error {
+    @apply input-error;
+}

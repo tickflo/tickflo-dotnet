@@ -4,6 +4,8 @@
     ViewData["Title"] = "Login";
 }
 
+
+
 <div class="flex min-h-screen flex-col items-center bg-base-200 pt-4">
     <div class="card w-full max-w-sm flex-shrink-0 bg-base-100 shadow-2xl">
         <div class="card-body">
@@ -14,16 +16,22 @@
                         Email
                     </label>
                     <input id="email" asp-for="Input.Email" type="email" class="input" placeholder="Email" />
+                    <span asp-validation-for="Input.Email" class="text-error text-sm"></span>
                     <label htmlFor="password" class="fieldset-label">
                         Password
                     </label>
                     <input id="password" asp-for="Input.Password" type="password" class="input"
                         placeholder="Password" />
+                    <span asp-validation-for="Input.Password" class="text-error text-sm"></span>
                     <div>
                         <a class="link link-hover" href="#forgot-password">
                             Forgot password?
                         </a>
                     </div>
+                    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+                    {
+                        @await Html.PartialAsync("_ErrorAlert", Model.ErrorMessage)
+                    }
                     <button type="submit" class="btn btn-primary mt-4">
                         Login
                     </button>
@@ -38,3 +46,7 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
