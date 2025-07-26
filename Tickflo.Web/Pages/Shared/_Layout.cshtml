@@ -7,6 +7,8 @@
     <title>@ViewData["Title"] - Tickflo</title>
     <link rel="icon" href="~/img/icon.png" />
     <link rel="stylesheet" href="~/css/dist.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/font-awesome/css/fontawesome.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" asp-append-version="true" />
 </head>
 
 <body>
@@ -22,18 +24,18 @@
                 <li>
                     <form method="post" action="/toggle-theme">
                         <button type="submit" class="pt-1">
-                            Toggle theme
+                            <i class="fa fa-moon"></i>
                         </button>
                     </form>
                 </li>
                 <li>
                     <a href="/notifications">
-                        <!--<FaBell className="mt-1 inline" />-->
+                        <i class="fa fa-bell mt-1 inline"></i>
                         <span class="badge badge-xs badge-primary">99+</span>
                     </a>
                 </li>
                 <li>
-                    <a href="/login">Login</a>
+                    @await Html.PartialAsync("_UserMenu")
                 </li>
             </ul>
         </div>

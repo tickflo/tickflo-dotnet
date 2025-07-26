@@ -1,0 +1,48 @@
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
+
+@{
+    var user = HttpContextAccessor?.HttpContext?.User;
+    var userName = user?.FindFirst(ClaimTypes.Name)?.Value;
+    var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+}
+
+@if (user?.Identity?.IsAuthenticated == true)
+{
+    <div class="dropdown dropdown-end">
+        <div tabindex="0" role="button">
+            <div class="avatar mr-4">
+                <div class="w-8 rounded-full ring ring-offset-2 ring-offset-base-100">
+                    <img src="/users/@userId/avatar" alt="Avatar Preview" />
+                </div>
+            </div>
+            @userName
+        </div>
+        <ul class="dropdown-content menu z-1 w-52 rounded-box bg-base-100 p-2 shadow-sm">
+            <li>
+                <a href="/profile" onclick="(e) => e.currentTarget.blur()">
+                    <i class="fa fa-user"></i> Profile
+                </a>
+            </li>
+            <li>
+                <a href="/workspaces" onclick="(e) => e.currentTarget.blur()">
+                    <i class="fa fa-people-group"></i>
+                    Workspaces
+                </a>
+            </li>
+            <li>
+                <form method="post" action="/logout">
+                    <button type="submit" class="cursor-pointer">
+                        <i class="fa fa-sign-out-alt mr-2 inline"></i>
+                        Logout
+                    </button>
+                </form>
+            </li>
+        </ul>
+    </div>
+}
+else
+{
+    <a href="/login">Login</a>
+}

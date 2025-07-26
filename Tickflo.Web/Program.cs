@@ -58,6 +58,8 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddMiniProfiler().AddEntityFramework();
 
+builder.Services.AddHttpContextAccessor();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
