@@ -1,4 +1,8 @@
-﻿<!DOCTYPE html>
+﻿@{
+    var theme = Context.Request.Cookies["theme"] ?? "light";
+}
+
+<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 
 <head>
@@ -11,7 +15,7 @@
     <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" asp-append-version="true" />
 </head>
 
-<body>
+<body data-theme="@theme">
     <mini-profiler />
     <header class="navbar bg-base-100 shadow-sm">
         <div class="flex-1">
@@ -24,13 +28,17 @@
                 <li>
                     <form method="post" action="/toggle-theme">
                         <button type="submit" class="pt-1">
-                            <i class="fa fa-moon"></i>
+                            @if (theme == "dark") {
+                                <i class="fa fa-sun"></i>
+                            } else {
+                                <i class="fa fa-moon"></i>
+                            }
                         </button>
                     </form>
                 </li>
                 <li>
                     <a href="/notifications">
-                        <i class="fa fa-bell mt-1 inline"></i>
+                        <i class="fa fa-bell inline"></i>
                         <span class="badge badge-xs badge-primary">99+</span>
                     </a>
                 </li>
