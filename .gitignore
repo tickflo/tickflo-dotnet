@@ -484,3 +484,8 @@ $RECYCLE.BIN/
 *.swp
 
 dist.css
+
+minio-data
+.github/log.md
+.github/tasks.md
+.github/instructions/tasksync.instructions.md

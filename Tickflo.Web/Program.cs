@@ -7,6 +7,8 @@ using Tickflo.Core.Data;
 using Tickflo.Core.Services.Auth;
 using AuthenticationService = Tickflo.Core.Services.AuthenticationService;
 using IAuthenticationService = Tickflo.Core.Services.IAuthenticationService;
+using Amazon.S3;
+using Amazon;
 
 DotNetEnv.Env.Load();
 
@@ -32,6 +34,7 @@ builder.Services.AddDbContext<TickfloDbContext>(options =>
         .UseSnakeCaseNamingConvention());
 
 builder.Services.AddRazorPages();
+builder.Services.AddControllers();
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
@@ -59,6 +62,18 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddMiniProfiler().AddEntityFramework();
 
 builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddSingleton<IAmazonS3>(sp =>
+{
+    var config = sp.GetRequiredService<TickfloConfig>();
+    var s3Config = new AmazonS3Config
+    {
+        ServiceURL = config.S3_ENDPOINT,
+        ForcePathStyle = true, // Use path-style access for S3 buckets
+        AuthenticationRegion = config.S3_REGION, // Set the region for S3 authentication
+    };
+    return new AmazonS3Client(config.S3_ACCESS_KEY, config.S3_SECRET_KEY, s3Config);
+});
 
 var app = builder.Build();
 
@@ -95,5 +110,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorPages();
+app.MapControllers();
 
 app.Run();
