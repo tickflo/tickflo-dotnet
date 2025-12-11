@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model Tickflo.Web.Pages.WorkspacesModel
 @{
     ViewData["Title"] = "Workspaces";
@@ -16,7 +16,7 @@ else
     @foreach (var w in Model.Workspaces)
     {
         <li>
-            <a href="/@w.Slug">@w.Name</a>
+            <a href="/workspaces/@w.Slug">@w.Name</a>
             @if (!w.Accepted)
             {
                 <span> (pending)</span>
