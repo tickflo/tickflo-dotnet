@@ -47,6 +47,11 @@ public class LoginModel(ILogger<LoginModel> logger, IAuthenticationService authS
             return Redirect(ReturnUrl);
         }
 
+        if (!string.IsNullOrEmpty(result.WorkspaceSlug))
+        {
+            return Redirect($"/{result.WorkspaceSlug}");
+        }
+
         return Redirect("/workspaces");
     }
 }

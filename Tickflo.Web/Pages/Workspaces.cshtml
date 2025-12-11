@@ -1,0 +1,27 @@
+@page
+@model Tickflo.Web.Pages.WorkspacesModel
+@{
+    ViewData["Title"] = "Workspaces";
+}
+
+<h1>Workspaces</h1>
+
+@if (!Model.Workspaces.Any())
+{
+    <p>No workspaces found for your account.</p>
+}
+else
+{
+    <ul>
+    @foreach (var w in Model.Workspaces)
+    {
+        <li>
+            <a href="/@w.Slug">@w.Name</a>
+            @if (!w.Accepted)
+            {
+                <span> (pending)</span>
+            }
+        </li>
+    }
+    </ul>
+}

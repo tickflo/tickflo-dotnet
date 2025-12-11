@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Tickflo.Core.Entities;
 
 public class User
@@ -5,6 +7,7 @@ public class User
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    [Column("recoveryEmail")]
     public string? RecoveryEmail { get; set; } = string.Empty;
     public bool SystemAdmin { get; set; }
     public bool EmailConfirmed { get; set; }

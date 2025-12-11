@@ -28,6 +28,8 @@ builder.Services.AddSingleton(appConfig);
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ITokenRepository, TokenRepository>();
 builder.Services.AddScoped<IPasswordHasher, Argon2idPasswordHasher>();
+builder.Services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
+builder.Services.AddScoped<IUserWorkspaceRepository, UserWorkspaceRepository>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddDbContext<TickfloDbContext>(options =>
     options.UseNpgsql(connectionString!)

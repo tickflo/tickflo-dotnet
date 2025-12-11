@@ -1,0 +1,25 @@
+@page "/{slug}"
+@model Tickflo.Web.Pages.WorkspaceModel
+@{
+    ViewData["Title"] = Model.Workspace?.Name ?? "Workspace";
+}
+
+<h1>@Model.Workspace?.Name</h1>
+
+@if (Model.Workspace == null)
+{
+    <p>Workspace not found.</p>
+}
+else
+{
+    @if (!Model.IsMember)
+    {
+        <p>You are not a member of this workspace.</p>
+        <p><a asp-page="/Workspaces">Back to your workspaces</a></p>
+    }
+    else
+    {
+        <p>Welcome to the workspace: <strong>@Model.Workspace.Name</strong></p>
+        <p>Workspace slug: @Model.Workspace.Slug</p>
+    }
+}

@@ -51,7 +51,7 @@
 
                     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
                     {
-                        @await Html.PartialAsync("_ErrorAlert", Model.ErrorMessage)
+                        @await Html.PartialAsync("_ErrorAlert", Html.Raw(Model.ErrorMessage))
                     }
                     <button type="submit" class="btn btn-primary mt-4">
                         Sign Up
