@@ -1,0 +1,21 @@
+services:
+  db:
+    image: "postgres:17.2-bookworm"
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+  s3:
+    image: "rustfs/rustfs:latest"
+    restart: always
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      RUSTFS_ACCESS_KEY: admin
+      RUSTFS_SECRET_KEY: password
+    volumes:
+      - "./rustfs-data:/data"

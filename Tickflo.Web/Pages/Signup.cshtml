@@ -1,0 +1,122 @@
+@page
+@model SignupModel
+@{
+    ViewData["Title"] = "Sign Up";
+}
+
+<div class="flex min-h-screen flex-col items-center bg-base-200 pt-4">
+    <div class="card w-full max-w-sm flex-shrink-0 bg-base-100 shadow-2xl">
+        <div class="card-body">
+            <h2 class="card-title">Sign Up</h2>
+            <form method="post">
+                <fieldset class="fieldset">
+                    <label htmlFor="name" class="fieldset-label">
+                        Name
+                    </label>
+                    <input id="name" asp-for="Input.Name" type="text" class="input" placeholder="Your full name" />
+                    <span asp-validation-for="Input.Name" class="text-error text-sm"></span>
+
+                    <label htmlFor="email" class="fieldset-label">
+                        Email
+                    </label>
+                    <input id="email" asp-for="Input.Email" type="email" class="input" placeholder="Email" oninput="checkRecoveryEmail()" />
+                    <span asp-validation-for="Input.Email" class="text-error text-sm"></span>
+
+                    <label htmlFor="recoveryEmail" class="fieldset-label">
+                        Recovery Email
+                    </label>
+                    <input id="recoveryEmail" asp-for="Input.RecoveryEmail" type="email" class="input" placeholder="Recovery email" oninput="checkRecoveryEmail()" />
+                    <div id="recoveryEmailWarning" style="display: none;">
+                        @await Html.PartialAsync("_WarningAlert", Html.Raw("We <strong>strongly</strong> recommend using a <strong>different</strong> email address in case your primary address is compromised."))
+                    </div>
+                    <span asp-validation-for="Input.RecoveryEmail" class="text-error text-sm"></span>
+                    <label htmlFor="workspaceName" class="fieldset-label">
+                        Workspace Name
+                    </label>
+                    <em id="workspaceSlugPreview" title="Workspace URL Preview" style="display: none;"></em>
+                    <input id="workspaceName" asp-for="Input.WorkspaceName" type="text" class="input" placeholder="Your workspace name" oninput="updateWorkspaceSlug()" />
+                    <span asp-validation-for="Input.WorkspaceName" class="text-error text-sm"></span>
+
+                    <label htmlFor="password" class="fieldset-label">
+                        Password
+                    </label>
+                    <input id="password" asp-for="Input.Password" type="password" class="input" placeholder="Password" />
+                    <span asp-validation-for="Input.Password" class="text-error text-sm"></span>
+
+                    <label htmlFor="confirmPassword" class="fieldset-label">
+                        Confirm Password
+                    </label>
+                    <input id="confirmPassword" asp-for="Input.ConfirmPassword" type="password" class="input" placeholder="Confirm password" />
+                    <span asp-validation-for="Input.ConfirmPassword" class="text-error text-sm"></span>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+                    {
+                        @await Html.PartialAsync("_ErrorAlert", Model.ErrorMessage)
+                    }
+                    <button type="submit" class="btn btn-primary mt-4">
+                        Sign Up
+                    </button>
+                    <div class="text-center">
+                        Already have an account?
+                        <a href="/login" class="link link-hover text-xs">
+                            Login
+                        </a>
+                    </div>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function slugify(text) {
+            return text
+                .toLowerCase()
+                .trim()
+                .replace(/[^\w\s-]/g, '') // Remove special characters except spaces and hyphens
+                .replace(/[\s_-]+/g, '-') // Replace spaces, underscores, and multiple hyphens with single hyphen
+                .replace(/^-+|-+$/g, ''); // Remove leading and trailing hyphens
+        }
+
+        function updateWorkspaceSlug() {
+            const workspaceNameInput = document.getElementById('workspaceName');
+            const slugPreview = document.getElementById('workspaceSlugPreview');
+            
+            const workspaceName = workspaceNameInput.value;
+            if (workspaceName.trim().length > 2) {
+                const slug = slugify(workspaceName);
+                slugPreview.style.display = 'block';
+                if (slug) {
+                    slugPreview.textContent = `https://app.tickflo.co/${slug}`;
+                } else {
+                    slugPreview.textContent = 'Invalid workspace name - only letters, numbers, spaces, and hyphens allowed';
+                    slugPreview.className = 'text-warning';
+                }
+            } else {
+                slugPreview.textContent = '';
+                slugPreview.style.display = 'none';
+            }
+        }
+
+        function checkRecoveryEmail() {
+            const emailInput = document.getElementById('email');
+            const recoveryEmailInput = document.getElementById('recoveryEmail');
+            const warningDiv = document.getElementById('recoveryEmailWarning');
+            
+            const email = emailInput.value.trim().toLowerCase();
+            const recoveryEmail = recoveryEmailInput.value.trim().toLowerCase();
+            
+            if (email && recoveryEmail && email === recoveryEmail) {
+                warningDiv.style.display = 'block';
+            } else {
+                warningDiv.style.display = 'none';
+            }
+        }        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateWorkspaceSlug();
+            checkRecoveryEmail();
+        });
+    </script>
+}

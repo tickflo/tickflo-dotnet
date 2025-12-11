@@ -486,6 +486,7 @@ $RECYCLE.BIN/
 dist.css
 
 minio-data
+rustfs-data
 .github/log.md
 .github/tasks.md
 .github/instructions/tasksync.instructions.md
