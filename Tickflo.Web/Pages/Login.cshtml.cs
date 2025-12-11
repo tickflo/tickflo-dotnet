@@ -37,7 +37,7 @@ public class LoginModel(ILogger<LoginModel> logger, IAuthenticationService authS
         Response.Cookies.Append("user_token", result.Token!, new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
+            Secure = Request.IsHttps,
             SameSite = SameSiteMode.Lax,
             Expires = DateTimeOffset.UtcNow.AddDays(30)
         });
@@ -49,7 +49,7 @@ public class LoginModel(ILogger<LoginModel> logger, IAuthenticationService authS
 
         if (!string.IsNullOrEmpty(result.WorkspaceSlug))
         {
-            return Redirect($"/{result.WorkspaceSlug}");
+            return Redirect($"/workspaces/{result.WorkspaceSlug}");
         }
 
         return Redirect("/workspaces");
