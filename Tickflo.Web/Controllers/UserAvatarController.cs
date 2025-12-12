@@ -39,6 +39,15 @@ namespace Tickflo.Web.Controllers
             {
                 return NotFound();
             }
+            catch (AmazonS3Exception)
+            {
+                // If S3 is unavailable or account not signed up, return NotFound so the app doesn't crash.
+                return NotFound();
+            }
+            catch
+            {
+                return NotFound();
+            }
         }
     }
 }

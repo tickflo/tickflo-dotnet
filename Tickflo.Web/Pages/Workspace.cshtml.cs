@@ -15,6 +15,7 @@ public class WorkspaceModel : PageModel
 
     public Workspace? Workspace { get; set; }
     public bool IsMember { get; set; }
+    public List<WorkspaceView> Workspaces { get; set; } = new();
 
     public WorkspaceModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, IHttpContextAccessor httpContextAccessor)
     {
@@ -23,28 +24,68 @@ public class WorkspaceModel : PageModel
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public async Task<IActionResult> OnGetAsync(string slug)
+    public async Task<IActionResult> OnGetAsync(string? slug)
     {
         if (string.IsNullOrEmpty(slug))
-            return RedirectToPage("/Workspaces");
+        {
+            var user = _httpContextAccessor.HttpContext?.User;
+            if (user?.Identity?.IsAuthenticated != true)
+                return Challenge();
 
-        var ws = await _workspaceRepo.FindBySlugAsync(slug);
-        if (ws == null)
+            var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdClaim, out var userId))
+                return Challenge();
+
+            var memberships = await _userWorkspaceRepo.FindForUserAsync(userId);
+
+            foreach (var m in memberships)
+            {
+                var ws = await _workspaceRepo.FindByIdAsync(m.WorkspaceId);
+                if (ws == null) continue;
+                Workspaces.Add(new WorkspaceView
+                {
+                    Id = ws.Id,
+                    Name = ws.Name,
+                    Slug = ws.Slug,
+                    Accepted = m.Accepted
+                });
+            }
+
+            return Page();
+        }
+
+        var found = await _workspaceRepo.FindBySlugAsync(slug);
+        if (found == null)
             return NotFound();
 
-        Workspace = ws;
+        Workspace = found;
 
-        var user = _httpContextAccessor.HttpContext?.User;
-        if (user?.Identity?.IsAuthenticated == true)
+        var curUser = _httpContextAccessor.HttpContext?.User;
+        if (curUser?.Identity?.IsAuthenticated == true)
         {
-            var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var idClaim = curUser.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (int.TryParse(idClaim, out var userId))
             {
                 var memberships = await _userWorkspaceRepo.FindForUserAsync(userId);
-                IsMember = memberships.Any(m => m.WorkspaceId == ws.Id && m.Accepted);
+                foreach (var m in memberships)
+                {
+                    var w = await _workspaceRepo.FindByIdAsync(m.WorkspaceId);
+                    if (w == null) continue;
+                    Workspaces.Add(new WorkspaceView
+                    {
+                        Id = w.Id,
+                        Name = w.Name,
+                        Slug = w.Slug,
+                        Accepted = m.Accepted
+                    });
+                }
+
+                IsMember = memberships.Any(m => m.WorkspaceId == found.Id && m.Accepted);
             }
         }
 
         return Page();
     }
 }
+
+// WorkspaceView is defined in the (now legacy) Workspaces page code-behind.
