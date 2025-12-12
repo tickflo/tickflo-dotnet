@@ -88,4 +88,11 @@ public class WorkspaceModel : PageModel
     }
 }
 
-// WorkspaceView is defined in the (now legacy) Workspaces page code-behind.
+public class WorkspaceView
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Slug { get; set; } = string.Empty;
+    public bool Accepted { get; set; }
+}
+
