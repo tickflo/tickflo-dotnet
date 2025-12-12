@@ -13,13 +13,13 @@
                     <label htmlFor="email" class="fieldset-label">
                         Email
                     </label>
-                    <input id="email" asp-for="Input.Email" type="email" class="input" placeholder="Email" />
+                    <input id="email" asp-for="Input.Email" type="email" class="input" placeholder="Email" value="test@test.com" />
                     <span asp-validation-for="Input.Email" class="text-error text-sm"></span>
                     <label htmlFor="password" class="fieldset-label">
                         Password
                     </label>
                     <input id="password" asp-for="Input.Password" type="password" class="input"
-                        placeholder="Password" />
+                        placeholder="Password" value="thisisatest"/>
                     <span asp-validation-for="Input.Password" class="text-error text-sm"></span>
                     <div>
                         <a class="link link-hover" href="#forgot-password">

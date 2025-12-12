@@ -6,7 +6,7 @@
 
 <div class="flex">
     <aside class="sticky top-0 h-screen w-60 overflow-y-auto bg-base-200 px-4 py-6" aria-labelledby="workspace-nav">
-        <nav id="workspace-nav" aria-label="Workspace navigation">
+        <nav id="workspace-nav" aria-label="Workspace navigation" class="p-2">
         @* Top workspace quick link (first workspace if present) *@
             @if (Model.Workspaces.Any())
         {
@@ -18,7 +18,7 @@
             <a class="btn btn-ghost" asp-page="/Workspace">Workspaces</a>
         }
 
-        <ul class="menu w-56 rounded-box bg-base-200">
+    <ul class="menu w-56 rounded-box bg-base-200 mt-2">
             <li><a class="menu-active" asp-page="/Workspace"><i class="fa fa-house"></i> Dashboard</a></li>
             <li><a href="/workspaces/contacts"><i class="fa fa-address-book"></i> Contacts</a></li>
             <li>
@@ -82,7 +82,7 @@
                 <form class="inline-block" data-discover="true" action="/email-confirmation/dismiss" method="post">
                     <button type="submit" class="btn btn-sm">Dismiss</button>
                 </form>
-                <form class="inline-block" data-discover="true ml-2" action="/email-confirmation/resend" method="post">
+                <form class="inline-block ml-2" data-discover="true" action="/email-confirmation/resend" method="post">
                     <button type="submit" class="btn btn-sm btn-primary">Resend Email</button>
                 </form>
             </div>
@@ -104,8 +104,17 @@
             }
             else
             {
-                <h1 class="text-2xl font-bold">@Model.Workspace.Name</h1>
+                <div class="p-4">
+                     <h1 class="text-2xl font-bold">@Model.Workspace.Name</h1>
                 <p class="mt-2">Workspace slug: @Model.Workspace.Slug</p>
+                    
+                    </div>
+
+               
+         <div>
+            
+
+                </div>
             }
         }
     </div>

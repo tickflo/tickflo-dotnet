@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
 
 namespace Tickflo.Core.Data;
