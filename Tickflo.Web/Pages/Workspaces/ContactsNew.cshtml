@@ -1,0 +1,25 @@
+@page "/workspaces/{slug}/contacts/new"
+@model Tickflo.Web.Pages.Workspaces.ContactsNewModel
+@{
+    ViewData["Title"] = "New Contact";
+}
+<div class="flex">
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+    <section class="p-6 flex-1">
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "New Contact" })
+        <form class="mt-4 max-w-xl" method="post">
+            <div class="fieldset">
+                <label class="fieldset-label">Name</label>
+                <input class="input" asp-for="Name" />
+            </div>
+            <div class="fieldset">
+                <label class="fieldset-label">Email</label>
+                <input class="input" asp-for="Email" />
+            </div>
+            <div class="mt-4 flex gap-2">
+                <button type="submit" class="btn btn-primary">Create Contact</button>
+                <a class="btn" asp-page="/Workspaces/Contacts" asp-route-slug="@Model.WorkspaceSlug">Cancel</a>
+            </div>
+        </form>
+    </section>
+</div>

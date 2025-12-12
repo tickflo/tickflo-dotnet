@@ -7,70 +7,7 @@
 <div class="flex">
     <aside class="sticky top-0 h-screen w-60 overflow-y-auto bg-base-200 px-4 py-6" aria-labelledby="workspace-nav">
         <nav id="workspace-nav" aria-label="Workspace navigation" class="p-2">
-        @* Top workspace quick link (first workspace if present) *@
-            @if (Model.Workspaces.Any())
-        {
-            var top = Model.Workspaces.First();
-            <a class="btn btn-ghost" asp-page="/Workspace" asp-route-slug="@top.Slug">@top.Name</a>
-        }
-        else
-        {
-            <a class="btn btn-ghost" asp-page="/Workspace">Workspaces</a>
-        }
-
-    <ul class="menu w-56 rounded-box bg-base-200 mt-2">
-            <li><a class="menu-active" asp-page="/Workspace"><i class="fa fa-house"></i> Dashboard</a></li>
-            <li><a href="/workspaces/contacts"><i class="fa fa-address-book"></i> Contacts</a></li>
-            <li>
-                <details open>
-                    <summary><i class="fa fa-ticket-simple"></i> Tickets</summary>
-                    <ul>
-                        <li><a href="/workspaces/tickets">Inbox <span class="badge badge-xs badge-primary">10</span></a></li>
-                        <li><a href="/workspaces/tickets">Closed</a></li>
-                        <li><a href="/workspaces/tickets">test</a></li>
-                    </ul>
-                </details>
-            </li>
-            <li><a href="/workspaces/reports"><i class="fa fa-file-alt"></i> Reports</a></li>
-            <li><a href="/workspaces/locations"><i class="fa fa-map-marker-alt"></i> Locations</a></li>
-            <li><a href="/workspaces/inventory"><i class="fa fa-boxes"></i> Inventory</a></li>
-            <li>
-                <details open>
-                    <summary><i class="fa fa-lock"></i> Security</summary>
-                    <ul>
-                        <li><a href="/workspaces/users">Users</a></li>
-                        <li><a href="/workspaces/roles">Roles</a></li>
-                    </ul>
-                </details>
-            </li>
-            <li><a href="/workspaces/settings"><i class="fa fa-cog"></i> Settings</a></li>
-        </ul>
-        </nav>
-
-        @* List user workspaces with statuses *@
-        <div class="mt-6">
-            <h3 class="font-bold mb-2">Your Workspaces</h3>
-            @if (!Model.Workspaces.Any())
-            {
-                <p class="text-sm text-muted">No workspaces found for your account.</p>
-            }
-            else
-            {
-                <ul class="menu menu-vertical">
-                    @foreach (var w in Model.Workspaces)
-                    {
-                        <li>
-                            <a asp-page="/Workspace" asp-route-slug="@w.Slug">@w.Name
-                                @if (!w.Accepted)
-                                {
-                                    <span class="ml-2 text-sm">(pending)</span>
-                                }
-                            </a>
-                        </li>
-                    }
-                </ul>
-            }
-        </div>
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.Workspace?.Slug ?? "")
     </aside>
 
     <div class="flex-1 overflow-x-auto p-4">

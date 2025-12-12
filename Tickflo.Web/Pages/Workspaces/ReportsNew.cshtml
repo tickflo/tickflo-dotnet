@@ -1,0 +1,28 @@
+@page "/workspaces/{slug}/reports/new"
+@model Tickflo.Web.Pages.Workspaces.ReportsNewModel
+@{
+    ViewData["Title"] = "New Report";
+}
+<div class="flex">
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+    <section class="p-6 flex-1">
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "New Report" })
+        <form class="mt-4 max-w-xl" method="post">
+            <div class="fieldset">
+                <label class="fieldset-label">Title</label>
+                <input class="input" asp-for="Title" />
+            </div>
+            <div class="fieldset">
+                <label class="fieldset-label">Type</label>
+                <select class="select" asp-for="Type">
+                    <option>Summary</option>
+                    <option>Detailed</option>
+                </select>
+            </div>
+            <div class="mt-4 flex gap-2">
+                <button type="submit" class="btn btn-primary">Create Report</button>
+                <a class="btn" asp-page="/Workspaces/Reports" asp-route-slug="@Model.WorkspaceSlug">Cancel</a>
+            </div>
+        </form>
+    </section>
+</div>

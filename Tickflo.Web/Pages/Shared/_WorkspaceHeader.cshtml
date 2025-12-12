@@ -1,0 +1,27 @@
+@using Tickflo.Core.Entities
+@model Tickflo.Web.Pages.Shared.WorkspaceHeaderView
+<header class="px-6 py-4 border-b border-base-300">
+    <div class="flex items-center justify-between">
+        <div>
+            <nav class="breadcrumbs text-sm">
+                <ul>
+                    <li><a asp-page="/Workspace" asp-route-slug="@Model.Slug">@Model.Name</a></li>
+                    @if (!string.IsNullOrEmpty(Model.SectionTitle))
+                    {
+                        <li>@Model.SectionTitle</li>
+                    }
+                </ul>
+            </nav>
+            <h1 class="text-xl font-bold mt-1">@Model.SectionTitle ?? @Model.Name</h1>
+            <p class="text-xs text-muted">/@Model.Slug</p>
+        </div>
+        <div class="flex gap-2">
+            @if (!string.IsNullOrEmpty(Model.NewActionHref) && !string.IsNullOrEmpty(Model.NewActionLabel))
+            {
+                <a class="btn btn-sm btn-primary" href="@Model.NewActionHref"><i class="fa fa-plus"></i> @Model.NewActionLabel</a>
+            }
+            <a class="btn btn-sm" asp-page="/Workspace" asp-route-slug="@Model.Slug"><i class="fa fa-house"></i> Dashboard</a>
+            <a class="btn btn-sm" asp-page="/Workspaces/Settings" asp-route-slug="@Model.Slug"><i class="fa fa-cog"></i> Settings</a>
+        </div>
+    </div>
+</header>

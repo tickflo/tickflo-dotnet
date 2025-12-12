@@ -1,0 +1,17 @@
+@page "/workspaces/{slug}/roles"
+@model Tickflo.Web.Pages.Workspaces.RolesModel
+@{
+    ViewData["Title"] = "Roles";
+}
+
+<div class="flex">
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+    <section class="p-6 flex-1">
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Roles", NewActionLabel = "New Role", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/roles/new" })
+        <h1 class="text-2xl font-bold">Roles</h1>
+        <p class="mt-2 text-sm text-muted">Workspace: @Model.WorkspaceSlug</p>
+        <div class="mt-4">
+            <p>Roles page placeholder. Permissions and role management here.</p>
+        </div>
+    </section>
+</div>

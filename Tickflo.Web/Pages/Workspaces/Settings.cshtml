@@ -1,0 +1,17 @@
+@page "/workspaces/{slug}/settings"
+@model Tickflo.Web.Pages.Workspaces.SettingsModel
+@{
+    ViewData["Title"] = "Settings";
+}
+
+<div class="flex">
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+    <section class="p-6 flex-1">
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Settings" })
+        <h1 class="text-2xl font-bold">Settings</h1>
+        <p class="mt-2 text-sm text-muted">Workspace: @Model.WorkspaceSlug</p>
+        <div class="mt-4">
+            <p>Settings page placeholder. Workspace preferences and configuration here.</p>
+        </div>
+    </section>
+</div>

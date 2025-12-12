@@ -1,0 +1,115 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "build Tickflo.Web",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		},
+		{
+			"label": "rebuild Tickflo.Web",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		},
+		{
+			"label": "rebuild Tickflo.Web after stop",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		},
+		{
+			"label": "rebuild Tickflo.Web retry",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		},
+		{
+			"label": "build with active menu",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		},
+		{
+			"label": "build workspace header changes",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		},
+		{
+			"label": "build breadcrumbs + new actions",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		},
+		{
+			"label": "build new pages stubs",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		},
+		{
+			"label": "build new page POST handlers",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		},
+		{
+			"label": "rebuild POST handlers after imports",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		}
+	]
+}

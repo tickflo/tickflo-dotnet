@@ -1,0 +1,38 @@
+@model string
+@{
+    var slug = Model ?? string.Empty;
+    var path = ViewContext?.HttpContext?.Request?.Path.Value ?? "";
+    bool IsActive(string segment) => path.Contains(segment, StringComparison.OrdinalIgnoreCase);
+}
+<aside class="sticky top-0 h-screen w-60 overflow-y-auto bg-base-200 px-4 py-6" aria-labelledby="workspace-nav">
+    <nav id="workspace-nav" aria-label="Workspace navigation" class="p-2">
+        <a class="btn btn-ghost" asp-page="/Workspace" asp-route-slug="@slug">Workspaces</a>
+        <ul class="menu w-56 rounded-box bg-base-200 mt-2">
+            <li><a class="@(IsActive($"/workspaces/{slug}") && !IsActive("/contacts") && !IsActive("/tickets") && !IsActive("/reports") && !IsActive("/locations") && !IsActive("/inventory") && !IsActive("/users") && !IsActive("/roles") && !IsActive("/settings") ? "menu-active" : "")" asp-page="/Workspace" asp-route-slug="@slug"><i class="fa fa-house"></i> Dashboard</a></li>
+            <li><a class="@(IsActive("/contacts") ? "menu-active" : "")" asp-page="/Workspaces/Contacts" asp-route-slug="@slug"><i class="fa fa-address-book"></i> Contacts</a></li>
+            <li>
+                <details>
+                    <summary><i class="fa fa-ticket"></i> Tickets</summary>
+                    <ul>
+                        <li><a class="@(IsActive("/tickets") ? "menu-active" : "")" asp-page="/Workspaces/Tickets" asp-route-slug="@slug">Inbox <span class="badge badge-xs badge-primary">10</span></a></li>
+                        <li><a class="@(IsActive("/tickets") ? "menu-active" : "")" asp-page="/Workspaces/Tickets" asp-route-slug="@slug">Closed</a></li>
+                        <li><a class="@(IsActive("/tickets") ? "menu-active" : "")" asp-page="/Workspaces/Tickets" asp-route-slug="@slug">test</a></li>
+                    </ul>
+                </details>
+            </li>
+            <li><a class="@(IsActive("/reports") ? "menu-active" : "")" asp-page="/Workspaces/Reports" asp-route-slug="@slug"><i class="fa fa-file-alt"></i> Reports</a></li>
+            <li><a class="@(IsActive("/locations") ? "menu-active" : "")" asp-page="/Workspaces/Locations" asp-route-slug="@slug"><i class="fa fa-map-marker-alt"></i> Locations</a></li>
+            <li><a class="@(IsActive("/inventory") ? "menu-active" : "")" asp-page="/Workspaces/Inventory" asp-route-slug="@slug"><i class="fa fa-boxes"></i> Inventory</a></li>
+            <li>
+                <details>
+                    <summary><i class="fa fa-users"></i> Members</summary>
+                    <ul>
+                        <li><a class="@(IsActive("/users") ? "menu-active" : "")" asp-page="/Workspaces/Users" asp-route-slug="@slug">Users</a></li>
+                        <li><a class="@(IsActive("/roles") ? "menu-active" : "")" asp-page="/Workspaces/Roles" asp-route-slug="@slug">Roles</a></li>
+                    </ul>
+                </details>
+            </li>
+            <li><a class="@(IsActive("/settings") ? "menu-active" : "")" asp-page="/Workspaces/Settings" asp-route-slug="@slug"><i class="fa fa-cog"></i> Settings</a></li>
+        </ul>
+    </nav>
+</aside>

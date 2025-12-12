@@ -1,0 +1,29 @@
+@page "/workspaces/{slug}/inventory/new"
+@model Tickflo.Web.Pages.Workspaces.InventoryNewModel
+@{
+    ViewData["Title"] = "New Item";
+}
+<div class="flex">
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+    <section class="p-6 flex-1">
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "New Item" })
+        <form class="mt-4 max-w-xl" method="post">
+            <div class="fieldset">
+                <label class="fieldset-label">Item Name</label>
+                <input class="input" asp-for="ItemName" />
+            </div>
+            <div class="fieldset">
+                <label class="fieldset-label">SKU</label>
+                <input class="input" asp-for="SKU" />
+            </div>
+            <div class="fieldset">
+                <label class="fieldset-label">Quantity</label>
+                <input type="number" class="input" asp-for="Quantity" />
+            </div>
+            <div class="mt-4 flex gap-2">
+                <button type="submit" class="btn btn-primary">Create Item</button>
+                <a class="btn" asp-page="/Workspaces/Inventory" asp-route-slug="@Model.WorkspaceSlug">Cancel</a>
+            </div>
+        </form>
+    </section>
+</div>
