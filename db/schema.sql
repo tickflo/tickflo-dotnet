@@ -1,3 +1,8 @@
+\restrict ZsODsT1oM4Jghrm8AS7CnRzhnc45V9E9P9mP5grWevQT01kIbgJ1JuABoHdskOa
+
+-- Dumped from database version 17.2 (Debian 17.2-1.pgdg120+1)
+-- Dumped by pg_dump version 18.1
+
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -222,7 +227,8 @@ CREATE TABLE public.user_workspaces (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     created_by integer NOT NULL,
     updated_at timestamp with time zone,
-    updated_by integer
+    updated_by integer,
+    role character varying(30) DEFAULT 'Member'::character varying NOT NULL
 );
 
 
@@ -629,10 +635,13 @@ ALTER TABLE ONLY public.workspaces
 -- PostgreSQL database dump complete
 --
 
+\unrestrict ZsODsT1oM4Jghrm8AS7CnRzhnc45V9E9P9mP5grWevQT01kIbgJ1JuABoHdskOa
+
 
 --
 -- Dbmate schema migrations
 --
 
 INSERT INTO public.schema_migrations (version) VALUES
-    ('20250822124430');
+    ('20250822124430'),
+    ('20251215104500');
