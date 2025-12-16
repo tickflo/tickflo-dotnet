@@ -4,9 +4,9 @@
     ViewData["Title"] = "Tickets";
 }
 
-<div class="flex flex-row gap-4">
+<div class="flex flex-row gap-10">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
-    <section class="p-6 flex-1">
+    <section class="p-8 lg:p-10 flex-1 ml-6">
 @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Tickets", NewActionLabel = "New Ticket", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/tickets/new" })
 
 <div class="grid gap-4">
@@ -50,7 +50,7 @@
         </form>
     </div>
 
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto pl-6">
         <table class="table table-zebra table-md">
             <thead>
                 <tr>
