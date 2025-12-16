@@ -48,9 +48,9 @@
                                         <td><span class="badge">@(rep.Ready ? "Ready" : "Draft")</span></td>
                                         <td>@(rep.LastRun.HasValue ? rep.LastRun.Value.ToString("g") : "Never")</td>
                                         <td>
-                                            <div class="join">
-                                                <a class="btn btn-soft btn-xs btn-ghost join-item" asp-page="/Workspaces/ReportsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@rep.Id">Edit</a>
-                                                <button class="btn btn-soft btn-xs btn-primary join-item" type="button">Run</button>
+                                            <div class="flex flex-wrap gap-2 md:join">
+                                                <a class="btn btn-soft btn-xs btn-ghost md:join-item" asp-page="/Workspaces/ReportsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@rep.Id">Edit</a>
+                                                <button class="btn btn-soft btn-xs btn-primary md:join-item" type="button">Run</button>
                                             </div>
                                         </td>
                                     </tr>

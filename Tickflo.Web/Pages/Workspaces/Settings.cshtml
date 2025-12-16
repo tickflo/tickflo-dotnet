@@ -27,9 +27,9 @@
                         <input class="input validator" asp-for="Workspace.Slug" />
                         <span asp-validation-for="Workspace.Slug" class="validator-hint"></span>
                     </div>
-                    <div class="card-actions">
-                        <button type="submit" class="btn btn-soft btn-primary">Save</button>
-                        <a class="btn btn-soft btn-ghost" asp-page="/Workspace" asp-route-slug="@Model.WorkspaceSlug">Cancel</a>
+                    <div class="card-actions flex flex-wrap gap-2 md:join">
+                        <button type="submit" class="btn btn-soft btn-primary md:join-item">Save</button>
+                        <a class="btn btn-soft btn-ghost md:join-item" asp-page="/Workspace" asp-route-slug="@Model.WorkspaceSlug">Cancel</a>
                     </div>
                 </form>
             </div>

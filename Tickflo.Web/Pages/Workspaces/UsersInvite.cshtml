@@ -20,9 +20,9 @@
                         <select class="select validator" asp-for="Role"><option>Member</option><option>Admin</option></select>
                         <span asp-validation-for="Role" class="validator-hint"></span>
                     </div>
-                    <div class="card-actions justify-start mt-2">
-                        <button type="submit" class="btn btn-soft btn-primary">Send Invite</button>
-                        <a class="btn btn-soft btn-ghost" asp-page="/Workspaces/Users" asp-route-slug="@Model.WorkspaceSlug">Cancel</a>
+                    <div class="card-actions justify-start mt-2 flex flex-wrap gap-2 md:join">
+                        <button type="submit" class="btn btn-soft btn-primary md:join-item">Send Invite</button>
+                        <a class="btn btn-soft btn-ghost md:join-item" asp-page="/Workspaces/Users" asp-route-slug="@Model.WorkspaceSlug">Cancel</a>
                     </div>
                 </form>
             </div>

@@ -41,12 +41,12 @@
                             <td>@inv.CreatedAt.ToString("u")</td>
                             <td>@(inv.Roles != null && inv.Roles.Any() ? string.Join(", ", inv.Roles) : "—")</td>
                             <td>
-                                <div class="join">
+                                <div class="flex flex-wrap gap-2 md:join">
                                 <form method="post" asp-page-handler="Accept" asp-route-slug="@Model.WorkspaceSlug" asp-route-userId="@inv.UserId">
-                                    <button class="btn btn-soft btn-xs btn-primary join-item" type="submit">Accept</button>
+                                    <button class="btn btn-soft btn-xs btn-primary md:join-item" type="submit">Accept</button>
                                 </form>
                                 <form method="post" asp-page-handler="Resend" asp-route-slug="@Model.WorkspaceSlug" asp-route-userId="@inv.UserId">
-                                    <button class="btn btn-soft btn-xs btn-ghost join-item" type="submit">Resend</button>
+                                    <button class="btn btn-soft btn-xs btn-ghost md:join-item" type="submit">Resend</button>
                                 </form>
                                 </div>
                             </td>

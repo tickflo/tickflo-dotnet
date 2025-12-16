@@ -20,9 +20,9 @@
                     <input type="checkbox" asp-for="Admin" class="mr-2" /> Admin
                 </label>
             </div>
-            <div>
-                <button type="submit" class="btn btn-primary">Save</button>
-                <a class="btn" href="/workspaces/@Model.WorkspaceSlug/users/roles">Cancel</a>
+            <div class="flex flex-wrap gap-2 md:join">
+                <button type="submit" class="btn btn-primary md:join-item">Save</button>
+                <a class="btn md:join-item" href="/workspaces/@Model.WorkspaceSlug/users/roles">Cancel</a>
             </div>
         </form>
     </section>

@@ -51,10 +51,10 @@
                                         <td>@(r.Admin ? "Yes" : "No")</td>
                                         <td>@Model.RoleAssignmentCounts.GetValueOrDefault(r.Id)</td>
                                         <td>
-                                            <div class="join">
-                                                <a class="btn btn-soft btn-xs btn-ghost join-item" href="/workspaces/@Model.WorkspaceSlug/users/roles/@r.Id/edit">Edit</a>
+                                            <div class="flex flex-wrap gap-2 md:join">
+                                                <a class="btn btn-soft btn-xs btn-ghost md:join-item" href="/workspaces/@Model.WorkspaceSlug/users/roles/@r.Id/edit">Edit</a>
                                                 <form method="post" action="/workspaces/@Model.WorkspaceSlug/users/roles/@r.Id/delete" onsubmit="return confirm('Delete role @r.Name?');">
-                                                    <button class="btn btn-soft btn-xs btn-error join-item" type="submit" @(Model.RoleAssignmentCounts.GetValueOrDefault(r.Id) > 0 ? "disabled" : null)>Delete</button>
+                                                    <button class="btn btn-soft btn-xs btn-error md:join-item" type="submit" @(Model.RoleAssignmentCounts.GetValueOrDefault(r.Id) > 0 ? "disabled" : null)>Delete</button>
                                                 </form>
                                                 @if (Model.RoleAssignmentCounts.GetValueOrDefault(r.Id) > 0)
                                                 {

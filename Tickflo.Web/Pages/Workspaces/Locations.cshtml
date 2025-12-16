@@ -48,10 +48,10 @@
                                         <td>@loc.Address</td>
                                         <td><span class="badge">@(loc.Active ? "Active" : "Inactive")</span></td>
                                         <td>
-                                            <div class="join">
-                                                <a class="btn btn-soft btn-xs btn-ghost join-item" asp-page="/Workspaces/LocationsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-locationId="@loc.Id">Edit</a>
+                                            <div class="flex flex-wrap gap-2 md:join">
+                                                <a class="btn btn-soft btn-xs btn-ghost md:join-item" asp-page="/Workspaces/LocationsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-locationId="@loc.Id">Edit</a>
                                                 <form method="post" asp-page-handler="Delete" asp-route-slug="@Model.WorkspaceSlug" asp-route-locationId="@loc.Id">
-                                                    <button class="btn btn-soft btn-xs btn-error join-item" type="submit">Delete</button>
+                                                    <button class="btn btn-soft btn-xs btn-error md:join-item" type="submit">Delete</button>
                                                 </form>
                                             </div>
                                         </td>

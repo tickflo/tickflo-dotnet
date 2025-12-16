@@ -778,6 +778,120 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 -- PostgreSQL database dump complete
 --
 
+--
+-- Combined additions: locations and reports tables + constraints
+--
+
+-- Create locations table
+CREATE TABLE IF NOT EXISTS public.locations (
+    id integer NOT NULL,
+    workspace_id integer NOT NULL,
+    name character varying(100) NOT NULL,
+    address text,
+    active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by integer,
+    updated_at timestamp with time zone,
+    updated_by integer
+);
+
+-- Create reports table
+CREATE TABLE IF NOT EXISTS public.reports (
+    id integer NOT NULL,
+    workspace_id integer NOT NULL,
+    name character varying(100) NOT NULL,
+    ready boolean DEFAULT false NOT NULL,
+    last_run timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by integer,
+    updated_at timestamp with time zone,
+    updated_by integer
+);
+
+-- Identities for locations.id and reports.id
+DO $$ BEGIN
+    ALTER TABLE public.locations ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+        SEQUENCE NAME public.locations_id_seq
+        START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1
+    );
+EXCEPTION WHEN duplicate_table OR duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    ALTER TABLE public.reports ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+        SEQUENCE NAME public.reports_id_seq
+        START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1
+    );
+EXCEPTION WHEN duplicate_table OR duplicate_object THEN NULL; END $$;
+
+-- Primary keys if not already present
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint con
+        JOIN pg_class rel ON rel.oid = con.conrelid
+        JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+        WHERE con.contype = 'p' AND rel.relname = 'locations' AND nsp.nspname = 'public'
+    ) THEN
+        ALTER TABLE ONLY public.locations ADD CONSTRAINT locations_pkey PRIMARY KEY (id);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint con
+        JOIN pg_class rel ON rel.oid = con.conrelid
+        JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+        WHERE con.contype = 'p' AND rel.relname = 'reports' AND nsp.nspname = 'public'
+    ) THEN
+        ALTER TABLE ONLY public.reports ADD CONSTRAINT reports_pkey PRIMARY KEY (id);
+    END IF;
+END $$;
+
+-- Unique workspace_id+name constraints
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'locations_workspace_id_name_unique') THEN
+        ALTER TABLE ONLY public.locations
+            ADD CONSTRAINT locations_workspace_id_name_unique UNIQUE (workspace_id, name);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'reports_workspace_id_name_unique') THEN
+        ALTER TABLE ONLY public.reports
+            ADD CONSTRAINT reports_workspace_id_name_unique UNIQUE (workspace_id, name);
+    END IF;
+END $$;
+
+-- Foreign keys to workspaces
+DO $$ BEGIN
+    ALTER TABLE ONLY public.locations
+        ADD CONSTRAINT locations_workspace_id_workspaces_id_fk FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    ALTER TABLE ONLY public.reports
+        ADD CONSTRAINT reports_workspace_id_workspaces_id_fk FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+--
+-- Add role column to user_workspaces (idempotent)
+--
+ALTER TABLE public.user_workspaces
+    ADD COLUMN IF NOT EXISTS role character varying(30);
+
+UPDATE public.user_workspaces
+SET role = 'Member'
+WHERE role IS NULL;
+
+ALTER TABLE public.user_workspaces
+    ALTER COLUMN role SET DEFAULT 'Member';
+
+ALTER TABLE public.user_workspaces
+    ALTER COLUMN role SET NOT NULL;
+
 
 --
 -- Dbmate schema migrations

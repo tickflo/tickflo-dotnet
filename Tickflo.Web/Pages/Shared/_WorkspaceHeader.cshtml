@@ -1,27 +1,15 @@
 @using Tickflo.Core.Entities
 @model Tickflo.Web.Pages.Shared.WorkspaceHeaderView
 <header class="px-6 py-4 border-b border-base-300 bg-base-100">
-    <div class="flex items-center justify-between">
-        <div>
-            <nav class="breadcrumbs text-sm">
-                <ul>
-                    <li><a asp-page="/Workspace" asp-route-slug="@Model.Slug">@Model.Name</a></li>
-                    @if (!string.IsNullOrEmpty(Model.SectionTitle))
-                    {
-                        <li>@Model.SectionTitle</li>
-                    }
-                </ul>
-            </nav>
-            <h1 class="text-xl font-bold mt-1">@Model.SectionTitle ?? @Model.Name</h1>
-            <p class="text-xs text-base-content/60">/@Model.Slug</p>
-        </div>
-        <div class="flex gap-2">
+    <div class="flex flex-col gap-3 items-end md:flex-row md:items-center md:justify-end">
+      
+        <div class="flex flex-wrap gap-2 justify-end md:justify-end md:join">
             @if (Model.AllowNewAction && !string.IsNullOrEmpty(Model.NewActionHref) && !string.IsNullOrEmpty(Model.NewActionLabel))
             {
-                <a class="btn btn-sm btn-primary" href="@Model.NewActionHref"><i class="fa fa-plus"></i> @Model.NewActionLabel</a>
+                <a class="btn btn-sm btn-primary md:join-item" href="@Model.NewActionHref"><i class="fa fa-plus"></i> @Model.NewActionLabel</a>
             }
-            <a class="btn btn-sm btn-ghost" asp-page="/Workspace" asp-route-slug="@Model.Slug"><i class="fa fa-house"></i> Dashboard</a>
-            <a class="btn btn-sm btn-ghost" asp-page="/Workspaces/Settings" asp-route-slug="@Model.Slug"><i class="fa fa-cog"></i> Settings</a>
+            <a class="btn btn-sm btn-ghost md:join-item" asp-page="/Workspace" asp-route-slug="@Model.Slug"><i class="fa fa-house"></i> Dashboard</a>
+            <a class="btn btn-sm btn-ghost md:join-item" asp-page="/Workspaces/Settings" asp-route-slug="@Model.Slug"><i class="fa fa-cog"></i> Settings</a>
         </div>
     </div>
 </header>

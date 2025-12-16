@@ -26,9 +26,9 @@
                             <input type="checkbox" class="toggle" asp-for="Active" />
                         </label>
                     </div>
-                    <div class="card-actions">
-                        <button type="submit" class="btn btn-soft btn-primary">Save</button>
-                        <a class="btn btn-soft btn-ghost" asp-page="/Workspaces/Locations" asp-route-slug="@Model.WorkspaceSlug">Cancel</a>
+                    <div class="card-actions flex flex-wrap gap-2 md:join">
+                        <button type="submit" class="btn btn-soft btn-primary md:join-item">Save</button>
+                        <a class="btn btn-soft btn-ghost md:join-item" asp-page="/Workspaces/Locations" asp-route-slug="@Model.WorkspaceSlug">Cancel</a>
                     </div>
                 </form>
             </div>
