@@ -4,43 +4,88 @@
     ViewData["Title"] = "Inventory";
 }
 
-<div class="flex">
-    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
-    <section class="p-6 flex-1">
-        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Inventory", NewActionLabel = "New Item", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/inventory/new" })
-        <div class="card bg-base-100 shadow-sm">
-            <div class="card-body">
-                <h2 class="card-title">Inventory</h2>
-                <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
+<div class="flex flex-row gap-4">
+  @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+  <section class="p-6 flex-1">
+@await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Inventory", NewActionLabel = "New Item", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/inventory/new", AllowNewAction = Model.IsWorkspaceAdmin })
+
+<div class="grid gap-4">
+  <div class="flex items-center justify-between">
+    <form method="get" class="join md:join">
+      <input name="Query" value="@Model.Query" placeholder="Search name or SKU" class="input input-bordered join-item input-sm md:input-md" />
+      <select name="Status" class="select select-bordered join-item select-sm md:select-md">
+        <option value="">All</option>
+        <option value="active" selected>Active</option>
+        <option value="archived">Archived</option>
+      </select>
+      <button class="btn btn-soft join-item btn-sm md:btn-md">Filter</button>
+    </form>
+
+    <div class="join md:join">
+      <a class="btn btn-soft join-item btn-sm md:btn-md" href="/workspaces/@Model.Workspace?.Slug/inventory/new">New Item</a>
+    </div>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="table table-zebra table-md">
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Name</th>
+          <th>Qty</th>
+          <th class="hidden sm:table-cell">Min</th>
+          <th class="hidden md:table-cell">Cost</th>
+          <th class="hidden md:table-cell">Price</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      @foreach (var i in Model.Items)
+      {
+        var low = i.MinStock.HasValue && i.Quantity < i.MinStock.Value;
+        <tr class="@(low ? "bg-warning/10" : "")">
+          <td class="break-all">@i.Sku</td>
+          <td>@i.Name</td>
+          <td class="@(low ? "text-warning font-medium" : "")">@i.Quantity</td>
+          <td class="hidden sm:table-cell">@(i.MinStock ?? 0)</td>
+          <td class="hidden md:table-cell">$@i.Cost.ToString("0.00")</td>
+          <td class="hidden md:table-cell">@(i.Price.HasValue ? "$" + i.Price.Value.ToString("0.00") : "-")</td>
+          <td>
+            <div class="flex gap-2 items-center">
+              <span class="badge badge-soft">@i.Status</span>
+              @if (low)
+              {
+                <span class="badge badge-warning badge-soft">Low</span>
+              }
             </div>
-        </div>
-        <div class="card bg-base-100 shadow-sm mt-4">
-            <div class="card-body">
-                <div class="overflow-x-auto">
-                    <table class="table table-md">
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th>SKU</th>
-                                <th>Stock</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>—</td>
-                                <td>—</td>
-                                <td>—</td>
-                                <td>
-                                    <div class="join">
-                                        <a class="btn btn-soft btn-xs btn-ghost join-item" asp-page="/Workspaces/InventoryNew" asp-route-slug="@Model.WorkspaceSlug">Add</a>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+          </td>
+          <td>
+            <div class="join">
+              <a class="btn btn-soft join-item btn-sm" href="/workspaces/@Model.Workspace?.Slug/inventory/@i.Id/edit">Edit</a>
+              @if(Model.IsWorkspaceAdmin)
+              {
+                if (i.Status != "archived")
+                {
+                  <form method="post" asp-page-handler="Archive" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@i.Id" class="join-item">
+                    <button type="submit" class="btn btn-soft btn-sm">Archive</button>
+                  </form>
+                }
+                else
+                {
+                  <form method="post" asp-page-handler="Restore" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@i.Id" class="join-item">
+                    <button type="submit" class="btn btn-soft btn-sm">Restore</button>
+                  </form>
+                }
+              }
             </div>
-        </div>
-    </section>
+          </td>
+        </tr>
+      }
+      </tbody>
+    </table>
+  </div>
+  </div>
+  </section>
 </div>
+ 

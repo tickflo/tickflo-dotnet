@@ -4,48 +4,131 @@
     ViewData["Title"] = "Tickets";
 }
 
-<div class="flex">
+<div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
-        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Tickets", NewActionLabel = "New Ticket", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/tickets/new" })
-        <div class="card bg-base-100 shadow-sm">
-            <div class="card-body">
-                <h2 class="card-title">Tickets</h2>
-                <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
-            </div>
+@await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Tickets", NewActionLabel = "New Ticket", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/tickets/new" })
+
+<div class="grid gap-4">
+    <div class="flex items-center justify-between">
+        <form method="get" class="join md:join">
+            <input name="Query" value="@Model.Query" placeholder="Search subject or description" class="input input-bordered join-item input-sm md:input-md" />
+            <select name="Status" class="select select-bordered join-item select-sm md:select-md">
+                <option value="">All Statuses</option>
+                <option value="New" selected>New</option>
+                <option value="Open">Open</option>
+                <option value="Closed">Closed</option>
+            </select>
+            <select name="Priority" class="select select-bordered join-item select-sm md:select-md">
+                <option value="">All Priorities</option>
+                <option value="Low">Low</option>
+                <option value="Normal" selected>Normal</option>
+                <option value="High">High</option>
+            </select>
+            <input name="ContactId" value="@Model.ContactId" type="number" placeholder="Contact Id" class="input input-bordered join-item input-sm md:input-md" />
+            <select name="AssigneeUserId" class="select select-bordered join-item select-sm md:select-md">
+                <option value="">Anyone</option>
+                @if (Model.AssigneeUserId == -1) {<option value="-1" selected>Unassigned</option>} else {<option value="-1">Unassigned</option>}
+                @foreach (var kv in Model.UsersById)
+                {
+                    if (Model.AssigneeUserId == kv.Key)
+                    {
+                        <option value="@kv.Key" selected>@kv.Value.Name (@kv.Value.Email)</option>
+                    }
+                    else
+                    {
+                        <option value="@kv.Key">@kv.Value.Name (@kv.Value.Email)</option>
+                    }
+                }
+            </select>
+            <label class="label cursor-pointer join-item px-3">
+                <span class="label-text mr-2">Mine</span>
+                <input type="checkbox" name="Mine" value="true" class="checkbox checkbox-sm" @(Model.Mine ? "checked" : "") />
+                <span class="badge badge-soft ml-2">@Model.MyCount</span>
+            </label>
+            <button class="btn btn-soft join-item btn-sm md:btn-md">Filter</button>
+        </form>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="table table-zebra table-md">
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Contact</th>
+                    <th class="hidden sm:table-cell">Assignee</th>
+                    <th class="hidden sm:table-cell">Inventory</th>
+                    <th class="hidden md:table-cell">Created</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                        @foreach (var t in Model.Tickets)
+            {
+                <tr>
+                                        @{
+                                            var rowQs = $"Query={Model.Query}&Status={Model.Status}&Priority={Model.Priority}&ContactId={Model.ContactId}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&PageNumber={Model.PageNumber}&PageSize={Model.PageSize}";
+                                        }
+                                        <td><a class="link link-hover" href="/workspaces/@Model.WorkspaceSlug/tickets/@t.Id?@rowQs">@t.Subject</a></td>
+                    <td><span class="badge badge-soft">@t.Priority</span></td>
+                    <td><span class="badge badge-soft">@t.Status</span></td>
+                        <td>
+                        @if (Model.ContactsById.TryGetValue(t.ContactId, out var c))
+                        {
+                            <span>@c.Name</span>
+                            <span class="opacity-60 break-all">(@c.Email)</span>
+                        }
+                        else
+                        {
+                                <span class="opacity-60">—</span>
+                        }
+                    </td>
+                        <td class="hidden sm:table-cell">
+                        @if (t.AssignedUserId.HasValue && Model.UsersById.TryGetValue(t.AssignedUserId.Value, out var au))
+                        {
+                                <span>@au.Name</span> <span class="opacity-60">(@au.Email)</span>
+                        }
+                        else
+                        {
+                                <span class="opacity-60">—</span>
+                        }
+                    </td>
+                        <td>
+                        @if (!string.IsNullOrWhiteSpace(t.InventoryRef))
+                        {
+                                <a class="link link-hover" href="/workspaces/@Model.WorkspaceSlug/inventory?Query=@t.InventoryRef">@t.InventoryRef</a>
+                        }
+                        else
+                        {
+                                <span class="opacity-50">—</span>
+                        }
+                    </td>
+                        <td class="hidden md:table-cell">@t.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>
+                        <div class="join">
+                            <a class="btn btn-soft btn-sm join-item" href="/workspaces/@Model.WorkspaceSlug/tickets/new?contactId=@t.ContactId">Clone</a>
+                        </div>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="flex justify-between items-center">
+        <div class="text-sm opacity-70">Showing page @Model.PageNumber of @((Model.Total + Model.PageSize - 1)/Model.PageSize) · @Model.Total total</div>
+        <div class="join">
+            @{
+                var prev = Model.PageNumber > 1 ? Model.PageNumber - 1 : 1;
+                var next = (Model.PageNumber * Model.PageSize) < Model.Total ? Model.PageNumber + 1 : Model.PageNumber;
+                var baseQs = $"Query={Model.Query}&Status={Model.Status}&Priority={Model.Priority}&ContactId={Model.ContactId}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&PageSize={Model.PageSize}";
+            }
+            <a class="btn btn-soft join-item btn-sm @(Model.PageNumber <= 1 ? "btn-disabled" : "")" href="?@baseQs&PageNumber=@prev">Prev</a>
+            <a class="btn btn-soft join-item btn-sm @(((Model.PageNumber * Model.PageSize) >= Model.Total) ? "btn-disabled" : "")" href="?@baseQs&PageNumber=@next">Next</a>
         </div>
-        <div class="card bg-base-100 shadow-sm mt-4">
-            <div class="card-body">
-                <form class="filter mb-4">
-                    <input class="btn filter-reset" type="radio" name="ticket-filter" aria-label="×" />
-                    <input class="btn" type="radio" name="ticket-filter" aria-label="Inbox" />
-                    <input class="btn" type="radio" name="ticket-filter" aria-label="Closed" />
-                </form>
-                <div class="overflow-x-auto">
-                    <table class="table table-md">
-                        <thead>
-                            <tr>
-                                <th>Subject</th>
-                                <th>Status</th>
-                                <th>Updated</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>—</td>
-                                <td><span class="badge badge-soft">New</span></td>
-                                <td>—</td>
-                                <td>
-                                    <div class="flex flex-wrap gap-2 md:join">
-                                        <a class="btn btn-soft btn-xs btn-ghost md:join-item" asp-page="/Workspaces/TicketsNew" asp-route-slug="@Model.WorkspaceSlug">Add</a>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+    </div>
+    </div>
     </section>
 </div>

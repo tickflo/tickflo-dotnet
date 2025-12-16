@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "Edit Report";
 }
-<div class="flex">
+<div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Edit Report" })
@@ -12,7 +12,7 @@
                 <form method="post">
                     <div class="fieldset">
                         <label class="label" for="Name"><span class="label-text">Name</span></label>
-                        <input class="input validator" asp-for="Name" />
+                        <input class="input validator w-full" asp-for="Name" />
                         <span asp-validation-for="Name" class="validator-hint"></span>
                     </div>
                     <div class="fieldset">
@@ -22,8 +22,8 @@
                         </label>
                     </div>
                     <div class="card-actions flex flex-wrap gap-2 md:join">
-                        <button type="submit" class="btn btn-soft btn-primary md:join-item">Save</button>
-                        <a class="btn btn-soft btn-ghost md:join-item" asp-page="/Workspaces/Reports" asp-route-slug="@Model.WorkspaceSlug">Cancel</a>
+                        <button type="submit" class="btn btn-soft btn-primary md:join-item w-full md:w-auto">Save</button>
+                        <a class="btn btn-soft btn-ghost md:join-item" asp-page="/Workspaces/Reports" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Cancel</a>
                     </div>
                 </form>
             </div>

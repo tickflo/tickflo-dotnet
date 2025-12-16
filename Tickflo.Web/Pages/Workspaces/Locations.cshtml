@@ -4,7 +4,7 @@
     ViewData["Title"] = "Locations";
 }
 
-<div class="flex">
+<div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Locations", NewActionLabel = "New Location", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/locations/new" })
@@ -25,7 +25,7 @@
                         <thead>
                             <tr>
                                 <th>Name</th>
-                                <th>Address</th>
+                                <th class="hidden sm:table-cell">Address</th>
                                 <th>Status</th>
                                 <th></th>
                             </tr>
@@ -44,8 +44,8 @@
                                 foreach (var loc in Model.Locations)
                                 {
                                     <tr>
-                                        <td>@loc.Name</td>
-                                        <td>@loc.Address</td>
+                                        <td class="break-all">@loc.Name</td>
+                                        <td class="hidden sm:table-cell break-all">@loc.Address</td>
                                         <td><span class="badge">@(loc.Active ? "Active" : "Inactive")</span></td>
                                         <td>
                                             <div class="flex flex-wrap gap-2 md:join">

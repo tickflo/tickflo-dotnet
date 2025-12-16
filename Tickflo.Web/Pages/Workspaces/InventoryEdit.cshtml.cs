@@ -7,7 +7,7 @@ using Tickflo.Core.Entities;
 
 namespace Tickflo.Web.Pages.Workspaces
 {
-    public class InventoryNewModel : PageModel
+    public class InventoryEditModel : PageModel
     {
         private readonly IInventoryRepository _inventory;
         private readonly IWorkspaceRepository _workspaces;
@@ -15,7 +15,7 @@ namespace Tickflo.Web.Pages.Workspaces
         private readonly IUserWorkspaceRoleRepository _roles;
         private readonly IHttpContextAccessor _http;
 
-        public InventoryNewModel(IInventoryRepository inventory, IWorkspaceRepository workspaces, ILocationRepository locations, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http)
+        public InventoryEditModel(IInventoryRepository inventory, IWorkspaceRepository workspaces, ILocationRepository locations, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http)
         {
             _inventory = inventory;
             _workspaces = workspaces;
@@ -31,7 +31,7 @@ namespace Tickflo.Web.Pages.Workspaces
         [BindProperty]
         public Inventory Item { get; set; } = new Inventory();
 
-        public async Task<IActionResult> OnGetAsync(string slug)
+        public async Task<IActionResult> OnGetAsync(string slug, int id)
         {
             WorkspaceSlug = slug;
             Workspace = await _workspaces.FindBySlugAsync(slug);
@@ -39,18 +39,19 @@ namespace Tickflo.Web.Pages.Workspaces
             var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             var isAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
             if (!isAdmin) return Forbid();
-            Item.WorkspaceId = Workspace.Id;
+
+            var existing = await _inventory.FindAsync(Workspace.Id, id);
+            if (existing == null) return NotFound();
+            Item = existing;
             LocationOptions = (await _locations.ListAsync(Workspace.Id)).ToList();
-            Item.Status = "active";
             return Page();
         }
 
-        public async Task<IActionResult> OnPostAsync(string slug)
+        public async Task<IActionResult> OnPostAsync(string slug, int id)
         {
             WorkspaceSlug = slug;
             Workspace = await _workspaces.FindBySlugAsync(slug);
             if (Workspace == null) return NotFound();
-
             var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             var isAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
             if (!isAdmin) return Forbid();
@@ -60,11 +61,10 @@ namespace Tickflo.Web.Pages.Workspaces
                 LocationOptions = (await _locations.ListAsync(Workspace.Id)).ToList();
                 return Page();
             }
-
             Item.WorkspaceId = Workspace.Id;
-            await _inventory.CreateAsync(Item);
+            Item.Id = id;
+            await _inventory.UpdateAsync(Item);
             return Redirect($"/workspaces/{Workspace.Slug}/inventory");
         }
     }
 }
- 

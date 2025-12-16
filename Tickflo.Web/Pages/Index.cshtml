@@ -4,12 +4,17 @@
     ViewData["Title"] = "Home page";
 }
 
-<section class="hero min-h-[60vh] bg-base-200">
-    <div class="hero-content text-center">
-        <div class="max-w-md">
-            <h1 class="text-5xl font-bold">Welcome to Tickflo</h1>
-            <p class="py-6">Organize workspaces, manage users, and streamline your workflow with a clean, theme-aware UI powered by Tailwind CSS and daisyUI.</p>
-            <a class="btn btn-soft btn-primary" href="/signup">Get Started</a>
+<div class="flex flex-row gap-4">
+  @await Html.PartialAsync("_AppSidebar")
+  <section class="p-6 flex-1">
+    <section class="hero min-h-[60vh] bg-base-200">
+        <div class="hero-content text-center">
+            <div class="max-w-md">
+                <h1 class="text-5xl font-bold">Welcome to Tickflo</h1>
+                <p class="py-6">Organize workspaces, manage users, and streamline your workflow with a clean, theme-aware UI powered by Tailwind CSS and daisyUI.</p>
+                <a class="btn btn-soft btn-primary" href="/signup">Get Started</a>
+            </div>
         </div>
-    </div>
     </section>
+  </section>
+</div>

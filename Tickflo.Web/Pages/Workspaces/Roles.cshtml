@@ -4,7 +4,7 @@
     ViewData["Title"] = "Roles";
 }
 
-<div class="flex">
+<div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "User Roles", NewActionLabel = "New Role", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/users/roles/new" })

@@ -13,6 +13,9 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
     public DbSet<UserWorkspaceRole> UserWorkspaceRoles => Set<UserWorkspaceRole>();
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<Report> Reports => Set<Report>();
+    public DbSet<Contact> Contacts => Set<Contact>();
+    public DbSet<Ticket> Tickets => Set<Ticket>();
+    public DbSet<Inventory> Inventory => Set<Inventory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,6 +42,17 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
 
         modelBuilder.Entity<Report>()
             .HasIndex(r => new { r.WorkspaceId, r.Name })
+            .IsUnique();
+
+        modelBuilder.Entity<Contact>()
+            .HasIndex(c => new { c.WorkspaceId, c.Email })
+            .IsUnique();
+
+        modelBuilder.Entity<Ticket>()
+            .HasIndex(t => new { t.WorkspaceId, t.Id });
+
+        modelBuilder.Entity<Inventory>()
+            .HasIndex(i => new { i.WorkspaceId, i.Sku })
             .IsUnique();
 
         base.OnModelCreating(modelBuilder);

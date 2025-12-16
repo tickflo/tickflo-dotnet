@@ -1,0 +1,30 @@
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@inject Tickflo.Core.Data.IUserRepository UserRepo
+@{
+    var path = ViewContext?.HttpContext?.Request?.Path.Value ?? string.Empty;
+    bool IsActive(string segment) => path.Contains(segment, StringComparison.OrdinalIgnoreCase);
+    var uidStr = HttpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    bool isAdmin = false;
+    if (int.TryParse(uidStr, out var uid))
+    {
+        var meTask = UserRepo.FindByIdAsync(uid);
+        meTask.Wait();
+        var me = meTask.Result;
+        isAdmin = me?.SystemAdmin == true;
+    }
+}
+<aside class="block sticky top-0 h-screen w-60 shrink-0 overflow-y-auto bg-base-200 px-4 py-6" aria-labelledby="app-nav">
+  <nav id="app-nav" aria-label="App navigation" class="p-2">
+    <a class="btn btn-ghost" href="/">Home</a>
+    <ul class="menu w-56 rounded-box bg-base-200 mt-2">
+      <li class="menu-title">General</li>
+      <li><a class="@(IsActive("/workspaces/") ? "menu-active" : "")" href="/workspaces">Workspaces</a></li>
+      <li><a class="@(IsActive("/login") ? "menu-active" : "")" href="/login">Login</a></li>
+      <li><a class="@(IsActive("/signup") ? "menu-active" : "")" href="/signup">Sign Up</a></li>
+      @if (isAdmin) {
+        <li class="menu-title">Admin</li>
+        <li><a class="@(IsActive("/Users/") ? "menu-active" : "")" asp-page="/Users/Index">Users</a></li>
+      }
+    </ul>
+  </nav>
+</aside>

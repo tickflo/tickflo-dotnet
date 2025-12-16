@@ -24,7 +24,31 @@
             </a>
         </div>
         <div class="flex-none">
-            <ul class="menu menu-horizontal px-1">
+            <!-- Mobile dropdown -->
+            <div class="dropdown md:hidden">
+                <div tabindex="0" role="button" class="btn btn-ghost">
+                    <i class="fa fa-bars inline"></i>
+                </div>
+                <ul tabindex="-1" class="dropdown-content menu bg-base-200 rounded-box p-2 w-56">
+                <li>
+                    <label class="cursor-pointer flex items-center gap-2">
+                        <input type="checkbox" class="toggle theme-controller" value="dark" checked="@(theme == "dark" ? "checked" : null)" onchange="setThemeCookie(this.checked ? 'dark' : 'light')" />
+                        <span>@(theme == "dark" ? "Dark" : "Light")</span>
+                    </label>
+                </li>
+                <li>
+                    <a href="/notifications">
+                        <i class="fa fa-bell inline"></i>
+                        <span class="badge badge-xs badge-primary">99+</span>
+                    </a>
+                </li>
+                <li>
+                    @await Html.PartialAsync("_UserMenu")
+                </li>
+                </ul>
+            </div>
+            <!-- Desktop menu -->
+            <ul class="menu menu-horizontal px-1 hidden md:flex">
                 <li>
                     <label class="cursor-pointer flex items-center gap-2">
                         <input type="checkbox" class="toggle theme-controller" value="dark" checked="@(theme == "dark" ? "checked" : null)" onchange="setThemeCookie(this.checked ? 'dark' : 'light')" />

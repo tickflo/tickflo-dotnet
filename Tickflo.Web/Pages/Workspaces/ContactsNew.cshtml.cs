@@ -18,6 +18,20 @@ public class ContactsNewModel : PageModel
     public string Name { get; set; } = string.Empty;
     [BindProperty]
     public string Email { get; set; } = string.Empty;
+    [BindProperty]
+    public string? Phone { get; set; }
+    [BindProperty]
+    public string? Company { get; set; }
+    [BindProperty]
+    public string? Title { get; set; }
+    [BindProperty]
+    public string? Notes { get; set; }
+    [BindProperty]
+    public string? Tags { get; set; }
+    [BindProperty]
+    public string? PreferredChannel { get; set; }
+    [BindProperty]
+    public string? Priority { get; set; }
 
     public ContactsNewModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IHttpContextAccessor httpContextAccessor)
     {
@@ -39,7 +53,7 @@ public class ContactsNewModel : PageModel
         return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync(string slug)
+    public async Task<IActionResult> OnPostAsync(string slug, [FromServices] IContactRepository contactRepo)
     {
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
@@ -52,7 +66,22 @@ public class ContactsNewModel : PageModel
         {
             return Page();
         }
-        TempData["Success"] = $"Contact '{Name}' invited successfully.";
+        var contact = new Contact
+        {
+            WorkspaceId = Workspace.Id,
+            Name = Name,
+            Email = Email,
+            Phone = Phone,
+            Company = Company,
+            Title = Title,
+            Notes = Notes,
+            Tags = Tags,
+            PreferredChannel = PreferredChannel,
+            Priority = Priority,
+            Status = "Active"
+        };
+        await contactRepo.CreateAsync(contact);
+        TempData["Success"] = $"Contact '{Name}' created successfully.";
         return RedirectToPage("/Workspaces/Contacts", new { slug });
     }
 }

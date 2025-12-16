@@ -18,6 +18,12 @@ public class TicketsNewModel : PageModel
     public string Subject { get; set; } = string.Empty;
     [BindProperty]
     public string Description { get; set; } = string.Empty;
+    [BindProperty]
+    public int ContactId { get; set; }
+    [BindProperty]
+    public string Priority { get; set; } = "Normal";
+    [BindProperty]
+    public string? InventoryRef { get; set; }
 
     public TicketsNewModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IHttpContextAccessor httpContextAccessor)
     {
@@ -27,7 +33,7 @@ public class TicketsNewModel : PageModel
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public async Task<IActionResult> OnGetAsync(string slug)
+    public async Task<IActionResult> OnGetAsync(string slug, int? contactId = null)
     {
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
@@ -36,10 +42,14 @@ public class TicketsNewModel : PageModel
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
         if (!isAdmin) return Forbid();
+        if (contactId.HasValue)
+        {
+            ContactId = contactId.Value;
+        }
         return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync(string slug)
+    public async Task<IActionResult> OnPostAsync(string slug, [FromServices] ITicketRepository ticketRepo)
     {
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
@@ -52,6 +62,17 @@ public class TicketsNewModel : PageModel
         {
             return Page();
         }
+        var ticket = new Ticket
+        {
+            WorkspaceId = Workspace.Id,
+            ContactId = ContactId,
+            Subject = Subject,
+            Description = Description,
+            Priority = Priority,
+            Status = "New",
+            InventoryRef = InventoryRef
+        };
+        await ticketRepo.CreateAsync(ticket);
         TempData["Success"] = $"Ticket '{Subject}' created successfully.";
         return RedirectToPage("/Workspaces/Tickets", new { slug });
     }

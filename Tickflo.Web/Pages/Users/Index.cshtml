@@ -4,34 +4,64 @@
     ViewData["Title"] = "Users";
 }
 
-<h1>Users</h1>
+<div class="flex flex-row gap-4">
+    @await Html.PartialAsync("_AppSidebar")
+    <section class="p-6 flex-1">
+        <div class="flex items-center justify-between mb-4">
+            <h1 class="text-2xl font-semibold">Users</h1>
+            <div class="join">
+                <a class="btn btn-soft join-item" asp-page="/Users/Create">Create User</a>
+            </div>
+        </div>
 
-<div class="mb-3">
-    <a class="btn btn-primary" asp-page="/Users/Create">Create User</a>
-    <span class="ms-2 text-success">@TempData["Message"]</span>
-    <span class="ms-2 text-danger">@TempData["Error"]</span>
-    </div>
+        @if (TempData["Message"] != null)
+        {
+            <div class="alert alert-success mb-4">@TempData["Message"]</div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-error mb-4">@TempData["Error"]</div>
+        }
 
-<table class="table table-sm">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Admin</th>
-            <th>Created</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-    @foreach (var u in Model.Users)
-    {
-        <tr>
-            <td>@u.Name</td>
-            <td>@u.Email</td>
-            <td>@(u.SystemAdmin ? "Yes" : "No")</td>
-            <td>@u.CreatedAt.ToString("yyyy-MM-dd")</td>
-            <td><a asp-page="/Users/Details" asp-route-id="@u.Id">Details</a></td>
-        </tr>
-    }
-    </tbody>
- </table>
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body p-0">
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra table-md">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Admin</th>
+                                <th class="hidden sm:table-cell">Created</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var u in Model.Users)
+                            {
+                                <tr>
+                                    <td>@u.Name</td>
+                                      <td class="break-all">@u.Email</td>
+                                    <td>
+                                        @if (u.SystemAdmin)
+                                        {
+                                            <span class="badge badge-soft badge-primary">Yes</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-soft">No</span>
+                                        }
+                                    </td>
+                                      <td class="hidden sm:table-cell">@u.CreatedAt.ToString("yyyy-MM-dd")</td>
+                                    <td>
+                                        <a class="link link-hover" asp-page="/Users/Details" asp-route-id="@u.Id" asp-preserve-query>Details</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>

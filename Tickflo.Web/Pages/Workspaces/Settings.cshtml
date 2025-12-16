@@ -4,7 +4,7 @@
     ViewData["Title"] = "Settings";
 }
 
-<div class="flex">
+<div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Settings" })
@@ -19,17 +19,17 @@
                 <form method="post">
                     <div class="fieldset">
                         <label class="label" for="Name"><span class="label-text">Workspace Name</span></label>
-                        <input class="input validator" asp-for="Workspace.Name" />
+                        <input class="input validator w-full" asp-for="Workspace.Name" />
                         <span asp-validation-for="Workspace.Name" class="validator-hint"></span>
                     </div>
                     <div class="fieldset">
                         <label class="label" for="Slug"><span class="label-text">Slug</span></label>
-                        <input class="input validator" asp-for="Workspace.Slug" />
+                        <input class="input validator w-full" asp-for="Workspace.Slug" />
                         <span asp-validation-for="Workspace.Slug" class="validator-hint"></span>
                     </div>
                     <div class="card-actions flex flex-wrap gap-2 md:join">
-                        <button type="submit" class="btn btn-soft btn-primary md:join-item">Save</button>
-                        <a class="btn btn-soft btn-ghost md:join-item" asp-page="/Workspace" asp-route-slug="@Model.WorkspaceSlug">Cancel</a>
+                        <button type="submit" class="btn btn-soft btn-primary md:join-item w-full md:w-auto">Save</button>
+                        <a class="btn btn-soft btn-ghost md:join-item" asp-page="/Workspace" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Cancel</a>
                     </div>
                 </form>
             </div>

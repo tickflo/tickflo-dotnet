@@ -4,23 +4,40 @@
     ViewData["Title"] = "Error";
 }
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
+<div class="flex">
+    @await Html.PartialAsync("_AppSidebar")
+    <section class="p-6 flex-1">
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body">
+                <h1 class="card-title">Something went wrong</h1>
+                <div role="alert" class="alert alert-error alert-soft mt-2">
+                    <span>An error occurred while processing your request.</span>
+                </div>
 
-@if (Model.ShowRequestId)
-{
-    <p>
-        <strong>Request ID:</strong> <code>@Model.RequestId</code>
-    </p>
-}
+                @if (Model.ShowRequestId)
+                {
+                    <div class="mt-2 text-sm">
+                        <span class="opacity-70">Request ID:</span>
+                        <span class="badge badge-soft badge-primary">@Model.RequestId</span>
+                    </div>
+                }
 
-<h3>Development Mode</h3>
-<p>
-    Swapping to the <strong>Development</strong> environment displays detailed information about the error that occurred.
-</p>
-<p>
-    <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
-    It can result in displaying sensitive information from exceptions to end users.
-    For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
-    and restarting the app.
-</p>
+                <div class="mt-4 prose max-w-none">
+                    <h3>Development Mode</h3>
+                    <p>
+                        Swapping to the <strong>Development</strong> environment displays detailed information about the error that occurred.
+                    </p>
+                    <p>
+                        <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
+                        It can result in displaying sensitive information from exceptions to end users. For local debugging,
+                        enable the <strong>ASPNETCORE_ENVIRONMENT=Development</strong> environment variable and restart the app.
+                    </p>
+                </div>
+
+                <div class="join mt-6">
+                    <a class="btn btn-soft join-item" href="/">Back to Home</a>
+                </div>
+            </div>
+        </div>
+    </section>
+ </div>

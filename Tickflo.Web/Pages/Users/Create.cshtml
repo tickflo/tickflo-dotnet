@@ -4,40 +4,55 @@
     ViewData["Title"] = "Create User";
 }
 
-<h1>Create User</h1>
+<div class="flex flex-row gap-4">
+    @await Html.PartialAsync("_AppSidebar")
+    <section class="p-6 flex-1">
+        <div class="flex items-center justify-between mb-4">
+            <h1 class="text-2xl font-semibold">Create User</h1>
+        </div>
 
-<form method="post">
-    <div class="mb-3">
-        <label asp-for="Input.Name" class="form-label"></label>
-        <input asp-for="Input.Name" class="form-control" />
-        <span asp-validation-for="Input.Name" class="text-danger"></span>
-    </div>
-    <div class="mb-3">
-        <label asp-for="Input.Email" class="form-label"></label>
-        <input asp-for="Input.Email" class="form-control" />
-        <span asp-validation-for="Input.Email" class="text-danger"></span>
-    </div>
-    <div class="mb-3">
-        <label asp-for="Input.RecoveryEmail" class="form-label"></label>
-        <input asp-for="Input.RecoveryEmail" class="form-control" />
-        <span asp-validation-for="Input.RecoveryEmail" class="text-danger"></span>
-    </div>
-    <div class="mb-3 form-check">
-        <input asp-for="Input.SystemAdmin" class="form-check-input" />
-        <label asp-for="Input.SystemAdmin" class="form-check-label"></label>
-    </div>
-    <div class="mb-3">
-        <label asp-for="Input.Password" class="form-label"></label>
-        <input asp-for="Input.Password" class="form-control" type="password" />
-        <span asp-validation-for="Input.Password" class="text-danger"></span>
-    </div>
-    <div class="mb-3">
-        <label asp-for="Input.ConfirmPassword" class="form-label"></label>
-        <input asp-for="Input.ConfirmPassword" class="form-control" type="password" />
-        <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
-    </div>
-
-    <button type="submit" class="btn btn-primary">Create</button>
-</form>
+        <form method="post" class="card bg-base-100 shadow-sm">
+            <div class="card-body">
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Name</span></label>
+                        <input asp-for="Input.Name" class="input input-bordered w-full" />
+                        <span asp-validation-for="Input.Name" class="validator-hint"></span>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Email</span></label>
+                        <input asp-for="Input.Email" class="input input-bordered w-full" />
+                        <span asp-validation-for="Input.Email" class="validator-hint"></span>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Recovery Email</span></label>
+                        <input asp-for="Input.RecoveryEmail" class="input input-bordered w-full" />
+                        <span asp-validation-for="Input.RecoveryEmail" class="validator-hint"></span>
+                    </div>
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-3">
+                            <input asp-for="Input.SystemAdmin" type="checkbox" class="checkbox" />
+                            <span class="label-text">System Admin</span>
+                        </label>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Password</span></label>
+                        <input asp-for="Input.Password" type="password" class="input input-bordered w-full" />
+                        <span asp-validation-for="Input.Password" class="validator-hint"></span>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Confirm Password</span></label>
+                        <input asp-for="Input.ConfirmPassword" type="password" class="input input-bordered w-full" />
+                        <span asp-validation-for="Input.ConfirmPassword" class="validator-hint"></span>
+                    </div>
+                </div>
+                <div class="join mt-4">
+                    <button type="submit" class="btn btn-primary join-item w-full md:w-auto">Create</button>
+                    <a class="btn btn-soft join-item" asp-page="/Users/Index" asp-preserve-query>Cancel</a>
+                </div>
+            </div>
+        </form>
+    </section>
+</div>
 
 <partial name="_ValidationScriptsPartial" />

@@ -4,27 +4,61 @@
     ViewData["Title"] = "User Details";
 }
 
-<h1>User Details</h1>
+<div class="flex flex-row gap-4">
+    @await Html.PartialAsync("_AppSidebar")
+    <section class="p-6 flex-1">
+        <div class="flex items-center justify-between mb-4">
+            <h1 class="text-2xl font-semibold">User Details</h1>
+            @if (Model.User != null)
+            {
+                <div class="join">
+                    <a class="btn btn-soft join-item" asp-page="/Users/Index" asp-preserve-query>Back</a>
+                    <a class="btn btn-primary join-item" asp-page="/Users/Edit" asp-route-id="@Model.User.Id">Edit</a>
+                </div>
+            }
+        </div>
 
-@if (Model.User == null)
-{
-    <div class="alert alert-warning">User not found.</div>
-}
-else
-{
-    <dl class="row">
-        <dt class="col-sm-3">Name</dt>
-        <dd class="col-sm-9">@Model.User.Name</dd>
-        <dt class="col-sm-3">Email</dt>
-        <dd class="col-sm-9">@Model.User.Email</dd>
-        <dt class="col-sm-3">Recovery Email</dt>
-        <dd class="col-sm-9">@Model.User.RecoveryEmail</dd>
-        <dt class="col-sm-3">Admin</dt>
-        <dd class="col-sm-9">@(Model.User.SystemAdmin ? "Yes" : "No")</dd>
-        <dt class="col-sm-3">Created</dt>
-        <dd class="col-sm-9">@Model.User.CreatedAt.ToString("u")</dd>
-    </dl>
-
-    <a class="btn btn-secondary" asp-page="/Users/Index">Back</a>
-    <a class="btn btn-primary" asp-page="/Users/Edit" asp-route-id="@Model.User.Id">Edit</a>
-}
+        @if (Model.User == null)
+        {
+            <div class="alert alert-warning">User not found.</div>
+        }
+        else
+        {
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body">
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-xs opacity-70">Name</div>
+                            <div class="font-medium">@Model.User.Name</div>
+                        </div>
+                        <div>
+                            <div class="text-xs opacity-70">Email</div>
+                            <div>@Model.User.Email</div>
+                        </div>
+                        <div>
+                            <div class="text-xs opacity-70">Recovery Email</div>
+                            <div>@Model.User.RecoveryEmail</div>
+                        </div>
+                        <div>
+                            <div class="text-xs opacity-70">Admin</div>
+                            <div>
+                                @if (Model.User.SystemAdmin)
+                                {
+                                    <span class="badge badge-soft badge-primary">Yes</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-soft">No</span>
+                                }
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-xs opacity-70">Created</div>
+                            <div>@Model.User.CreatedAt.ToString("u")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </section>
+</div>

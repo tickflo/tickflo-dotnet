@@ -1,23 +1,100 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
-namespace Tickflo.Web.Pages.Workspaces;
-
-public class InventoryModel : PageModel
+namespace Tickflo.Web.Pages.Workspaces
 {
-    private readonly IWorkspaceRepository _workspaceRepo;
-    public string WorkspaceSlug { get; private set; } = string.Empty;
-    public Workspace? Workspace { get; private set; }
-
-    public InventoryModel(IWorkspaceRepository workspaceRepo)
+    public class InventoryModel : PageModel
     {
-        _workspaceRepo = workspaceRepo;
-    }
+        private readonly IInventoryRepository _inventory;
+        private readonly IWorkspaceRepository _workspaces;
+        private readonly IUserWorkspaceRoleRepository _roles;
+        private readonly IHttpContextAccessor _http;
 
-    public async Task OnGetAsync(string slug)
-    {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
+        public InventoryModel(IInventoryRepository inventory, IWorkspaceRepository workspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http)
+        {
+            _inventory = inventory;
+            _workspaces = workspaces;
+            _roles = roles;
+            _http = http;
+        }
+
+        [BindProperty(SupportsGet = true)]
+        public string? Query { get; set; }
+
+        [BindProperty(SupportsGet = true)]
+        public string? Status { get; set; }
+
+        public string WorkspaceSlug { get; private set; } = string.Empty;
+        public bool IsWorkspaceAdmin { get; private set; }
+        public Workspace? Workspace { get; set; }
+        public IEnumerable<Inventory> Items { get; set; } = new List<Inventory>();
+
+        public async Task<IActionResult> OnGetAsync(string slug)
+        {
+            WorkspaceSlug = slug;
+            Workspace = await _workspaces.FindBySlugAsync(slug);
+            if (Workspace == null)
+            {
+                return NotFound();
+            }
+            var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            IsWorkspaceAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
+            Items = await _inventory.ListAsync(Workspace.Id, Query, Status);
+            return Page();
+        }
+
+        public async Task<IActionResult> OnPostArchiveAsync(string slug, int id)
+        {
+            WorkspaceSlug = slug;
+            Workspace = await _workspaces.FindBySlugAsync(slug);
+            if (Workspace == null)
+            {
+                return NotFound();
+            }
+            var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var isAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
+            if (!isAdmin)
+            {
+                return Forbid();
+            }
+            var item = await _inventory.FindAsync(Workspace.Id, id);
+            if (item == null)
+            {
+                return NotFound();
+            }
+            item.Status = "archived";
+            await _inventory.UpdateAsync(item);
+            return Redirect($"/workspaces/{Workspace.Slug}/inventory");
+        }
+
+        public async Task<IActionResult> OnPostRestoreAsync(string slug, int id)
+        {
+            WorkspaceSlug = slug;
+            Workspace = await _workspaces.FindBySlugAsync(slug);
+            if (Workspace == null)
+            {
+                return NotFound();
+            }
+            var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var isAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
+            if (!isAdmin)
+            {
+                return Forbid();
+            }
+            var item = await _inventory.FindAsync(Workspace.Id, id);
+            if (item == null)
+            {
+                return NotFound();
+            }
+            item.Status = "active";
+            await _inventory.UpdateAsync(item);
+            return Redirect($"/workspaces/{Workspace.Slug}/inventory");
+        }
     }
 }
+ 

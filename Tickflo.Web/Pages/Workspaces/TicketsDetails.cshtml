@@ -1,0 +1,84 @@
+@page "/workspaces/{slug}/tickets/{id:int}"
+@model Tickflo.Web.Pages.Workspaces.TicketsDetailsModel
+@{
+    ViewData["Title"] = "Ticket Details";
+}
+
+<div class="flex flex-row gap-4">
+  @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+  <section class="p-6 flex-1">
+@await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Ticket Details" })
+
+<div class="grid gap-4">
+  <div class="flex items-center justify-between">
+    <div class="join">
+      @{
+      }
+      <a class="btn btn-soft join-item btn-sm md:btn-md" href="/workspaces/@Model.WorkspaceSlug/tickets" asp-preserve-query>Back to list</a>
+    </div>
+  </div>
+
+  <div class="card bg-base-100">
+    <div class="card-body gap-2">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <h2 class="card-title">@Model.Ticket?.Subject</h2>
+        <div class="join">
+          <span class="badge badge-soft join-item">@Model.Ticket?.Priority</span>
+          <span class="badge badge-soft join-item">@Model.Ticket?.Status</span>
+        </div>
+      </div>
+      <div class="text-sm opacity-70">Created @Model.Ticket?.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</div>
+      @if(!string.IsNullOrWhiteSpace(Model.Ticket?.InventoryRef))
+      {
+        <div>Inventory: <a class="link" href="/workspaces/@Model.WorkspaceSlug/inventory?Query=@Model.Ticket!.InventoryRef">@Model.Ticket!.InventoryRef</a></div>
+      }
+      @if(Model.Contact != null)
+      {
+        <div>Contact: <span class="font-medium">@Model.Contact.Name</span> <span class="opacity-70">(@Model.Contact.Email)</span></div>
+      }
+      @if(Model.Ticket?.AssignedUserId != null)
+      {
+        <div>
+          Assignee:
+          <a class="link" href="/workspaces/@Model.WorkspaceSlug/tickets?AssigneeUserId=@Model.Ticket!.AssignedUserId">View all for assignee</a>
+        </div>
+      }
+      <div class="prose max-w-none">
+        <p>@Model.Ticket?.Description</p>
+      </div>
+    </div>
+  </div>
+
+  @if(Model.IsWorkspaceAdmin)
+  {
+    <div class="card bg-base-100">
+      <div class="card-body">
+        <form method="post" asp-page-handler="Status" class="join">
+          <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
+          <input type="hidden" name="id" value="@Model.Ticket!.Id" />
+          <select name="status" class="select select-bordered join-item select-sm md:select-md">
+            <option value="New" selected>New</option>
+            <option value="Open">Open</option>
+            <option value="Closed">Closed</option>
+          </select>
+          <button class="btn btn-soft join-item btn-sm md:btn-md" type="submit">Update Status</button>
+        </form>
+        <div class="divider"></div>
+        <form method="post" asp-page-handler="Assign" class="join">
+          <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
+          <input type="hidden" name="id" value="@Model.Ticket!.Id" />
+          <select name="assignedUserId" class="select select-bordered join-item select-sm md:select-md">
+            <option value="">Unassigned</option>
+            @foreach (var u in Model.Members)
+            {
+              <option selected="@(Model.Ticket!.AssignedUserId == u.Id)" value="@u.Id">@u.Name (@u.Email)</option>
+            }
+          </select>
+          <button class="btn btn-soft join-item btn-sm md:btn-md" type="submit">Assign</button>
+        </form>
+      </div>
+    </div>
+  }
+  </div>
+  </section>
+</div>

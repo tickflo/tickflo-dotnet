@@ -893,9 +893,198 @@ ALTER TABLE public.user_workspaces
     ALTER COLUMN role SET NOT NULL;
 
 
+-- Contacts: table, identity, PK, unique, and FK (idempotent)
+CREATE TABLE IF NOT EXISTS public.contacts (
+    id integer NOT NULL,
+    workspace_id integer NOT NULL,
+    name text NOT NULL,
+    email text NOT NULL,
+    phone text NULL,
+    company text NULL,
+    title text NULL,
+    notes text NULL,
+    tags text NULL,
+    preferred_channel text NULL,
+    priority text NULL,
+    status text NULL,
+    assigned_user_id integer NULL,
+    last_interaction timestamp NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+DO $$ BEGIN
+    ALTER TABLE public.contacts ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+        SEQUENCE NAME public.contacts_id_seq
+        START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1
+    );
+EXCEPTION WHEN duplicate_table OR duplicate_object THEN NULL; END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint con
+        JOIN pg_class rel ON rel.oid = con.conrelid
+        JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+        WHERE con.contype = 'p' AND rel.relname = 'contacts' AND nsp.nspname = 'public'
+    ) THEN
+        ALTER TABLE ONLY public.contacts ADD CONSTRAINT contacts_pkey PRIMARY KEY (id);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'contacts_workspace_email_unique') THEN
+        ALTER TABLE ONLY public.contacts
+            ADD CONSTRAINT contacts_workspace_email_unique UNIQUE NULLS NOT DISTINCT (workspace_id, email);
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    ALTER TABLE ONLY public.contacts
+        ADD CONSTRAINT contacts_workspace_id_workspaces_id_fk FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Tickets: table, identity, PK, and FKs (idempotent)
+CREATE TABLE IF NOT EXISTS public.tickets (
+    id integer NOT NULL,
+    workspace_id integer NOT NULL,
+    contact_id integer NOT NULL,
+    subject text NOT NULL,
+    description text NOT NULL,
+    priority text DEFAULT 'Normal' NOT NULL,
+    status text DEFAULT 'New' NOT NULL,
+    assigned_user_id integer NULL,
+    inventory_ref text NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone
+);
+
+DO $$ BEGIN
+    ALTER TABLE public.tickets ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+        SEQUENCE NAME public.tickets_id_seq
+        START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1
+    );
+EXCEPTION WHEN duplicate_table OR duplicate_object THEN NULL; END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint con
+        JOIN pg_class rel ON rel.oid = con.conrelid
+        JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+        WHERE con.contype = 'p' AND rel.relname = 'tickets' AND nsp.nspname = 'public'
+    ) THEN
+        ALTER TABLE ONLY public.tickets ADD CONSTRAINT tickets_pkey PRIMARY KEY (id);
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    ALTER TABLE ONLY public.tickets
+        ADD CONSTRAINT tickets_workspace_id_workspaces_id_fk FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    ALTER TABLE ONLY public.tickets
+        ADD CONSTRAINT tickets_contact_id_contacts_id_fk FOREIGN KEY (contact_id) REFERENCES public.contacts(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+
+-- Inventory: table, identity, PK, uniques, and FKs (idempotent)
+CREATE TABLE IF NOT EXISTS public.inventory (
+    id integer NOT NULL,
+    workspace_id integer NOT NULL,
+    sku character varying(100) NOT NULL,
+    name character varying(200) NOT NULL,
+    description text,
+    quantity integer DEFAULT 0 NOT NULL,
+    location_id integer,
+    min_stock integer,
+    cost numeric(12,2) DEFAULT 0 NOT NULL,
+    price numeric(12,2),
+    category character varying(100),
+    tags text,
+    status character varying(30) DEFAULT 'active' NOT NULL,
+    supplier character varying(200),
+    last_restock_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone
+);
+
+DO $$ BEGIN
+    ALTER TABLE public.inventory ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+        SEQUENCE NAME public.inventory_id_seq
+        START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1
+    );
+EXCEPTION WHEN duplicate_table OR duplicate_object THEN NULL; END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint con
+        JOIN pg_class rel ON rel.oid = con.conrelid
+        JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+        WHERE con.contype = 'p' AND rel.relname = 'inventory' AND nsp.nspname = 'public'
+    ) THEN
+        ALTER TABLE ONLY public.inventory ADD CONSTRAINT inventory_pkey PRIMARY KEY (id);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'inventory_workspace_id_sku_unique') THEN
+        ALTER TABLE ONLY public.inventory
+            ADD CONSTRAINT inventory_workspace_id_sku_unique UNIQUE (workspace_id, sku);
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    ALTER TABLE ONLY public.inventory
+        ADD CONSTRAINT inventory_workspace_id_workspaces_id_fk FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    ALTER TABLE ONLY public.inventory
+        ADD CONSTRAINT inventory_location_id_locations_id_fk FOREIGN KEY (location_id) REFERENCES public.locations(id);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+
 --
 -- Dbmate schema migrations
 --
+
+--
+-- Indexes for query performance (idempotent)
+--
+
+-- Tickets: common filters and pagination
+CREATE INDEX IF NOT EXISTS idx_tickets_ws_status
+    ON public.tickets (workspace_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_tickets_ws_priority
+    ON public.tickets (workspace_id, priority);
+
+CREATE INDEX IF NOT EXISTS idx_tickets_ws_assigned
+    ON public.tickets (workspace_id, assigned_user_id);
+
+CREATE INDEX IF NOT EXISTS idx_tickets_ws_contact
+    ON public.tickets (workspace_id, contact_id);
+
+CREATE INDEX IF NOT EXISTS idx_tickets_ws_created_at
+    ON public.tickets (workspace_id, created_at DESC);
+
+-- Inventory: status filter, name queries, and location filter
+CREATE INDEX IF NOT EXISTS idx_inventory_ws_status
+    ON public.inventory (workspace_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_inventory_ws_name
+    ON public.inventory (workspace_id, name);
+
+CREATE INDEX IF NOT EXISTS idx_inventory_ws_location
+    ON public.inventory (workspace_id, location_id);
+
+-- Contacts: optional name searches alongside existing (workspace_id, email) unique index
+CREATE INDEX IF NOT EXISTS idx_contacts_ws_name
+    ON public.contacts (workspace_id, name);
 
 
 -- migrate:down

@@ -3,11 +3,16 @@
 @{
     ViewData["Title"] = "New Ticket";
 }
-<div class="flex">
+<div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "New Ticket" })
         <form class="mt-4 max-w-xl" method="post">
+            <div class="fieldset">
+                <label class="label"><span class="label-text">Contact</span></label>
+                <input class="input" asp-for="ContactId" />
+                <span class="validator-hint" asp-validation-for="ContactId"></span>
+            </div>
             <div class="fieldset">
                 <label class="fieldset-label">Subject</label>
                 <input class="input" asp-for="Subject" />
@@ -16,9 +21,24 @@
                 <label class="fieldset-label">Description</label>
                 <textarea class="textarea" asp-for="Description"></textarea>
             </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="fieldset">
+                    <label class="label"><span class="label-text">Priority</span></label>
+                    <select class="select" asp-for="Priority">
+                        <option>Low</option>
+                        <option>Normal</option>
+                        <option>High</option>
+                        <option>Urgent</option>
+                    </select>
+                </div>
+                <div class="fieldset">
+                    <label class="label"><span class="label-text">Inventory Ref (SKU)</span></label>
+                    <input class="input" asp-for="InventoryRef" />
+                </div>
+            </div>
             <div class="mt-4 flex gap-2">
-                <button type="submit" class="btn btn-primary">Create Ticket</button>
-                <a class="btn" asp-page="/Workspaces/Tickets" asp-route-slug="@Model.WorkspaceSlug">Cancel</a>
+                <button type="submit" class="btn btn-primary w-full md:w-auto">Create Ticket</button>
+                <a class="btn" href="/workspaces/@Model.WorkspaceSlug/tickets" asp-preserve-query>Cancel</a>
             </div>
         </form>
     </section>

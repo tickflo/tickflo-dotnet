@@ -4,7 +4,7 @@
     ViewData["Title"] = "Contacts";
 }
 
-<div class="flex">
+<div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Contacts", NewActionLabel = "New Contact", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/contacts/new" })
@@ -21,22 +21,52 @@
                         <thead>
                             <tr>
                                 <th>Name</th>
-                                <th>Email</th>
-                                <th>Phone</th>
+                                <th>Contact</th>
+                                <th class="hidden sm:table-cell">Flags</th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>—</td>
-                                <td>—</td>
-                                <td>—</td>
-                                <td>
-                                    <div class="flex flex-wrap gap-2 md:join">
-                                        <a class="btn btn-soft btn-xs btn-ghost md:join-item" asp-page="/Workspaces/ContactsNew" asp-route-slug="@Model.WorkspaceSlug">Add</a>
-                                    </div>
-                                </td>
-                            </tr>
+                            @if (Model.Contacts == null || !Model.Contacts.Any())
+                            {
+                                <tr>
+                                    <td colspan="4">
+                                        <div class="alert alert-info">No contacts yet.</div>
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                foreach (var c in Model.Contacts)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="font-medium">@c.Name</div>
+                                            <div class="text-xs text-base-content/70">@c.Company</div>
+                                        </td>
+                                        <td>
+                                            <div class="break-all">@c.Email</div>
+                                            @if (!string.IsNullOrWhiteSpace(c.Phone))
+                                            {
+                                                <div class="text-xs text-base-content/70 break-all">@c.Phone</div>
+                                            }
+                                        </td>
+                                        <td class="hidden sm:table-cell">
+                                            <div class="flex flex-wrap gap-1">
+                                                @if (!string.IsNullOrWhiteSpace(c.Priority)) { <span class="badge badge-soft">@c.Priority</span> }
+                                                @if (!string.IsNullOrWhiteSpace(c.PreferredChannel)) { <span class="badge">@c.PreferredChannel</span> }
+                                                @if (!string.IsNullOrWhiteSpace(c.Status)) { <span class="badge">@c.Status</span> }
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="flex flex-wrap gap-2 md:join">
+                                                <a class="btn btn-soft btn-xs btn-ghost md:join-item" asp-page="/Workspaces/ContactsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@c.Id">Edit</a>
+                                                <a class="btn btn-soft btn-xs btn-primary md:join-item" asp-page="/Workspaces/TicketsNew" asp-route-slug="@Model.WorkspaceSlug" asp-route-contactId="@c.Id">New Ticket</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
                         </tbody>
                     </table>
                 </div>
