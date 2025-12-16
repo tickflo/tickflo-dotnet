@@ -8,10 +8,31 @@
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Settings" })
-        <h1 class="text-2xl font-bold">Settings</h1>
-        <p class="mt-2 text-sm text-muted">Workspace: @Model.WorkspaceSlug</p>
-        <div class="mt-4">
-            <p>Settings page placeholder. Workspace preferences and configuration here.</p>
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body">
+                <h2 class="card-title">Settings</h2>
+                <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
+            </div>
+        </div>
+        <div class="card bg-base-100 shadow-sm mt-4 max-w-xl">
+            <div class="card-body">
+                <form method="post">
+                    <div class="fieldset">
+                        <label class="label" for="Name"><span class="label-text">Workspace Name</span></label>
+                        <input class="input validator" asp-for="Workspace.Name" />
+                        <span asp-validation-for="Workspace.Name" class="validator-hint"></span>
+                    </div>
+                    <div class="fieldset">
+                        <label class="label" for="Slug"><span class="label-text">Slug</span></label>
+                        <input class="input validator" asp-for="Workspace.Slug" />
+                        <span asp-validation-for="Workspace.Slug" class="validator-hint"></span>
+                    </div>
+                    <div class="card-actions">
+                        <button type="submit" class="btn btn-soft btn-primary">Save</button>
+                        <a class="btn btn-soft btn-ghost" asp-page="/Workspace" asp-route-slug="@Model.WorkspaceSlug">Cancel</a>
+                    </div>
+                </form>
+            </div>
         </div>
     </section>
 </div>

@@ -8,10 +8,44 @@
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Tickets", NewActionLabel = "New Ticket", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/tickets/new" })
-        <h1 class="text-2xl font-bold">Tickets</h1>
-        <p class="mt-2 text-sm text-muted">Workspace: @Model.WorkspaceSlug</p>
-        <div class="mt-4">
-            <p>Tickets page placeholder. Inbox, Closed, filters go here.</p>
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body">
+                <h2 class="card-title">Tickets</h2>
+                <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
+            </div>
+        </div>
+        <div class="card bg-base-100 shadow-sm mt-4">
+            <div class="card-body">
+                <form class="filter mb-4">
+                    <input class="btn filter-reset" type="radio" name="ticket-filter" aria-label="×" />
+                    <input class="btn" type="radio" name="ticket-filter" aria-label="Inbox" />
+                    <input class="btn" type="radio" name="ticket-filter" aria-label="Closed" />
+                </form>
+                <div class="overflow-x-auto">
+                    <table class="table table-md">
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th>Status</th>
+                                <th>Updated</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>—</td>
+                                <td><span class="badge badge-soft">New</span></td>
+                                <td>—</td>
+                                <td>
+                                    <div class="join">
+                                        <a class="btn btn-soft btn-xs btn-ghost join-item" asp-page="/Workspaces/TicketsNew" asp-route-slug="@Model.WorkspaceSlug">Add</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </section>
 </div>

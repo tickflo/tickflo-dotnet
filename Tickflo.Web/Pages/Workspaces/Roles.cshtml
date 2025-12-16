@@ -15,41 +15,59 @@
                 <span>@err</span>
             </div>
         }
-        <p class="mt-2 text-sm text-muted">Workspace: @Model.WorkspaceSlug</p>
-        <div class="mt-4 space-y-4">
-            <table class="min-w-full text-sm">
-                <thead>
-                    <tr class="text-left">
-                        <th class="px-2 py-1">Name</th>
-                        <th class="px-2 py-1">Admin</th>
-                        <th class="px-2 py-1">Assigned Users</th>
-                        <th class="px-2 py-1">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var role in Model.Roles)
-                {
-                    <tr class="border-t">
-                        <td class="px-2 py-1">@role.Name</td>
-                        <td class="px-2 py-1">@(role.Admin ? "Yes" : "No")</td>
-                        <td class="px-2 py-1">@Model.RoleAssignmentCounts.GetValueOrDefault(role.Id)</td>
-                        <td class="px-2 py-1">
-                            <a class="text-blue-600" href="/workspaces/@Model.WorkspaceSlug/users/roles/@role.Id/edit">Edit</a>
-                            <form method="post" action="/workspaces/@Model.WorkspaceSlug/users/roles/@role.Id/delete" style="display:inline" onsubmit="return confirm('Delete role @role.Name?');">
-                                <button class="text-red-600 ml-2" type="submit" @(Model.RoleAssignmentCounts.GetValueOrDefault(role.Id) > 0 ? "disabled" : "")>Delete</button>
-                            </form>
-                            @if (Model.RoleAssignmentCounts.GetValueOrDefault(role.Id) > 0)
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body">
+                <h2 class="card-title">Roles</h2>
+                <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
+            </div>
+        </div>
+        <div class="card bg-base-100 shadow-sm mt-4">
+            <div class="card-body">
+                <div class="overflow-x-auto">
+                    <table class="table table-md">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Admin</th>
+                                <th>Assigned Users</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Roles == null || !Model.Roles.Any())
                             {
-                                <span class="text-sm text-muted ml-2">Unassign users before deleting.</span>
+                                <tr>
+                                    <td colspan="3">
+                                        <div class="alert alert-info">No roles yet.</div>
+                                    </td>
+                                </tr>
                             }
-                        </td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-            <div class="mt-3 flex gap-2">
-                <a class="btn btn-primary" href="/workspaces/@Model.WorkspaceSlug/users/roles/new">Create Role</a>
-                <a class="btn" href="/workspaces/@Model.WorkspaceSlug/users/roles/assign">Assign Users to Roles</a>
+                            else
+                            {
+                                foreach (var r in Model.Roles)
+                                {
+                                    <tr>
+                                        <td>@r.Name</td>
+                                        <td>@(r.Admin ? "Yes" : "No")</td>
+                                        <td>@Model.RoleAssignmentCounts.GetValueOrDefault(r.Id)</td>
+                                        <td>
+                                            <div class="join">
+                                                <a class="btn btn-soft btn-xs btn-ghost join-item" href="/workspaces/@Model.WorkspaceSlug/users/roles/@r.Id/edit">Edit</a>
+                                                <form method="post" action="/workspaces/@Model.WorkspaceSlug/users/roles/@r.Id/delete" onsubmit="return confirm('Delete role @r.Name?');">
+                                                    <button class="btn btn-soft btn-xs btn-error join-item" type="submit" @(Model.RoleAssignmentCounts.GetValueOrDefault(r.Id) > 0 ? "disabled" : null)>Delete</button>
+                                                </form>
+                                                @if (Model.RoleAssignmentCounts.GetValueOrDefault(r.Id) > 0)
+                                                {
+                                                    <span class="text-xs text-base-content/70 ml-2">Unassign users before deleting.</span>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </section>

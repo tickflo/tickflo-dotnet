@@ -11,6 +11,8 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
     public DbSet<UserWorkspace> UserWorkspaces => Set<UserWorkspace>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserWorkspaceRole> UserWorkspaceRoles => Set<UserWorkspaceRole>();
+    public DbSet<Location> Locations => Set<Location>();
+    public DbSet<Report> Reports => Set<Report>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -29,6 +31,14 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
 
         modelBuilder.Entity<Workspace>()
             .HasIndex(w => w.Slug)
+            .IsUnique();
+
+        modelBuilder.Entity<Location>()
+            .HasIndex(l => new { l.WorkspaceId, l.Name })
+            .IsUnique();
+
+        modelBuilder.Entity<Report>()
+            .HasIndex(r => new { r.WorkspaceId, r.Name })
             .IsUnique();
 
         base.OnModelCreating(modelBuilder);

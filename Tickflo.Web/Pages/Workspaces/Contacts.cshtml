@@ -8,10 +8,39 @@
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Contacts", NewActionLabel = "New Contact", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/contacts/new" })
-        <h1 class="text-2xl font-bold">Contacts</h1>
-        <p class="mt-2 text-sm text-muted">Workspace: @Model.WorkspaceSlug</p>
-        <div class="mt-4">
-            <p>Contacts page placeholder. Implement listing and management here.</p>
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body">
+                <h2 class="card-title">Contacts</h2>
+                <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
+            </div>
+        </div>
+        <div class="card bg-base-100 shadow-sm mt-4">
+            <div class="card-body">
+                <div class="overflow-x-auto">
+                    <table class="table table-md">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>—</td>
+                                <td>—</td>
+                                <td>—</td>
+                                <td>
+                                    <div class="join">
+                                        <a class="btn btn-soft btn-xs btn-ghost join-item" asp-page="/Workspaces/ContactsNew" asp-route-slug="@Model.WorkspaceSlug">Add</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </section>
 </div>

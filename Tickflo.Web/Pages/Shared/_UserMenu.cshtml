@@ -11,15 +11,15 @@
 @if (user?.Identity?.IsAuthenticated == true)
 {
     <div class="dropdown dropdown-end">
-        <div tabindex="0" role="button">
-            <div class="avatar mr-4">
+        <div tabindex="0" role="button" class="btn btn-soft btn-ghost">
+            <div class="avatar mr-2">
                 <div class="w-8 rounded-full ring ring-offset-2 ring-offset-base-100">
                     <img src="/users/@userId/avatar" alt="Avatar Preview" />
                 </div>
             </div>
-            @userName
+            <span class="max-w-40 truncate">@userName</span>
         </div>
-        <ul class="dropdown-content menu z-1 w-52 rounded-box bg-base-100 p-2 shadow-sm">
+        <ul class="dropdown-content menu z-10 w-52 rounded-box bg-base-100 p-2 shadow">
             <li>
                 <a href="/profile" onclick="(e) => e.currentTarget.blur()">
                     <i class="fa fa-user"></i> Profile
@@ -33,7 +33,7 @@
             </li>
             <li>
                 <form method="post" action="/logout">
-                    <button type="submit" class="cursor-pointer">
+                    <button type="submit" class="btn btn-soft btn-ghost">
                         <i class="fa fa-sign-out-alt mr-2 inline"></i>
                         Logout
                     </button>

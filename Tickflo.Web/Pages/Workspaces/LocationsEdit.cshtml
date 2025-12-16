@@ -1,12 +1,12 @@
-@page "/workspaces/{slug}/locations/new"
-@model Tickflo.Web.Pages.Workspaces.LocationsNewModel
+@page "/workspaces/{slug}/locations/{locationId:int}/edit"
+@model Tickflo.Web.Pages.Workspaces.LocationsEditModel
 @{
-    ViewData["Title"] = "New Location";
+    ViewData["Title"] = "Edit Location";
 }
 <div class="flex">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
-        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "New Location" })
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Edit Location" })
         <div class="card bg-base-100 shadow-sm mt-4 max-w-xl">
             <div class="card-body">
                 <form method="post">
@@ -20,6 +20,12 @@
                         <input class="input validator" asp-for="Address" />
                         <span asp-validation-for="Address" class="validator-hint"></span>
                     </div>
+                    <div class="fieldset">
+                        <label class="label cursor-pointer">
+                            <span class="label-text">Active</span>
+                            <input type="checkbox" class="toggle" asp-for="Active" />
+                        </label>
+                    </div>
                     <div class="card-actions">
                         <button type="submit" class="btn btn-soft btn-primary">Save</button>
                         <a class="btn btn-soft btn-ghost" asp-page="/Workspaces/Locations" asp-route-slug="@Model.WorkspaceSlug">Cancel</a>
@@ -28,4 +34,4 @@
             </div>
         </div>
     </section>
-</div>
+    </div>

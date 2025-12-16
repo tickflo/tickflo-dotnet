@@ -8,10 +8,60 @@
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Locations", NewActionLabel = "New Location", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/locations/new" })
-        <h1 class="text-2xl font-bold">Locations</h1>
-        <p class="mt-2 text-sm text-muted">Workspace: @Model.WorkspaceSlug</p>
-        <div class="mt-4">
-            <p>Locations page placeholder. Map and site list here.</p>
+        @if (TempData["Success"] is string s1 && !string.IsNullOrWhiteSpace(s1))
+        {
+            <div class="alert alert-success my-4">@s1</div>
+        }
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body">
+                <h2 class="card-title">Locations</h2>
+                <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
+            </div>
+        </div>
+        <div class="card bg-base-100 shadow-sm mt-4">
+            <div class="card-body">
+                <div class="overflow-x-auto">
+                    <table class="table table-md">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Address</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Locations == null || !Model.Locations.Any())
+                            {
+                                <tr>
+                                    <td colspan="4">
+                                        <div class="alert alert-info">No locations yet.</div>
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                foreach (var loc in Model.Locations)
+                                {
+                                    <tr>
+                                        <td>@loc.Name</td>
+                                        <td>@loc.Address</td>
+                                        <td><span class="badge">@(loc.Active ? "Active" : "Inactive")</span></td>
+                                        <td>
+                                            <div class="join">
+                                                <a class="btn btn-soft btn-xs btn-ghost join-item" asp-page="/Workspaces/LocationsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-locationId="@loc.Id">Edit</a>
+                                                <form method="post" asp-page-handler="Delete" asp-route-slug="@Model.WorkspaceSlug" asp-route-locationId="@loc.Id">
+                                                    <button class="btn btn-soft btn-xs btn-error join-item" type="submit">Delete</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </section>
 </div>

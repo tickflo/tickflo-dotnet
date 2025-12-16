@@ -8,10 +8,58 @@
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Reports", NewActionLabel = "New Report", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/reports/new" })
-        <h1 class="text-2xl font-bold">Reports</h1>
-        <p class="mt-2 text-sm text-muted">Workspace: @Model.WorkspaceSlug</p>
-        <div class="mt-4">
-            <p>Reports page placeholder. Charts and exports here.</p>
+        @if (TempData["Success"] is string s2 && !string.IsNullOrWhiteSpace(s2))
+        {
+            <div class="alert alert-success my-4">@s2</div>
+        }
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body">
+                <h2 class="card-title">Reports</h2>
+                <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
+            </div>
+        </div>
+        <div class="card bg-base-100 shadow-sm mt-4">
+            <div class="card-body">
+                <div class="overflow-x-auto">
+                    <table class="table table-md">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Status</th>
+                                <th>Last Run</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Reports == null || !Model.Reports.Any())
+                            {
+                                <tr>
+                                    <td colspan="4">
+                                        <div class="alert alert-info">No reports yet.</div>
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                foreach (var rep in Model.Reports)
+                                {
+                                    <tr>
+                                        <td>@rep.Name</td>
+                                        <td><span class="badge">@(rep.Ready ? "Ready" : "Draft")</span></td>
+                                        <td>@(rep.LastRun.HasValue ? rep.LastRun.Value.ToString("g") : "Never")</td>
+                                        <td>
+                                            <div class="join">
+                                                <a class="btn btn-soft btn-xs btn-ghost join-item" asp-page="/Workspaces/ReportsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@rep.Id">Edit</a>
+                                                <button class="btn btn-soft btn-xs btn-primary join-item" type="button">Run</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </section>
 </div>

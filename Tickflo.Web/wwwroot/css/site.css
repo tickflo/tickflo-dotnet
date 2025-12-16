@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @plugin "daisyui" {
-    themes: light --default, dark;
+    themes: dark --default, light;
 }
 
 .input-validation-error {

@@ -7,19 +7,25 @@
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Invite User" })
-        <form class="mt-4 max-w-xl" method="post">
-            <div class="fieldset">
-                <label class="fieldset-label">Email</label>
-                <input class="input" asp-for="Email" />
+        <div class="card bg-base-100 shadow-sm mt-4 max-w-xl">
+            <div class="card-body">
+                <form method="post">
+                    <div class="fieldset">
+                        <label class="label" for="Email"><span class="label-text">Email</span></label>
+                        <input class="input validator" asp-for="Email" />
+                        <span asp-validation-for="Email" class="validator-hint"></span>
+                    </div>
+                    <div class="fieldset">
+                        <label class="label" for="Role"><span class="label-text">Role</span></label>
+                        <select class="select validator" asp-for="Role"><option>Member</option><option>Admin</option></select>
+                        <span asp-validation-for="Role" class="validator-hint"></span>
+                    </div>
+                    <div class="card-actions justify-start mt-2">
+                        <button type="submit" class="btn btn-soft btn-primary">Send Invite</button>
+                        <a class="btn btn-soft btn-ghost" asp-page="/Workspaces/Users" asp-route-slug="@Model.WorkspaceSlug">Cancel</a>
+                    </div>
+                </form>
             </div>
-            <div class="fieldset">
-                <label class="fieldset-label">Role</label>
-                <select class="select" asp-for="Role"><option>Member</option><option>Admin</option></select>
-            </div>
-            <div class="mt-4 flex gap-2">
-                <button type="submit" class="btn btn-primary">Send Invite</button>
-                <a class="btn" asp-page="/Workspaces/Users" asp-route-slug="@Model.WorkspaceSlug">Cancel</a>
-            </div>
-        </form>
+        </div>
     </section>
 </div>

@@ -9,6 +9,7 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class ReportsNewModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
+    private readonly IReportRepository _reportRepo;
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -19,12 +20,13 @@ public class ReportsNewModel : PageModel
     [BindProperty]
     public string Type { get; set; } = "Summary";
 
-    public ReportsNewModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IHttpContextAccessor httpContextAccessor)
+    public ReportsNewModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IHttpContextAccessor httpContextAccessor, IReportRepository reportRepo)
     {
         _workspaceRepo = workspaceRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
         _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
         _httpContextAccessor = httpContextAccessor;
+        _reportRepo = reportRepo;
     }
 
     public async Task<IActionResult> OnGetAsync(string slug)
@@ -52,6 +54,7 @@ public class ReportsNewModel : PageModel
         {
             return Page();
         }
+        await _reportRepo.CreateAsync(new Tickflo.Core.Entities.Report { WorkspaceId = Workspace.Id, Name = Title, Ready = Type == "Summary" });
         TempData["Success"] = $"Report '{Title}' created successfully.";
         return RedirectToPage("/Workspaces/Reports", new { slug });
     }

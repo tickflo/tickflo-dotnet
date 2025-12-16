@@ -11,44 +11,47 @@
     </aside>
 
     <div class="flex-1 overflow-x-auto p-4">
-        @* Alert copied from the previous dashboard *@
-        <div role="alert" class="alert mb-4">
-            <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" class="text-info" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M256 8C119.043 8 8 119.083 8 256c0 136.997 111.043 248 248 248s248-111.003 248-248C504 119.083 392.957 8 256 8zm0 110c23.196 0 42 18.804 42 42s-18.804 42-42 42-42-18.804-42-42 18.804-42 42-42zm56 254c0 6.627-5.373 12-12 12h-88c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h12v-64h-12c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h64c6.627 0 12 5.373 12 12v100h12c6.627 0 12 5.373 12 12v24z"></path></svg>
+        <div role="alert" class="alert alert-info mb-4">
             <span>You have not yet confirmed your email address</span>
-            <div>
-                <form class="inline-block" data-discover="true" action="/email-confirmation/dismiss" method="post">
-                    <button type="submit" class="btn btn-sm">Dismiss</button>
+            <div class="join join-horizontal">
+                <form class="join-item" data-discover="true" action="/email-confirmation/dismiss" method="post">
+                    <button type="submit" class="btn btn-soft btn-sm">Dismiss</button>
                 </form>
-                <form class="inline-block ml-2" data-discover="true" action="/email-confirmation/resend" method="post">
-                    <button type="submit" class="btn btn-sm btn-primary">Resend Email</button>
+                <form class="join-item" data-discover="true" action="/email-confirmation/resend" method="post">
+                    <button type="submit" class="btn btn-soft btn-sm btn-primary">Resend Email</button>
                 </form>
             </div>
         </div>
 
         @if (Model.Workspace == null)
         {
-            <div class="card bg-base-100 shadow-sm p-4">
-                <h2 class="text-2xl font-bold">Dashboard</h2>
-                <p class="mt-2 text-sm text-muted">TODO: Put a cool dashboard or something here</p>
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body">
+                    <h2 class="card-title">Dashboard</h2>
+                    <p class="text-sm text-base-content/70">TODO: Put a cool dashboard or something here</p>
+                </div>
             </div>
         }
         else
         {
             @if (!Model.IsMember)
             {
-                <p>You are not a member of this workspace.</p>
-                <p><a href="/workspaces">Back to your workspaces</a></p>
+                <div class="alert alert-warning mb-4">
+                    <span>You are not a member of this workspace.</span>
+                </div>
+                <a class="link link-hover" href="/workspaces">Back to your workspaces</a>
             }
             else
             {
-                <div class="p-4">
-                     <h1 class="text-2xl font-bold">@Model.Workspace.Name</h1>
-                <p class="mt-2">Workspace slug: @Model.Workspace.Slug</p>
-                    <div class="mt-4">
-                        <a class="btn btn-sm btn-primary" asp-page="/Workspaces/UsersInvite" asp-route-slug="@Model.Workspace.Slug">Invite User</a>
+                <div class="card bg-base-100 shadow-sm mb-4">
+                    <div class="card-body">
+                        <h1 class="card-title">@Model.Workspace.Name</h1>
+                        <p class="text-sm">Workspace slug: <span class="badge badge-sm">@Model.Workspace.Slug</span></p>
+                        <div class="card-actions">
+                            <a class="btn btn-soft btn-primary" asp-page="/Workspaces/UsersInvite" asp-route-slug="@Model.Workspace.Slug">Invite User</a>
+                        </div>
                     </div>
-                    
-                    </div>
+                </div>
 
                
          <div>

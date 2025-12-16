@@ -19,13 +19,14 @@
     <nav id="workspace-nav" aria-label="Workspace navigation" class="p-2">
         <a class="btn btn-ghost" asp-page="/Workspace" asp-route-slug="@slug">Workspaces</a>
         <ul class="menu w-56 rounded-box bg-base-200 mt-2">
+            <li class="menu-title">Overview</li>
             <li><a class="@(IsActive($"/workspaces/{slug}") && !IsActive("/contacts") && !IsActive("/tickets") && !IsActive("/reports") && !IsActive("/locations") && !IsActive("/inventory") && !IsActive("/users") && !IsActive("/users/roles") && !IsActive("/settings") ? "menu-active" : "")" asp-page="/Workspace" asp-route-slug="@slug"><i class="fa fa-house"></i> Dashboard</a></li>
             <li><a class="@(IsActive("/contacts") ? "menu-active" : "")" asp-page="/Workspaces/Contacts" asp-route-slug="@slug"><i class="fa fa-address-book"></i> Contacts</a></li>
             <li>
                 <details>
                     <summary><i class="fa fa-ticket"></i> Tickets</summary>
                     <ul>
-                        <li><a class="@(IsActive("/tickets") ? "menu-active" : "")" asp-page="/Workspaces/Tickets" asp-route-slug="@slug">Inbox <span class="badge badge-xs badge-primary">10</span></a></li>
+                        <li><a class="@(IsActive("/tickets") ? "menu-active" : "")" asp-page="/Workspaces/Tickets" asp-route-slug="@slug">Inbox <span class="badge badge-sm badge-primary">10</span></a></li>
                         <li><a class="@(IsActive("/tickets") ? "menu-active" : "")" asp-page="/Workspaces/Tickets" asp-route-slug="@slug">Closed</a></li>
                         <li><a class="@(IsActive("/tickets") ? "menu-active" : "")" asp-page="/Workspaces/Tickets" asp-route-slug="@slug">test</a></li>
                     </ul>

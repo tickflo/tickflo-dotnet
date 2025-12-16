@@ -1,5 +1,5 @@
 ﻿@{
-    var theme = Context.Request.Cookies["theme"] ?? "light";
+    var theme = Context.Request.Cookies["theme"] ?? "dark";
 }
 
 <!DOCTYPE html>
@@ -26,15 +26,10 @@
         <div class="flex-none">
             <ul class="menu menu-horizontal px-1">
                 <li>
-                    <form method="post" action="/toggle-theme">
-                        <button type="submit" class="pt-1">
-                            @if (theme == "dark") {
-                                <i class="fa fa-sun"></i>
-                            } else {
-                                <i class="fa fa-moon"></i>
-                            }
-                        </button>
-                    </form>
+                    <label class="cursor-pointer flex items-center gap-2">
+                        <input type="checkbox" class="toggle theme-controller" value="dark" checked="@(theme == "dark" ? "checked" : null)" onchange="setThemeCookie(this.checked ? 'dark' : 'light')" />
+                        <span>@(theme == "dark" ? "Dark" : "Light")</span>
+                    </label>
                 </li>
                 <li>
                     <a href="/notifications">
@@ -51,6 +46,13 @@
 
     @RenderBody()
 
+    <script>
+        function setThemeCookie(value) {
+            const expires = new Date();
+            expires.setFullYear(expires.getFullYear() + 1);
+            document.cookie = `theme=${value}; path=/; expires=${expires.toUTCString()}`;
+        }
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 
