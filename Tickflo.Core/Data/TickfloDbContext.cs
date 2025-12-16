@@ -17,6 +17,7 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<Inventory> Inventory => Set<Inventory>();
     public DbSet<TicketStatus> TicketStatuses => Set<TicketStatus>();
+    public DbSet<TicketPriority> TicketPriorities => Set<TicketPriority>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -58,6 +59,10 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
 
         modelBuilder.Entity<TicketStatus>()
             .HasIndex(s => new { s.WorkspaceId, s.Name })
+            .IsUnique();
+
+        modelBuilder.Entity<TicketPriority>()
+            .HasIndex(p => new { p.WorkspaceId, p.Name })
             .IsUnique();
 
         base.OnModelCreating(modelBuilder);

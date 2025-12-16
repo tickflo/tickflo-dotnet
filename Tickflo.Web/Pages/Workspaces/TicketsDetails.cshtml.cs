@@ -17,8 +17,9 @@ public class TicketsDetailsModel : PageModel
     private readonly IUserWorkspaceRoleRepository _roles;
     private readonly IHttpContextAccessor _http;
     private readonly ITicketStatusRepository _statusRepo;
+    private readonly ITicketPriorityRepository _priorityRepo;
 
-    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, ITicketStatusRepository statusRepo)
+    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo)
     {
         _workspaceRepo = workspaceRepo;
         _ticketRepo = ticketRepo;
@@ -28,6 +29,7 @@ public class TicketsDetailsModel : PageModel
         _roles = roles;
         _http = http;
         _statusRepo = statusRepo;
+        _priorityRepo = priorityRepo;
     }
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
@@ -38,6 +40,8 @@ public class TicketsDetailsModel : PageModel
     public List<User> Members { get; private set; } = new();
     public IReadOnlyList<Tickflo.Core.Entities.TicketStatus> Statuses { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketStatus>();
     public Dictionary<string,string> StatusColorByName { get; private set; } = new();
+    public IReadOnlyList<Tickflo.Core.Entities.TicketPriority> Priorities { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketPriority>();
+    public Dictionary<string,string> PriorityColorByName { get; private set; } = new();
 
     [BindProperty(SupportsGet = true)]
     public string? Query { get; set; }
@@ -88,6 +92,20 @@ public class TicketsDetailsModel : PageModel
         StatusColorByName = sts
             .GroupBy(s => s.Name)
             .ToDictionary(g => g.Key, g => string.IsNullOrWhiteSpace(g.Last().Color) ? "neutral" : g.Last().Color);
+        // Load priorities
+        var pris = await _priorityRepo.ListAsync(Workspace.Id);
+        if (pris.Count == 0)
+        {
+            pris = new List<Tickflo.Core.Entities.TicketPriority>{
+                new() { WorkspaceId = Workspace.Id, Name = "Low", Color = "warning", SortOrder = 1 },
+                new() { WorkspaceId = Workspace.Id, Name = "Normal", Color = "neutral", SortOrder = 2 },
+                new() { WorkspaceId = Workspace.Id, Name = "High", Color = "error", SortOrder = 3 },
+            };
+        }
+        Priorities = pris;
+        PriorityColorByName = pris.GroupBy(p => p.Name)
+            .ToDictionary(g => g.Key, g => string.IsNullOrWhiteSpace(g.Last().Color) ? "neutral" : g.Last().Color);
+
         var memberships = await _userWorkspaces.FindForWorkspaceAsync(Workspace.Id);
         var userIds = memberships.Select(m => m.UserId).Distinct().ToList();
         foreach (var uid2 in userIds)

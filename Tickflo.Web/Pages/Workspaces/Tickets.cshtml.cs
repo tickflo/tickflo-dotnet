@@ -16,6 +16,7 @@ public class TicketsModel : PageModel
     private readonly IUserRepository _users;
     private readonly ITicketStatusRepository _statusRepo;
     private readonly IHttpContextAccessor _http;
+    private readonly ITicketPriorityRepository _priorityRepo;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
     public IReadOnlyList<Ticket> Tickets { get; private set; } = Array.Empty<Ticket>();
@@ -42,8 +43,10 @@ public class TicketsModel : PageModel
     public int MyCount { get; private set; }
     public IReadOnlyList<Tickflo.Core.Entities.TicketStatus> Statuses { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketStatus>();
     public Dictionary<string, string> StatusColorByName { get; private set; } = new();
+    public IReadOnlyList<Tickflo.Core.Entities.TicketPriority> PrioritiesList { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketPriority>();
+    public Dictionary<string, string> PriorityColorByName { get; private set; } = new();
 
-    public TicketsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserWorkspaceRepository userWorkspaces, IUserRepository users, IHttpContextAccessor http, ITicketStatusRepository statusRepo)
+    public TicketsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserWorkspaceRepository userWorkspaces, IUserRepository users, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo)
     {
         _workspaceRepo = workspaceRepo;
         _ticketRepo = ticketRepo;
@@ -52,6 +55,7 @@ public class TicketsModel : PageModel
         _users = users;
         _http = http;
         _statusRepo = statusRepo;
+        _priorityRepo = priorityRepo;
     }
 
     public async Task OnGetAsync(string slug)
@@ -74,6 +78,20 @@ public class TicketsModel : PageModel
             Statuses = sts;
             StatusColorByName = sts
                 .GroupBy(s => s.Name)
+                .ToDictionary(g => g.Key, g => string.IsNullOrWhiteSpace(g.Last().Color) ? "neutral" : g.Last().Color);
+
+            // Load priorities and build color map
+            var pris = await _priorityRepo.ListAsync(Workspace.Id);
+            if (pris.Count == 0)
+            {
+                pris = new List<Tickflo.Core.Entities.TicketPriority>{
+                    new() { WorkspaceId = Workspace.Id, Name = "Low", Color = "warning", SortOrder = 1 },
+                    new() { WorkspaceId = Workspace.Id, Name = "Normal", Color = "neutral", SortOrder = 2 },
+                    new() { WorkspaceId = Workspace.Id, Name = "High", Color = "error", SortOrder = 3 },
+                };
+            }
+            PrioritiesList = pris;
+            PriorityColorByName = pris.GroupBy(p => p.Name)
                 .ToDictionary(g => g.Key, g => string.IsNullOrWhiteSpace(g.Last().Color) ? "neutral" : g.Last().Color);
 
             var all = await _ticketRepo.ListAsync(Workspace.Id);

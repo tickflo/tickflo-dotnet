@@ -12,6 +12,7 @@ public class ContactsNewModel : PageModel
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ITicketPriorityRepository _priorityRepo;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
     [BindProperty]
@@ -33,12 +34,13 @@ public class ContactsNewModel : PageModel
     [BindProperty]
     public string? Priority { get; set; }
 
-    public ContactsNewModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IHttpContextAccessor httpContextAccessor)
+    public ContactsNewModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IHttpContextAccessor httpContextAccessor, ITicketPriorityRepository priorityRepo)
     {
         _workspaceRepo = workspaceRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
         _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
         _httpContextAccessor = httpContextAccessor;
+        _priorityRepo = priorityRepo;
     }
 
     public async Task<IActionResult> OnGetAsync(string slug)
@@ -50,6 +52,7 @@ public class ContactsNewModel : PageModel
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
         if (!isAdmin) return Forbid();
+        ViewData["Priorities"] = await _priorityRepo.ListAsync(Workspace.Id);
         return Page();
     }
 
@@ -64,6 +67,7 @@ public class ContactsNewModel : PageModel
         if (!isAdmin) return Forbid();
         if (!ModelState.IsValid)
         {
+            ViewData["Priorities"] = await _priorityRepo.ListAsync(Workspace.Id);
             return Page();
         }
         var contact = new Contact

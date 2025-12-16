@@ -10,6 +10,7 @@ public class ContactsEditModel : PageModel
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
     private readonly IContactRepository _contactRepo;
+    private readonly ITicketPriorityRepository _priorityRepo;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -25,11 +26,12 @@ public class ContactsEditModel : PageModel
     [BindProperty] public string? PreferredChannel { get; set; }
     [BindProperty] public string? Priority { get; set; }
 
-    public ContactsEditModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IContactRepository contactRepo)
+    public ContactsEditModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IContactRepository contactRepo, ITicketPriorityRepository priorityRepo)
     {
         _workspaceRepo = workspaceRepo;
         _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
         _contactRepo = contactRepo;
+        _priorityRepo = priorityRepo;
     }
 
     public async Task<IActionResult> OnGetAsync(string slug, int id)
@@ -53,6 +55,7 @@ public class ContactsEditModel : PageModel
         Tags = contact.Tags;
         PreferredChannel = contact.PreferredChannel;
         Priority = contact.Priority;
+        ViewData["Priorities"] = await _priorityRepo.ListAsync(Workspace.Id);
         return Page();
     }
 
@@ -66,7 +69,11 @@ public class ContactsEditModel : PageModel
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
         if (!isAdmin) return Forbid();
-        if (!ModelState.IsValid) return Page();
+        if (!ModelState.IsValid)
+        {
+            ViewData["Priorities"] = await _priorityRepo.ListAsync(Workspace.Id);
+            return Page();
+        }
         var existing = await _contactRepo.FindAsync(Workspace.Id, id);
         if (existing == null) return NotFound();
         existing.Name = Name;

@@ -44,10 +44,26 @@
                         <div class="fieldset">
                             <label class="label"><span class="label-text">Priority</span></label>
                             <select class="select w-full" asp-for="Priority">
-                                <option>Low</option>
-                                <option>Normal</option>
-                                <option>High</option>
-                                <option>Urgent</option>
+                                @if (ViewData["Priorities"] is IReadOnlyList<Tickflo.Core.Entities.TicketPriority> plist)
+                                {
+                                    foreach (var p in plist)
+                                    {
+                                        if (string.Equals(Model.Priority, p.Name, StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <option selected>@p.Name</option>
+                                        }
+                                        else
+                                        {
+                                            <option>@p.Name</option>
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    <option>Low</option>
+                                    <option>Normal</option>
+                                    <option>High</option>
+                                }
                             </select>
                         </div>
                         <div class="md:col-span-2 fieldset">

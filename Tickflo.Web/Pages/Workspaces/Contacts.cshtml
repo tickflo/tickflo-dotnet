@@ -10,8 +10,29 @@
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Contacts", NewActionLabel = "New Contact", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/contacts/new" })
         <div class="card bg-base-100 shadow-sm">
             <div class="card-body">
-                <h2 class="card-title">Contacts</h2>
-                <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="card-title">Contacts</h2>
+                        <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
+                    </div>
+                    <form method="get" class="join">
+                        <select name="Priority" class="select select-bordered join-item select-sm md:select-md">
+                            <option value="">All Priorities</option>
+                            @foreach (var p in Model.Priorities)
+                            {
+                                if (string.Equals(Model.Priority, p.Name, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <option value="@p.Name" selected>@p.Name</option>
+                                }
+                                else
+                                {
+                                    <option value="@p.Name">@p.Name</option>
+                                }
+                            }
+                        </select>
+                        <button class="btn btn-soft join-item btn-sm md:btn-md">Filter</button>
+                    </form>
+                </div>
             </div>
         </div>
         <div class="card bg-base-100 shadow-sm mt-4">
@@ -53,7 +74,13 @@
                                         </td>
                                         <td class="hidden sm:table-cell">
                                             <div class="flex flex-wrap gap-1">
-                                                @if (!string.IsNullOrWhiteSpace(c.Priority)) { <span class="badge badge-soft">@c.Priority</span> }
+                                                @if (!string.IsNullOrWhiteSpace(c.Priority)) {
+                                                    var pcolor = Model.PriorityColorByName.TryGetValue(c.Priority, out var pc) ? pc : "neutral";
+                                                    var pIsHex = pcolor.StartsWith("#");
+                                                    var pCls = pIsHex ? "badge" : $"badge badge-soft badge-{pcolor}";
+                                                    var pStyle = pIsHex ? $"background-color: {pcolor}; color: #fff;" : null;
+                                                    <span class="@pCls" style="@pStyle">@c.Priority</span>
+                                                }
                                                 @if (!string.IsNullOrWhiteSpace(c.PreferredChannel)) { <span class="badge">@c.PreferredChannel</span> }
                                                 @if (!string.IsNullOrWhiteSpace(c.Status)) { <span class="badge">@c.Status</span> }
                                             </div>

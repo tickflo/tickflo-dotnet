@@ -23,7 +23,13 @@
       <div class="flex items-center justify-between flex-wrap gap-2">
         <h2 class="card-title">@Model.Ticket?.Subject</h2>
         <div class="join">
-          <span class="badge badge-soft join-item">@Model.Ticket?.Priority</span>
+          @{
+            var pColor = (Model.Ticket != null && Model.PriorityColorByName.TryGetValue(Model.Ticket.Priority, out var pc)) ? pc : "neutral";
+            var pIsHex = pColor.StartsWith("#");
+            var pCls = pIsHex ? "badge badge-soft join-item" : $"badge badge-soft badge-{pColor} join-item";
+            var pStyle = pIsHex ? $"background-color: {pColor}; color: #fff;" : null;
+          }
+          <span class="@pCls" style="@pStyle">@Model.Ticket?.Priority</span>
           @{
             var sColor = (Model.Ticket != null && Model.StatusColorByName.TryGetValue(Model.Ticket.Status, out var c)) ? c : "neutral";
             var isHex = sColor.StartsWith("#");
@@ -46,7 +52,7 @@
       {
         <div>
           Assignee:
-          <a class="link" href="/workspaces/@Model.WorkspaceSlug/tickets?AssigneeUserId=@Model.Ticket!.AssignedUserId">View all for assignee</a>
+          <a class="link" href="/workspaces/@Model.WorkspaceSlug/tickets?AssigneeUserId=@Model.Ticket!.AssignedUserId" asp-preserve-query>View all for assignee</a>
         </div>
       }
       <div class="prose max-w-none">
@@ -70,9 +76,10 @@
             <div>
               <label class="label">Priority</label>
               <select name="EditPriority" class="select select-bordered w-full">
-                @if (Model.Ticket!.Priority == "Low") {<option value="Low" selected>Low</option>} else {<option value="Low">Low</option>}
-                @if (Model.Ticket!.Priority == "Normal") {<option value="Normal" selected>Normal</option>} else {<option value="Normal">Normal</option>}
-                @if (Model.Ticket!.Priority == "High") {<option value="High" selected>High</option>} else {<option value="High">High</option>}
+                @foreach (var p in Model.Priorities)
+                {
+                  if (Model.Ticket!.Priority == p.Name) {<option value="@p.Name" selected>@p.Name</option>} else {<option value="@p.Name">@p.Name</option>}
+                }
               </select>
             </div>
           </div>
@@ -110,6 +117,14 @@
 @:$"\"{s.Name.Replace("\"","\\\"")}\": \"{color}\"{(i < Model.Statuses.Count - 1 ? "," : string.Empty)}"
 }
             };
+            const priorityColors = {
+      @for (int i = 0; i < Model.Priorities.Count; i++)
+      {
+        var p = Model.Priorities[i];
+        var color = string.IsNullOrWhiteSpace(p.Color) ? "neutral" : p.Color;
+      @:$"\"{p.Name.Replace("\"","\\\"")}\": \"{color}\"{(i < Model.Priorities.Count - 1 ? "," : string.Empty)}"
+      }
+            };
             const form = document.getElementById('ticket-save-form');
             if (!form) return;
             form.addEventListener('submit', async function(e){
@@ -137,9 +152,23 @@
                   const badges = document.querySelectorAll('.card .badge');
                   if (badges && badges.length >= 2){
                     badges[0].textContent = prio;
+                    const pc = priorityColors[prio] || 'neutral';
+                    if ((typeof pc === 'string') && pc.startsWith('#')){
+                      badges[0].className = 'badge badge-soft join-item';
+                      badges[0].setAttribute('style', `background-color: ${pc}; color: #fff;`);
+                    } else {
+                      badges[0].className = `badge badge-soft badge-${pc} join-item`;
+                      badges[0].removeAttribute('style');
+                    }
                     badges[1].textContent = status;
                     const c = statusColors[status] || 'neutral';
-                    badges[1].className = `badge badge-soft badge-${c} join-item`;
+                    if ((typeof c === 'string') && c.startsWith('#')){
+                      badges[1].className = 'badge badge-soft join-item';
+                      badges[1].setAttribute('style', `background-color: ${c}; color: #fff;`);
+                    } else {
+                      badges[1].className = `badge badge-soft badge-${c} join-item`;
+                      badges[1].removeAttribute('style');
+                    }
                   }
                 } else {
                   const toast = document.getElementById('save-error-toast');

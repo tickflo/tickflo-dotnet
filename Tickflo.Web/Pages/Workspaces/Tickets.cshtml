@@ -29,9 +29,17 @@
             </select>
             <select name="Priority" class="select select-bordered join-item select-sm md:select-md">
                 <option value="">All Priorities</option>
-                <option value="Low">Low</option>
-                <option value="Normal" selected>Normal</option>
-                <option value="High">High</option>
+                @foreach (var p in Model.PrioritiesList)
+                {
+                    if (string.Equals(Model.Priority, p.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        <option value="@p.Name" selected>@p.Name</option>
+                    }
+                    else
+                    {
+                        <option value="@p.Name">@p.Name</option>
+                    }
+                }
             </select>
             <input name="ContactId" value="@Model.ContactId" type="number" placeholder="Contact Id" class="input input-bordered join-item input-sm md:input-md" />
             <select name="AssigneeUserId" class="select select-bordered join-item select-sm md:select-md">
@@ -80,7 +88,13 @@
                                             var rowQs = $"Query={Model.Query}&Status={Model.Status}&Priority={Model.Priority}&ContactId={Model.ContactId}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&PageNumber={Model.PageNumber}&PageSize={Model.PageSize}";
                                         }
                                         <td><a class="link link-hover" href="/workspaces/@Model.WorkspaceSlug/tickets/@t.Id?@rowQs">@t.Subject</a></td>
-                    <td><span class="badge badge-soft">@t.Priority</span></td>
+                    @{
+                        var pcolor = Model.PriorityColorByName.TryGetValue(t.Priority, out var pclr) ? pclr : "neutral";
+                        var pIsHex = pcolor.StartsWith("#");
+                        var pCls = pIsHex ? "badge badge-soft" : $"badge badge-soft badge-{pcolor}";
+                        var pStyle = pIsHex ? $"background-color: {pcolor}; color: #fff;" : null;
+                    }
+                    <td><span class="@pCls" style="@pStyle">@t.Priority</span></td>
                     @{
                         var color = Model.StatusColorByName.TryGetValue(t.Status, out var col) ? col : "neutral";
                         var isHex = color.StartsWith("#");
@@ -205,6 +219,14 @@
     @:$"\"{s.Name.Replace("\"","\\\"")}\": \"{color}\"{(i < Model.Statuses.Count - 1 ? "," : string.Empty)}"
 }
             };
+            const priorityColors = {
+@for (int i = 0; i < Model.PrioritiesList.Count; i++)
+{
+    var p = Model.PrioritiesList[i];
+        var color = string.IsNullOrWhiteSpace(p.Color) ? "neutral" : p.Color;
+    @:$"\"{p.Name.Replace("\"","\\\"")}\": \"{color}\"{(i < Model.PrioritiesList.Count - 1 ? "," : string.Empty)}"
+}
+            };
             // Minimal fade-in animation style for newly inserted rows
             const style = document.createElement('style');
             style.textContent = ".fade-in { animation: fadeIn 450ms ease-out; }\n@keyframes fadeIn { from { opacity: 0; transform: translateY(-2px); } to { opacity: 1; transform: translateY(0); } }";
@@ -288,7 +310,14 @@
                                                 : `<span class="badge badge-soft badge-${color}">${t.status}</span>`;
                     tr.innerHTML = `
                         <td><a class="link link-hover" href="/workspaces/${slug}/tickets/${t.id}?${rowQs}">${t.subject}</a></td>
-                        <td><span class="badge badge-soft">${t.priority}</span></td>
+                        {
+                            const pc = priorityColors[t.priority] || 'neutral';
+                            const pIsHex = (typeof pc === 'string') && pc.startsWith('#');
+                            const prioSpan = pIsHex
+                                ? `<span class="badge badge-soft" style="background-color: ${pc}; color: #fff;">${t.priority}</span>`
+                                : `<span class="badge badge-soft badge-${pc}">${t.priority}</span>`;
+                            }
+                        <td>${prioSpan}</td>
                                                 <td>${statusSpan}</td>
                         <td><span>${contactDisplay}</span></td>
                         <td class="hidden sm:table-cell"><span class="badge ${t.assignedUserId ? 'badge-soft' : ''}">${t.assignedUserId ? (t.assignedDisplay || 'Assigned') : 'Unassigned'}</span></td>
@@ -310,7 +339,17 @@
                         const prioCell = row.querySelector('td:nth-child(2) .badge');
                         const statusCell = row.querySelector('td:nth-child(3) .badge');
                         if (subjectCell) subjectCell.textContent = t.subject;
-                        if (prioCell) prioCell.textContent = t.priority;
+                        if (prioCell) {
+                            prioCell.textContent = t.priority;
+                            const pc = priorityColors[t.priority] || 'neutral';
+                            if ((typeof pc === 'string') && pc.startsWith('#')){
+                                prioCell.className = 'badge badge-soft';
+                                prioCell.setAttribute('style', `background-color: ${pc}; color: #fff;`);
+                            } else {
+                                prioCell.className = `badge badge-soft badge-${pc}`;
+                                prioCell.removeAttribute('style');
+                            }
+                        }
                         if (statusCell) {
                             statusCell.textContent = t.status;
                             const c = statusColors[t.status] || 'neutral';
