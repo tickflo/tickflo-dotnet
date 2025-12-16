@@ -51,6 +51,15 @@ public class TicketsDetailsModel : PageModel
     [BindProperty(SupportsGet = true)]
     public int PageSize { get; set; } = 25;
 
+    [BindProperty]
+    public string? EditSubject { get; set; }
+    [BindProperty]
+    public string? EditDescription { get; set; }
+    [BindProperty]
+    public string? EditPriority { get; set; }
+    [BindProperty]
+    public string? EditStatus { get; set; }
+
     public async Task<IActionResult> OnGetAsync(string slug, int id)
     {
         WorkspaceSlug = slug;
@@ -58,7 +67,7 @@ public class TicketsDetailsModel : PageModel
         if (Workspace == null) return NotFound();
         Ticket = await _ticketRepo.FindAsync(Workspace.Id, id);
         if (Ticket == null) return NotFound();
-        Contact = await _contactRepo.FindAsync(Workspace.Id, Ticket.ContactId);
+        Contact = Ticket.ContactId.HasValue ? await _contactRepo.FindAsync(Workspace.Id, Ticket.ContactId.Value) : null;
         var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         IsWorkspaceAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
         var memberships = await _userWorkspaces.FindForWorkspaceAsync(Workspace.Id);
@@ -86,7 +95,7 @@ public class TicketsDetailsModel : PageModel
         return Redirect($"/workspaces/{slug}/tickets/{id}");
     }
 
-    public async Task<IActionResult> OnPostAssignAsync(string slug, int id, int assignedUserId)
+    public async Task<IActionResult> OnPostAssignAsync(string slug, int id, int assignedUserId, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub)
     {
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
@@ -100,6 +109,52 @@ public class TicketsDetailsModel : PageModel
         if (t == null) return NotFound();
         t.AssignedUserId = assignedUserId;
         await _ticketRepo.UpdateAsync(t);
+        string? display = null;
+        if (t.AssignedUserId.HasValue)
+        {
+            var au = await _users.FindByIdAsync(t.AssignedUserId.Value);
+            if (au != null) display = $"{au.Name} ({au.Email})";
+        }
+        await hub.Clients.Group(Tickflo.Web.Realtime.TicketsHub.WorkspaceGroup(WorkspaceSlug)).SendCoreAsync("ticketAssigned", new object[] {
+            new {
+                id = t.Id,
+                assignedUserId = t.AssignedUserId,
+                assignedDisplay = display,
+                contactId = t.ContactId
+            }
+        });
+        return Redirect($"/workspaces/{slug}/tickets/{id}");
+    }
+
+    public async Task<IActionResult> OnPostSaveAsync(string slug, int id, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub)
+    {
+        WorkspaceSlug = slug;
+        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
+        if (Workspace == null) return NotFound();
+        var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var isAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
+        if (!isAdmin) return Forbid();
+        var t = await _ticketRepo.FindAsync(Workspace.Id, id);
+        if (t == null) return NotFound();
+        if (!string.IsNullOrWhiteSpace(EditSubject)) t.Subject = EditSubject!.Trim();
+        if (!string.IsNullOrWhiteSpace(EditDescription)) t.Description = EditDescription!.Trim();
+        if (!string.IsNullOrWhiteSpace(EditPriority)) t.Priority = EditPriority!;
+        if (!string.IsNullOrWhiteSpace(EditStatus)) t.Status = EditStatus!;
+        await _ticketRepo.UpdateAsync(t);
+        // Broadcast update to workspace clients
+        await hub.Clients.Group(Tickflo.Web.Realtime.TicketsHub.WorkspaceGroup(WorkspaceSlug)).SendCoreAsync("ticketUpdated", new object[] {
+            new {
+                id = t.Id,
+                subject = t.Subject,
+                priority = t.Priority,
+                status = t.Status,
+                contactId = t.ContactId,
+                assignedUserId = t.AssignedUserId,
+                inventoryRef = t.InventoryRef,
+                updatedAt = DateTime.UtcNow
+            }
+        });
+        TempData["Success"] = "Ticket saved.";
         return Redirect($"/workspaces/{slug}/tickets/{id}");
     }
 }

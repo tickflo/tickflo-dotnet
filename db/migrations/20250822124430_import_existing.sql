@@ -948,7 +948,7 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 CREATE TABLE IF NOT EXISTS public.tickets (
     id integer NOT NULL,
     workspace_id integer NOT NULL,
-    contact_id integer NOT NULL,
+    contact_id integer NULL,
     subject text NOT NULL,
     description text NOT NULL,
     priority text DEFAULT 'Normal' NOT NULL,
@@ -984,8 +984,14 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
+    -- Drop existing FK if present to replace with ON DELETE SET NULL
+    IF EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'tickets_contact_id_contacts_id_fk'
+    ) THEN
+        ALTER TABLE ONLY public.tickets DROP CONSTRAINT tickets_contact_id_contacts_id_fk;
+    END IF;
     ALTER TABLE ONLY public.tickets
-        ADD CONSTRAINT tickets_contact_id_contacts_id_fk FOREIGN KEY (contact_id) REFERENCES public.contacts(id) ON DELETE CASCADE;
+        ADD CONSTRAINT tickets_contact_id_contacts_id_fk FOREIGN KEY (contact_id) REFERENCES public.contacts(id) ON DELETE SET NULL;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 

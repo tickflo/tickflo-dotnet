@@ -4,7 +4,7 @@ public class Ticket
 {
     public int Id { get; set; }
     public int WorkspaceId { get; set; }
-    public int ContactId { get; set; }
+    public int? ContactId { get; set; }
     public string Subject { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Priority { get; set; } = "Normal";

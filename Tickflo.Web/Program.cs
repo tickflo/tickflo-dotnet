@@ -37,6 +37,8 @@ builder.Services.AddScoped<ILocationRepository, LocationRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IContactRepository, ContactRepository>();
 builder.Services.AddScoped<ITicketRepository, TicketRepository>();
+// Realtime updates for tickets
+builder.Services.AddSignalR();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IWorkspaceRoleBootstrapper, WorkspaceRoleBootstrapper>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
@@ -131,5 +133,7 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 app.MapControllers();
+// Map SignalR hubs
+app.MapHub<Tickflo.Web.Realtime.TicketsHub>("/hubs/tickets");
 
 app.Run();

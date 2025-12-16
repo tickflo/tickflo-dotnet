@@ -61,7 +61,7 @@
                     <th class="hidden sm:table-cell">Assignee</th>
                     <th class="hidden sm:table-cell">Inventory</th>
                     <th class="hidden md:table-cell">Created</th>
-                    <th></th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -75,7 +75,7 @@
                     <td><span class="badge badge-soft">@t.Priority</span></td>
                     <td><span class="badge badge-soft">@t.Status</span></td>
                         <td>
-                        @if (Model.ContactsById.TryGetValue(t.ContactId, out var c))
+                        @if (t.ContactId.HasValue && Model.ContactsById.TryGetValue(t.ContactId.Value, out var c))
                         {
                             <span>@c.Name</span>
                             <span class="opacity-60 break-all">(@c.Email)</span>
@@ -88,11 +88,12 @@
                         <td class="hidden sm:table-cell">
                         @if (t.AssignedUserId.HasValue && Model.UsersById.TryGetValue(t.AssignedUserId.Value, out var au))
                         {
-                                <span>@au.Name</span> <span class="opacity-60">(@au.Email)</span>
+                            <span class="badge badge-soft">@au.Name</span>
+                            <span class="opacity-60 ml-2">(@au.Email)</span>
                         }
                         else
                         {
-                                <span class="opacity-60">—</span>
+                            <span class="badge">Unassigned</span>
                         }
                     </td>
                         <td>
@@ -107,8 +108,61 @@
                     </td>
                         <td class="hidden md:table-cell">@t.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
                     <td>
-                        <div class="join">
-                            <a class="btn btn-soft btn-sm join-item" href="/workspaces/@Model.WorkspaceSlug/tickets/new?contactId=@t.ContactId">Clone</a>
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <a class="btn btn-soft btn-sm" href="/workspaces/@Model.WorkspaceSlug/tickets/new@(t.ContactId.HasValue ? ($"?contactId={t.ContactId}") : string.Empty)">Clone</a>
+                            <form method="post" action="/workspaces/@Model.WorkspaceSlug/tickets/@t.Id?@rowQs" class="join ajax-assign" data-ticket-id="@t.Id">
+                                <input type="hidden" name="handler" value="Assign" />
+                                <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
+                                <input type="hidden" name="id" value="@t.Id" />
+                                <input type="hidden" id="assignedUserId-@t.Id" name="assignedUserId" value="@(t.AssignedUserId?.ToString() ?? "")" />
+                                <input id="assignee-search-@t.Id" class="input input-bordered join-item input-xs md:input-sm" list="assignees-list-@t.Id" placeholder="Assign" />
+                                <datalist id="assignees-list-@t.Id">
+                                    <option value="Unassigned" data-id=""></option>
+                                    @foreach (var kv in Model.UsersById)
+                                    {
+                                        <option value="@kv.Value.Name (@kv.Value.Email)" data-id="@kv.Key"></option>
+                                    }
+                                </datalist>
+                                                            <button class="btn btn-soft join-item btn-xs md:btn-sm" type="submit">Assign</button>
+                            </form>
+                            <script>
+                                (function(){
+                                    const hidden = document.getElementById('assignedUserId-@t.Id');
+                                    const input = document.getElementById('assignee-search-@t.Id');
+                                    const list = document.getElementById('assignees-list-@t.Id');
+                                    if (!hidden || !input || !list) return;
+                                    function setFromText(){
+                                        const val = input.value;
+                                        const opts = Array.from(list.querySelectorAll('option'));
+                                        const matched = opts.find(o => o.value === val);
+                                        if (matched) {
+                                            hidden.value = matched.getAttribute('data-id') || '';
+                                        } else if (val === '' || val.toLowerCase() === 'unassigned') {
+                                            hidden.value = '';
+                                        }
+                                    }
+                                    input.addEventListener('change', setFromText);
+                                    input.addEventListener('blur', function(){
+                                        setFromText();
+                                        if ((hidden.value ?? '') === '' && (input.value === '' || input.value.toLowerCase() === 'unassigned')){
+                                            input.value = 'Unassigned';
+                                            input.setAttribute('placeholder', 'Pick from list');
+                                        }
+                                    });
+                                    input.addEventListener('focus', function(){
+                                        if (input.value.toLowerCase() === 'unassigned') {
+                                            input.value = '';
+                                        }
+                                    });
+                                    const preset = hidden.value ?? '';
+                                    if (preset !== ''){
+                                        const opt = Array.from(list.querySelectorAll('option')).find(o => o.getAttribute('data-id') === preset);
+                                        if (opt) input.value = opt.value; else input.value = '';
+                                    } else {
+                                        input.value = 'Unassigned';
+                                    }
+                                })();
+                            </script>
                         </div>
                     </td>
                 </tr>
@@ -116,6 +170,150 @@
             </tbody>
         </table>
     </div>
+
+    <div class="toast" id="assign-toast" style="display:none;">
+        <div class="alert alert-success">
+            <span id="assign-toast-msg">Assignment updated.</span>
+        </div>
+    </div>
+    <div class="toast" id="assign-error-toast" style="display:none;">
+        <div class="alert alert-error">
+            <span id="assign-error-toast-msg">Assignment failed.</span>
+        </div>
+    </div>
+    <script>
+        (function(){
+            // Minimal fade-in animation style for newly inserted rows
+            const style = document.createElement('style');
+            style.textContent = ".fade-in { animation: fadeIn 450ms ease-out; }\n@keyframes fadeIn { from { opacity: 0; transform: translateY(-2px); } to { opacity: 1; transform: translateY(0); } }";
+            document.head.appendChild(style);
+            async function handleAssignSubmit(e){
+                e.preventDefault();
+                const form = e.currentTarget;
+                const ticketId = form.getAttribute('data-ticket-id');
+                const input = document.getElementById('assignee-search-' + ticketId);
+                const hidden = document.getElementById('assignedUserId-' + ticketId);
+                if (!hidden) return;
+                const action = form.getAttribute('action');
+                const fd = new FormData(form);
+                const btn = form.querySelector('button[type="submit"]');
+                try {
+                    if (btn){ btn.disabled = true; btn.classList.add('btn-disabled'); }
+                    const res = await fetch(action, { method: 'POST', body: fd, credentials: 'same-origin' });
+                    if (res.ok){
+                        const toast = document.getElementById('assign-toast');
+                        const msg = document.getElementById('assign-toast-msg');
+                        if (toast && msg){
+                            const nameTxt = (input && input.value) ? input.value : (hidden.value ? 'Assigned' : 'Unassigned');
+                            msg.textContent = `Ticket #${ticketId} assigned: ${nameTxt}`;
+                            toast.style.display = '';
+                            setTimeout(()=>{ toast.style.display = 'none'; }, 2500);
+                        }
+                        const badgeCell = form.closest('tr')?.querySelector('td:nth-child(5)');
+                        if (badgeCell){
+                            if (hidden.value){
+                                badgeCell.innerHTML = `<span class="badge badge-soft">${input.value}</span>`;
+                            } else {
+                                badgeCell.innerHTML = `<span class="badge">Unassigned</span>`;
+                            }
+                        }
+                    } else {
+                        const toast = document.getElementById('assign-error-toast');
+                        const msg = document.getElementById('assign-error-toast-msg');
+                        if (toast && msg){
+                            msg.textContent = `Assign failed (status ${res.status}).`;
+                            toast.style.display = '';
+                            setTimeout(()=>{ toast.style.display = 'none'; }, 3000);
+                        }
+                        console.error('Assign failed', res.status);
+                    }
+                } catch(err){
+                    const toast = document.getElementById('assign-error-toast');
+                    const msg = document.getElementById('assign-error-toast-msg');
+                    if (toast && msg){
+                        msg.textContent = 'Assign error. Please try again.';
+                        toast.style.display = '';
+                        setTimeout(()=>{ toast.style.display = 'none'; }, 3000);
+                    }
+                    console.error('Assign error', err);
+                } finally {
+                    if (btn){ btn.disabled = false; btn.classList.remove('btn-disabled'); }
+                }
+            }
+            document.querySelectorAll('form.ajax-assign').forEach(f => {
+                f.addEventListener('submit', handleAssignSubmit);
+            });
+            // Live updates: connect SignalR and join workspace group
+            const slug = '@Model.WorkspaceSlug';
+            try {
+                const connection = new signalR.HubConnectionBuilder()
+                    .withUrl('/hubs/tickets')
+                    .withAutomaticReconnect()
+                    .build();
+                connection.on('ticketCreated', function(t){
+                    // Prepend a new row for the created ticket
+                    const tbody = document.querySelector('table tbody');
+                    if (!tbody) return;
+                    const contactDisplay = t.contactDisplay || (t.contactId ?? '—');
+                    const created = new Date(t.createdAt).toLocaleString();
+                                        const tr = document.createElement('tr');
+                                        tr.classList.add('fade-in');
+                    const rowQs = `Query=@Model.Query&Status=@Model.Status&Priority=@Model.Priority&ContactId=@Model.ContactId&Mine=@Model.Mine&AssigneeUserId=@Model.AssigneeUserId&PageNumber=@Model.PageNumber&PageSize=@Model.PageSize`;
+                    tr.innerHTML = `
+                        <td><a class="link link-hover" href="/workspaces/${slug}/tickets/${t.id}?${rowQs}">${t.subject}</a></td>
+                        <td><span class="badge badge-soft">${t.priority}</span></td>
+                        <td><span class="badge badge-soft">${t.status}</span></td>
+                        <td><span>${contactDisplay}</span></td>
+                        <td class="hidden sm:table-cell"><span class="badge ${t.assignedUserId ? 'badge-soft' : ''}">${t.assignedUserId ? (t.assignedDisplay || 'Assigned') : 'Unassigned'}</span></td>
+                        <td>${t.inventoryRef ? `<a class="link link-hover" href="/workspaces/${slug}/inventory?Query=${t.inventoryRef}">${t.inventoryRef}</a>` : '<span class="opacity-50">—</span>'}</td>
+                        <td class="hidden md:table-cell">${created}</td>
+                        <td>
+                          <div class="flex flex-wrap gap-2 items-center">
+                            <a class="btn btn-soft btn-sm" href="/workspaces/${slug}/tickets/new?contactId=${t.contactId}">Clone</a>
+                            <!-- Inline assign form omitted for live-created rows; user can open details page -->
+                          </div>
+                        </td>`;
+                    tbody.insertBefore(tr, tbody.firstChild);
+                });
+                // Update existing row when a ticket is edited
+                connection.on('ticketUpdated', function(t){
+                    const row = document.querySelector(`tr td a[href^="/workspaces/${slug}/tickets/${t.id}"]`)?.closest('tr');
+                    if (row){
+                        const subjectCell = row.querySelector('td:nth-child(1) a');
+                        const prioCell = row.querySelector('td:nth-child(2) .badge');
+                        const statusCell = row.querySelector('td:nth-child(3) .badge');
+                        if (subjectCell) subjectCell.textContent = t.subject;
+                        if (prioCell) prioCell.textContent = t.priority;
+                        if (statusCell) statusCell.textContent = t.status;
+                        const invCell = row.querySelector('td:nth-child(6)');
+                        if (invCell){
+                            if (t.inventoryRef){
+                                invCell.innerHTML = `<a class="link link-hover" href="/workspaces/${slug}/inventory?Query=${t.inventoryRef}">${t.inventoryRef}</a>`;
+                            } else {
+                                invCell.innerHTML = '<span class="opacity-50">—</span>';
+                            }
+                        }
+                    }
+                });
+                connection.on('ticketAssigned', function(t){
+                    const row = document.querySelector(`tr td a[href^="/workspaces/${slug}/tickets/${t.id}"]`)?.closest('tr');
+                    if (!row) return;
+                    const assigneeCell = row.querySelector('td:nth-child(5)');
+                    if (!assigneeCell) return;
+                    if (t.assignedUserId){
+                        const label = t.assignedDisplay || 'Assigned';
+                        assigneeCell.innerHTML = `<span class="badge badge-soft">${label}</span>`;
+                    } else {
+                        assigneeCell.innerHTML = `<span class="badge">Unassigned</span>`;
+                    }
+                });
+                await connection.start();
+                await connection.invoke('JoinWorkspace', slug);
+            } catch (err) {
+                console.warn('SignalR connection failed', err);
+            }
+        })();
+    </script>
 
     <div class="flex justify-between items-center">
         <div class="text-sm opacity-70">Showing page @Model.PageNumber of @((Model.Total + Model.PageSize - 1)/Model.PageSize) · @Model.Total total</div>

@@ -53,6 +53,99 @@
   {
     <div class="card bg-base-100">
       <div class="card-body">
+        <form method="post" asp-page-handler="Save" class="grid gap-3" id="ticket-save-form">
+          <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
+          <input type="hidden" name="id" value="@Model.Ticket!.Id" />
+          <div class="grid gap-2 md:grid-cols-2">
+            <div>
+              <label class="label">Subject</label>
+              <input name="EditSubject" value="@Model.Ticket!.Subject" class="input input-bordered w-full" />
+            </div>
+            <div>
+              <label class="label">Priority</label>
+              <select name="EditPriority" class="select select-bordered w-full">
+                @if (Model.Ticket!.Priority == "Low") {<option value="Low" selected>Low</option>} else {<option value="Low">Low</option>}
+                @if (Model.Ticket!.Priority == "Normal") {<option value="Normal" selected>Normal</option>} else {<option value="Normal">Normal</option>}
+                @if (Model.Ticket!.Priority == "High") {<option value="High" selected>High</option>} else {<option value="High">High</option>}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="label">Description</label>
+            <textarea name="EditDescription" class="textarea textarea-bordered w-full" rows="6">@Model.Ticket!.Description</textarea>
+          </div>
+          <div>
+            <label class="label">Status</label>
+            <select name="EditStatus" class="select select-bordered w-full">
+              @if (Model.Ticket!.Status == "New") {<option value="New" selected>New</option>} else {<option value="New">New</option>}
+              @if (Model.Ticket!.Status == "Open") {<option value="Open" selected>Open</option>} else {<option value="Open">Open</option>}
+              @if (Model.Ticket!.Status == "Closed") {<option value="Closed" selected>Closed</option>} else {<option value="Closed">Closed</option>}
+            </select>
+          </div>
+          <div class="flex gap-2">
+            <button class="btn btn-primary" type="submit" id="ticket-save-btn">Save</button>
+            <a class="btn btn-soft" href="/workspaces/@Model.WorkspaceSlug/tickets/@Model.Ticket!.Id">Cancel</a>
+          </div>
+        </form>
+        <div class="toast" id="save-toast" style="display:none;">
+          <div class="alert alert-success"><span id="save-toast-msg">Saved.</span></div>
+        </div>
+        <div class="toast" id="save-error-toast" style="display:none;">
+          <div class="alert alert-error"><span id="save-error-toast-msg">Save failed.</span></div>
+        </div>
+        <script>
+          (function(){
+            const form = document.getElementById('ticket-save-form');
+            if (!form) return;
+            form.addEventListener('submit', async function(e){
+              e.preventDefault();
+              const btn = document.getElementById('ticket-save-btn');
+              const fd = new FormData(form);
+              const action = form.getAttribute('action') || window.location.pathname + window.location.search;
+              try {
+                if (btn){ btn.disabled = true; btn.classList.add('btn-disabled'); }
+                const res = await fetch(action, { method: 'POST', body: fd, credentials: 'same-origin' });
+                if (res.ok){
+                  const toast = document.getElementById('save-toast');
+                  const msg = document.getElementById('save-toast-msg');
+                  if (toast && msg){
+                    msg.textContent = 'Ticket saved.';
+                    toast.style.display = '';
+                    setTimeout(()=>{ toast.style.display = 'none'; }, 2500);
+                  }
+                  // Update header badges inline from current inputs
+                  const subj = form.querySelector('[name="EditSubject"]').value;
+                  const prio = form.querySelector('[name="EditPriority"]').value;
+                  const status = form.querySelector('[name="EditStatus"]').value;
+                  const titleEl = document.querySelector('.card-title');
+                  if (titleEl) titleEl.textContent = subj;
+                  const badges = document.querySelectorAll('.card .badge');
+                  if (badges && badges.length >= 2){ badges[0].textContent = prio; badges[1].textContent = status; }
+                } else {
+                  const toast = document.getElementById('save-error-toast');
+                  const msg = document.getElementById('save-error-toast-msg');
+                  if (toast && msg){
+                    msg.textContent = `Save failed (status ${res.status}).`;
+                    toast.style.display = '';
+                    setTimeout(()=>{ toast.style.display = 'none'; }, 3000);
+                  }
+                }
+              } catch(err){
+                const toast = document.getElementById('save-error-toast');
+                const msg = document.getElementById('save-error-toast-msg');
+                if (toast && msg){
+                  msg.textContent = 'Save error. Please try again.';
+                  toast.style.display = '';
+                  setTimeout(()=>{ toast.style.display = 'none'; }, 3000);
+                }
+                console.error('Save error', err);
+              } finally {
+                if (btn){ btn.disabled = false; btn.classList.remove('btn-disabled'); }
+              }
+            });
+          })();
+        </script>
+        <div class="divider"></div>
         <form method="post" asp-page-handler="Status" class="join">
           <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
           <input type="hidden" name="id" value="@Model.Ticket!.Id" />
@@ -67,15 +160,56 @@
         <form method="post" asp-page-handler="Assign" class="join">
           <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
           <input type="hidden" name="id" value="@Model.Ticket!.Id" />
-          <select name="assignedUserId" class="select select-bordered join-item select-sm md:select-md">
-            <option value="">Unassigned</option>
+          <input type="hidden" id="assignedUserId" name="assignedUserId" value="@Model.Ticket!.AssignedUserId" />
+          <input id="assignee-search" class="input join-item input-sm md:input-md" list="assignees-list" placeholder="Search assignee by name or email" />
+          <datalist id="assignees-list">
+            <option value="Unassigned" data-id=""></option>
             @foreach (var u in Model.Members)
             {
-              <option selected="@(Model.Ticket!.AssignedUserId == u.Id)" value="@u.Id">@u.Name (@u.Email)</option>
+              <option value="@u.Name (@u.Email)" data-id="@u.Id"></option>
             }
-          </select>
+          </datalist>
           <button class="btn btn-soft join-item btn-sm md:btn-md" type="submit">Assign</button>
         </form>
+        <script>
+          (function(){
+            const hidden = document.getElementById('assignedUserId');
+            const input = document.getElementById('assignee-search');
+            const list = document.getElementById('assignees-list');
+            if (!hidden || !input || !list) return;
+            function setFromText(){
+              const val = input.value;
+              const opts = Array.from(list.querySelectorAll('option'));
+              const matched = opts.find(o => o.value === val);
+              if (matched) {
+                hidden.value = matched.getAttribute('data-id') || '';
+              } else if (val === '' || val.toLowerCase() === 'unassigned') {
+                hidden.value = '';
+              }
+            }
+            input.addEventListener('change', setFromText);
+            input.addEventListener('blur', function(){
+              setFromText();
+              if ((hidden.value ?? '') === '' && (input.value === '' || input.value.toLowerCase() === 'unassigned')){
+                input.value = 'Unassigned';
+                input.setAttribute('placeholder', 'Pick from list');
+              }
+            });
+            input.addEventListener('focus', function(){
+              if (input.value.toLowerCase() === 'unassigned') {
+                input.value = '';
+              }
+            });
+            // Prefill display from current assignment
+            const preset = hidden.value ?? '';
+            if (preset !== ''){
+              const opt = Array.from(list.querySelectorAll('option')).find(o => o.getAttribute('data-id') === preset);
+              if (opt) input.value = opt.value;
+            } else {
+              input.value = 'Unassigned';
+            }
+          })();
+        </script>
       </div>
     </div>
   }
