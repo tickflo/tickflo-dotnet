@@ -43,4 +43,20 @@ public class TokenRepository(TickfloDbContext db, TickfloConfig config) : IToken
 
         return token;
     }
+
+    public async Task<Token> CreatePasswordResetForUserIdAsync(int userId, int maxAgeSeconds = 3600)
+    {
+        var token = new Token
+        {
+            UserId = userId,
+            Value = TokenGenerator.GenerateToken(),
+            MaxAge = maxAgeSeconds,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.Tokens.Add(token);
+        await _db.SaveChangesAsync();
+
+        return token;
+    }
 }

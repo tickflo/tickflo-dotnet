@@ -18,6 +18,7 @@ public class TickfloConfig
     public RoleConfig ROLE { get; set; } = new();
     public WorkspaceConfig WORKSPACE { get; set; } = new();
     public PortalConfig PORTAL { get; set; } = new();
+    public EmailConfig EMAIL { get; set; } = new();
 }
 
 public class UserConfig
@@ -62,4 +63,15 @@ public class RoleConfig
 {
     public int MIN_NAME_LENGTH { get; set; }
     public int MAX_NAME_LENGTH { get; set; }
+}
+
+public class EmailConfig
+{
+    public string SMTP_HOST { get; set; } = string.Empty;
+    public int SMTP_PORT { get; set; } = 587;
+    public bool SMTP_SSL { get; set; } = true;
+    public string SMTP_USERNAME { get; set; } = string.Empty;
+    public string SMTP_PASSWORD { get; set; } = string.Empty;
+    public string FROM_ADDRESS { get; set; } = "no-reply@tickflo.local";
+    public string FROM_NAME { get; set; } = "Tickflo";
 }

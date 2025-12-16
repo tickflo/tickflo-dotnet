@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Config;
 using Tickflo.Core.Data;
 using Tickflo.Core.Services.Auth;
+using Tickflo.Core.Services.Email;
 using AuthenticationService = Tickflo.Core.Services.AuthenticationService;
 using IAuthenticationService = Tickflo.Core.Services.IAuthenticationService;
 using Amazon.S3;
@@ -30,7 +31,19 @@ builder.Services.AddScoped<ITokenRepository, TokenRepository>();
 builder.Services.AddScoped<IPasswordHasher, Argon2idPasswordHasher>();
 builder.Services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
 builder.Services.AddScoped<IUserWorkspaceRepository, UserWorkspaceRepository>();
+builder.Services.AddScoped<IUserWorkspaceRoleRepository, UserWorkspaceRoleRepository>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<IWorkspaceRoleBootstrapper, WorkspaceRoleBootstrapper>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+var useSmtp = !string.IsNullOrWhiteSpace(appConfig.EMAIL.SMTP_HOST);
+if (useSmtp)
+{
+    builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+}
+else
+{
+    builder.Services.AddScoped<IEmailSender, DebugEmailSender>();
+}
 builder.Services.AddDbContext<TickfloDbContext>(options =>
     options.UseNpgsql(connectionString!)
         .UseSnakeCaseNamingConvention());

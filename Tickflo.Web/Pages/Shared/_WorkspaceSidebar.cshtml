@@ -1,14 +1,25 @@
 @model string
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@inject Tickflo.Core.Data.IUserRepository UserRepo
 @{
     var slug = Model ?? string.Empty;
     var path = ViewContext?.HttpContext?.Request?.Path.Value ?? "";
     bool IsActive(string segment) => path.Contains(segment, StringComparison.OrdinalIgnoreCase);
+    var uidStr = HttpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    bool isAdmin = false;
+    if (int.TryParse(uidStr, out var uid))
+    {
+        var meTask = UserRepo.FindByIdAsync(uid);
+        meTask.Wait();
+        var me = meTask.Result;
+        isAdmin = me?.SystemAdmin == true;
+    }
 }
 <aside class="sticky top-0 h-screen w-60 overflow-y-auto bg-base-200 px-4 py-6" aria-labelledby="workspace-nav">
     <nav id="workspace-nav" aria-label="Workspace navigation" class="p-2">
         <a class="btn btn-ghost" asp-page="/Workspace" asp-route-slug="@slug">Workspaces</a>
         <ul class="menu w-56 rounded-box bg-base-200 mt-2">
-            <li><a class="@(IsActive($"/workspaces/{slug}") && !IsActive("/contacts") && !IsActive("/tickets") && !IsActive("/reports") && !IsActive("/locations") && !IsActive("/inventory") && !IsActive("/users") && !IsActive("/roles") && !IsActive("/settings") ? "menu-active" : "")" asp-page="/Workspace" asp-route-slug="@slug"><i class="fa fa-house"></i> Dashboard</a></li>
+            <li><a class="@(IsActive($"/workspaces/{slug}") && !IsActive("/contacts") && !IsActive("/tickets") && !IsActive("/reports") && !IsActive("/locations") && !IsActive("/inventory") && !IsActive("/users") && !IsActive("/users/roles") && !IsActive("/settings") ? "menu-active" : "")" asp-page="/Workspace" asp-route-slug="@slug"><i class="fa fa-house"></i> Dashboard</a></li>
             <li><a class="@(IsActive("/contacts") ? "menu-active" : "")" asp-page="/Workspaces/Contacts" asp-route-slug="@slug"><i class="fa fa-address-book"></i> Contacts</a></li>
             <li>
                 <details>
@@ -28,7 +39,11 @@
                     <summary><i class="fa fa-users"></i> Members</summary>
                     <ul>
                         <li><a class="@(IsActive("/users") ? "menu-active" : "")" asp-page="/Workspaces/Users" asp-route-slug="@slug">Users</a></li>
-                        <li><a class="@(IsActive("/roles") ? "menu-active" : "")" asp-page="/Workspaces/Roles" asp-route-slug="@slug">Roles</a></li>
+                        <li><a class="@(IsActive("/users/roles") ? "menu-active" : "")" asp-page="/Workspaces/Roles" asp-route-slug="@slug">Roles</a></li>
+                        @if (isAdmin)
+                        {
+                            <li><a class="@(IsActive("/Users/Index") ? "menu-active" : "")" asp-page="/Users/Index">All Users (Admin)</a></li>
+                        }
                     </ul>
                 </details>
             </li>

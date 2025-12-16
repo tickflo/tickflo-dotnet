@@ -1,0 +1,81 @@
+@page "/workspaces/{slug}/users/roles/assign"
+@model Tickflo.Web.Pages.Workspaces.RolesAssignModel
+@{
+    ViewData["Title"] = "Assign User Roles";
+}
+
+<div class="flex">
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+    <section class="p-6 flex-1">
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Assign Roles" })
+        <h1 class="text-2xl font-bold">Assign Roles</h1>
+
+        <form method="post" asp-page-handler="Assign" class="mt-4 flex gap-3 items-end">
+            <div>
+                <label class="block text-sm">User</label>
+                <select asp-for="SelectedUserId" class="border rounded px-2 py-1 w-64">
+                    <option value="">Select a user</option>
+                    @foreach (var m in Model.Members)
+                    {
+                        <option value="@m.Id">@m.Name (@m.Email)</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm">Role</label>
+                <select asp-for="SelectedRoleId" class="border rounded px-2 py-1 w-64">
+                    <option value="">Select a role</option>
+                    @foreach (var r in Model.Roles)
+                    {
+                        <option value="@r.Id">@r.Name</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary">Assign</button>
+                <a class="btn" href="/workspaces/@Model.WorkspaceSlug/users/roles">Back</a>
+            </div>
+        </form>
+
+        <div class="mt-8">
+            <h2 class="text-xl font-semibold">Current Assignments</h2>
+            <table class="min-w-full text-sm mt-2">
+                <thead>
+                    <tr class="text-left">
+                        <th class="px-2 py-1">User</th>
+                        <th class="px-2 py-1">Roles</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var m in Model.Members)
+                {
+                    var roles = Model.UserRoles.ContainsKey(m.Id) ? Model.UserRoles[m.Id] : new List<Tickflo.Core.Entities.Role>();
+                    <tr class="border-t">
+                        <td class="px-2 py-1">@m.Name (@m.Email)</td>
+                        <td class="px-2 py-1">
+                            @if (roles.Any())
+                            {
+                                foreach (var r in roles)
+                                {
+                                    <span class="inline-flex items-center mr-2">
+                                        <span>@r.Name</span>
+                                        <form method="post" asp-page-handler="Remove" class="inline ml-2">
+                                            <input type="hidden" name="userId" value="@m.Id" />
+                                            <input type="hidden" name="roleId" value="@r.Id" />
+                                            <button type="submit" class="text-red-600">Remove</button>
+                                        </form>
+                                    </span>
+                                }
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>

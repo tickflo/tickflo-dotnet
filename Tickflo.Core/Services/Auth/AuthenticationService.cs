@@ -4,13 +4,20 @@ using Tickflo.Core.Services.Auth;
 
 namespace Tickflo.Core.Services;
 
-public class AuthenticationService(IUserRepository userRepository, IPasswordHasher passwordHasher, ITokenRepository tokenRepository, IWorkspaceRepository? workspaceRepository = null, IUserWorkspaceRepository? userWorkspaceRepository = null) : IAuthenticationService
+public class AuthenticationService(
+    IUserRepository userRepository,
+    IPasswordHasher passwordHasher,
+    ITokenRepository tokenRepository,
+    IWorkspaceRepository? workspaceRepository = null,
+    IUserWorkspaceRepository? userWorkspaceRepository = null,
+    IWorkspaceRoleBootstrapper? workspaceRoleBootstrapper = null) : IAuthenticationService
 {
     private readonly IUserRepository _userRepository = userRepository;
         private readonly IPasswordHasher _passwordHasher = passwordHasher;
         private readonly ITokenRepository _tokenRepository = tokenRepository;
         private readonly IWorkspaceRepository? _workspaceRepository = workspaceRepository;
         private readonly IUserWorkspaceRepository? _userWorkspaceRepository = userWorkspaceRepository;
+        private readonly IWorkspaceRoleBootstrapper? _workspaceRoleBootstrapper = workspaceRoleBootstrapper;
 
     public async Task<AuthenticationResult> AuthenticateAsync(string email, string password)
     {
@@ -121,6 +128,12 @@ public class AuthenticationService(IUserRepository userRepository, IPasswordHash
         };
 
             await _userWorkspaceRepository.AddAsync(userWorkspace);
+
+        // create Admin role for the workspace and assign the creator as Admin
+        if (_workspaceRoleBootstrapper != null)
+        {
+            await _workspaceRoleBootstrapper.BootstrapAdminAsync(workspace.Id, user.Id);
+        }
 
         var token = await _tokenRepository.CreateForUserIdAsync(user.Id);
         result.Success = true;

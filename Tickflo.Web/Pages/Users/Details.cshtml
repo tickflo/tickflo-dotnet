@@ -1,0 +1,30 @@
+@page "{id:int}"
+@model Tickflo.Web.Pages.Users.DetailsModel
+@{
+    ViewData["Title"] = "User Details";
+}
+
+<h1>User Details</h1>
+
+@if (Model.User == null)
+{
+    <div class="alert alert-warning">User not found.</div>
+}
+else
+{
+    <dl class="row">
+        <dt class="col-sm-3">Name</dt>
+        <dd class="col-sm-9">@Model.User.Name</dd>
+        <dt class="col-sm-3">Email</dt>
+        <dd class="col-sm-9">@Model.User.Email</dd>
+        <dt class="col-sm-3">Recovery Email</dt>
+        <dd class="col-sm-9">@Model.User.RecoveryEmail</dd>
+        <dt class="col-sm-3">Admin</dt>
+        <dd class="col-sm-9">@(Model.User.SystemAdmin ? "Yes" : "No")</dd>
+        <dt class="col-sm-3">Created</dt>
+        <dd class="col-sm-9">@Model.User.CreatedAt.ToString("u")</dd>
+    </dl>
+
+    <a class="btn btn-secondary" asp-page="/Users/Index">Back</a>
+    <a class="btn btn-primary" asp-page="/Users/Edit" asp-route-id="@Model.User.Id">Edit</a>
+}

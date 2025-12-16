@@ -24,4 +24,23 @@ public class UserWorkspaceRepository(TickfloDbContext db) : IUserWorkspaceReposi
             .Where(uw => uw.UserId == userId)
             .ToListAsync();
     }
+
+    public Task<List<UserWorkspace>> FindForWorkspaceAsync(int workspaceId)
+    {
+        return _db.UserWorkspaces
+            .Where(uw => uw.WorkspaceId == workspaceId)
+            .OrderByDescending(uw => uw.CreatedAt)
+            .ToListAsync();
+    }
+
+    public Task<UserWorkspace?> FindAsync(int userId, int workspaceId)
+    {
+        return _db.UserWorkspaces.FirstOrDefaultAsync(uw => uw.UserId == userId && uw.WorkspaceId == workspaceId);
+    }
+
+    public async Task UpdateAsync(UserWorkspace uw)
+    {
+        _db.UserWorkspaces.Update(uw);
+        await _db.SaveChangesAsync();
+    }
 }

@@ -16,7 +16,7 @@
             <p class="text-xs text-muted">/@Model.Slug</p>
         </div>
         <div class="flex gap-2">
-            @if (!string.IsNullOrEmpty(Model.NewActionHref) && !string.IsNullOrEmpty(Model.NewActionLabel))
+            @if (Model.AllowNewAction && !string.IsNullOrEmpty(Model.NewActionHref) && !string.IsNullOrEmpty(Model.NewActionLabel))
             {
                 <a class="btn btn-sm btn-primary" href="@Model.NewActionHref"><i class="fa fa-plus"></i> @Model.NewActionLabel</a>
             }

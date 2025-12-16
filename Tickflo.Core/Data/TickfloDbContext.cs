@@ -9,6 +9,8 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
     public DbSet<Token> Tokens => Set<Token>();
     public DbSet<Workspace> Workspaces => Set<Workspace>();
     public DbSet<UserWorkspace> UserWorkspaces => Set<UserWorkspace>();
+    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<UserWorkspaceRole> UserWorkspaceRoles => Set<UserWorkspaceRole>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -17,6 +19,13 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
 
         modelBuilder.Entity<UserWorkspace>()
             .HasKey(uw => new { uw.UserId, uw.WorkspaceId });
+
+        modelBuilder.Entity<Role>()
+            .HasIndex(r => new { r.WorkspaceId, r.Name })
+            .IsUnique();
+
+        modelBuilder.Entity<UserWorkspaceRole>()
+            .HasKey(uwr => new { uwr.UserId, uwr.WorkspaceId, uwr.RoleId });
 
         modelBuilder.Entity<Workspace>()
             .HasIndex(w => w.Slug)

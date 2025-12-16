@@ -7,4 +7,5 @@ public class WorkspaceHeaderView
     public string? SectionTitle { get; set; }
     public string? NewActionLabel { get; set; }
     public string? NewActionHref { get; set; }
+    public bool AllowNewAction { get; set; } = true;
 }

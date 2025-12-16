@@ -7,11 +7,46 @@
 <div class="flex">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
-        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Users", NewActionLabel = "Invite User", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/users/invite" })
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Users", NewActionLabel = "Invite User", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/users/invite", AllowNewAction = Model.IsWorkspaceAdmin })
         <h1 class="text-2xl font-bold">Users</h1>
         <p class="mt-2 text-sm text-muted">Workspace: @Model.WorkspaceSlug</p>
         <div class="mt-4">
-            <p>Users page placeholder. Invitations and roles go here.</p>
+            <h2 class="text-xl font-semibold">Pending Invites</h2>
+            @if (!Model.PendingInvites.Any())
+            {
+                <p class="text-sm">No pending invites.</p>
+            }
+            else
+            {
+                <table class="table table-sm mt-2">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Invited</th>
+                            <th>Roles</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var inv in Model.PendingInvites)
+                    {
+                        <tr>
+                            <td>@inv.Email</td>
+                            <td>@inv.CreatedAt.ToString("u")</td>
+                            <td>@(inv.Roles != null && inv.Roles.Any() ? string.Join(", ", inv.Roles) : "—")</td>
+                            <td class="flex gap-2">
+                                <form method="post" asp-page-handler="Accept" asp-route-slug="@Model.WorkspaceSlug" asp-route-userId="@inv.UserId">
+                                    <button class="btn btn-xs btn-primary" type="submit">Accept</button>
+                                </form>
+                                <form method="post" asp-page-handler="Resend" asp-route-slug="@Model.WorkspaceSlug" asp-route-userId="@inv.UserId">
+                                    <button class="btn btn-xs" type="submit">Resend</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
         </div>
     </section>
 </div>

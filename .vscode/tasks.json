@@ -110,6 +110,102 @@
 				"$msbuild"
 			],
 			"group": "build"
+		},
+		{
+			"label": "build roles bootstrapping",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "rebuild after bootstrapper",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "build roles CRUD",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "rebuild after fix rolesnew",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "rebuild roles pages",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "rebuild after route move",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "rebuild after sidebar update",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "build roles assign",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "rebuild assign fix",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "build remove assignment",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "rebuild with delete guard",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "rebuild with banner",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
 		}
 	]
 }

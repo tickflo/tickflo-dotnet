@@ -22,4 +22,17 @@ public class UserRepository(TickfloDbContext db) : IUserRepository
     {
         return _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
     }
+
+    public Task<List<User>> ListAsync()
+    {
+        return _db.Users
+            .OrderBy(u => u.Name)
+            .ToListAsync();
+    }
+
+    public async Task UpdateAsync(User user)
+    {
+        _db.Users.Update(user);
+        await _db.SaveChangesAsync();
+    }
 }

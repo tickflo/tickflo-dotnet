@@ -1,0 +1,41 @@
+@page "{id:int}"
+@model Tickflo.Web.Pages.Users.EditModel
+@{
+    ViewData["Title"] = "Edit User";
+}
+
+<h1>Edit User</h1>
+
+@if (Model.Input == null)
+{
+    <div class="alert alert-warning">User not found.</div>
+}
+else
+{
+    <form method="post">
+        <div class="mb-3">
+            <label asp-for="Input.Name" class="form-label"></label>
+            <input asp-for="Input.Name" class="form-control" />
+            <span asp-validation-for="Input.Name" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Input.Email" class="form-label"></label>
+            <input asp-for="Input.Email" class="form-control" />
+            <span asp-validation-for="Input.Email" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Input.RecoveryEmail" class="form-label"></label>
+            <input asp-for="Input.RecoveryEmail" class="form-control" />
+            <span asp-validation-for="Input.RecoveryEmail" class="text-danger"></span>
+        </div>
+        <div class="mb-3 form-check">
+            <input asp-for="Input.SystemAdmin" class="form-check-input" />
+            <label asp-for="Input.SystemAdmin" class="form-check-label"></label>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a class="btn btn-secondary" asp-page="/Users/Details" asp-route-id="@Model.UserId">Cancel</a>
+    </form>
+}
+
+<partial name="_ValidationScriptsPartial" />
