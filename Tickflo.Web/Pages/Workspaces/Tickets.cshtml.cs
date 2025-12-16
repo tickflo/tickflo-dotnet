@@ -14,6 +14,7 @@ public class TicketsModel : PageModel
     private readonly IContactRepository _contactRepo;
     private readonly IUserWorkspaceRepository _userWorkspaces;
     private readonly IUserRepository _users;
+    private readonly ITicketStatusRepository _statusRepo;
     private readonly IHttpContextAccessor _http;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -39,8 +40,10 @@ public class TicketsModel : PageModel
     public int PageSize { get; set; } = 25;
     public int Total { get; private set; }
     public int MyCount { get; private set; }
+    public IReadOnlyList<Tickflo.Core.Entities.TicketStatus> Statuses { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketStatus>();
+    public Dictionary<string, string> StatusColorByName { get; private set; } = new();
 
-    public TicketsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserWorkspaceRepository userWorkspaces, IUserRepository users, IHttpContextAccessor http)
+    public TicketsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserWorkspaceRepository userWorkspaces, IUserRepository users, IHttpContextAccessor http, ITicketStatusRepository statusRepo)
     {
         _workspaceRepo = workspaceRepo;
         _ticketRepo = ticketRepo;
@@ -48,6 +51,7 @@ public class TicketsModel : PageModel
         _userWorkspaces = userWorkspaces;
         _users = users;
         _http = http;
+        _statusRepo = statusRepo;
     }
 
     public async Task OnGetAsync(string slug)
@@ -56,6 +60,22 @@ public class TicketsModel : PageModel
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace != null)
         {
+            // Load statuses and build color map
+            var sts = await _statusRepo.ListAsync(Workspace.Id);
+            if (sts.Count == 0)
+            {
+                // Fallback defaults (in case settings page hasn't bootstrapped yet)
+                sts = new List<Tickflo.Core.Entities.TicketStatus>{
+                    new() { WorkspaceId = Workspace.Id, Name = "New", Color = "info", SortOrder = 1, IsClosedState = false },
+                    new() { WorkspaceId = Workspace.Id, Name = "Completed", Color = "success", SortOrder = 2, IsClosedState = true },
+                    new() { WorkspaceId = Workspace.Id, Name = "Closed", Color = "error", SortOrder = 3, IsClosedState = true },
+                };
+            }
+            Statuses = sts;
+            StatusColorByName = sts
+                .GroupBy(s => s.Name)
+                .ToDictionary(g => g.Key, g => string.IsNullOrWhiteSpace(g.Last().Color) ? "neutral" : g.Last().Color);
+
             var all = await _ticketRepo.ListAsync(Workspace.Id);
             var filtered = all.AsEnumerable();
             if (!string.IsNullOrWhiteSpace(Status)) filtered = filtered.Where(t => t.Status == Status);

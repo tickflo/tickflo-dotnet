@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
+using System.Linq;
 using Tickflo.Core.Entities;
 
 namespace Tickflo.Web.Pages.Workspaces;
@@ -15,8 +16,9 @@ public class TicketsDetailsModel : PageModel
     private readonly IUserWorkspaceRepository _userWorkspaces;
     private readonly IUserWorkspaceRoleRepository _roles;
     private readonly IHttpContextAccessor _http;
+    private readonly ITicketStatusRepository _statusRepo;
 
-    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http)
+    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, ITicketStatusRepository statusRepo)
     {
         _workspaceRepo = workspaceRepo;
         _ticketRepo = ticketRepo;
@@ -25,6 +27,7 @@ public class TicketsDetailsModel : PageModel
         _userWorkspaces = userWorkspaces;
         _roles = roles;
         _http = http;
+        _statusRepo = statusRepo;
     }
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
@@ -33,6 +36,8 @@ public class TicketsDetailsModel : PageModel
     public Contact? Contact { get; private set; }
     public bool IsWorkspaceAdmin { get; private set; }
     public List<User> Members { get; private set; } = new();
+    public IReadOnlyList<Tickflo.Core.Entities.TicketStatus> Statuses { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketStatus>();
+    public Dictionary<string,string> StatusColorByName { get; private set; } = new();
 
     [BindProperty(SupportsGet = true)]
     public string? Query { get; set; }
@@ -70,6 +75,19 @@ public class TicketsDetailsModel : PageModel
         Contact = Ticket.ContactId.HasValue ? await _contactRepo.FindAsync(Workspace.Id, Ticket.ContactId.Value) : null;
         var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         IsWorkspaceAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
+        var sts = await _statusRepo.ListAsync(Workspace.Id);
+        if (sts.Count == 0)
+        {
+            sts = new List<Tickflo.Core.Entities.TicketStatus>{
+                new() { WorkspaceId = Workspace.Id, Name = "New", Color = "info", SortOrder = 1, IsClosedState = false },
+                new() { WorkspaceId = Workspace.Id, Name = "Completed", Color = "success", SortOrder = 2, IsClosedState = true },
+                new() { WorkspaceId = Workspace.Id, Name = "Closed", Color = "error", SortOrder = 3, IsClosedState = true },
+            };
+        }
+        Statuses = sts;
+        StatusColorByName = sts
+            .GroupBy(s => s.Name)
+            .ToDictionary(g => g.Key, g => string.IsNullOrWhiteSpace(g.Last().Color) ? "neutral" : g.Last().Color);
         var memberships = await _userWorkspaces.FindForWorkspaceAsync(Workspace.Id);
         var userIds = memberships.Select(m => m.UserId).Distinct().ToList();
         foreach (var uid2 in userIds)

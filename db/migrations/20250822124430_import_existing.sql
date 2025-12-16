@@ -1093,5 +1093,73 @@ CREATE INDEX IF NOT EXISTS idx_contacts_ws_name
     ON public.contacts (workspace_id, name);
 
 
+--
+-- Ticket Statuses (customizable per workspace)
+--
+CREATE TABLE IF NOT EXISTS public.ticket_statuses (
+    id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
+    workspace_id integer NOT NULL,
+    name character varying(50) NOT NULL,
+    color character varying(20) NOT NULL DEFAULT 'neutral',
+    sort_order integer NOT NULL DEFAULT 0,
+    is_closed_state boolean NOT NULL DEFAULT false
+);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint con
+        JOIN pg_class rel ON rel.oid = con.conrelid
+        JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+        WHERE con.contype = 'p'
+          AND rel.relname = 'ticket_statuses'
+          AND nsp.nspname = 'public'
+    ) THEN
+        ALTER TABLE ONLY public.ticket_statuses
+            ADD CONSTRAINT ticket_statuses_pkey PRIMARY KEY (id);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'ticket_statuses_workspace_name_unique'
+    ) THEN
+        ALTER TABLE ONLY public.ticket_statuses
+            ADD CONSTRAINT ticket_statuses_workspace_name_unique UNIQUE (workspace_id, name);
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    ALTER TABLE public.ticket_statuses
+        ADD CONSTRAINT ticket_statuses_workspace_fk
+        FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Seed default statuses for all existing workspaces if none exist
+INSERT INTO public.ticket_statuses (workspace_id, name, color, sort_order, is_closed_state)
+SELECT w.id, 'New', 'info', 1, false
+FROM public.workspaces w
+WHERE NOT EXISTS (SELECT 1 FROM public.ticket_statuses s WHERE s.workspace_id = w.id)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO public.ticket_statuses (workspace_id, name, color, sort_order, is_closed_state)
+SELECT w.id, 'Completed', 'success', 2, true
+FROM public.workspaces w
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.ticket_statuses s WHERE s.workspace_id = w.id AND s.name = 'Completed'
+);
+
+INSERT INTO public.ticket_statuses (workspace_id, name, color, sort_order, is_closed_state)
+SELECT w.id, 'Closed', 'error', 3, true
+FROM public.workspaces w
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.ticket_statuses s WHERE s.workspace_id = w.id AND s.name = 'Closed'
+);
+
+-- Index for ordering and listing statuses per workspace
+CREATE INDEX IF NOT EXISTS idx_ticket_statuses_ws_order_name
+    ON public.ticket_statuses (workspace_id, sort_order, name);
+
 -- migrate:down
 

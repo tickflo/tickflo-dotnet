@@ -24,7 +24,13 @@
         <h2 class="card-title">@Model.Ticket?.Subject</h2>
         <div class="join">
           <span class="badge badge-soft join-item">@Model.Ticket?.Priority</span>
-          <span class="badge badge-soft join-item">@Model.Ticket?.Status</span>
+          @{
+            var sColor = (Model.Ticket != null && Model.StatusColorByName.TryGetValue(Model.Ticket.Status, out var c)) ? c : "neutral";
+            var isHex = sColor.StartsWith("#");
+            var sCls = isHex ? "badge badge-soft join-item" : $"badge badge-soft badge-{sColor} join-item";
+            var sStyle = isHex ? $"background-color: {sColor}; color: #fff;" : null;
+          }
+          <span class="@sCls" style="@sStyle">@Model.Ticket?.Status</span>
         </div>
       </div>
       <div class="text-sm opacity-70">Created @Model.Ticket?.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</div>
@@ -77,9 +83,10 @@
           <div>
             <label class="label">Status</label>
             <select name="EditStatus" class="select select-bordered w-full">
-              @if (Model.Ticket!.Status == "New") {<option value="New" selected>New</option>} else {<option value="New">New</option>}
-              @if (Model.Ticket!.Status == "Open") {<option value="Open" selected>Open</option>} else {<option value="Open">Open</option>}
-              @if (Model.Ticket!.Status == "Closed") {<option value="Closed" selected>Closed</option>} else {<option value="Closed">Closed</option>}
+              @foreach (var s in Model.Statuses)
+              {
+                if (Model.Ticket!.Status == s.Name) {<option value="@s.Name" selected>@s.Name</option>} else {<option value="@s.Name">@s.Name</option>}
+              }
             </select>
           </div>
           <div class="flex gap-2">
@@ -95,6 +102,14 @@
         </div>
         <script>
           (function(){
+            const statusColors = {
+@for (int i = 0; i < Model.Statuses.Count; i++)
+{
+    var s = Model.Statuses[i];
+    var color = string.IsNullOrWhiteSpace(s.Color) ? "neutral" : s.Color;
+@:$"\"{s.Name.Replace("\"","\\\"")}\": \"{color}\"{(i < Model.Statuses.Count - 1 ? "," : string.Empty)}"
+}
+            };
             const form = document.getElementById('ticket-save-form');
             if (!form) return;
             form.addEventListener('submit', async function(e){
@@ -120,7 +135,12 @@
                   const titleEl = document.querySelector('.card-title');
                   if (titleEl) titleEl.textContent = subj;
                   const badges = document.querySelectorAll('.card .badge');
-                  if (badges && badges.length >= 2){ badges[0].textContent = prio; badges[1].textContent = status; }
+                  if (badges && badges.length >= 2){
+                    badges[0].textContent = prio;
+                    badges[1].textContent = status;
+                    const c = statusColors[status] || 'neutral';
+                    badges[1].className = `badge badge-soft badge-${c} join-item`;
+                  }
                 } else {
                   const toast = document.getElementById('save-error-toast');
                   const msg = document.getElementById('save-error-toast-msg');
@@ -150,9 +170,10 @@
           <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
           <input type="hidden" name="id" value="@Model.Ticket!.Id" />
           <select name="status" class="select select-bordered join-item select-sm md:select-md">
-            <option value="New" selected>New</option>
-            <option value="Open">Open</option>
-            <option value="Closed">Closed</option>
+            @foreach (var s in Model.Statuses)
+            {
+              if (Model.Ticket!.Status == s.Name) {<option value="@s.Name" selected>@s.Name</option>} else {<option value="@s.Name">@s.Name</option>}
+            }
           </select>
           <button class="btn btn-soft join-item btn-sm md:btn-md" type="submit">Update Status</button>
         </form>

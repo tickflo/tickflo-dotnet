@@ -37,6 +37,7 @@ builder.Services.AddScoped<ILocationRepository, LocationRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IContactRepository, ContactRepository>();
 builder.Services.AddScoped<ITicketRepository, TicketRepository>();
+builder.Services.AddScoped<ITicketStatusRepository, TicketStatusRepository>();
 // Realtime updates for tickets
 builder.Services.AddSignalR();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();

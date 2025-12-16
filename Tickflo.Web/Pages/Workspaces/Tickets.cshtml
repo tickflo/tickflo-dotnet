@@ -15,9 +15,17 @@
             <input name="Query" value="@Model.Query" placeholder="Search subject or description" class="input input-bordered join-item input-sm md:input-md" />
             <select name="Status" class="select select-bordered join-item select-sm md:select-md">
                 <option value="">All Statuses</option>
-                <option value="New" selected>New</option>
-                <option value="Open">Open</option>
-                <option value="Closed">Closed</option>
+                @foreach (var s in Model.Statuses)
+                {
+                    if (string.Equals(Model.Status, s.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        <option value="@s.Name" selected>@s.Name</option>
+                    }
+                    else
+                    {
+                        <option value="@s.Name">@s.Name</option>
+                    }
+                }
             </select>
             <select name="Priority" class="select select-bordered join-item select-sm md:select-md">
                 <option value="">All Priorities</option>
@@ -73,7 +81,13 @@
                                         }
                                         <td><a class="link link-hover" href="/workspaces/@Model.WorkspaceSlug/tickets/@t.Id?@rowQs">@t.Subject</a></td>
                     <td><span class="badge badge-soft">@t.Priority</span></td>
-                    <td><span class="badge badge-soft">@t.Status</span></td>
+                    @{
+                        var color = Model.StatusColorByName.TryGetValue(t.Status, out var col) ? col : "neutral";
+                        var isHex = color.StartsWith("#");
+                        var statusCls = isHex ? "badge badge-soft" : $"badge badge-soft badge-{color}";
+                        var statusStyle = isHex ? $"background-color: {color}; color: #fff;" : null;
+                    }
+                    <td><span class="@statusCls" style="@statusStyle">@t.Status</span></td>
                         <td>
                         @if (t.ContactId.HasValue && Model.ContactsById.TryGetValue(t.ContactId.Value, out var c))
                         {
@@ -183,6 +197,14 @@
     </div>
     <script>
         (function(){
+            const statusColors = {
+@for (int i = 0; i < Model.Statuses.Count; i++)
+{
+    var s = Model.Statuses[i];
+        var color = string.IsNullOrWhiteSpace(s.Color) ? "neutral" : s.Color;
+    @:$"\"{s.Name.Replace("\"","\\\"")}\": \"{color}\"{(i < Model.Statuses.Count - 1 ? "," : string.Empty)}"
+}
+            };
             // Minimal fade-in animation style for newly inserted rows
             const style = document.createElement('style');
             style.textContent = ".fade-in { animation: fadeIn 450ms ease-out; }\n@keyframes fadeIn { from { opacity: 0; transform: translateY(-2px); } to { opacity: 1; transform: translateY(0); } }";
@@ -259,10 +281,15 @@
                                         const tr = document.createElement('tr');
                                         tr.classList.add('fade-in');
                     const rowQs = `Query=@Model.Query&Status=@Model.Status&Priority=@Model.Priority&ContactId=@Model.ContactId&Mine=@Model.Mine&AssigneeUserId=@Model.AssigneeUserId&PageNumber=@Model.PageNumber&PageSize=@Model.PageSize`;
+                                        const color = statusColors[t.status] || 'neutral';
+                                        const isHex = (typeof color === 'string') && color.startsWith('#');
+                                        const statusSpan = isHex
+                                                ? `<span class="badge" style="background-color: ${color}; color: #fff;">${t.status}</span>`
+                                                : `<span class="badge badge-soft badge-${color}">${t.status}</span>`;
                     tr.innerHTML = `
                         <td><a class="link link-hover" href="/workspaces/${slug}/tickets/${t.id}?${rowQs}">${t.subject}</a></td>
                         <td><span class="badge badge-soft">${t.priority}</span></td>
-                        <td><span class="badge badge-soft">${t.status}</span></td>
+                                                <td>${statusSpan}</td>
                         <td><span>${contactDisplay}</span></td>
                         <td class="hidden sm:table-cell"><span class="badge ${t.assignedUserId ? 'badge-soft' : ''}">${t.assignedUserId ? (t.assignedDisplay || 'Assigned') : 'Unassigned'}</span></td>
                         <td>${t.inventoryRef ? `<a class="link link-hover" href="/workspaces/${slug}/inventory?Query=${t.inventoryRef}">${t.inventoryRef}</a>` : '<span class="opacity-50">—</span>'}</td>
@@ -284,7 +311,17 @@
                         const statusCell = row.querySelector('td:nth-child(3) .badge');
                         if (subjectCell) subjectCell.textContent = t.subject;
                         if (prioCell) prioCell.textContent = t.priority;
-                        if (statusCell) statusCell.textContent = t.status;
+                        if (statusCell) {
+                            statusCell.textContent = t.status;
+                            const c = statusColors[t.status] || 'neutral';
+                            if ((typeof c === 'string') && c.startsWith('#')) {
+                                statusCell.className = 'badge';
+                                statusCell.setAttribute('style', `background-color: ${c}; color: #fff;`);
+                            } else {
+                                statusCell.className = `badge badge-soft badge-${c}`;
+                                statusCell.removeAttribute('style');
+                            }
+                        }
                         const invCell = row.querySelector('td:nth-child(6)');
                         if (invCell){
                             if (t.inventoryRef){
