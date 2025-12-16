@@ -6,3 +6,31 @@
 .input-validation-error {
     @apply input-error;
 }
+
+/* Sidebar menu color tweaks for consistency */
+.menu :where(li > a).menu-active {
+    @apply bg-base-300 text-primary;
+}
+.menu :where(li > a):hover {
+    @apply bg-base-300/50;
+}
+.menu .menu-title {
+    @apply text-base-content/70;
+}
+
+/* Tickets submenu: ensure summary and nested items match hover/active colors */
+.menu details > summary {
+    @apply text-base-content;
+}
+.menu details > summary:hover {
+    @apply bg-base-300/50;
+}
+.menu details > ul li > a {
+    @apply text-base-content;
+}
+.menu details > ul li > a.menu-active {
+    @apply bg-base-300 text-primary;
+}
+.menu details > ul li > a:hover {
+    @apply bg-base-300/50;
+}
