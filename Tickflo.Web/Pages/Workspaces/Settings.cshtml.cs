@@ -14,10 +14,11 @@ public class SettingsModel : PageModel
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ITicketStatusRepository _statusRepo;
     private readonly ITicketPriorityRepository _priorityRepo;
+    private readonly ITicketTypeRepository _typeRepo;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
-    public SettingsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IHttpContextAccessor httpContextAccessor, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo)
+    public SettingsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IHttpContextAccessor httpContextAccessor, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo)
     {
         _workspaceRepo = workspaceRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
@@ -25,10 +26,12 @@ public class SettingsModel : PageModel
         _httpContextAccessor = httpContextAccessor;
         _statusRepo = statusRepo;
         _priorityRepo = priorityRepo;
+        _typeRepo = typeRepo;
     }
 
     public IReadOnlyList<Tickflo.Core.Entities.TicketStatus> Statuses { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketStatus>();
     public IReadOnlyList<Tickflo.Core.Entities.TicketPriority> Priorities { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketPriority>();
+    public IReadOnlyList<Tickflo.Core.Entities.TicketType> Types { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketType>();
 
     [BindProperty]
     public string? NewStatusName { get; set; }
@@ -39,6 +42,11 @@ public class SettingsModel : PageModel
     public string? NewPriorityName { get; set; }
     [BindProperty]
     public string? NewPriorityColor { get; set; }
+
+    [BindProperty]
+    public string? NewTypeName { get; set; }
+    [BindProperty]
+    public string? NewTypeColor { get; set; }
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {
@@ -81,6 +89,20 @@ public class SettingsModel : PageModel
             plist = await _priorityRepo.ListAsync(Workspace.Id);
         }
         Priorities = plist;
+        // Load or bootstrap default types
+        var tlist = await _typeRepo.ListAsync(Workspace.Id);
+        if (tlist.Count == 0)
+        {
+            var tdefs = new[]
+            {
+                new Tickflo.Core.Entities.TicketType { WorkspaceId = Workspace.Id, Name = "Standard", Color = "neutral", SortOrder = 1 },
+                new Tickflo.Core.Entities.TicketType { WorkspaceId = Workspace.Id, Name = "Bug", Color = "error", SortOrder = 2 },
+                new Tickflo.Core.Entities.TicketType { WorkspaceId = Workspace.Id, Name = "Feature", Color = "primary", SortOrder = 3 },
+            };
+            foreach (var t in tdefs) { await _typeRepo.CreateAsync(t); }
+            tlist = await _typeRepo.ListAsync(Workspace.Id);
+        }
+        Types = tlist;
         return Page();
     }
 
@@ -142,6 +164,35 @@ public class SettingsModel : PageModel
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
+    public async Task<IActionResult> OnPostAddTypeAsync(string slug)
+    {
+        WorkspaceSlug = slug;
+        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
+        if (Workspace == null) return NotFound();
+        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(uidStr, out var uid)) return Forbid();
+        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
+        if (!isAdmin) return Forbid();
+        var name = (NewTypeName ?? string.Empty).Trim();
+        var color = (NewTypeColor ?? "neutral").Trim();
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            var exists = await _typeRepo.FindByNameAsync(Workspace.Id, name);
+            if (exists == null)
+            {
+                var maxOrder = (await _typeRepo.ListAsync(Workspace.Id)).DefaultIfEmpty().Max(t => t?.SortOrder ?? 0);
+                await _typeRepo.CreateAsync(new Tickflo.Core.Entities.TicketType
+                {
+                    WorkspaceId = Workspace.Id,
+                    Name = name,
+                    Color = string.IsNullOrWhiteSpace(color) ? "neutral" : color,
+                    SortOrder = maxOrder + 1
+                });
+            }
+        }
+        return RedirectToPage("/Workspaces/Settings", new { slug });
+    }
+
     public async Task<IActionResult> OnPostUpdateStatusAsync(string slug, int id, string name, string color, int sortOrder)
     {
         WorkspaceSlug = slug;
@@ -182,6 +233,26 @@ public class SettingsModel : PageModel
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
+    public async Task<IActionResult> OnPostUpdateTypeAsync(string slug, int id, string name, string color, int sortOrder)
+    {
+        WorkspaceSlug = slug;
+        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
+        if (Workspace == null) return NotFound();
+        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(uidStr, out var uid)) return Forbid();
+        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
+        if (!isAdmin) return Forbid();
+        var t = await _typeRepo.FindByIdAsync(Workspace.Id, id);
+        if (t == null) return NotFound();
+        t.Name = (name ?? t.Name).Trim();
+        t.Color = string.IsNullOrWhiteSpace(color)
+            ? (string.IsNullOrWhiteSpace(t.Color) ? "neutral" : t.Color)
+            : color.Trim();
+        t.SortOrder = sortOrder;
+        await _typeRepo.UpdateAsync(t);
+        return RedirectToPage("/Workspaces/Settings", new { slug });
+    }
+
     public async Task<IActionResult> OnPostDeleteStatusAsync(string slug, int id)
     {
         WorkspaceSlug = slug;
@@ -205,6 +276,19 @@ public class SettingsModel : PageModel
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
         if (!isAdmin) return Forbid();
         await _priorityRepo.DeleteAsync(Workspace.Id, id);
+        return RedirectToPage("/Workspaces/Settings", new { slug });
+    }
+
+    public async Task<IActionResult> OnPostDeleteTypeAsync(string slug, int id)
+    {
+        WorkspaceSlug = slug;
+        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
+        if (Workspace == null) return NotFound();
+        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(uidStr, out var uid)) return Forbid();
+        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
+        if (!isAdmin) return Forbid();
+        await _typeRepo.DeleteAsync(Workspace.Id, id);
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
 }

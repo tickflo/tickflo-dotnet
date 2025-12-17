@@ -951,6 +951,7 @@ CREATE TABLE IF NOT EXISTS public.tickets (
     contact_id integer NULL,
     subject text NOT NULL,
     description text NOT NULL,
+    type text DEFAULT 'Standard' NOT NULL,
     priority text DEFAULT 'Normal' NOT NULL,
     status text DEFAULT 'New' NOT NULL,
     assigned_user_id integer NULL,
@@ -977,6 +978,17 @@ BEGIN
         ALTER TABLE ONLY public.tickets ADD CONSTRAINT tickets_pkey PRIMARY KEY (id);
     END IF;
 END $$;
+
+-- Ticket Type column & index (idempotent)
+DO $$ BEGIN
+    ALTER TABLE IF EXISTS public.tickets
+        ADD COLUMN IF NOT EXISTS type text DEFAULT 'Standard' NOT NULL;
+EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE INDEX IF NOT EXISTS idx_tickets_workspace_type
+        ON public.tickets (workspace_id, type);
+EXCEPTION WHEN duplicate_table OR duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
     ALTER TABLE ONLY public.tickets
@@ -1226,6 +1238,72 @@ WHERE NOT EXISTS (
 -- Index for ordering and listing priorities per workspace
 CREATE INDEX IF NOT EXISTS idx_priorities_ws_order_name
     ON public.priorities (workspace_id, sort_order, name);
+
+--
+-- Ticket Types (customizable per workspace)
+CREATE TABLE IF NOT EXISTS public.ticket_types (
+    id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
+    workspace_id integer NOT NULL,
+    name character varying(50) NOT NULL,
+    color character varying(20) NOT NULL DEFAULT 'neutral',
+    sort_order integer NOT NULL DEFAULT 0
+);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint con
+        JOIN pg_class rel ON rel.oid = con.conrelid
+        JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+        WHERE con.contype = 'p'
+          AND rel.relname = 'ticket_types'
+          AND nsp.nspname = 'public'
+    ) THEN
+        ALTER TABLE ONLY public.ticket_types
+            ADD CONSTRAINT ticket_types_pkey PRIMARY KEY (id);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'ticket_types_workspace_name_unique'
+    ) THEN
+        ALTER TABLE ONLY public.ticket_types
+            ADD CONSTRAINT ticket_types_workspace_name_unique UNIQUE (workspace_id, name);
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    ALTER TABLE public.ticket_types
+        ADD CONSTRAINT ticket_types_workspace_fk
+        FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Seed default types for all existing workspaces if none exist
+INSERT INTO public.ticket_types (workspace_id, name, color, sort_order)
+SELECT w.id, 'Standard', 'neutral', 1
+FROM public.workspaces w
+WHERE NOT EXISTS (SELECT 1 FROM public.ticket_types t WHERE t.workspace_id = w.id)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO public.ticket_types (workspace_id, name, color, sort_order)
+SELECT w.id, 'Bug', 'error', 2
+FROM public.workspaces w
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.ticket_types t WHERE t.workspace_id = w.id AND t.name = 'Bug'
+);
+
+INSERT INTO public.ticket_types (workspace_id, name, color, sort_order)
+SELECT w.id, 'Feature', 'primary', 3
+FROM public.workspaces w
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.ticket_types t WHERE t.workspace_id = w.id AND t.name = 'Feature'
+);
+
+-- Index for ordering and listing types per workspace
+CREATE INDEX IF NOT EXISTS idx_ticket_types_ws_order_name
+    ON public.ticket_types (workspace_id, sort_order, name);
 
 -- migrate:down
 

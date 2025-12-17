@@ -7,6 +7,7 @@ public class Ticket
     public int? ContactId { get; set; }
     public string Subject { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string Type { get; set; } = "Standard";
     public string Priority { get; set; } = "Normal";
     public string Status { get; set; } = "New";
     public int? AssignedUserId { get; set; }

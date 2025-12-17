@@ -27,6 +27,13 @@
         <h2 class="card-title">@Model.Ticket?.Subject</h2>
         <div class="join">
           @{
+            var tColor = (Model.Ticket != null && Model.TypeColorByName.TryGetValue(Model.Ticket.Type, out var tc)) ? tc : "neutral";
+            var tIsHex = tColor.StartsWith("#");
+            var tCls = tIsHex ? "badge badge-soft join-item" : $"badge badge-soft badge-{tColor} join-item";
+            var tStyle = tIsHex ? $"background-color: {tColor}; color: #fff;" : null;
+          }
+          <span class="@tCls" style="@tStyle">@Model.Ticket?.Type</span>
+          @{
             var pColor = (Model.Ticket != null && Model.PriorityColorByName.TryGetValue(Model.Ticket.Priority, out var pc)) ? pc : "neutral";
             var pIsHex = pColor.StartsWith("#");
             var pCls = pIsHex ? "badge badge-soft join-item" : $"badge badge-soft badge-{pColor} join-item";
@@ -82,6 +89,15 @@
                   <option value="@c.Name (@c.Email)" data-id="@c.Id"></option>
                 }
               </datalist>
+            </div>
+            <div>
+              <label class="label">Type</label>
+              <select name="EditType" class="select select-bordered w-full">
+                @foreach (var t in Model.Types)
+                {
+                  if (Model.Ticket!.Type == t.Name) {<option value="@t.Name" selected>@t.Name</option>} else {<option value="@t.Name">@t.Name</option>}
+                }
+              </select>
             </div>
             <div>
               <label class="label">Subject</label>
@@ -175,6 +191,7 @@
                   }
                   // Update header badges inline from current inputs
                   const subj = form.querySelector('[name="EditSubject"]').value;
+                  const type = form.querySelector('[name="EditType"]').value;
                   const prio = form.querySelector('[name="EditPriority"]').value;
                   const status = form.querySelector('[name="EditStatus"]').value;
                   const inv = form.querySelector('[name="EditInventoryRef"]').value;
@@ -182,24 +199,33 @@
                   const titleEl = document.querySelector('.card-title');
                   if (titleEl) titleEl.textContent = subj;
                   const badges = document.querySelectorAll('.card .badge');
-                  if (badges && badges.length >= 2){
-                    badges[0].textContent = prio;
-                    const pc = priorityColors[prio] || 'neutral';
-                    if ((typeof pc === 'string') && pc.startsWith('#')){
+                  if (badges && badges.length >= 3){
+                    badges[0].textContent = type;
+                    const tc = (statusColors[type] || priorityColors[type] || 'neutral');
+                    if ((typeof tc === 'string') && tc.startsWith('#')){
                       badges[0].className = 'badge badge-soft join-item';
-                      badges[0].setAttribute('style', `background-color: ${pc}; color: #fff;`);
+                      badges[0].setAttribute('style', `background-color: ${tc}; color: #fff;`);
                     } else {
-                      badges[0].className = `badge badge-soft badge-${pc} join-item`;
+                      badges[0].className = `badge badge-soft badge-${tc} join-item`;
                       badges[0].removeAttribute('style');
                     }
-                    badges[1].textContent = status;
+                    badges[1].textContent = prio;
+                    const pc = priorityColors[prio] || 'neutral';
+                    if ((typeof pc === 'string') && pc.startsWith('#')){
+                      badges[1].className = 'badge badge-soft join-item';
+                      badges[1].setAttribute('style', `background-color: ${pc}; color: #fff;`);
+                    } else {
+                      badges[1].className = `badge badge-soft badge-${pc} join-item`;
+                      badges[1].removeAttribute('style');
+                    }
+                    badges[2].textContent = status;
                     const c = statusColors[status] || 'neutral';
                     if ((typeof c === 'string') && c.startsWith('#')){
-                      badges[1].className = 'badge badge-soft join-item';
-                      badges[1].setAttribute('style', `background-color: ${c}; color: #fff;`);
+                      badges[2].className = 'badge badge-soft join-item';
+                      badges[2].setAttribute('style', `background-color: ${c}; color: #fff;`);
                     } else {
-                      badges[1].className = `badge badge-soft badge-${c} join-item`;
-                      badges[1].removeAttribute('style');
+                      badges[2].className = `badge badge-soft badge-${c} join-item`;
+                      badges[2].removeAttribute('style');
                     }
                   }
                 } else {

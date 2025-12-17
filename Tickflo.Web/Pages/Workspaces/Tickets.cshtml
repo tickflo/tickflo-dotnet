@@ -13,6 +13,20 @@
     <div class="flex items-center justify-between">
         <form method="get" class="join md:join">
             <input name="Query" value="@Model.Query" placeholder="Search subject or description" class="input input-bordered join-item input-sm md:input-md" />
+            <select name="Type" class="select select-bordered join-item select-sm md:select-md">
+                <option value="">All Types</option>
+                @foreach (var t in Model.TypesList)
+                {
+                    if (string.Equals(Model.Type, t.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        <option value="@t.Name" selected>@t.Name</option>
+                    }
+                    else
+                    {
+                        <option value="@t.Name">@t.Name</option>
+                    }
+                }
+            </select>
             <select name="Status" class="select select-bordered join-item select-sm md:select-md">
                 <option value="">All Statuses</option>
                 @foreach (var s in Model.Statuses)
@@ -79,6 +93,7 @@
             <thead>
                 <tr>
                     <th>Subject</th>
+                    <th>Type</th>
                     <th>Priority</th>
                     <th>Status</th>
                     <th>Contact</th>
@@ -93,9 +108,16 @@
             {
                 <tr>
                                         @{
-                                            var rowQs = $"Query={Model.Query}&Status={Model.Status}&Priority={Model.Priority}&ContactQuery={Model.ContactQuery}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&PageNumber={Model.PageNumber}&PageSize={Model.PageSize}";
+                                            var rowQs = $"Query={Model.Query}&Type={Model.Type}&Status={Model.Status}&Priority={Model.Priority}&ContactQuery={Model.ContactQuery}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&PageNumber={Model.PageNumber}&PageSize={Model.PageSize}";
                                         }
                                         <td><a class="link link-hover" href="/workspaces/@Model.WorkspaceSlug/tickets/@t.Id?@rowQs">@t.Subject</a></td>
+                    @{
+                        var tcolor = Model.TypeColorByName.TryGetValue(t.Type, out var tclr) ? tclr : "neutral";
+                        var tIsHex = tcolor.StartsWith("#");
+                        var tCls = tIsHex ? "badge badge-soft" : $"badge badge-soft badge-{tcolor}";
+                        var tStyle = tIsHex ? $"background-color: {tcolor}; color: #fff;" : null;
+                    }
+                    <td><span class="@tCls" style="@tStyle">@t.Type</span></td>
                     @{
                         var pcolor = Model.PriorityColorByName.TryGetValue(t.Priority, out var pclr) ? pclr : "neutral";
                         var pIsHex = pcolor.StartsWith("#");
@@ -227,12 +249,20 @@
     @:$"\"{s.Name.Replace("\"","\\\"")}\": \"{color}\"{(i < Model.Statuses.Count - 1 ? "," : string.Empty)}"
 }
             };
-            const priorityColors = {
+                const priorityColors = {
 @for (int i = 0; i < Model.PrioritiesList.Count; i++)
 {
     var p = Model.PrioritiesList[i];
         var color = string.IsNullOrWhiteSpace(p.Color) ? "neutral" : p.Color;
     @:$"\"{p.Name.Replace("\"","\\\"")}\": \"{color}\"{(i < Model.PrioritiesList.Count - 1 ? "," : string.Empty)}"
+}
+            };
+            const typeColors = {
+@for (int i = 0; i < Model.TypesList.Count; i++)
+{
+    var tt = Model.TypesList[i];
+        var color = string.IsNullOrWhiteSpace(tt.Color) ? "neutral" : tt.Color;
+    @:$"\"{tt.Name.Replace("\"","\\\"")}\": \"{color}\"{(i < Model.TypesList.Count - 1 ? "," : string.Empty)}"
 }
             };
             // Minimal fade-in animation style for newly inserted rows
@@ -318,6 +348,7 @@
                                                 : `<span class="badge badge-soft badge-${color}">${t.status}</span>`;
                     tr.innerHTML = `
                         <td><a class="link link-hover" href="/workspaces/${slug}/tickets/${t.id}?${rowQs}">${t.subject}</a></td>
+                        ${(() => { const tc = typeColors[t.type] || 'neutral'; const tIsHex = (typeof tc === 'string') && tc.startsWith('#'); return tIsHex ? `<td><span class=\"badge badge-soft\" style=\"background-color: ${tc}; color: #fff;\">${t.type}</span></td>` : `<td><span class=\"badge badge-soft badge-${tc}\">${t.type}</span></td>`; })()}
                         {
                             const pc = priorityColors[t.priority] || 'neutral';
                             const pIsHex = (typeof pc === 'string') && pc.startsWith('#');
@@ -344,8 +375,20 @@
                     const row = document.querySelector(`tr td a[href^="/workspaces/${slug}/tickets/${t.id}"]`)?.closest('tr');
                     if (row){
                         const subjectCell = row.querySelector('td:nth-child(1) a');
-                        const prioCell = row.querySelector('td:nth-child(2) .badge');
-                        const statusCell = row.querySelector('td:nth-child(3) .badge');
+                        const typeCell = row.querySelector('td:nth-child(2) .badge');
+                        const prioCell = row.querySelector('td:nth-child(3) .badge');
+                        const statusCell = row.querySelector('td:nth-child(4) .badge');
+                        if (typeCell){
+                            typeCell.textContent = t.type;
+                            const tc = typeColors[t.type] || 'neutral';
+                            if ((typeof tc === 'string') && tc.startsWith('#')){
+                                typeCell.className = 'badge badge-soft';
+                                typeCell.setAttribute('style', `background-color: ${tc}; color: #fff;`);
+                            } else {
+                                typeCell.className = `badge badge-soft badge-${tc}`;
+                                typeCell.removeAttribute('style');
+                            }
+                        }
                         if (subjectCell) subjectCell.textContent = t.subject;
                         if (prioCell) {
                             prioCell.textContent = t.priority;
@@ -405,7 +448,7 @@
             @{
                 var prev = Model.PageNumber > 1 ? Model.PageNumber - 1 : 1;
                 var next = (Model.PageNumber * Model.PageSize) < Model.Total ? Model.PageNumber + 1 : Model.PageNumber;
-                var baseQs = $"Query={Model.Query}&Status={Model.Status}&Priority={Model.Priority}&ContactQuery={Model.ContactQuery}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&PageSize={Model.PageSize}";
+                var baseQs = $"Query={Model.Query}&Type={Model.Type}&Status={Model.Status}&Priority={Model.Priority}&ContactQuery={Model.ContactQuery}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&PageSize={Model.PageSize}";
             }
             <a class="btn btn-soft join-item btn-sm @(Model.PageNumber <= 1 ? "btn-disabled" : "")" href="?@baseQs&PageNumber=@prev">Prev</a>
             <a class="btn btn-soft join-item btn-sm @(((Model.PageNumber * Model.PageSize) >= Model.Total) ? "btn-disabled" : "")" href="?@baseQs&PageNumber=@next">Next</a>

@@ -157,5 +157,66 @@
                 </div>
             </div>
         </div>
+
+        <div class="card bg-base-100 shadow-sm mt-6">
+            <div class="card-body">
+                <div class="flex items-center justify-between">
+                    <h3 class="card-title">Ticket Types</h3>
+                    <span class="text-sm opacity-70">Categorize tickets with types</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="table table-md">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Color</th>
+                                <th>Order</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var t in Model.Types)
+                            {
+                                var displayColor = string.IsNullOrWhiteSpace(t.Color) ? "neutral" : t.Color;
+                                var isHex = displayColor.StartsWith("#");
+                                var badgeCls = isHex ? "badge badge-soft" : $"badge badge-soft badge-{displayColor}";
+                                var badgeStyle = isHex ? $"background-color: {displayColor}; color: #fff;" : null;
+                                <tr>
+                                    <td>
+                                        <form method="post" asp-page-handler="UpdateType" class="join">
+                                            <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
+                                            <input type="hidden" name="id" value="@t.Id" />
+                                            <input name="name" value="@t.Name" class="input input-bordered join-item input-sm w-40" />
+                                            <input type="color" name="color" value="@(isHex ? displayColor : "#14b8a6")" class="join-item w-12 h-8 p-0 border rounded" />
+                                            <input type="number" name="sortOrder" value="@t.SortOrder" class="input input-bordered join-item input-sm w-20" />
+                                            <button class="btn btn-soft btn-primary join-item btn-sm" type="submit">Save</button>
+                                        </form>
+                                    </td>
+                                    <td><span class="@badgeCls" style="@badgeStyle">@t.Color</span></td>
+                                    <td>@t.SortOrder</td>
+                                    <td>
+                                        <form method="post" asp-page-handler="DeleteType" onsubmit="return confirm('Delete type @t.Name?');">
+                                            <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
+                                            <input type="hidden" name="id" value="@t.Id" />
+                                            <button class="btn btn-soft btn-error btn-xs" type="submit">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                            <tr>
+                                <td colspan="5">
+                                    <form method="post" asp-page-handler="AddType" class="join">
+                                        <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
+                                        <input name="NewTypeName" placeholder="New type name" class="input input-bordered join-item input-sm w-40" />
+                                        <input type="color" name="NewTypeColor" value="#14b8a6" class="join-item w-12 h-8 p-0 border rounded" />
+                                        <button class="btn btn-soft btn-primary join-item btn-sm" type="submit">Add</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </section>
 </div>

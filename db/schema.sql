@@ -1,3 +1,13 @@
+-- Custom ticket types
+CREATE TABLE IF NOT EXISTS public.ticket_types (
+    id integer NOT NULL,
+    workspace_id integer NOT NULL,
+    name text NOT NULL,
+    color text NOT NULL DEFAULT 'neutral',
+    sort_order integer NOT NULL DEFAULT 0
+);
+ALTER TABLE public.ticket_types ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_ticket_types_workspace_name ON public.ticket_types(workspace_id, name);
 \restrict ZsODsT1oM4Jghrm8AS7CnRzhnc45V9E9P9mP5grWevQT01kIbgJ1JuABoHdskOa
 
 -- Dumped from database version 17.2 (Debian 17.2-1.pgdg120+1)

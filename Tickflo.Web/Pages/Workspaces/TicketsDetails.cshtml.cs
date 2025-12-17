@@ -18,8 +18,9 @@ public class TicketsDetailsModel : PageModel
     private readonly IHttpContextAccessor _http;
     private readonly ITicketStatusRepository _statusRepo;
     private readonly ITicketPriorityRepository _priorityRepo;
+    private readonly ITicketTypeRepository _typeRepo;
 
-    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo)
+    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo)
     {
         _workspaceRepo = workspaceRepo;
         _ticketRepo = ticketRepo;
@@ -30,6 +31,7 @@ public class TicketsDetailsModel : PageModel
         _http = http;
         _statusRepo = statusRepo;
         _priorityRepo = priorityRepo;
+        _typeRepo = typeRepo;
     }
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
@@ -43,6 +45,8 @@ public class TicketsDetailsModel : PageModel
     public Dictionary<string,string> StatusColorByName { get; private set; } = new();
     public IReadOnlyList<Tickflo.Core.Entities.TicketPriority> Priorities { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketPriority>();
     public Dictionary<string,string> PriorityColorByName { get; private set; } = new();
+    public IReadOnlyList<Tickflo.Core.Entities.TicketType> Types { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketType>();
+    public Dictionary<string,string> TypeColorByName { get; private set; } = new();
 
     [BindProperty(SupportsGet = true)]
     public string? Query { get; set; }
@@ -65,6 +69,8 @@ public class TicketsDetailsModel : PageModel
     public string? EditSubject { get; set; }
     [BindProperty]
     public string? EditDescription { get; set; }
+    [BindProperty]
+    public string? EditType { get; set; }
     [BindProperty]
     public string? EditPriority { get; set; }
     [BindProperty]
@@ -89,6 +95,7 @@ public class TicketsDetailsModel : PageModel
             Ticket = new Ticket
             {
                 WorkspaceId = Workspace.Id,
+                Type = "Standard",
                 Priority = "Normal",
                 Status = "New"
             };
@@ -124,6 +131,20 @@ public class TicketsDetailsModel : PageModel
         PriorityColorByName = pris.GroupBy(p => p.Name)
             .ToDictionary(g => g.Key, g => string.IsNullOrWhiteSpace(g.Last().Color) ? "neutral" : g.Last().Color);
 
+        // Load types
+        var types = await _typeRepo.ListAsync(Workspace.Id);
+        if (types.Count == 0)
+        {
+            types = new List<Tickflo.Core.Entities.TicketType>{
+                new() { WorkspaceId = Workspace.Id, Name = "Standard", Color = "neutral", SortOrder = 1 },
+                new() { WorkspaceId = Workspace.Id, Name = "Bug", Color = "error", SortOrder = 2 },
+                new() { WorkspaceId = Workspace.Id, Name = "Feature", Color = "primary", SortOrder = 3 },
+            };
+        }
+        Types = types;
+        TypeColorByName = types.GroupBy(t => t.Name)
+            .ToDictionary(g => g.Key, g => string.IsNullOrWhiteSpace(g.Last().Color) ? "neutral" : g.Last().Color);
+
         var memberships = await _userWorkspaces.FindForWorkspaceAsync(Workspace.Id);
         var userIds = memberships.Select(m => m.UserId).Distinct().ToList();
         foreach (var uid2 in userIds)
@@ -153,6 +174,7 @@ public class TicketsDetailsModel : PageModel
                 WorkspaceId = workspaceId,
                 Subject = (EditSubject ?? string.Empty).Trim(),
                 Description = (EditDescription ?? string.Empty).Trim(),
+                Type = DefaultOrTrim(EditType, "Standard"),
                 Priority = DefaultOrTrim(EditPriority, "Normal"),
                 Status = DefaultOrTrim(EditStatus, "New"),
                 InventoryRef = string.IsNullOrWhiteSpace(EditInventoryRef) ? null : EditInventoryRef!.Trim()
@@ -179,6 +201,8 @@ public class TicketsDetailsModel : PageModel
             if (!string.IsNullOrEmpty(subjectTrim)) t.Subject = subjectTrim;
             var descriptionTrim = EditDescription?.Trim();
             if (!string.IsNullOrEmpty(descriptionTrim)) t.Description = descriptionTrim;
+            var typeTrim = EditType?.Trim();
+            if (!string.IsNullOrEmpty(typeTrim)) t.Type = typeTrim;
             var priorityTrim = EditPriority?.Trim();
             if (!string.IsNullOrEmpty(priorityTrim)) t.Priority = priorityTrim;
             var statusTrim = EditStatus?.Trim();
