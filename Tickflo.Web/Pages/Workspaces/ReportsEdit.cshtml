@@ -1,12 +1,12 @@
 @page "/workspaces/{slug}/reports/{reportId:int}/edit"
 @model Tickflo.Web.Pages.Workspaces.ReportsEditModel
 @{
-    ViewData["Title"] = "Edit Report";
+    ViewData["Title"] = Model.ReportId == 0 ? "New Report" : "Edit Report";
 }
 <div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
-        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Edit Report" })
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = (Model.ReportId == 0 ? "New Report" : "Edit Report") })
         <div class="card bg-base-100 shadow-sm mt-4 max-w-xl">
             <div class="card-body">
                 <form method="post">

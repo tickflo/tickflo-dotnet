@@ -28,7 +28,7 @@ public class TicketsModel : PageModel
     [BindProperty(SupportsGet = true)]
     public string? Priority { get; set; }
     [BindProperty(SupportsGet = true)]
-    public int? ContactId { get; set; }
+    public string? ContactQuery { get; set; }
     [BindProperty(SupportsGet = true)]
     public bool Mine { get; set; }
     [BindProperty(SupportsGet = true)]
@@ -98,7 +98,16 @@ public class TicketsModel : PageModel
             var filtered = all.AsEnumerable();
             if (!string.IsNullOrWhiteSpace(Status)) filtered = filtered.Where(t => t.Status == Status);
             if (!string.IsNullOrWhiteSpace(Priority)) filtered = filtered.Where(t => t.Priority == Priority);
-            if (ContactId.HasValue && ContactId.Value > 0) filtered = filtered.Where(t => t.ContactId == ContactId.Value);
+            if (!string.IsNullOrWhiteSpace(ContactQuery))
+            {
+                var cq = ContactQuery.Trim();
+                filtered = filtered.Where(t =>
+                    t.ContactId.HasValue && ContactsById.TryGetValue(t.ContactId.Value, out var c) && (
+                        (c.Name?.Contains(cq, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                        (c.Email?.Contains(cq, StringComparison.OrdinalIgnoreCase) ?? false)
+                    )
+                );
+            }
             if (!string.IsNullOrWhiteSpace(Query))
             {
                 var q = Query.Trim();

@@ -7,7 +7,7 @@
 <div class="flex flex-row gap-10">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-8 lg:p-10 flex-1 ml-6">
-@await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Tickets", NewActionLabel = "New Ticket", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/tickets/new" })
+@await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Tickets", NewActionLabel = "New Ticket", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/tickets/0" })
 
 <div class="grid gap-4">
     <div class="flex items-center justify-between">
@@ -41,7 +41,15 @@
                     }
                 }
             </select>
-            <input name="ContactId" value="@Model.ContactId" type="number" placeholder="Contact Id" class="input input-bordered join-item input-sm md:input-md" />
+            <input id="contact-query" name="ContactQuery" value="@Model.ContactQuery" placeholder="Contact name or email" class="input input-bordered join-item input-sm md:input-md" list="contacts-list" />
+            <datalist id="contacts-list">
+                @foreach (var kv in Model.ContactsById)
+                {
+                    var c = kv.Value;
+                    var label = (c.Email?.Length ?? 0) > 0 ? $"{c.Name} ({c.Email})" : c.Name;
+                    <option value="@label"></option>
+                }
+            </datalist>
             <select name="AssigneeUserId" class="select select-bordered join-item select-sm md:select-md">
                 <option value="">Anyone</option>
                 @if (Model.AssigneeUserId == -1) {<option value="-1" selected>Unassigned</option>} else {<option value="-1">Unassigned</option>}
@@ -85,7 +93,7 @@
             {
                 <tr>
                                         @{
-                                            var rowQs = $"Query={Model.Query}&Status={Model.Status}&Priority={Model.Priority}&ContactId={Model.ContactId}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&PageNumber={Model.PageNumber}&PageSize={Model.PageSize}";
+                                            var rowQs = $"Query={Model.Query}&Status={Model.Status}&Priority={Model.Priority}&ContactQuery={Model.ContactQuery}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&PageNumber={Model.PageNumber}&PageSize={Model.PageSize}";
                                         }
                                         <td><a class="link link-hover" href="/workspaces/@Model.WorkspaceSlug/tickets/@t.Id?@rowQs">@t.Subject</a></td>
                     @{
@@ -137,7 +145,7 @@
                         <td class="hidden md:table-cell">@t.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
                     <td>
                         <div class="flex flex-wrap gap-2 items-center">
-                            <a class="btn btn-soft btn-sm" href="/workspaces/@Model.WorkspaceSlug/tickets/new@(t.ContactId.HasValue ? ($"?contactId={t.ContactId}") : string.Empty)">Clone</a>
+                            <a class="btn btn-soft btn-sm" href="/workspaces/@Model.WorkspaceSlug/tickets/0@(t.ContactId.HasValue ? ($"?contactId={t.ContactId}") : string.Empty)">Clone</a>
                             <form method="post" action="/workspaces/@Model.WorkspaceSlug/tickets/@t.Id?@rowQs" class="join ajax-assign" data-ticket-id="@t.Id">
                                 <input type="hidden" name="handler" value="Assign" />
                                 <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
@@ -302,7 +310,7 @@
                     const created = new Date(t.createdAt).toLocaleString();
                                         const tr = document.createElement('tr');
                                         tr.classList.add('fade-in');
-                    const rowQs = `Query=@Model.Query&Status=@Model.Status&Priority=@Model.Priority&ContactId=@Model.ContactId&Mine=@Model.Mine&AssigneeUserId=@Model.AssigneeUserId&PageNumber=@Model.PageNumber&PageSize=@Model.PageSize`;
+                    const rowQs = `Query=@Model.Query&Status=@Model.Status&Priority=@Model.Priority&ContactQuery=@Model.ContactQuery&Mine=@Model.Mine&AssigneeUserId=@Model.AssigneeUserId&PageNumber=@Model.PageNumber&PageSize=@Model.PageSize`;
                                         const color = statusColors[t.status] || 'neutral';
                                         const isHex = (typeof color === 'string') && color.startsWith('#');
                                         const statusSpan = isHex
@@ -325,7 +333,7 @@
                         <td class="hidden md:table-cell">${created}</td>
                         <td>
                           <div class="flex flex-wrap gap-2 items-center">
-                            <a class="btn btn-soft btn-sm" href="/workspaces/${slug}/tickets/new?contactId=${t.contactId}">Clone</a>
+                            <a class="btn btn-soft btn-sm" href="/workspaces/${slug}/tickets/0?contactId=${t.contactId}">Clone</a>
                             <!-- Inline assign form omitted for live-created rows; user can open details page -->
                           </div>
                         </td>`;
@@ -397,7 +405,7 @@
             @{
                 var prev = Model.PageNumber > 1 ? Model.PageNumber - 1 : 1;
                 var next = (Model.PageNumber * Model.PageSize) < Model.Total ? Model.PageNumber + 1 : Model.PageNumber;
-                var baseQs = $"Query={Model.Query}&Status={Model.Status}&Priority={Model.Priority}&ContactId={Model.ContactId}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&PageSize={Model.PageSize}";
+                var baseQs = $"Query={Model.Query}&Status={Model.Status}&Priority={Model.Priority}&ContactQuery={Model.ContactQuery}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&PageSize={Model.PageSize}";
             }
             <a class="btn btn-soft join-item btn-sm @(Model.PageNumber <= 1 ? "btn-disabled" : "")" href="?@baseQs&PageNumber=@prev">Prev</a>
             <a class="btn btn-soft join-item btn-sm @(((Model.PageNumber * Model.PageSize) >= Model.Total) ? "btn-disabled" : "")" href="?@baseQs&PageNumber=@next">Next</a>

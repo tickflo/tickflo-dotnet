@@ -1,17 +1,17 @@
 @page "/workspaces/{slug}/users/roles/{id:int}/edit"
 @model Tickflo.Web.Pages.Workspaces.RolesEditModel
 @{
-    ViewData["Title"] = "Edit Role";
+    ViewData["Title"] = (Model.Role == null || Model.Role.Id == 0) ? "New Role" : "Edit Role";
 }
 
 <div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
-        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.WorkspaceSlug, SectionTitle = "Edit User Role" })
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.WorkspaceSlug, SectionTitle = ((Model.Role == null || Model.Role.Id == 0) ? "New User Role" : "Edit User Role") })
 
         <div class="card bg-base-100 shadow-sm mt-4 max-w-xl">
             <div class="card-body">
-                <h2 class="card-title">Edit Role</h2>
+                <h2 class="card-title">@((Model.Role == null || Model.Role.Id == 0) ? "New Role" : "Edit Role")</h2>
                 <form method="post" class="grid gap-4">
                     <div class="form-control">
                         <label class="label"><span class="label-text">Name</span></label>

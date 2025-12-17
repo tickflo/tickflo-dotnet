@@ -34,7 +34,7 @@ public class ContactsEditModel : PageModel
         _priorityRepo = priorityRepo;
     }
 
-    public async Task<IActionResult> OnGetAsync(string slug, int id)
+    public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
     {
         WorkspaceSlug = slug;
         Id = id;
@@ -42,24 +42,41 @@ public class ContactsEditModel : PageModel
         if (Workspace == null) return NotFound();
         var uidStr = HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
+        var workspaceId = Workspace.Id;
+        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
         if (!isAdmin) return Forbid();
-        var contact = await _contactRepo.FindAsync(Workspace.Id, id);
-        if (contact == null) return NotFound();
-        Name = contact.Name;
-        Email = contact.Email;
-        Phone = contact.Phone;
-        Company = contact.Company;
-        Title = contact.Title;
-        Notes = contact.Notes;
-        Tags = contact.Tags;
-        PreferredChannel = contact.PreferredChannel;
-        Priority = contact.Priority;
-        ViewData["Priorities"] = await _priorityRepo.ListAsync(Workspace.Id);
+        if (id > 0)
+        {
+            var contact = await _contactRepo.FindAsync(workspaceId, id);
+            if (contact == null) return NotFound();
+            Name = contact.Name ?? string.Empty;
+            Email = contact.Email ?? string.Empty;
+            Phone = contact.Phone;
+            Company = contact.Company;
+            Title = contact.Title;
+            Notes = contact.Notes;
+            Tags = contact.Tags;
+            PreferredChannel = contact.PreferredChannel;
+            Priority = contact.Priority;
+        }
+        else
+        {
+            // defaults for new contact
+            Name = string.Empty;
+            Email = string.Empty;
+            Phone = null;
+            Company = null;
+            Title = null;
+            Notes = null;
+            Tags = null;
+            PreferredChannel = null;
+            Priority = null;
+        }
+        ViewData["Priorities"] = await _priorityRepo.ListAsync(workspaceId);
         return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync(string slug, int id)
+    public async Task<IActionResult> OnPostAsync(string slug, int id = 0)
     {
         WorkspaceSlug = slug;
         Id = id;
@@ -67,26 +84,59 @@ public class ContactsEditModel : PageModel
         if (Workspace == null) return NotFound();
         var uidStr = HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
+        var workspaceId = Workspace.Id;
+        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
         if (!isAdmin) return Forbid();
         if (!ModelState.IsValid)
         {
-            ViewData["Priorities"] = await _priorityRepo.ListAsync(Workspace.Id);
+            ViewData["Priorities"] = await _priorityRepo.ListAsync(workspaceId);
             return Page();
         }
-        var existing = await _contactRepo.FindAsync(Workspace.Id, id);
-        if (existing == null) return NotFound();
-        existing.Name = Name;
-        existing.Email = Email;
-        existing.Phone = Phone;
-        existing.Company = Company;
-        existing.Title = Title;
-        existing.Notes = Notes;
-        existing.Tags = Tags;
-        existing.PreferredChannel = PreferredChannel;
-        existing.Priority = Priority;
-        await _contactRepo.UpdateAsync(existing);
-        TempData["Success"] = $"Contact '{Name}' updated.";
-        return RedirectToPage("/Workspaces/Contacts", new { slug });
+        var nameTrim = Name?.Trim() ?? string.Empty;
+        var emailTrim = Email?.Trim() ?? string.Empty;
+        var phoneTrim = string.IsNullOrWhiteSpace(Phone) ? null : Phone!.Trim();
+        var companyTrim = string.IsNullOrWhiteSpace(Company) ? null : Company!.Trim();
+        var titleTrim = string.IsNullOrWhiteSpace(Title) ? null : Title!.Trim();
+        var notesTrim = string.IsNullOrWhiteSpace(Notes) ? null : Notes!.Trim();
+        var tagsTrim = string.IsNullOrWhiteSpace(Tags) ? null : Tags!.Trim();
+        var channelTrim = string.IsNullOrWhiteSpace(PreferredChannel) ? null : PreferredChannel!.Trim();
+        var priorityTrim = string.IsNullOrWhiteSpace(Priority) ? null : Priority!.Trim();
+        if (id == 0)
+        {
+            var created = await _contactRepo.CreateAsync(new Contact
+            {
+                WorkspaceId = workspaceId,
+                Name = nameTrim,
+                Email = emailTrim,
+                Phone = phoneTrim,
+                Company = companyTrim,
+                Title = titleTrim,
+                Notes = notesTrim,
+                Tags = tagsTrim,
+                PreferredChannel = channelTrim,
+                Priority = priorityTrim
+            });
+            TempData["Success"] = $"Contact '{Name}' created.";
+        }
+        else
+        {
+            var existing = await _contactRepo.FindAsync(workspaceId, id);
+            if (existing == null) return NotFound();
+            existing.Name = nameTrim;
+            existing.Email = emailTrim;
+            existing.Phone = phoneTrim;
+            existing.Company = companyTrim;
+            existing.Title = titleTrim;
+            existing.Notes = notesTrim;
+            existing.Tags = tagsTrim;
+            existing.PreferredChannel = channelTrim;
+            existing.Priority = priorityTrim;
+            await _contactRepo.UpdateAsync(existing);
+            TempData["Success"] = $"Contact '{Name}' updated.";
+        }
+        var priorityQ = Request.Query["Priority"].ToString();
+        var queryQ = Request.Query["Query"].ToString();
+        var pageQ = Request.Query["PageNumber"].ToString();
+        return RedirectToPage("/Workspaces/Contacts", new { slug, Priority = priorityQ, Query = queryQ, PageNumber = pageQ });
     }
 }

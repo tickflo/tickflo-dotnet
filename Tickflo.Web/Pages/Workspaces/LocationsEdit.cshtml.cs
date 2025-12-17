@@ -31,22 +31,33 @@ public class LocationsEditModel : PageModel
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public async Task<IActionResult> OnGetAsync(string slug, int locationId)
+    public async Task<IActionResult> OnGetAsync(string slug, int locationId = 0)
     {
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
         var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
+        var workspaceId = Workspace.Id;
+        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
         if (!isAdmin) return Forbid();
 
-        var loc = await _locationRepo.FindAsync(Workspace.Id, locationId);
-        if (loc == null) return NotFound();
-        LocationId = loc.Id;
-        Name = loc.Name;
-        Address = loc.Address;
-        Active = loc.Active;
+        if (locationId > 0)
+        {
+            var loc = await _locationRepo.FindAsync(workspaceId, locationId);
+            if (loc == null) return NotFound();
+            LocationId = loc.Id;
+            Name = loc.Name ?? string.Empty;
+            Address = loc.Address ?? string.Empty;
+            Active = loc.Active;
+        }
+        else
+        {
+            LocationId = 0;
+            Name = string.Empty;
+            Address = string.Empty;
+            Active = true;
+        }
         return Page();
     }
 
@@ -57,13 +68,26 @@ public class LocationsEditModel : PageModel
         if (Workspace == null) return NotFound();
         var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
+        var workspaceId = Workspace.Id;
+        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
         if (!isAdmin) return Forbid();
         if (!ModelState.IsValid) return Page();
 
-        var updated = await _locationRepo.UpdateAsync(new Location { Id = LocationId, WorkspaceId = Workspace.Id, Name = Name, Address = Address, Active = Active });
-        if (updated == null) return NotFound();
-        TempData["Success"] = $"Location '{Name}' updated successfully.";
-        return RedirectToPage("/Workspaces/Locations", new { slug });
+        var nameTrim = Name?.Trim() ?? string.Empty;
+        var addressTrim = Address?.Trim() ?? string.Empty;
+        if (LocationId == 0)
+        {
+            await _locationRepo.CreateAsync(new Location { WorkspaceId = workspaceId, Name = nameTrim, Address = addressTrim, Active = Active });
+            TempData["Success"] = $"Location '{Name}' created successfully.";
+        }
+        else
+        {
+            var updated = await _locationRepo.UpdateAsync(new Location { Id = LocationId, WorkspaceId = workspaceId, Name = nameTrim, Address = addressTrim, Active = Active });
+            if (updated == null) return NotFound();
+            TempData["Success"] = $"Location '{Name}' updated successfully.";
+        }
+        var queryQ = Request.Query["Query"].ToString();
+        var pageQ = Request.Query["PageNumber"].ToString();
+        return RedirectToPage("/Workspaces/Locations", new { slug, Query = queryQ, PageNumber = pageQ });
     }
 }

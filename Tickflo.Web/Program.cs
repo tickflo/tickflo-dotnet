@@ -57,7 +57,10 @@ builder.Services.AddDbContext<TickfloDbContext>(options =>
     options.UseNpgsql(connectionString!)
         .UseSnakeCaseNamingConvention());
 
-builder.Services.AddRazorPages();
+builder.Services.AddRazorPages(options =>
+{
+    // Removed legacy '/new' route mappings; use unified edit/details routes.
+});
 builder.Services.AddControllers();
 
 builder.Services.AddDistributedMemoryCache();

@@ -88,7 +88,8 @@ public class RolesAssignModel : PageModel
         }
 
         await _uwr.AddAsync(SelectedUserId, ws.Id, SelectedRoleId, uid);
-        return Redirect($"/workspaces/{slug}/users/roles/assign");
+        var queryQ = Request.Query["Query"].ToString();
+        return Redirect($"/workspaces/{slug}/users/roles/assign?Query={Uri.EscapeDataString(queryQ ?? string.Empty)}");
     }
 
     public async Task<IActionResult> OnPostRemoveAsync(string slug, int userId, int roleId)
@@ -102,6 +103,7 @@ public class RolesAssignModel : PageModel
         if (!isAdmin) return Forbid();
 
         await _uwr.RemoveAsync(userId, ws.Id, roleId);
-        return Redirect($"/workspaces/{slug}/users/roles/assign");
+        var queryQ = Request.Query["Query"].ToString();
+        return Redirect($"/workspaces/{slug}/users/roles/assign?Query={Uri.EscapeDataString(queryQ ?? string.Empty)}");
     }
 }

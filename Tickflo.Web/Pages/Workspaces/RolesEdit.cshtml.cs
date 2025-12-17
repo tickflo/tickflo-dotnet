@@ -30,56 +30,76 @@ public class RolesEditModel : PageModel
         _http = http;
     }
 
-    public async Task<IActionResult> OnGetAsync(string slug, int id)
+    public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
     {
         WorkspaceSlug = slug;
         var ws = await _workspaces.FindBySlugAsync(slug);
         if (ws == null) return NotFound();
         var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _uwr.IsAdminAsync(uid, ws.Id);
+        var workspaceId = ws.Id;
+        var isAdmin = await _uwr.IsAdminAsync(uid, workspaceId);
         if (!isAdmin) return Forbid();
-
-        var role = await _roles.FindByIdAsync(id);
-        if (role == null || role.WorkspaceId != ws.Id) return NotFound();
-        Role = role;
-        Name = role.Name;
-        Admin = role.Admin;
+        if (id > 0)
+        {
+            var role = await _roles.FindByIdAsync(id);
+            if (role == null || role.WorkspaceId != workspaceId) return NotFound();
+            Role = role;
+            Name = role.Name ?? string.Empty;
+            Admin = role.Admin;
+        }
+        else
+        {
+            Role = new Role { WorkspaceId = workspaceId };
+            Name = string.Empty;
+            Admin = false;
+        }
         return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync(string slug, int id)
+    public async Task<IActionResult> OnPostAsync(string slug, int id = 0)
     {
         WorkspaceSlug = slug;
         var ws = await _workspaces.FindBySlugAsync(slug);
         if (ws == null) return NotFound();
         var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _uwr.IsAdminAsync(uid, ws.Id);
+        var workspaceId = ws.Id;
+        var isAdmin = await _uwr.IsAdminAsync(uid, workspaceId);
         if (!isAdmin) return Forbid();
-
-        var role = await _roles.FindByIdAsync(id);
-        if (role == null || role.WorkspaceId != ws.Id) return NotFound();
-
-        if (string.IsNullOrWhiteSpace(Name))
+        var nameTrim = Name?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(nameTrim))
         {
             ModelState.AddModelError(nameof(Name), "Role name is required");
-            Role = role;
             return Page();
         }
-
         // ensure unique name per workspace
-        var existing = await _roles.FindByNameAsync(ws.Id, Name);
-        if (existing != null && existing.Id != role.Id)
+        var existing = await _roles.FindByNameAsync(workspaceId, nameTrim);
+        if (id == 0)
         {
-            ModelState.AddModelError(nameof(Name), "A role with that name already exists");
-            Role = role;
-            return Page();
+            if (existing != null)
+            {
+                ModelState.AddModelError(nameof(Name), "A role with that name already exists");
+                return Page();
+            }
+            await _roles.AddAsync(workspaceId, nameTrim, Admin, uid);
         }
-
-        role.Name = Name;
-        role.Admin = Admin;
-        await _roles.UpdateAsync(role);
-        return Redirect($"/workspaces/{slug}/roles");
+        else
+        {
+            var role = await _roles.FindByIdAsync(id);
+            if (role == null || role.WorkspaceId != workspaceId) return NotFound();
+            if (existing != null && existing.Id != role.Id)
+            {
+                ModelState.AddModelError(nameof(Name), "A role with that name already exists");
+                Role = role;
+                return Page();
+            }
+            role.Name = nameTrim;
+            role.Admin = Admin;
+            await _roles.UpdateAsync(role);
+        }
+        var queryQ = Request.Query["Query"].ToString();
+        var pageQ = Request.Query["PageNumber"].ToString();
+        return Redirect($"/workspaces/{slug}/roles?Query={Uri.EscapeDataString(queryQ ?? string.Empty)}&PageNumber={Uri.EscapeDataString(pageQ ?? string.Empty)}");
     }
 }

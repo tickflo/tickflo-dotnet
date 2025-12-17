@@ -31,40 +31,59 @@ namespace Tickflo.Web.Pages.Workspaces
         [BindProperty]
         public Inventory Item { get; set; } = new Inventory();
 
-        public async Task<IActionResult> OnGetAsync(string slug, int id)
+        public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
         {
             WorkspaceSlug = slug;
             Workspace = await _workspaces.FindBySlugAsync(slug);
             if (Workspace == null) return NotFound();
             var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            var isAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
+            var workspaceId = Workspace.Id;
+            var isAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, workspaceId);
             if (!isAdmin) return Forbid();
-
-            var existing = await _inventory.FindAsync(Workspace.Id, id);
-            if (existing == null) return NotFound();
-            Item = existing;
-            LocationOptions = (await _locations.ListAsync(Workspace.Id)).ToList();
+            if (id > 0)
+            {
+                var existing = await _inventory.FindAsync(workspaceId, id);
+                if (existing == null) return NotFound();
+                Item = existing;
+            }
+            else
+            {
+                Item = new Inventory { WorkspaceId = workspaceId, Status = "active" };
+            }
+            LocationOptions = (await _locations.ListAsync(workspaceId)).ToList();
             return Page();
         }
 
-        public async Task<IActionResult> OnPostAsync(string slug, int id)
+        public async Task<IActionResult> OnPostAsync(string slug, int id = 0)
         {
             WorkspaceSlug = slug;
             Workspace = await _workspaces.FindBySlugAsync(slug);
             if (Workspace == null) return NotFound();
             var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            var isAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
+            var workspaceId = Workspace.Id;
+            var isAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, workspaceId);
             if (!isAdmin) return Forbid();
 
             if (!ModelState.IsValid)
             {
-                LocationOptions = (await _locations.ListAsync(Workspace.Id)).ToList();
+                LocationOptions = (await _locations.ListAsync(workspaceId)).ToList();
                 return Page();
             }
-            Item.WorkspaceId = Workspace.Id;
-            Item.Id = id;
-            await _inventory.UpdateAsync(Item);
-            return Redirect($"/workspaces/{Workspace.Slug}/inventory");
+            Item.WorkspaceId = workspaceId;
+            if (id == 0)
+            {
+                await _inventory.CreateAsync(Item);
+            }
+            else
+            {
+                Item.Id = id;
+                await _inventory.UpdateAsync(Item);
+            }
+            var queryQ = Request.Query["Query"].ToString();
+            var locationQ = Request.Query["LocationId"].ToString();
+            var pageQ = Request.Query["PageNumber"].ToString();
+            var slugSafe = WorkspaceSlug;
+            return Redirect($"/workspaces/{slugSafe}/inventory?Query={Uri.EscapeDataString(queryQ ?? string.Empty)}&LocationId={Uri.EscapeDataString(locationQ ?? string.Empty)}&PageNumber={Uri.EscapeDataString(pageQ ?? string.Empty)}");
         }
     }
 }

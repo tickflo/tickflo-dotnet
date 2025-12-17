@@ -7,7 +7,7 @@
 <div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
-        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Locations", NewActionLabel = "New Location", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/locations/new" })
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Locations", NewActionLabel = "New Location", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/locations/0/edit" })
         @if (TempData["Success"] is string s1 && !string.IsNullOrWhiteSpace(s1))
         {
             <div class="alert alert-success my-4">@s1</div>

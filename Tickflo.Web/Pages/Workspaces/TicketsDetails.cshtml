@@ -7,14 +7,17 @@
 <div class="flex flex-row gap-4">
   @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
   <section class="p-6 flex-1">
-@await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Ticket Details" })
+@{
+  var sectionTitle = (Model.Ticket == null || Model.Ticket.Id == 0) ? "New Ticket" : "Ticket Details";
+}
+@await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = sectionTitle })
 
 <div class="grid gap-4">
   <div class="flex items-center justify-between">
     <div class="join">
       @{
       }
-      <a class="btn btn-soft join-item btn-sm md:btn-md" href="/workspaces/@Model.WorkspaceSlug/tickets" asp-preserve-query>Back to list</a>
+      <a class="btn btn-soft join-item btn-sm md:btn-md" asp-page="/Workspaces/Tickets" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Back to list</a>
     </div>
   </div>
 
@@ -67,8 +70,19 @@
       <div class="card-body">
         <form method="post" asp-page-handler="Save" class="grid gap-3" id="ticket-save-form">
           <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
-          <input type="hidden" name="id" value="@Model.Ticket!.Id" />
+             <input type="hidden" name="id" value="@Model.Ticket?.Id ?? 0" />
           <div class="grid gap-2 md:grid-cols-2">
+            <div>
+              <label class="label">Contact</label>
+              <input type="hidden" name="EditContactId" id="editContactId" value="@Model.Ticket!.ContactId" />
+              <input id="contact-search" class="input input-bordered w-full" list="contacts-list" placeholder="Search contacts by name or email" />
+              <datalist id="contacts-list">
+                @foreach (var c in Model.Contacts)
+                {
+                  <option value="@c.Name (@c.Email)" data-id="@c.Id"></option>
+                }
+              </datalist>
+            </div>
             <div>
               <label class="label">Subject</label>
               <input name="EditSubject" value="@Model.Ticket!.Subject" class="input input-bordered w-full" />
@@ -96,9 +110,25 @@
               }
             </select>
           </div>
+          <div>
+            <label class="label">Inventory Ref (SKU)</label>
+            <input name="EditInventoryRef" value="@Model.Ticket!.InventoryRef" class="input input-bordered w-full" />
+          </div>
+          <div>
+            <label class="label">Assignee</label>
+            <input type="hidden" id="assignedUserId" name="assignedUserId" value="@Model.Ticket!.AssignedUserId" />
+            <input id="assignee-search" class="input w-full" list="assignees-list" placeholder="Search assignee by name or email" />
+            <datalist id="assignees-list">
+              <option value="Unassigned" data-id=""></option>
+              @foreach (var u in Model.Members)
+              {
+                <option value="@u.Name (@u.Email)" data-id="@u.Id"></option>
+              }
+            </datalist>
+          </div>
           <div class="flex gap-2">
             <button class="btn btn-primary" type="submit" id="ticket-save-btn">Save</button>
-            <a class="btn btn-soft" href="/workspaces/@Model.WorkspaceSlug/tickets/@Model.Ticket!.Id">Cancel</a>
+            <a class="btn btn-soft" asp-page="/Workspaces/Tickets" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Cancel</a>
           </div>
         </form>
         <div class="toast" id="save-toast" style="display:none;">
@@ -147,6 +177,8 @@
                   const subj = form.querySelector('[name="EditSubject"]').value;
                   const prio = form.querySelector('[name="EditPriority"]').value;
                   const status = form.querySelector('[name="EditStatus"]').value;
+                  const inv = form.querySelector('[name="EditInventoryRef"]').value;
+                  const assigneeHidden = form.querySelector('#assignedUserId');
                   const titleEl = document.querySelector('.card-title');
                   if (titleEl) titleEl.textContent = subj;
                   const badges = document.querySelectorAll('.card .badge');
@@ -192,74 +224,66 @@
                 if (btn){ btn.disabled = false; btn.classList.remove('btn-disabled'); }
               }
             });
-          })();
-        </script>
-        <div class="divider"></div>
-        <form method="post" asp-page-handler="Status" class="join">
-          <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
-          <input type="hidden" name="id" value="@Model.Ticket!.Id" />
-          <select name="status" class="select select-bordered join-item select-sm md:select-md">
-            @foreach (var s in Model.Statuses)
-            {
-              if (Model.Ticket!.Status == s.Name) {<option value="@s.Name" selected>@s.Name</option>} else {<option value="@s.Name">@s.Name</option>}
-            }
-          </select>
-          <button class="btn btn-soft join-item btn-sm md:btn-md" type="submit">Update Status</button>
-        </form>
-        <div class="divider"></div>
-        <form method="post" asp-page-handler="Assign" class="join">
-          <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
-          <input type="hidden" name="id" value="@Model.Ticket!.Id" />
-          <input type="hidden" id="assignedUserId" name="assignedUserId" value="@Model.Ticket!.AssignedUserId" />
-          <input id="assignee-search" class="input join-item input-sm md:input-md" list="assignees-list" placeholder="Search assignee by name or email" />
-          <datalist id="assignees-list">
-            <option value="Unassigned" data-id=""></option>
-            @foreach (var u in Model.Members)
-            {
-              <option value="@u.Name (@u.Email)" data-id="@u.Id"></option>
-            }
-          </datalist>
-          <button class="btn btn-soft join-item btn-sm md:btn-md" type="submit">Assign</button>
-        </form>
-        <script>
-          (function(){
+            // Wire assignee datalist to hidden field
             const hidden = document.getElementById('assignedUserId');
             const input = document.getElementById('assignee-search');
             const list = document.getElementById('assignees-list');
-            if (!hidden || !input || !list) return;
-            function setFromText(){
-              const val = input.value;
-              const opts = Array.from(list.querySelectorAll('option'));
-              const matched = opts.find(o => o.value === val);
-              if (matched) {
-                hidden.value = matched.getAttribute('data-id') || '';
-              } else if (val === '' || val.toLowerCase() === 'unassigned') {
-                hidden.value = '';
+            if (hidden && input && list){
+              function setFromText(){
+                const val = input.value;
+                const opts = Array.from(list.querySelectorAll('option'));
+                const matched = opts.find(o => o.value === val);
+                if (matched) {
+                  hidden.value = matched.getAttribute('data-id') || '';
+                } else if (val === '' || val.toLowerCase() === 'unassigned') {
+                  hidden.value = '';
+                }
+              }
+              input.addEventListener('change', setFromText);
+              input.addEventListener('blur', function(){
+                setFromText();
+                if ((hidden.value ?? '') === '' && (input.value === '' || input.value.toLowerCase() === 'unassigned')){
+                  input.value = 'Unassigned';
+                  input.setAttribute('placeholder', 'Pick from list');
+                }
+              });
+              input.addEventListener('focus', function(){
+                if (input.value.toLowerCase() === 'unassigned') {
+                  input.value = '';
+                }
+              });
+              const preset = hidden.value ?? '';
+              if (preset !== ''){
+                const opt = Array.from(list.querySelectorAll('option')).find(o => o.getAttribute('data-id') === preset);
+                if (opt) input.value = opt.value;
+              } else {
+                input.value = 'Unassigned';
               }
             }
-            input.addEventListener('change', setFromText);
-            input.addEventListener('blur', function(){
-              setFromText();
-              if ((hidden.value ?? '') === '' && (input.value === '' || input.value.toLowerCase() === 'unassigned')){
-                input.value = 'Unassigned';
-                input.setAttribute('placeholder', 'Pick from list');
+            // Wire contact datalist to hidden field
+            const ch = document.getElementById('editContactId');
+            const ci = document.getElementById('contact-search');
+            const cl = document.getElementById('contacts-list');
+            if (ch && ci && cl){
+              function setContact(){
+                const val = ci.value;
+                const opts = Array.from(cl.querySelectorAll('option'));
+                const matched = opts.find(o => o.value === val);
+                if (matched) {
+                  ch.value = matched.getAttribute('data-id') || '';
+                }
               }
-            });
-            input.addEventListener('focus', function(){
-              if (input.value.toLowerCase() === 'unassigned') {
-                input.value = '';
+              ci.addEventListener('change', setContact);
+              // Prefill display from current contact
+              const preset = ch.value ?? '';
+              if (preset !== ''){
+                const opt = Array.from(cl.querySelectorAll('option')).find(o => o.getAttribute('data-id') === preset);
+                if (opt) ci.value = opt.value;
               }
-            });
-            // Prefill display from current assignment
-            const preset = hidden.value ?? '';
-            if (preset !== ''){
-              const opt = Array.from(list.querySelectorAll('option')).find(o => o.getAttribute('data-id') === preset);
-              if (opt) input.value = opt.value;
-            } else {
-              input.value = 'Unassigned';
             }
           })();
         </script>
+        <div class="divider"></div>
       </div>
     </div>
   }

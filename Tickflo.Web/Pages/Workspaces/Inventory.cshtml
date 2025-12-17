@@ -7,7 +7,7 @@
 <div class="flex flex-row gap-4">
   @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
   <section class="p-6 flex-1">
-@await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Inventory", NewActionLabel = "New Item", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/inventory/new", AllowNewAction = Model.IsWorkspaceAdmin })
+@await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Inventory", NewActionLabel = "New Item", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/inventory/0/edit", AllowNewAction = Model.IsWorkspaceAdmin })
 
 <div class="grid gap-4">
   <div class="flex items-center justify-between">
@@ -22,7 +22,7 @@
     </form>
 
     <div class="join md:join">
-      <a class="btn btn-soft join-item btn-sm md:btn-md" href="/workspaces/@Model.Workspace?.Slug/inventory/new">New Item</a>
+      <a class="btn btn-soft join-item btn-sm md:btn-md" href="/workspaces/@Model.Workspace?.Slug/inventory/0/edit">New Item</a>
     </div>
   </div>
 

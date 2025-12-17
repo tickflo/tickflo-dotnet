@@ -1,13 +1,13 @@
 @page "/workspaces/{slug}/inventory/{id:int}/edit"
 @model Tickflo.Web.Pages.Workspaces.InventoryEditModel
 @{
-    ViewData["Title"] = "Edit Inventory";
+  ViewData["Title"] = (Model.Item == null || Model.Item.Id == 0) ? "New Inventory" : "Edit Inventory";
 }
 
 <div class="flex flex-row gap-4">
   @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
   <section class="p-6 flex-1">
-@await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Edit Inventory" })
+@await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = ((Model.Item == null || Model.Item.Id == 0) ? "New Inventory" : "Edit Inventory") })
 
 <form method="post" class="grid gap-6">
   <div class="grid md:grid-cols-2 gap-4">
@@ -21,7 +21,9 @@
         <option value="">No location</option>
         @foreach (var loc in Model.LocationOptions)
         {
-            <option selected="@(loc.Id == Model.Item.LocationId)" value="@loc.Id">@loc.Name</option>
+          var selectedId = Model.Item?.LocationId ?? -1;
+          var isSelected = loc.Id == selectedId;
+          <option selected="@isSelected" value="@loc.Id">@loc.Name</option>
         }
       </select>
     </div>

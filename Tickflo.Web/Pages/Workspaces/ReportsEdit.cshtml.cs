@@ -29,21 +29,31 @@ public class ReportsEditModel : PageModel
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public async Task<IActionResult> OnGetAsync(string slug, int reportId)
+    public async Task<IActionResult> OnGetAsync(string slug, int reportId = 0)
     {
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
         var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
+        var workspaceId = Workspace.Id;
+        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
         if (!isAdmin) return Forbid();
 
-        var rep = await _reportRepo.FindAsync(Workspace.Id, reportId);
-        if (rep == null) return NotFound();
-        ReportId = rep.Id;
-        Name = rep.Name;
-        Ready = rep.Ready;
+        if (reportId > 0)
+        {
+            var rep = await _reportRepo.FindAsync(workspaceId, reportId);
+            if (rep == null) return NotFound();
+            ReportId = rep.Id;
+            Name = rep.Name;
+            Ready = rep.Ready;
+        }
+        else
+        {
+            ReportId = 0;
+            Name = string.Empty;
+            Ready = false;
+        }
         return Page();
     }
 
@@ -54,13 +64,25 @@ public class ReportsEditModel : PageModel
         if (Workspace == null) return NotFound();
         var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
+        var workspaceId = Workspace.Id;
+        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
         if (!isAdmin) return Forbid();
         if (!ModelState.IsValid) return Page();
 
-        var updated = await _reportRepo.UpdateAsync(new Report { Id = ReportId, WorkspaceId = Workspace.Id, Name = Name, Ready = Ready });
-        if (updated == null) return NotFound();
-        TempData["Success"] = $"Report '{Name}' updated successfully.";
-        return RedirectToPage("/Workspaces/Reports", new { slug });
+        var nameTrim = Name?.Trim() ?? string.Empty;
+        if (ReportId == 0)
+        {
+            await _reportRepo.CreateAsync(new Report { WorkspaceId = workspaceId, Name = nameTrim, Ready = Ready });
+            TempData["Success"] = $"Report '{Name}' created successfully.";
+        }
+        else
+        {
+            var updated = await _reportRepo.UpdateAsync(new Report { Id = ReportId, WorkspaceId = workspaceId, Name = nameTrim, Ready = Ready });
+            if (updated == null) return NotFound();
+            TempData["Success"] = $"Report '{Name}' updated successfully.";
+        }
+        var queryQ = Request.Query["Query"].ToString();
+        var pageQ = Request.Query["PageNumber"].ToString();
+        return RedirectToPage("/Workspaces/Reports", new { slug, Query = queryQ, PageNumber = pageQ });
     }
 }
