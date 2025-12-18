@@ -40,6 +40,7 @@
                     <ul>
                         <li><a class="@(IsActive("/users") ? "menu-active" : null)" asp-page="/Workspaces/Users" asp-route-slug="@slug" aria-current="@(IsActive("/users") ? "page" : null)">Users</a></li>
                         <li><a class="@(IsActive("/users/roles") ? "menu-active" : null)" asp-page="/Workspaces/Roles" asp-route-slug="@slug" aria-current="@(IsActive("/users/roles") ? "page" : null)">Roles</a></li>
+                        <li><a class="@(IsActive("/users/teams") ? "menu-active" : null)" asp-page="/Workspaces/Teams" asp-route-slug="@slug" aria-current="@(IsActive("/users/teams") ? "page" : null)">Teams</a></li>
                         @if (isAdmin)
                         {
                             <li><a class="@(IsActive("/Users/Index") ? "menu-active" : null)" asp-page="/Users/Index" aria-current="@(IsActive("/Users/Index") ? "page" : null)">All Users (Admin)</a></li>

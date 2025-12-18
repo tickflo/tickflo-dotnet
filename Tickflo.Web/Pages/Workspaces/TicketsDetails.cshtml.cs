@@ -20,8 +20,9 @@ public class TicketsDetailsModel : PageModel
     private readonly ITicketPriorityRepository _priorityRepo;
     private readonly ITicketTypeRepository _typeRepo;
     private readonly ITicketHistoryRepository _historyRepo;
+    private readonly ITeamRepository _teamRepo;
 
-    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITicketHistoryRepository historyRepo)
+    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITicketHistoryRepository historyRepo, ITeamRepository teamRepo)
     {
         _workspaceRepo = workspaceRepo;
         _ticketRepo = ticketRepo;
@@ -34,6 +35,7 @@ public class TicketsDetailsModel : PageModel
         _priorityRepo = priorityRepo;
         _typeRepo = typeRepo;
         _historyRepo = historyRepo;
+        _teamRepo = teamRepo;
     }
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
@@ -50,6 +52,7 @@ public class TicketsDetailsModel : PageModel
     public IReadOnlyList<Tickflo.Core.Entities.TicketType> Types { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketType>();
     public Dictionary<string,string> TypeColorByName { get; private set; } = new();
     public IReadOnlyList<TicketHistory> History { get; private set; } = Array.Empty<TicketHistory>();
+    public List<Team> Teams { get; private set; } = new();
 
     [BindProperty(SupportsGet = true)]
     public string? Query { get; set; }
@@ -157,11 +160,12 @@ public class TicketsDetailsModel : PageModel
             var u = await _users.FindByIdAsync(uid2);
             if (u != null) Members.Add(u);
         }
+        Teams = await _teamRepo.ListForWorkspaceAsync(Workspace.Id);
         return Page();
     }
 
     // Consolidated save: updates subject, description, priority, status, and assignment
-    public async Task<IActionResult> OnPostSaveAsync(string slug, int id, int? assignedUserId, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub)
+    public async Task<IActionResult> OnPostSaveAsync(string slug, int id, int? assignedUserId, int? assignedTeamId, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub)
     {
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
@@ -223,6 +227,12 @@ public class TicketsDetailsModel : PageModel
                 if (!memberships.Any(m => m.UserId == assignedUserId.Value)) return BadRequest("User not in workspace");
                 t.AssignedUserId = assignedUserId.Value;
             }
+            if (assignedTeamId.HasValue)
+            {
+                var team = await _teamRepo.FindByIdAsync(assignedTeamId.Value);
+                if (team == null || team.WorkspaceId != workspaceId) return BadRequest("Invalid team");
+                t.AssignedTeamId = assignedTeamId.Value;
+            }
             await _ticketRepo.CreateAsync(t);
             // History: created
             await _historyRepo.CreateAsync(new TicketHistory
@@ -276,9 +286,11 @@ public class TicketsDetailsModel : PageModel
                 if (!memberships.Any(m => m.UserId == assignedUserId.Value)) return BadRequest("User not in workspace");
                 t.AssignedUserId = assignedUserId.Value;
             }
-            else
+            if (assignedTeamId.HasValue)
             {
-                // keep current assignment when not explicitly changing it
+                var team = await _teamRepo.FindByIdAsync(assignedTeamId.Value);
+                if (team == null || team.WorkspaceId != workspaceId) return BadRequest("Invalid team");
+                t.AssignedTeamId = assignedTeamId.Value;
             }
             await _ticketRepo.UpdateAsync(t);
             // History: per-field changes
@@ -321,6 +333,12 @@ public class TicketsDetailsModel : PageModel
                 assignedDisplay = string.IsNullOrEmpty(email) ? name : $"{name} ({email})";
             }
         }
+        string? assignedTeamName = null;
+        if (t.AssignedTeamId.HasValue)
+        {
+            var team = await _teamRepo.FindByIdAsync(t.AssignedTeamId.Value);
+            assignedTeamName = team?.Name;
+        }
         var group = Tickflo.Web.Realtime.TicketsHub.WorkspaceGroup(WorkspaceSlug ?? string.Empty);
         if (isNew)
         {
@@ -334,6 +352,8 @@ public class TicketsDetailsModel : PageModel
                     contactId = t.ContactId,
                     assignedUserId = t.AssignedUserId,
                     assignedDisplay = assignedDisplay,
+                    assignedTeamId = t.AssignedTeamId,
+                    assignedTeamName = assignedTeamName,
                     inventoryRef = t.InventoryRef,
                     createdAt = t.CreatedAt
                 }
@@ -351,6 +371,8 @@ public class TicketsDetailsModel : PageModel
                     contactId = t.ContactId,
                     assignedUserId = t.AssignedUserId,
                     assignedDisplay = assignedDisplay,
+                    assignedTeamId = t.AssignedTeamId,
+                    assignedTeamName = assignedTeamName,
                     inventoryRef = t.InventoryRef,
                     updatedAt = DateTime.UtcNow
                 }
@@ -367,7 +389,8 @@ public class TicketsDetailsModel : PageModel
         var pageQ = Request.Query["PageNumber"].ToString();
         var typeQ = Request.Query["Type"].ToString();
         var pageSizeQ = Request.Query["PageSize"].ToString();
-        return RedirectToPage("/Workspaces/Tickets", new { slug, Query = queryQ, Type = typeQ, Status = statusQ, Priority = priorityQ, ContactQuery = contactQ, AssigneeUserId = assigneeQ, Mine = mineQ, PageNumber = pageQ, PageSize = pageSizeQ });
+        var teamNameQ = Request.Query["AssigneeTeamName"].ToString();
+        return RedirectToPage("/Workspaces/Tickets", new { slug, Query = queryQ, Type = typeQ, Status = statusQ, Priority = priorityQ, ContactQuery = contactQ, AssigneeUserId = assigneeQ, AssigneeTeamName = teamNameQ, Mine = mineQ, PageNumber = pageQ, PageSize = pageSizeQ });
     }
 
     private static string DefaultOrTrim(string? value, string defaultValue)

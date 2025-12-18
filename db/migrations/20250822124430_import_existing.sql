@@ -1078,6 +1078,38 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 CREATE INDEX IF NOT EXISTS idx_tickets_ws_status
     ON public.tickets (workspace_id, status);
 
+-- Teams: table and membership (idempotent)
+CREATE TABLE IF NOT EXISTS public.teams (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    workspace_id integer NOT NULL REFERENCES public.workspaces(id),
+    name text NOT NULL,
+    description text,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    created_by integer NOT NULL,
+    updated_at timestamptz,
+    updated_by integer
+);
+CREATE UNIQUE INDEX IF NOT EXISTS teams_workspace_id_name_idx ON public.teams(workspace_id, name);
+
+CREATE TABLE IF NOT EXISTS public.team_members (
+    team_id integer NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
+    user_id integer NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    joined_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (team_id, user_id)
+);
+
+-- Tickets: optional team assignment (idempotent)
+ALTER TABLE IF EXISTS public.tickets ADD COLUMN IF NOT EXISTS assigned_team_id integer;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'tickets_assigned_team_id_teams_id_fk'
+    ) THEN
+        ALTER TABLE ONLY public.tickets
+            ADD CONSTRAINT tickets_assigned_team_id_teams_id_fk FOREIGN KEY (assigned_team_id) REFERENCES public.teams(id) ON DELETE SET NULL;
+    END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_tickets_ws_priority
     ON public.tickets (workspace_id, priority);
 

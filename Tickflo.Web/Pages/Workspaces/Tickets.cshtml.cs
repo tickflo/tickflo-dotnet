@@ -18,6 +18,7 @@ public class TicketsModel : PageModel
     private readonly IHttpContextAccessor _http;
     private readonly ITicketPriorityRepository _priorityRepo;
     private readonly ITicketTypeRepository _typeRepo;
+    private readonly ITeamRepository _teamRepo;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
     public IReadOnlyList<Ticket> Tickets { get; private set; } = Array.Empty<Ticket>();
@@ -47,7 +48,7 @@ public class TicketsModel : PageModel
     public IReadOnlyList<Tickflo.Core.Entities.TicketPriority> PrioritiesList { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketPriority>();
     public Dictionary<string, string> PriorityColorByName { get; private set; } = new();
 
-    public TicketsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserWorkspaceRepository userWorkspaces, IUserRepository users, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo)
+    public TicketsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserWorkspaceRepository userWorkspaces, IUserRepository users, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITeamRepository teamRepo)
     {
         _workspaceRepo = workspaceRepo;
         _ticketRepo = ticketRepo;
@@ -58,11 +59,15 @@ public class TicketsModel : PageModel
         _statusRepo = statusRepo;
         _priorityRepo = priorityRepo;
         _typeRepo = typeRepo;
+        _teamRepo = teamRepo;
     }
     public IReadOnlyList<Tickflo.Core.Entities.TicketType> TypesList { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketType>();
     public Dictionary<string, string> TypeColorByName { get; private set; } = new();
     [BindProperty(SupportsGet = true)]
     public string? Type { get; set; }
+    public Dictionary<int, Team> TeamsById { get; private set; } = new();
+    [BindProperty(SupportsGet = true)]
+    public string? AssigneeTeamName { get; set; }
 
     public async Task OnGetAsync(string slug)
     {
@@ -114,6 +119,10 @@ public class TicketsModel : PageModel
             TypeColorByName = types.GroupBy(t => t.Name)
                 .ToDictionary(g => g.Key, g => string.IsNullOrWhiteSpace(g.Last().Color) ? "neutral" : g.Last().Color);
 
+            // Load teams for filtering/display
+            var teams = await _teamRepo.ListForWorkspaceAsync(Workspace.Id);
+            TeamsById = teams.ToDictionary(t => t.Id, t => t);
+
             var all = await _ticketRepo.ListAsync(Workspace.Id);
             var filtered = all.AsEnumerable();
             if (!string.IsNullOrWhiteSpace(Status)) filtered = filtered.Where(t => t.Status == Status);
@@ -155,6 +164,19 @@ public class TicketsModel : PageModel
                     filtered = filtered.Where(t => t.AssignedUserId == AssigneeUserId.Value);
                 }
             }
+            if (!string.IsNullOrWhiteSpace(AssigneeTeamName))
+            {
+                var team = teams.FirstOrDefault(t => string.Equals(t.Name, AssigneeTeamName.Trim(), StringComparison.OrdinalIgnoreCase));
+                if (team != null)
+                {
+                    filtered = filtered.Where(t => t.AssignedTeamId == team.Id);
+                }
+                else
+                {
+                    // If team does not exist, result should be empty
+                    filtered = Enumerable.Empty<Ticket>();
+                }
+            }
             Total = filtered.Count();
             var size = PageSize <= 0 ? 25 : Math.Min(PageSize, 200);
             var page = PageNumber <= 0 ? 1 : PageNumber;
@@ -174,6 +196,8 @@ public class TicketsModel : PageModel
                 if (u != null) users.Add(u);
             }
             UsersById = users.ToDictionary(u => u.Id, u => u);
+
+            // TeamsById already set above
         }
     }
 }

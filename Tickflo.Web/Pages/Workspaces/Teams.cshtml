@@ -1,0 +1,46 @@
+@page "/workspaces/{slug}/users/teams"
+@model Tickflo.Web.Pages.Workspaces.TeamsModel
+@{
+    ViewData["Title"] = "Teams";
+}
+
+<div class="flex flex-row gap-4">
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+    <section class="p-6 flex-1">
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Teams", NewActionLabel = "New Team", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/users/teams/0/edit" })
+
+        <div class="card bg-base-100 mt-4">
+            <div class="card-body p-0">
+                <div class="overflow-x-auto">
+                    <table class="table table-md">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th class="hidden sm:table-cell">Description</th>
+                                <th class="hidden sm:table-cell">Members</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var t in Model.Teams)
+                            {
+                                var count = Model.MemberCounts.TryGetValue(t.Id, out var c) ? c : 0;
+                                <tr>
+                                    <td>@t.Name</td>
+                                    <td class="hidden sm:table-cell">@t.Description</td>
+                                    <td class="hidden sm:table-cell">@count</td>
+                                    <td>
+                                        <div class="join md:join">
+                                            <a class="btn btn-soft join-item btn-sm" asp-page="/Workspaces/TeamsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@t.Id">Edit</a>
+                                            <a class="btn btn-soft join-item btn-sm" asp-page="/Workspaces/TeamsAssign" asp-route-slug="@Model.WorkspaceSlug" asp-route-teamId="@t.Id">Members</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>

@@ -11,6 +11,7 @@ public class Ticket
     public string Priority { get; set; } = "Normal";
     public string Status { get; set; } = "New";
     public int? AssignedUserId { get; set; }
+    public int? AssignedTeamId { get; set; }
     public string? InventoryRef { get; set; } // SKU or item reference
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }

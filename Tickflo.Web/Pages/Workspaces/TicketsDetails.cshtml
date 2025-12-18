@@ -65,6 +65,14 @@
           <a class="link" href="/workspaces/@Model.WorkspaceSlug/tickets?AssigneeUserId=@Model.Ticket!.AssignedUserId" asp-preserve-query>View all for assignee</a>
         </div>
       }
+      @if(Model.Ticket?.AssignedTeamId != null)
+      {
+        var team = Model.Teams.FirstOrDefault(t => t.Id == Model.Ticket!.AssignedTeamId);
+        if (team != null)
+        {
+          <div>Team: <span class="badge badge-soft">@team.Name</span></div>
+        }
+      }
       <div class="prose max-w-none">
         <p>@Model.Ticket?.Description</p>
       </div>
@@ -139,6 +147,18 @@
               @foreach (var u in Model.Members)
               {
                 <option value="@u.Name (@u.Email)" data-id="@u.Id"></option>
+              }
+            </datalist>
+          </div>
+          <div>
+            <label class="label">Team</label>
+            <input type="hidden" id="assignedTeamId" name="assignedTeamId" value="@Model.Ticket!.AssignedTeamId" />
+            <input id="team-search" class="input w-full" list="teams-list" placeholder="Search team by name" />
+            <datalist id="teams-list">
+              <option value="None" data-id=""></option>
+              @foreach (var t in Model.Teams)
+              {
+                <option value="@t.Name" data-id="@t.Id"></option>
               }
             </datalist>
           </div>
@@ -248,6 +268,42 @@
                 if (opt) input.value = opt.value;
               } else {
                 input.value = 'Unassigned';
+              }
+            }
+            // Wire team datalist to hidden field
+            const th = document.getElementById('assignedTeamId');
+            const ti = document.getElementById('team-search');
+            const tl = document.getElementById('teams-list');
+            if (th && ti && tl){
+              function setTeam(){
+                const val = ti.value;
+                const opts = Array.from(tl.querySelectorAll('option'));
+                const matched = opts.find(o => o.value === val);
+                if (matched) {
+                  th.value = matched.getAttribute('data-id') || '';
+                } else if (val === '' || val.toLowerCase() === 'none') {
+                  th.value = '';
+                }
+              }
+              ti.addEventListener('change', setTeam);
+              ti.addEventListener('blur', function(){
+                setTeam();
+                if ((th.value ?? '') === '' && (ti.value === '' || ti.value.toLowerCase() === 'none')){
+                  ti.value = 'None';
+                  ti.setAttribute('placeholder', 'Pick from list');
+                }
+              });
+              ti.addEventListener('focus', function(){
+                if (ti.value.toLowerCase() === 'none') {
+                  ti.value = '';
+                }
+              });
+              const tpreset = th.value ?? '';
+              if (tpreset !== ''){
+                const opt = Array.from(tl.querySelectorAll('option')).find(o => o.getAttribute('data-id') === tpreset);
+                if (opt) ti.value = opt.value;
+              } else {
+                ti.value = 'None';
               }
             }
             // Wire contact datalist to hidden field

@@ -55,6 +55,20 @@
                     }
                 }
             </select>
+            <select name="AssigneeTeamName" class="select select-bordered join-item select-sm md:select-md">
+                <option value="">Any Team</option>
+                @foreach (var kv in Model.TeamsById)
+                {
+                    if (string.Equals(Model.AssigneeTeamName, kv.Value.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        <option value="@kv.Value.Name" selected>@kv.Value.Name</option>
+                    }
+                    else
+                    {
+                        <option value="@kv.Value.Name">@kv.Value.Name</option>
+                    }
+                }
+            </select>
             <input id="contact-query" name="ContactQuery" value="@Model.ContactQuery" placeholder="Contact name or email" class="input input-bordered join-item input-sm md:input-md" list="contacts-list" />
             <datalist id="contacts-list">
                 @foreach (var kv in Model.ContactsById)
@@ -144,7 +158,11 @@
                         }
                     </td>
                         <td class="hidden sm:table-cell">
-                        @if (t.AssignedUserId.HasValue && Model.UsersById.TryGetValue(t.AssignedUserId.Value, out var au))
+                        @if (t.AssignedTeamId.HasValue && Model.TeamsById.TryGetValue(t.AssignedTeamId.Value, out var team))
+                        {
+                            <span class="badge badge-soft">@team.Name</span>
+                        }
+                        else if (t.AssignedUserId.HasValue && Model.UsersById.TryGetValue(t.AssignedUserId.Value, out var au))
                         {
                             <span class="badge badge-soft">@au.Name</span>
                             <span class="opacity-60 ml-2">(@au.Email)</span>
