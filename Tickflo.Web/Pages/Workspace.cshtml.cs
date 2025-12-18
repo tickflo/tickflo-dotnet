@@ -175,7 +175,9 @@ public class WorkspaceModel : PageModel
                   .ToDictionary(g => g.Key, g => g.First().Color, System.StringComparer.OrdinalIgnoreCase);
 
         ResolvedTickets = tickets.Count(t => closedNames.Contains(t.Status));
-        OpenTickets = TotalTickets - ResolvedTickets;
+        // Open tickets: not closed (case-insensitive)
+        var openNames = new HashSet<string>(StatusList.Where(s => !s.IsClosedState).Select(s => s.Name), System.StringComparer.OrdinalIgnoreCase);
+        OpenTickets = tickets.Count(t => openNames.Contains(t.Status));
 
         var memberships = await _userWorkspaceRepo.FindForWorkspaceAsync(workspaceId);
         ActiveMembers = memberships.Count(m => m.Accepted);

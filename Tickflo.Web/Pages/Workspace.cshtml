@@ -59,30 +59,34 @@
                 </div>
                 <!-- Stat Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                    <div class="card bg-primary text-primary-content shadow-xl">
-                        <div class="card-body">
-                            <div class="flex items-center gap-3">
-                                <i class="fa fa-ticket-alt fa-2x"></i>
-                                <div>
-                                    <div class="text-lg font-bold">Open Tickets</div>
-                                    <div class="text-3xl font-extrabold">@Model.OpenTickets</div>
-                                    <div class="text-xs opacity-80">of @Model.TotalTickets total</div>
+                    <a href="/workspaces/@Model.Workspace.Slug/tickets?status=Open&range=@Model.RangeDays" style="text-decoration:none">
+                        <div class="card bg-primary text-primary-content shadow-xl cursor-pointer hover:shadow-2xl transition-shadow">
+                            <div class="card-body">
+                                <div class="flex items-center gap-3">
+                                    <i class="fa fa-ticket-alt fa-2x"></i>
+                                    <div>
+                                        <div class="text-lg font-bold">Open Tickets</div>
+                                        <div class="text-3xl font-extrabold">@Model.OpenTickets</div>
+                                        <div class="text-xs opacity-80">of @Model.TotalTickets total</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="card bg-success text-success-content shadow-xl">
-                        <div class="card-body">
-                            <div class="flex items-center gap-3">
-                                <i class="fa fa-check-circle fa-2x"></i>
-                                <div>
-                                    <div class="text-lg font-bold">Resolved</div>
-                                    <div class="text-3xl font-extrabold">@Model.ResolvedTickets</div>
-                                    <div class="text-xs opacity-80">last @Model.RangeDays days</div>
+                    </a>
+                    <a href="/workspaces/@Model.Workspace.Slug/tickets?status=Closed&range=@Model.RangeDays" style="text-decoration:none">
+                        <div class="card bg-success text-success-content shadow-xl cursor-pointer hover:shadow-2xl transition-shadow">
+                            <div class="card-body">
+                                <div class="flex items-center gap-3">
+                                    <i class="fa fa-check-circle fa-2x"></i>
+                                    <div>
+                                        <div class="text-lg font-bold">Resolved</div>
+                                        <div class="text-3xl font-extrabold">@Model.ResolvedTickets</div>
+                                        <div class="text-xs opacity-80">last @Model.RangeDays days</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </a>
                     <div class="card bg-info text-info-content shadow-xl">
                         <div class="card-body">
                             <div class="flex items-center gap-3">

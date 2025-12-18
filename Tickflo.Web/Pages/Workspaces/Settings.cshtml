@@ -67,6 +67,10 @@
                                             <input name="name" value="@s.Name" class="input input-bordered join-item input-sm w-40" />
                                             <input type="color" name="color" value="@(isHex ? displayColor : "#3b82f6")" class="join-item w-12 h-8 p-0 border rounded" />
                                             <input type="number" name="sortOrder" value="@s.SortOrder" class="input input-bordered join-item input-sm w-20" />
+                                            <label class="label cursor-pointer join-item ml-2">
+                                                <input type="checkbox" name="isClosedState" value="true" @(s.IsClosedState ? "checked" : null) class="checkbox checkbox-xs" />
+                                                <span class="label-text ml-1">Closed</span>
+                                            </label>
                                             <button class="btn btn-soft btn-primary join-item btn-sm" type="submit">Save</button>
                                         </form>
                                     </td>

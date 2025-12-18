@@ -125,7 +125,19 @@ public class TicketsModel : PageModel
 
             var all = await _ticketRepo.ListAsync(Workspace.Id);
             var filtered = all.AsEnumerable();
-            if (!string.IsNullOrWhiteSpace(Status)) filtered = filtered.Where(t => t.Status == Status);
+            if (!string.IsNullOrWhiteSpace(Status))
+            {
+                if (Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Get all status names that are NOT closed
+                    var openStatusNames = Statuses.Where(s => !s.IsClosedState).Select(s => s.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    filtered = filtered.Where(t => openStatusNames.Contains(t.Status));
+                }
+                else
+                {
+                    filtered = filtered.Where(t => string.Equals(t.Status, Status, StringComparison.OrdinalIgnoreCase));
+                }
+            }
             if (!string.IsNullOrWhiteSpace(Priority)) filtered = filtered.Where(t => t.Priority == Priority);
                         if (!string.IsNullOrWhiteSpace(Type)) filtered = filtered.Where(t => t.Type == Type);
             if (!string.IsNullOrWhiteSpace(ContactQuery))

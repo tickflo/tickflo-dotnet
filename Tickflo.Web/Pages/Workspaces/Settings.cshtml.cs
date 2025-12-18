@@ -209,6 +209,9 @@ public class SettingsModel : PageModel
             ? (string.IsNullOrWhiteSpace(s.Color) ? "neutral" : s.Color)
             : color.Trim();
         s.SortOrder = sortOrder;
+        // Read isClosedState from form
+        var isClosedStateStr = Request.Form["isClosedState"];
+        s.IsClosedState = !string.IsNullOrEmpty(isClosedStateStr) && (isClosedStateStr == "true" || isClosedStateStr == "on");
         await _statusRepo.UpdateAsync(s);
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
