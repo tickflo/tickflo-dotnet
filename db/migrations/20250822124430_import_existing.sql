@@ -1305,5 +1305,45 @@ WHERE NOT EXISTS (
 CREATE INDEX IF NOT EXISTS idx_ticket_types_ws_order_name
     ON public.ticket_types (workspace_id, sort_order, name);
 
+--
+-- Ticket History (audit of changes and creation)
+CREATE TABLE IF NOT EXISTS public.ticket_history (
+    id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
+    workspace_id integer NOT NULL,
+    ticket_id integer NOT NULL,
+    created_by_user_id integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    action text NOT NULL,
+    field text NULL,
+    old_value text NULL,
+    new_value text NULL,
+    note text NULL
+);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint con
+        JOIN pg_class rel ON rel.oid = con.conrelid
+        JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+        WHERE con.contype = 'p'
+          AND rel.relname = 'ticket_history'
+          AND nsp.nspname = 'public'
+    ) THEN
+        ALTER TABLE ONLY public.ticket_history
+            ADD CONSTRAINT ticket_history_pkey PRIMARY KEY (id);
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    ALTER TABLE public.ticket_history
+        ADD CONSTRAINT ticket_history_workspace_fk
+        FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Index to quickly list history entries for a ticket
+CREATE INDEX IF NOT EXISTS idx_ticket_history_ws_ticket_time
+    ON public.ticket_history (workspace_id, ticket_id, created_at DESC);
+
 -- migrate:down
 

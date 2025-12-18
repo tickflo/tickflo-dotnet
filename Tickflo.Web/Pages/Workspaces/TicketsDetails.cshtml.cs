@@ -19,8 +19,9 @@ public class TicketsDetailsModel : PageModel
     private readonly ITicketStatusRepository _statusRepo;
     private readonly ITicketPriorityRepository _priorityRepo;
     private readonly ITicketTypeRepository _typeRepo;
+    private readonly ITicketHistoryRepository _historyRepo;
 
-    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo)
+    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITicketHistoryRepository historyRepo)
     {
         _workspaceRepo = workspaceRepo;
         _ticketRepo = ticketRepo;
@@ -32,6 +33,7 @@ public class TicketsDetailsModel : PageModel
         _statusRepo = statusRepo;
         _priorityRepo = priorityRepo;
         _typeRepo = typeRepo;
+        _historyRepo = historyRepo;
     }
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
@@ -47,6 +49,7 @@ public class TicketsDetailsModel : PageModel
     public Dictionary<string,string> PriorityColorByName { get; private set; } = new();
     public IReadOnlyList<Tickflo.Core.Entities.TicketType> Types { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketType>();
     public Dictionary<string,string> TypeColorByName { get; private set; } = new();
+    public IReadOnlyList<TicketHistory> History { get; private set; } = Array.Empty<TicketHistory>();
 
     [BindProperty(SupportsGet = true)]
     public string? Query { get; set; }
@@ -89,6 +92,8 @@ public class TicketsDetailsModel : PageModel
         {
             Ticket = await _ticketRepo.FindAsync(Workspace.Id, id);
             if (Ticket == null) return NotFound();
+            // Load history only for existing tickets
+            History = await _historyRepo.ListForTicketAsync(Workspace.Id, id);
         }
         else
         {
@@ -165,8 +170,34 @@ public class TicketsDetailsModel : PageModel
         var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         var isAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, workspaceId);
         if (!isAdmin) return Forbid();
-        var t = id > 0 ? await _ticketRepo.FindAsync(workspaceId, id) : null;
-        var isNew = t == null;
+        // Robustly resolve ticket id: route -> form -> query
+        int resolvedId = id;
+        if (resolvedId <= 0)
+        {
+            var routeIdObj = Request.RouteValues.TryGetValue("id", out var rv) ? rv : null;
+            if (routeIdObj != null && int.TryParse(routeIdObj.ToString(), out var rid) && rid > 0)
+            {
+                resolvedId = rid;
+            }
+        }
+        if (resolvedId <= 0)
+        {
+            var idStr = Request.Form["id"].ToString();
+            if (int.TryParse(idStr, out var parsed) && parsed > 0)
+            {
+                resolvedId = parsed;
+            }
+        }
+        if (resolvedId <= 0)
+        {
+            var qStr = Request.Query["id"].ToString();
+            if (int.TryParse(qStr, out var qid) && qid > 0)
+            {
+                resolvedId = qid;
+            }
+        }
+        var isNew = resolvedId <= 0;
+        Ticket? t = null;
         if (isNew)
         {
             t = new Ticket
@@ -193,9 +224,31 @@ public class TicketsDetailsModel : PageModel
                 t.AssignedUserId = assignedUserId.Value;
             }
             await _ticketRepo.CreateAsync(t);
+            // History: created
+            await _historyRepo.CreateAsync(new TicketHistory
+            {
+                WorkspaceId = workspaceId,
+                TicketId = t.Id,
+                CreatedByUserId = uid,
+                Action = "created",
+                Note = "Ticket created"
+            });
         }
         else
         {
+            t = await _ticketRepo.FindAsync(workspaceId, resolvedId);
+            if (t == null) return NotFound();
+            // Snapshot old values for diff
+            var old = new {
+                t.Subject,
+                t.Description,
+                t.Type,
+                t.Priority,
+                t.Status,
+                t.InventoryRef,
+                t.ContactId,
+                t.AssignedUserId
+            };
             #pragma warning disable CS8602 // Dereference of a possibly null reference
             var subjectTrim = EditSubject?.Trim();
             if (!string.IsNullOrEmpty(subjectTrim)) t.Subject = subjectTrim;
@@ -225,9 +278,34 @@ public class TicketsDetailsModel : PageModel
             }
             else
             {
-                t.AssignedUserId = null; // Unassigned
+                // keep current assignment when not explicitly changing it
             }
             await _ticketRepo.UpdateAsync(t);
+            // History: per-field changes
+            async Task logIfChanged(string field, string? oldVal, string? newVal)
+            {
+                var o = (oldVal ?? string.Empty).Trim();
+                var n = (newVal ?? string.Empty).Trim();
+                if (o == n) return;
+                await _historyRepo.CreateAsync(new TicketHistory
+                {
+                    WorkspaceId = workspaceId,
+                    TicketId = t.Id,
+                    CreatedByUserId = uid,
+                    Action = "field_changed",
+                    Field = field,
+                    OldValue = o == string.Empty ? null : o,
+                    NewValue = n == string.Empty ? null : n
+                });
+            }
+            await logIfChanged("Subject", old.Subject, t.Subject);
+            await logIfChanged("Description", old.Description, t.Description);
+            await logIfChanged("Type", old.Type, t.Type);
+            await logIfChanged("Priority", old.Priority, t.Priority);
+            await logIfChanged("Status", old.Status, t.Status);
+            await logIfChanged("InventoryRef", old.InventoryRef, t.InventoryRef);
+            await logIfChanged("ContactId", old.ContactId?.ToString(), t.ContactId?.ToString());
+            await logIfChanged("AssignedUserId", old.AssignedUserId?.ToString(), t.AssignedUserId?.ToString());
         }
         // Broadcast update to workspace clients
         string? assignedDisplay = null;
@@ -250,6 +328,7 @@ public class TicketsDetailsModel : PageModel
                 new {
                     id = t.Id,
                     subject = t.Subject ?? string.Empty,
+                    type = t.Type ?? "Standard",
                     priority = t.Priority ?? "Normal",
                     status = t.Status ?? "New",
                     contactId = t.ContactId,
@@ -266,6 +345,7 @@ public class TicketsDetailsModel : PageModel
                 new {
                     id = t.Id,
                     subject = t.Subject ?? string.Empty,
+                    type = t.Type ?? "Standard",
                     priority = t.Priority ?? "Normal",
                     status = t.Status ?? "New",
                     contactId = t.ContactId,
