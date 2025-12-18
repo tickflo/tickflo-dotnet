@@ -17,34 +17,46 @@
 
 <body data-theme="@theme">
     <mini-profiler />
-    <header class="navbar bg-base-100 shadow-sm">
-        <div class="flex-1">
-            <a href="/">
-                <img src="~/img/logo.png" alt="Tickflo" class="h-12" />
-            </a>
-        </div>
-        <div class="flex-none">
-           
-            <!-- Desktop menu -->
-            <ul class="menu menu-horizontal px-1  md:flex">
-                <li>
-                    <label class="cursor-pointer flex items-center gap-2">
-                        <input type="checkbox" class="toggle theme-controller" value="dark" checked="@(theme == "dark" ? "checked" : null)" onchange="setThemeCookie(this.checked ? 'dark' : 'light')" />
-                        <span>@(theme == "dark" ? "Dark" : "Light")</span>
-                    </label>
-                </li>
-                <li>
-                    <a href="/notifications">
-                        <i class="fa fa-bell inline"></i>
-                        <span class="badge badge-xs badge-primary">99+</span>
-                    </a>
-                </li>
-                <li>
-                    @await Html.PartialAsync("_UserMenu")
-                </li>
-            </ul>
-        </div>
-    </header>
+    @if (Context.Request.Path.Value?.ToLower() == "/login")
+    {
+        <header class="navbar bg-base-100 shadow-sm">
+            <div class="flex-1">
+                <a href="/">
+                    <img src="~/img/logo.png" alt="Tickflo" class="h-12" />
+                </a>
+            </div>
+        </header>
+    }
+    else
+    {
+        <header class="navbar bg-base-100 shadow-sm">
+            <div class="flex-1">
+                <a href="/">
+                    <img src="~/img/logo.png" alt="Tickflo" class="h-12" />
+                </a>
+            </div>
+            <div class="flex-none">
+                <!-- Desktop menu -->
+                <ul class="menu menu-horizontal px-1  md:flex">
+                    <li>
+                        <label class="cursor-pointer flex items-center gap-2">
+                            <input type="checkbox" class="toggle theme-controller" value="dark" checked="@(theme == "dark" ? "checked" : null)" onchange="setThemeCookie(this.checked ? 'dark' : 'light')" />
+                            <span>@(theme == "dark" ? "Dark" : "Light")</span>
+                        </label>
+                    </li>
+                    <li>
+                        <a href="/notifications">
+                            <i class="fa fa-bell inline"></i>
+                            <span class="badge badge-xs badge-primary">99+</span>
+                        </a>
+                    </li>
+                    <li>
+                        @await Html.PartialAsync("_UserMenu")
+                    </li>
+                </ul>
+            </div>
+        </header>
+    }
 
     <main class="px-4 md:px-6 lg:px-8 py-4">
         @RenderBody()

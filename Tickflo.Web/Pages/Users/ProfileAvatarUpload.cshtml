@@ -1,0 +1,20 @@
+@page "/profile/avatar"
+@model Tickflo.Web.Pages.Users.ProfileAvatarUploadModel
+@{
+    ViewData["Title"] = "Change Avatar";
+}
+<div class="max-w-xl mx-auto p-8">
+    <h1 class="text-2xl font-bold mb-4">Change Avatar</h1>
+    <form method="post" enctype="multipart/form-data" class="flex flex-col gap-6">
+        <div class="avatar mb-4">
+            <div class="w-32 rounded-full ring ring-primary ring-offset-2 ring-offset-base-100">
+                <img src="/users/@Model.UserId/avatar" alt="Current Avatar" />
+            </div>
+        </div>
+        <input type="file" name="AvatarImage" accept="image/*" class="file-input file-input-bordered w-full max-w-xs" required />
+        <button type="submit" class="btn btn-primary w-40">Upload</button>
+    </form>
+    @if (!string.IsNullOrEmpty(Model.Message)) {
+        <div class="alert alert-info mt-4">@Model.Message</div>
+    }
+</div>
