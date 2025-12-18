@@ -365,7 +365,9 @@ public class TicketsDetailsModel : PageModel
         var mineQ = Request.Query["Mine"].ToString();
         var queryQ = Request.Query["Query"].ToString();
         var pageQ = Request.Query["PageNumber"].ToString();
-        return RedirectToPage("/Workspaces/TicketsDetails", new { slug, id = t.Id, Status = statusQ, Priority = priorityQ, ContactQuery = contactQ, AssigneeUserId = assigneeQ, Mine = mineQ, Query = queryQ, PageNumber = pageQ });
+        var typeQ = Request.Query["Type"].ToString();
+        var pageSizeQ = Request.Query["PageSize"].ToString();
+        return RedirectToPage("/Workspaces/Tickets", new { slug, Query = queryQ, Type = typeQ, Status = statusQ, Priority = priorityQ, ContactQuery = contactQ, AssigneeUserId = assigneeQ, Mine = mineQ, PageNumber = pageQ, PageSize = pageSizeQ });
     }
 
     private static string DefaultOrTrim(string? value, string defaultValue)

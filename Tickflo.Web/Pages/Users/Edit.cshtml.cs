@@ -107,6 +107,6 @@ public class EditModel : PageModel
         await _users.UpdateAsync(user);
 
         TempData["Message"] = "User updated.";
-        return RedirectToPage("/Users/Details", new { id });
+        return RedirectToPage("/Users/Index");
     }
 }

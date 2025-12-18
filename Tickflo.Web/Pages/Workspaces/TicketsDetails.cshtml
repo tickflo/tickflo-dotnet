@@ -189,52 +189,9 @@
                 if (btn){ btn.disabled = true; btn.classList.add('btn-disabled'); }
                 const res = await fetch(action, { method: 'POST', body: fd, credentials: 'same-origin' });
                 if (res.ok){
-                  const toast = document.getElementById('save-toast');
-                  const msg = document.getElementById('save-toast-msg');
-                  if (toast && msg){
-                    msg.textContent = 'Ticket saved.';
-                    toast.style.display = '';
-                    setTimeout(()=>{ toast.style.display = 'none'; }, 2500);
-                  }
-                  // Update header badges inline from current inputs
-                  const subj = form.querySelector('[name="EditSubject"]').value;
-                  const type = form.querySelector('[name="EditType"]').value;
-                  const prio = form.querySelector('[name="EditPriority"]').value;
-                  const status = form.querySelector('[name="EditStatus"]').value;
-                  const inv = form.querySelector('[name="EditInventoryRef"]').value;
-                  const assigneeHidden = form.querySelector('#assignedUserId');
-                  const titleEl = document.querySelector('.card-title');
-                  if (titleEl) titleEl.textContent = subj;
-                  const badges = document.querySelectorAll('.card .badge');
-                  if (badges && badges.length >= 3){
-                    badges[0].textContent = type;
-                    const tc = (statusColors[type] || priorityColors[type] || 'neutral');
-                    if ((typeof tc === 'string') && tc.startsWith('#')){
-                      badges[0].className = 'badge badge-soft join-item';
-                      badges[0].setAttribute('style', `background-color: ${tc}; color: #fff;`);
-                    } else {
-                      badges[0].className = `badge badge-soft badge-${tc} join-item`;
-                      badges[0].removeAttribute('style');
-                    }
-                    badges[1].textContent = prio;
-                    const pc = priorityColors[prio] || 'neutral';
-                    if ((typeof pc === 'string') && pc.startsWith('#')){
-                      badges[1].className = 'badge badge-soft join-item';
-                      badges[1].setAttribute('style', `background-color: ${pc}; color: #fff;`);
-                    } else {
-                      badges[1].className = `badge badge-soft badge-${pc} join-item`;
-                      badges[1].removeAttribute('style');
-                    }
-                    badges[2].textContent = status;
-                    const c = statusColors[status] || 'neutral';
-                    if ((typeof c === 'string') && c.startsWith('#')){
-                      badges[2].className = 'badge badge-soft join-item';
-                      badges[2].setAttribute('style', `background-color: ${c}; color: #fff;`);
-                    } else {
-                      badges[2].className = `badge badge-soft badge-${c} join-item`;
-                      badges[2].removeAttribute('style');
-                    }
-                  }
+                  // Navigate back to list, preserving filters from current query string
+                  const qs = window.location.search || '';
+                  window.location.href = `/workspaces/@Model.WorkspaceSlug/tickets${qs}`;
                 } else {
                   const toast = document.getElementById('save-error-toast');
                   const msg = document.getElementById('save-error-toast-msg');
