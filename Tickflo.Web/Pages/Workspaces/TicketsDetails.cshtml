@@ -25,29 +25,29 @@
     <div class="card-body gap-2">
       <div class="flex items-center justify-between flex-wrap gap-2">
         <h2 class="card-title">@Model.Ticket?.Subject</h2>
-        <div class="join">
-          @{
-            var tColor = (Model.Ticket != null && Model.TypeColorByName.TryGetValue(Model.Ticket.Type, out var tc)) ? tc : "neutral";
-            var tIsHex = tColor.StartsWith("#");
-            var tCls = tIsHex ? "badge badge-soft join-item" : $"badge badge-soft badge-{tColor} join-item";
-            var tStyle = tIsHex ? $"background-color: {tColor}; color: #fff;" : null;
-          }
-          <span class="@tCls" style="@tStyle">@Model.Ticket?.Type</span>
-          @{
-            var pColor = (Model.Ticket != null && Model.PriorityColorByName.TryGetValue(Model.Ticket.Priority, out var pc)) ? pc : "neutral";
-            var pIsHex = pColor.StartsWith("#");
-            var pCls = pIsHex ? "badge badge-soft join-item" : $"badge badge-soft badge-{pColor} join-item";
-            var pStyle = pIsHex ? $"background-color: {pColor}; color: #fff;" : null;
-          }
-          <span class="@pCls" style="@pStyle">@Model.Ticket?.Priority</span>
-          @{
-            var sColor = (Model.Ticket != null && Model.StatusColorByName.TryGetValue(Model.Ticket.Status, out var c)) ? c : "neutral";
-            var isHex = sColor.StartsWith("#");
-            var sCls = isHex ? "badge badge-soft join-item" : $"badge badge-soft badge-{sColor} join-item";
-            var sStyle = isHex ? $"background-color: {sColor}; color: #fff;" : null;
-          }
-          <span class="@sCls" style="@sStyle">@Model.Ticket?.Status</span>
-        </div>
+      </div>
+      <div class="join">
+        @{
+          var tColor = (Model.Ticket != null && Model.TypeColorByName.TryGetValue(Model.Ticket.Type, out var tc)) ? tc : "neutral";
+          var tIsHex = tColor.StartsWith("#");
+          var tCls = tIsHex ? "badge badge-soft join-item" : $"badge badge-soft badge-{tColor} join-item";
+          var tStyle = tIsHex ? $"background-color: {tColor}; color: #fff;" : null;
+        }
+        <span class="@tCls" style="@tStyle">@Model.Ticket?.Type</span>
+        @{
+          var pColor = (Model.Ticket != null && Model.PriorityColorByName.TryGetValue(Model.Ticket.Priority, out var pc)) ? pc : "neutral";
+          var pIsHex = pColor.StartsWith("#");
+          var pCls = pIsHex ? "badge badge-soft join-item" : $"badge badge-soft badge-{pColor} join-item";
+          var pStyle = pIsHex ? $"background-color: {pColor}; color: #fff;" : null;
+        }
+        <span class="@pCls" style="@pStyle">@Model.Ticket?.Priority</span>
+        @{
+          var sColor = (Model.Ticket != null && Model.StatusColorByName.TryGetValue(Model.Ticket.Status, out var c)) ? c : "neutral";
+          var isHex = sColor.StartsWith("#");
+          var sCls = isHex ? "badge badge-soft join-item" : $"badge badge-soft badge-{sColor} join-item";
+          var sStyle = isHex ? $"background-color: {sColor}; color: #fff;" : null;
+        }
+        <span class="@sCls" style="@sStyle">@Model.Ticket?.Status</span>
       </div>
       <div class="text-sm opacity-70">Created @Model.Ticket?.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</div>
       @if(Model.Contact != null)
@@ -82,18 +82,18 @@
         <form method="post" asp-page-handler="Save" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@(@Model.Ticket?.Id ?? 0)" class="grid gap-3" id="ticket-save-form">
           <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
              <input type="hidden" name="id" value="@Model.Ticket?.Id ?? 0" />
-          <div class="grid gap-2 md:grid-cols-2">
-            <div>
-              <label class="label">Contact</label>
-              <input type="hidden" name="EditContactId" id="editContactId" value="@Model.Ticket!.ContactId" />
-              <input id="contact-search" class="input input-bordered w-full" list="contacts-list" placeholder="Search contacts by name or email" />
-              <datalist id="contacts-list">
-                @foreach (var c in Model.Contacts)
-                {
-                  <option value="@c.Name (@c.Email)" data-id="@c.Id"></option>
-                }
-              </datalist>
-            </div>
+          <!-- Subject first -->
+          <div>
+            <label class="label">Subject</label>
+            <input name="EditSubject" value="@Model.Ticket!.Subject" class="input input-bordered w-full" />
+          </div>
+          <!-- Description next -->
+          <div>
+            <label class="label">Description</label>
+            <textarea name="EditDescription" class="textarea textarea-bordered w-full" rows="6">@Model.Ticket!.Description</textarea>
+          </div>
+          <!-- Core metadata: Type / Status / Priority -->
+          <div class="grid gap-2 md:grid-cols-3">
             <div>
               <label class="label">Type</label>
               <select name="EditType" class="select select-bordered w-full">
@@ -104,8 +104,13 @@
               </select>
             </div>
             <div>
-              <label class="label">Subject</label>
-              <input name="EditSubject" value="@Model.Ticket!.Subject" class="input input-bordered w-full" />
+              <label class="label">Status</label>
+              <select name="EditStatus" class="select select-bordered w-full">
+                @foreach (var s in Model.Statuses)
+                {
+                  if (Model.Ticket!.Status == s.Name) {<option value="@s.Name" selected>@s.Name</option>} else {<option value="@s.Name">@s.Name</option>}
+                }
+              </select>
             </div>
             <div>
               <label class="label">Priority</label>
@@ -117,19 +122,46 @@
               </select>
             </div>
           </div>
-          <div>
-            <label class="label">Description</label>
-            <textarea name="EditDescription" class="textarea textarea-bordered w-full" rows="6">@Model.Ticket!.Description</textarea>
+          <!-- Assignment: Assignee / Team -->
+          <div class="grid gap-2 md:grid-cols-2">
+            <div>
+              <label class="label">Assignee</label>
+              <input type="hidden" id="assignedUserId" name="assignedUserId" value="@Model.Ticket!.AssignedUserId" />
+              <input id="assignee-search" class="input w-full" list="assignees-list" placeholder="Search assignee by name or email" />
+              <datalist id="assignees-list">
+                <option value="Unassigned" data-id=""></option>
+                @foreach (var u in Model.Members)
+                {
+                  <option value="@u.Name (@u.Email)" data-id="@u.Id"></option>
+                }
+              </datalist>
+            </div>
+            <div>
+              <label class="label">Team</label>
+              <input type="hidden" id="assignedTeamId" name="assignedTeamId" value="@Model.Ticket!.AssignedTeamId" />
+              <input id="team-search" class="input w-full" list="teams-list" placeholder="Search team by name" />
+              <datalist id="teams-list">
+                <option value="None" data-id=""></option>
+                @foreach (var t in Model.Teams)
+                {
+                  <option value="@t.Name" data-id="@t.Id"></option>
+                }
+              </datalist>
+            </div>
           </div>
+          <!-- Contact -->
           <div>
-            <label class="label">Status</label>
-            <select name="EditStatus" class="select select-bordered w-full">
-              @foreach (var s in Model.Statuses)
+            <label class="label">Contact</label>
+            <input type="hidden" name="EditContactId" id="editContactId" value="@Model.Ticket!.ContactId" />
+            <input id="contact-search" class="input input-bordered w-full" list="contacts-list" placeholder="Search contacts by name or email" />
+            <datalist id="contacts-list">
+              @foreach (var c in Model.Contacts)
               {
-                if (Model.Ticket!.Status == s.Name) {<option value="@s.Name" selected>@s.Name</option>} else {<option value="@s.Name">@s.Name</option>}
+                <option value="@c.Name (@c.Email)" data-id="@c.Id"></option>
               }
-            </select>
+            </datalist>
           </div>
+          <!-- Parts / Inventory at the end -->
           <div>
             <label class="label">Parts / Inventory</label>
             <div id="inventory-products-section" class="card bg-base-200 p-3">
@@ -172,30 +204,6 @@
               </table>
             </div>
             <input type="hidden" name="TicketInventoriesJson" id="TicketInventoriesJson" />
-          </div>
-          <div>
-            <label class="label">Assignee</label>
-            <input type="hidden" id="assignedUserId" name="assignedUserId" value="@Model.Ticket!.AssignedUserId" />
-            <input id="assignee-search" class="input w-full" list="assignees-list" placeholder="Search assignee by name or email" />
-            <datalist id="assignees-list">
-              <option value="Unassigned" data-id=""></option>
-              @foreach (var u in Model.Members)
-              {
-                <option value="@u.Name (@u.Email)" data-id="@u.Id"></option>
-              }
-            </datalist>
-          </div>
-          <div>
-            <label class="label">Team</label>
-            <input type="hidden" id="assignedTeamId" name="assignedTeamId" value="@Model.Ticket!.AssignedTeamId" />
-            <input id="team-search" class="input w-full" list="teams-list" placeholder="Search team by name" />
-            <datalist id="teams-list">
-              <option value="None" data-id=""></option>
-              @foreach (var t in Model.Teams)
-              {
-                <option value="@t.Name" data-id="@t.Id"></option>
-              }
-            </datalist>
           </div>
           <div class="flex gap-2">
             @{ var saveLabel = (Model.Ticket != null && Model.Ticket.Id > 0) ? "Update" : "Save"; }
