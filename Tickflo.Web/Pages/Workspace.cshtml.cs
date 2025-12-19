@@ -17,6 +17,7 @@ public class WorkspaceModel : PageModel
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ITicketRepository _ticketRepo;
     private readonly ITicketStatusRepository _statusRepo;
+    private readonly ITicketTypeRepository _typeRepo;
     private readonly IUserRepository _userRepo;
     private readonly ITeamRepository _teamRepo;
     private readonly ITicketPriorityRepository _priorityRepo;
@@ -40,6 +41,7 @@ public class WorkspaceModel : PageModel
     public List<User> WorkspaceMembers { get; set; } = new();
     public List<Team> WorkspaceTeams { get; set; } = new();
     public List<TicketStatus> StatusList { get; set; } = new();
+    public List<TicketType> TypeList { get; set; } = new();
 
     // Priority counts
     public Dictionary<string, int> PriorityCounts { get; set; } = new();
@@ -51,6 +53,7 @@ public class WorkspaceModel : PageModel
         IHttpContextAccessor httpContextAccessor,
         ITicketRepository ticketRepo,
         ITicketStatusRepository statusRepo,
+        ITicketTypeRepository typeRepo,
         IUserRepository userRepo,
         ITicketPriorityRepository priorityRepo,
         ITeamRepository teamRepo)
@@ -60,6 +63,7 @@ public class WorkspaceModel : PageModel
         _httpContextAccessor = httpContextAccessor;
         _ticketRepo = ticketRepo;
         _statusRepo = statusRepo;
+        _typeRepo = typeRepo;
         _userRepo = userRepo;
         _priorityRepo = priorityRepo;
         _teamRepo = teamRepo;
@@ -172,7 +176,12 @@ public class WorkspaceModel : PageModel
         StatusList = (await _statusRepo.ListAsync(workspaceId)).ToList();
         var closedNames = new HashSet<string>(StatusList.Where(s => s.IsClosedState).Select(s => s.Name), System.StringComparer.OrdinalIgnoreCase);
         var statusColor = StatusList.GroupBy(s => s.Name, System.StringComparer.OrdinalIgnoreCase)
-                  .ToDictionary(g => g.Key, g => g.First().Color, System.StringComparer.OrdinalIgnoreCase);
+              .ToDictionary(g => g.Key, g => g.First().Color, System.StringComparer.OrdinalIgnoreCase);
+
+        // Load custom ticket types and color map
+        TypeList = (await _typeRepo.ListAsync(workspaceId)).ToList();
+        var typeColor = TypeList.GroupBy(t => t.Name, System.StringComparer.OrdinalIgnoreCase)
+              .ToDictionary(g => g.Key, g => g.First().Color, System.StringComparer.OrdinalIgnoreCase);
 
         ResolvedTickets = tickets.Count(t => closedNames.Contains(t.Status));
         // Open tickets: not closed (case-insensitive)
@@ -238,6 +247,7 @@ public class WorkspaceModel : PageModel
             Type = t.Type,
             Status = t.Status,
             StatusColor = statusColor.TryGetValue(t.Status, out var c) ? c : "neutral",
+            TypeColor = typeColor.TryGetValue(t.Type, out var tc) ? tc : "neutral",
             AssignedUserId = t.AssignedUserId,
             AssigneeName = t.AssignedUserId.HasValue && assigneeNames.TryGetValue(t.AssignedUserId.Value, out var n) ? n : null,
             UpdatedAt = t.UpdatedAt ?? t.CreatedAt
@@ -311,6 +321,7 @@ public class TicketListItem
     public string Type { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string StatusColor { get; set; } = "neutral";
+    public string TypeColor { get; set; } = "neutral";
     public int? AssignedUserId { get; set; }
     public string? AssigneeName { get; set; }
     public DateTime UpdatedAt { get; set; }

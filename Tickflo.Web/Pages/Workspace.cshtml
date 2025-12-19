@@ -121,8 +121,12 @@
                                         @foreach (var s in Model.StatusList.OrderBy(x => x.SortOrder))
                                         {
                                             var count = Model.RecentTickets.Count(t => t.Status == s.Name);
+                                            var sColor = string.IsNullOrWhiteSpace(s.Color) ? "neutral" : s.Color;
+                                            var sIsHex = sColor.StartsWith("#");
+                                            var sCls = sIsHex ? "badge badge-outline" : $"badge badge-outline badge-{sColor}";
+                                            var sStyle = sIsHex ? $"--badge-color: {sColor};" : null;
                                             <div class="flex items-center gap-2">
-                                                <a href="/workspaces/@Model.Workspace.Slug/tickets?status=@Uri.EscapeDataString(s.Name)&range=@Model.RangeDays" class="badge badge-outline" style="border-color:@(s.Color);color:@(s.Color)">@s.Name</a>
+                                                <a href="/workspaces/@Model.Workspace.Slug/tickets?status=@Uri.EscapeDataString(s.Name)&range=@Model.RangeDays" class="@sCls" style="@sStyle">@s.Name</a>
                                                 <span class="font-bold">@count</span>
                                             </div>
                                         }
@@ -141,8 +145,12 @@
                                         @foreach (var p in Model.PriorityCounts.OrderByDescending(x => x.Value))
                                         {
                                             var prio = Model.PriorityList.FirstOrDefault(x => x.Name == p.Key);
+                                            var pColor = string.IsNullOrWhiteSpace(prio?.Color) ? "neutral" : prio!.Color;
+                                            var pIsHex = pColor.StartsWith("#");
+                                            var pCls = pIsHex ? "badge badge-outline" : $"badge badge-outline badge-{pColor}";
+                                            var pStyle = pIsHex ? $"--badge-color: {pColor};" : null;
                                             <div class="flex items-center gap-2">
-                                                <a href="/workspaces/@Model.Workspace.Slug/tickets?priority=@Uri.EscapeDataString(p.Key)&range=@Model.RangeDays" class="badge badge-outline" style="border-color:@(prio?.Color ?? "#d1d5db");color:@(prio?.Color ?? "#374151")">@p.Key</a>
+                                                <a href="/workspaces/@Model.Workspace.Slug/tickets?priority=@Uri.EscapeDataString(p.Key)&range=@Model.RangeDays" class="@pCls" style="@pStyle">@p.Key</a>
                                                 <span class="font-bold">@p.Value</span>
                                             </div>
                                         }
@@ -210,10 +218,12 @@
                                             <tr>
                                                 <td><a class="link link-hover font-medium" href="/workspaces/@Model.Workspace!.Slug/tickets/@t.Id?range=@Model.RangeDays">#@t.Id @t.Subject</a></td>
                                                 <td>
-                                                    <a class="badge badge-outline badge-lg" href="/workspaces/@Model.Workspace!.Slug/tickets?type=@Uri.EscapeDataString(t.Type)&range=@Model.RangeDays">@t.Type</a>
+                                                    @{ var typeColor = string.IsNullOrWhiteSpace(t.TypeColor) ? "neutral" : t.TypeColor; var typeIsHex = typeColor.StartsWith("#"); var typeCls = typeIsHex ? "badge badge-outline badge-lg" : $"badge badge-outline badge-lg badge-{typeColor}"; var typeStyle = typeIsHex ? $"--badge-color: {typeColor};" : null; }
+                                                    <a class="@typeCls" style="@typeStyle" href="/workspaces/@Model.Workspace!.Slug/tickets?type=@Uri.EscapeDataString(t.Type)&range=@Model.RangeDays">@t.Type</a>
                                                 </td>
                                                 <td>
-                                                    <a class="badge badge-outline badge-lg @("badge-" + (t.StatusColor == "neutral" ? "neutral" : t.StatusColor))" href="/workspaces/@Model.Workspace!.Slug/tickets?status=@Uri.EscapeDataString(t.Status)&range=@Model.RangeDays">@t.Status</a>
+                                                    @{ var statusColor = string.IsNullOrWhiteSpace(t.StatusColor) ? "neutral" : t.StatusColor; var sIsHex2 = statusColor.StartsWith("#"); var statusCls = sIsHex2 ? "badge badge-outline badge-lg" : $"badge badge-outline badge-lg badge-{statusColor}"; var statusStyle2 = sIsHex2 ? $"--badge-color: {statusColor};" : null; }
+                                                    <a class="@statusCls" style="@statusStyle2" href="/workspaces/@Model.Workspace!.Slug/tickets?status=@Uri.EscapeDataString(t.Status)&range=@Model.RangeDays">@t.Status</a>
                                                 </td>
                                                 <td>
                                                     @if (!string.IsNullOrWhiteSpace(t.AssigneeName)) {
