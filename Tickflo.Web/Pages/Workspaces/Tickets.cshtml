@@ -172,14 +172,21 @@
                             <span class="badge">Unassigned</span>
                         }
                     </td>
-                        <td>
-                        @if (!string.IsNullOrWhiteSpace(t.InventoryRef))
-                        {
-                                <a class="link link-hover" href="/workspaces/@Model.WorkspaceSlug/inventory?Query=@t.InventoryRef">@t.InventoryRef</a>
-                        }
-                        else
-                        {
+                        <td class="hidden sm:table-cell">
+                        @{
+                            var invs = t.TicketInventories?.ToList() ?? new List<Tickflo.Core.Entities.TicketInventory>();
+                            if (invs.Count > 0)
+                            {
+                                var count = invs.Count;
+                                var total = invs.Sum(iv => iv.UnitPrice * iv.Quantity);
+                                var summary = $"{count} item{(count == 1 ? string.Empty : "s")} · ${total:F2}";
+                                var tooltip = string.Join(", ", invs.Select(iv => $"{(iv.Inventory?.Name ?? ("SKU " + (iv.Inventory?.Sku ?? iv.InventoryId.ToString())))} x{iv.Quantity}"));
+                                <span class="opacity-80" title="@tooltip">@summary</span>
+                            }
+                            else
+                            {
                                 <span class="opacity-50">—</span>
+                            }
                         }
                     </td>
                         <td class="hidden md:table-cell">@t.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
@@ -259,30 +266,34 @@
     </div>
     <script>
         (function(){
-            const statusColors = {
-@for (int i = 0; i < Model.Statuses.Count; i++)
-{
-    var s = Model.Statuses[i];
-        var color = string.IsNullOrWhiteSpace(s.Color) ? "neutral" : s.Color;
-    @:$"\"{s.Name.Replace("\"","\\\"")}\": \"{color}\"{(i < Model.Statuses.Count - 1 ? "," : string.Empty)}"
-}
-            };
-                const priorityColors = {
-@for (int i = 0; i < Model.PrioritiesList.Count; i++)
-{
-    var p = Model.PrioritiesList[i];
-        var color = string.IsNullOrWhiteSpace(p.Color) ? "neutral" : p.Color;
-    @:$"\"{p.Name.Replace("\"","\\\"")}\": \"{color}\"{(i < Model.PrioritiesList.Count - 1 ? "," : string.Empty)}"
-}
-            };
-            const typeColors = {
-@for (int i = 0; i < Model.TypesList.Count; i++)
-{
-    var tt = Model.TypesList[i];
-        var color = string.IsNullOrWhiteSpace(tt.Color) ? "neutral" : tt.Color;
-    @:$"\"{tt.Name.Replace("\"","\\\"")}\": \"{color}\"{(i < Model.TypesList.Count - 1 ? "," : string.Empty)}"
-}
-            };
+            @{ var statusDict = new System.Collections.Generic.Dictionary<string, string>();
+               foreach (var s in Model.Statuses)
+               {
+                 var key = s.Name ?? string.Empty;
+                 var val = string.IsNullOrWhiteSpace(s.Color) ? "neutral" : s.Color!;
+                 statusDict[key] = val;
+               }
+               var priorityDict = new System.Collections.Generic.Dictionary<string, string>();
+               foreach (var p in Model.PrioritiesList)
+               {
+                 var key = p.Name ?? string.Empty;
+                 var val = string.IsNullOrWhiteSpace(p.Color) ? "neutral" : p.Color!;
+                 priorityDict[key] = val;
+               }
+               var typeDict = new System.Collections.Generic.Dictionary<string, string>();
+               foreach (var tt in Model.TypesList)
+               {
+                 var key = tt.Name ?? string.Empty;
+                 var val = string.IsNullOrWhiteSpace(tt.Color) ? "neutral" : tt.Color!;
+                 typeDict[key] = val;
+               }
+               var statusJson = System.Text.Json.JsonSerializer.Serialize(statusDict);
+               var priorityJson = System.Text.Json.JsonSerializer.Serialize(priorityDict);
+               var typeJson = System.Text.Json.JsonSerializer.Serialize(typeDict);
+            }
+            const statusColors = @Html.Raw(statusJson);
+            const priorityColors = @Html.Raw(priorityJson);
+            const typeColors = @Html.Raw(typeJson);
             // Minimal fade-in animation style for newly inserted rows
             const style = document.createElement('style');
             style.textContent = ".fade-in { animation: fadeIn 450ms ease-out; }\n@keyframes fadeIn { from { opacity: 0; transform: translateY(-2px); } to { opacity: 1; transform: translateY(0); } }";
@@ -378,7 +389,7 @@
                                                 <td>${statusSpan}</td>
                         <td><span>${contactDisplay}</span></td>
                         <td class="hidden sm:table-cell"><span class="badge ${t.assignedUserId ? 'badge-soft' : ''}">${t.assignedUserId ? (t.assignedDisplay || 'Assigned') : 'Unassigned'}</span></td>
-                        <td>${t.inventoryRef ? `<a class="link link-hover" href="/workspaces/${slug}/inventory?Query=${t.inventoryRef}">${t.inventoryRef}</a>` : '<span class="opacity-50">—</span>'}</td>
+                            <td class="hidden sm:table-cell"><span class="opacity-80" title="${t.inventoryDetails || ''}">${t.inventorySummary || '—'}</span></td>
                         <td class="hidden md:table-cell">${created}</td>
                         <td>
                           <div class="flex flex-wrap gap-2 items-center">
@@ -430,13 +441,9 @@
                                 statusCell.removeAttribute('style');
                             }
                         }
-                        const invCell = row.querySelector('td:nth-child(6)');
+                        const invCell = row.querySelector('td:nth-child(7)');
                         if (invCell){
-                            if (t.inventoryRef){
-                                invCell.innerHTML = `<a class="link link-hover" href="/workspaces/${slug}/inventory?Query=${t.inventoryRef}">${t.inventoryRef}</a>`;
-                            } else {
-                                invCell.innerHTML = '<span class="opacity-50">—</span>';
-                            }
+                               invCell.innerHTML = `<span class="opacity-80" title="${t.inventoryDetails || ''}">${t.inventorySummary || '—'}</span>`;
                         }
                     }
                 });

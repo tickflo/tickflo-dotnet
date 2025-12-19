@@ -9,6 +9,17 @@ namespace Tickflo.Web.Pages.Workspaces;
 
 public class TicketsDetailsModel : PageModel
 {
+    [BindProperty]
+    public string? TicketInventoriesJson { get; set; }
+
+    private class TicketInventoryDto
+    {
+        public int id { get; set; }
+        public string sku { get; set; } = string.Empty;
+        public string name { get; set; } = string.Empty;
+        public int quantity { get; set; }
+        public decimal unitPrice { get; set; }
+    }
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly ITicketRepository _ticketRepo;
     private readonly IContactRepository _contactRepo;
@@ -21,8 +32,9 @@ public class TicketsDetailsModel : PageModel
     private readonly ITicketTypeRepository _typeRepo;
     private readonly ITicketHistoryRepository _historyRepo;
     private readonly ITeamRepository _teamRepo;
+    private readonly IInventoryRepository _inventoryRepo;
 
-    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITicketHistoryRepository historyRepo, ITeamRepository teamRepo)
+    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITicketHistoryRepository historyRepo, ITeamRepository teamRepo, IInventoryRepository inventoryRepo)
     {
         _workspaceRepo = workspaceRepo;
         _ticketRepo = ticketRepo;
@@ -36,7 +48,9 @@ public class TicketsDetailsModel : PageModel
         _typeRepo = typeRepo;
         _historyRepo = historyRepo;
         _teamRepo = teamRepo;
+        _inventoryRepo = inventoryRepo;
     }
+    public List<Inventory> InventoryItems { get; private set; } = new();
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -110,6 +124,7 @@ public class TicketsDetailsModel : PageModel
         }
         Contact = Ticket.ContactId.HasValue ? await _contactRepo.FindAsync(Workspace.Id, Ticket.ContactId.Value) : null;
         Contacts = await _contactRepo.ListAsync(Workspace.Id);
+        InventoryItems = (await _inventoryRepo.ListAsync(Workspace.Id, null, "active")).ToList();
         var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         IsWorkspaceAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
         var sts = await _statusRepo.ListAsync(Workspace.Id);
@@ -165,8 +180,30 @@ public class TicketsDetailsModel : PageModel
     }
 
     // Consolidated save: updates subject, description, priority, status, and assignment
-    public async Task<IActionResult> OnPostSaveAsync(string slug, int id, int? assignedUserId, int? assignedTeamId, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub)
-    {
+        public async Task<IActionResult> OnPostSaveAsync(string slug, int id, int? assignedUserId, int? assignedTeamId, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub)
+        {
+            // Bind inventory products from JSON
+            var inventories = new List<TicketInventory>();
+            if (!string.IsNullOrWhiteSpace(TicketInventoriesJson))
+            {
+                try
+                {
+                    var parsed = System.Text.Json.JsonSerializer.Deserialize<List<TicketInventoryDto>>(TicketInventoriesJson);
+                    if (parsed != null)
+                    {
+                        foreach (var dto in parsed)
+                        {
+                            inventories.Add(new TicketInventory
+                            {
+                                InventoryId = dto.id,
+                                Quantity = dto.quantity,
+                                UnitPrice = dto.unitPrice
+                            });
+                        }
+                    }
+                }
+                catch { }
+            }
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
@@ -212,7 +249,7 @@ public class TicketsDetailsModel : PageModel
                 Type = DefaultOrTrim(EditType, "Standard"),
                 Priority = DefaultOrTrim(EditPriority, "Normal"),
                 Status = DefaultOrTrim(EditStatus, "New"),
-                InventoryRef = string.IsNullOrWhiteSpace(EditInventoryRef) ? null : EditInventoryRef!.Trim()
+                TicketInventories = inventories
             };
             // Contact
             if (EditContactId.HasValue)
@@ -255,10 +292,10 @@ public class TicketsDetailsModel : PageModel
                 t.Type,
                 t.Priority,
                 t.Status,
-                t.InventoryRef,
                 t.ContactId,
                 t.AssignedUserId
             };
+            var oldInv = (t.TicketInventories?.ToList() ?? new List<TicketInventory>()).Select(iv => new { iv.InventoryId, iv.Quantity, iv.UnitPrice, Name = iv.Inventory?.Name }).ToList();
             #pragma warning disable CS8602 // Dereference of a possibly null reference
             var subjectTrim = EditSubject?.Trim();
             if (!string.IsNullOrEmpty(subjectTrim)) t.Subject = subjectTrim;
@@ -271,7 +308,7 @@ public class TicketsDetailsModel : PageModel
             var statusTrim = EditStatus?.Trim();
             if (!string.IsNullOrEmpty(statusTrim)) t.Status = statusTrim;
             var inventoryRefTrim = EditInventoryRef?.Trim();
-            t.InventoryRef = string.IsNullOrEmpty(inventoryRefTrim) ? null : inventoryRefTrim;
+            // Removed InventoryRef, now handled by TicketInventories
             #pragma warning restore CS8602
             // Update contact if provided
             if (EditContactId.HasValue)
@@ -292,6 +329,7 @@ public class TicketsDetailsModel : PageModel
                 if (team == null || team.WorkspaceId != workspaceId) return BadRequest("Invalid team");
                 t.AssignedTeamId = assignedTeamId.Value;
             }
+            t.TicketInventories = inventories;
             await _ticketRepo.UpdateAsync(t);
             // History: per-field changes
             async Task logIfChanged(string field, string? oldVal, string? newVal)
@@ -315,9 +353,26 @@ public class TicketsDetailsModel : PageModel
             await logIfChanged("Type", old.Type, t.Type);
             await logIfChanged("Priority", old.Priority, t.Priority);
             await logIfChanged("Status", old.Status, t.Status);
-            await logIfChanged("InventoryRef", old.InventoryRef, t.InventoryRef);
+            // Removed InventoryRef change log
             await logIfChanged("ContactId", old.ContactId?.ToString(), t.ContactId?.ToString());
             await logIfChanged("AssignedUserId", old.AssignedUserId?.ToString(), t.AssignedUserId?.ToString());
+            // Inventory summary diff
+            string Summarize(List<TicketInventory> list)
+            {
+                var items = list ?? new List<TicketInventory>();
+                var parts = new List<string>();
+                foreach (var iv in items)
+                {
+                    var name = iv.Inventory?.Name;
+                    if (string.IsNullOrWhiteSpace(name)) name = $"Item #{iv.InventoryId}";
+                    parts.Add($"{name} x{iv.Quantity} @ ${iv.UnitPrice:F2}");
+                }
+                return string.Join(", ", parts);
+            }
+            var newInv = (t.TicketInventories?.ToList() ?? new List<TicketInventory>());
+            var oldSummary = Summarize(oldInv.Select(x => new TicketInventory{ InventoryId = x.InventoryId, Quantity = x.Quantity, UnitPrice = x.UnitPrice, Inventory = new Inventory{ Name = x.Name ?? string.Empty } }).ToList());
+            var newSummary = Summarize(newInv);
+            await logIfChanged("Inventory", string.IsNullOrEmpty(oldSummary) ? null : oldSummary, string.IsNullOrEmpty(newSummary) ? null : newSummary);
         }
         // Broadcast update to workspace clients
         string? assignedDisplay = null;
@@ -342,6 +397,22 @@ public class TicketsDetailsModel : PageModel
         var group = Tickflo.Web.Realtime.TicketsHub.WorkspaceGroup(WorkspaceSlug ?? string.Empty);
         if (isNew)
         {
+            var invsNew = t.TicketInventories?.ToList() ?? new List<TicketInventory>();
+            var invCountNew = invsNew.Count;
+            var invTotalNew = invsNew.Sum(iv => iv.UnitPrice * iv.Quantity);
+            var invSummaryNew = invCountNew > 0 ? $"{invCountNew} item{(invCountNew == 1 ? string.Empty : "s")} · ${invTotalNew:F2}" : "—";
+            var detailsNew = new List<string>();
+            foreach (var iv in invsNew)
+            {
+                var name = iv.Inventory?.Name;
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    var inv = await _inventoryRepo.FindAsync(workspaceId, iv.InventoryId);
+                    name = inv?.Name ?? $"Item #{iv.InventoryId}";
+                }
+                detailsNew.Add($"{name} x{iv.Quantity}");
+            }
+            var invDetailsNew = string.Join(", ", detailsNew);
             await hub.Clients.Group(group).SendCoreAsync("ticketCreated", new object[] {
                 new {
                     id = t.Id,
@@ -354,13 +425,30 @@ public class TicketsDetailsModel : PageModel
                     assignedDisplay = assignedDisplay,
                     assignedTeamId = t.AssignedTeamId,
                     assignedTeamName = assignedTeamName,
-                    inventoryRef = t.InventoryRef,
+                    inventorySummary = invSummaryNew,
+                    inventoryDetails = invDetailsNew,
                     createdAt = t.CreatedAt
                 }
             });
         }
         else
         {
+            var invsUpd = t.TicketInventories?.ToList() ?? new List<TicketInventory>();
+            var invCountUpd = invsUpd.Count;
+            var invTotalUpd = invsUpd.Sum(iv => iv.UnitPrice * iv.Quantity);
+            var invSummaryUpd = invCountUpd > 0 ? $"{invCountUpd} item{(invCountUpd == 1 ? string.Empty : "s")} · ${invTotalUpd:F2}" : "—";
+            var detailsUpd = new List<string>();
+            foreach (var iv in invsUpd)
+            {
+                var name = iv.Inventory?.Name;
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    var inv = await _inventoryRepo.FindAsync(workspaceId, iv.InventoryId);
+                    name = inv?.Name ?? $"Item #{iv.InventoryId}";
+                }
+                detailsUpd.Add($"{name} x{iv.Quantity}");
+            }
+            var invDetailsUpd = string.Join(", ", detailsUpd);
             await hub.Clients.Group(group).SendCoreAsync("ticketUpdated", new object[] {
                 new {
                     id = t.Id,
@@ -373,7 +461,8 @@ public class TicketsDetailsModel : PageModel
                     assignedDisplay = assignedDisplay,
                     assignedTeamId = t.AssignedTeamId,
                     assignedTeamName = assignedTeamName,
-                    inventoryRef = t.InventoryRef,
+                    inventorySummary = invSummaryUpd,
+                    inventoryDetails = invDetailsUpd,
                     updatedAt = DateTime.UtcNow
                 }
             });

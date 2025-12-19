@@ -12,7 +12,9 @@ public class Ticket
     public string Status { get; set; } = "New";
     public int? AssignedUserId { get; set; }
     public int? AssignedTeamId { get; set; }
-    public string? InventoryRef { get; set; } // SKU or item reference
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
+
+    // Multi-inventory support
+    public ICollection<TicketInventory> TicketInventories { get; set; } = new List<TicketInventory>();
 }

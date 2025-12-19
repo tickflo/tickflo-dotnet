@@ -16,6 +16,7 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
     public DbSet<Contact> Contacts => Set<Contact>();
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<Inventory> Inventory => Set<Inventory>();
+    public DbSet<TicketInventory> TicketInventories => Set<TicketInventory>();
     public DbSet<TicketStatus> TicketStatuses => Set<TicketStatus>();
     public DbSet<TicketPriority> TicketPriorities => Set<TicketPriority>();
     public DbSet<TicketType> TicketTypes => Set<TicketType>();
@@ -56,6 +57,16 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
 
         modelBuilder.Entity<Ticket>()
             .HasIndex(t => new { t.WorkspaceId, t.Id });
+
+        // TicketInventory relationship
+        modelBuilder.Entity<TicketInventory>()
+            .HasOne(ti => ti.Ticket)
+            .WithMany(t => t.TicketInventories)
+            .HasForeignKey(ti => ti.TicketId);
+        modelBuilder.Entity<TicketInventory>()
+            .HasOne(ti => ti.Inventory)
+            .WithMany()
+            .HasForeignKey(ti => ti.InventoryId);
 
         modelBuilder.Entity<Inventory>()
             .HasIndex(i => new { i.WorkspaceId, i.Sku })

@@ -1338,9 +1338,87 @@ CREATE INDEX IF NOT EXISTS idx_ticket_types_ws_order_name
     ON public.ticket_types (workspace_id, sort_order, name);
 
 --
--- Ticket History (audit of changes and creation)
+CREATE TABLE IF NOT EXISTS public.ticket_inventory (
+    id integer NOT NULL,
+    ticket_id integer NOT NULL,
+    inventory_id integer NOT NULL,
+    quantity integer NOT NULL DEFAULT 1,
+    unit_price numeric(12,2) NOT NULL DEFAULT 0
+);
+
+-- TicketInventories: plural for EF Core compatibility (idempotent)
+CREATE TABLE IF NOT EXISTS public.ticket_inventories (
+    id integer NOT NULL,
+    ticket_id integer NOT NULL,
+    inventory_id integer NOT NULL,
+    quantity integer NOT NULL DEFAULT 1,
+    unit_price numeric(12,2) NOT NULL DEFAULT 0
+);
+
+DO $$ BEGIN
+    ALTER TABLE public.ticket_inventories ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+        SEQUENCE NAME public.ticket_inventories_id_seq
+        START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1
+    );
+EXCEPTION WHEN duplicate_table OR duplicate_object THEN NULL; END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint con
+        JOIN pg_class rel ON rel.oid = con.conrelid
+        JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+        WHERE con.contype = 'p' AND rel.relname = 'ticket_inventories' AND nsp.nspname = 'public'
+    ) THEN
+        ALTER TABLE ONLY public.ticket_inventories ADD CONSTRAINT ticket_inventories_pkey PRIMARY KEY (id);
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    ALTER TABLE ONLY public.ticket_inventories
+        ADD CONSTRAINT ticket_inventories_ticket_id_fk FOREIGN KEY (ticket_id) REFERENCES public.tickets(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    ALTER TABLE ONLY public.ticket_inventories
+        ADD CONSTRAINT ticket_inventories_inventory_id_fk FOREIGN KEY (inventory_id) REFERENCES public.inventory(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE INDEX IF NOT EXISTS idx_ticket_inventories_ticket_id ON public.ticket_inventories(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_ticket_inventories_inventory_id ON public.ticket_inventories(inventory_id);
+
+DO $$ BEGIN
+    ALTER TABLE public.ticket_inventory ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+        SEQUENCE NAME public.ticket_inventory_id_seq
+        START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1
+    );
+EXCEPTION WHEN duplicate_table OR duplicate_object THEN NULL; END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint con
+        JOIN pg_class rel ON rel.oid = con.conrelid
+        JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+        WHERE con.contype = 'p' AND rel.relname = 'ticket_inventory' AND nsp.nspname = 'public'
+    ) THEN
+        ALTER TABLE ONLY public.ticket_inventory ADD CONSTRAINT ticket_inventory_pkey PRIMARY KEY (id);
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    ALTER TABLE ONLY public.ticket_inventory
+        ADD CONSTRAINT ticket_inventory_ticket_id_fk FOREIGN KEY (ticket_id) REFERENCES public.tickets(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    ALTER TABLE ONLY public.ticket_inventory
+        ADD CONSTRAINT ticket_inventory_inventory_id_fk FOREIGN KEY (inventory_id) REFERENCES public.inventory(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE INDEX IF NOT EXISTS idx_ticket_inventory_ticket_id ON public.ticket_inventory(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_ticket_inventory_inventory_id ON public.ticket_inventory(inventory_id);
 CREATE TABLE IF NOT EXISTS public.ticket_history (
-    id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
     workspace_id integer NOT NULL,
     ticket_id integer NOT NULL,
     created_by_user_id integer NOT NULL,

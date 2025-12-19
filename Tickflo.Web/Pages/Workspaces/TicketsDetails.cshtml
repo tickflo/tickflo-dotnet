@@ -50,10 +50,6 @@
         </div>
       </div>
       <div class="text-sm opacity-70">Created @Model.Ticket?.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</div>
-      @if(!string.IsNullOrWhiteSpace(Model.Ticket?.InventoryRef))
-      {
-        <div>Inventory: <a class="link" href="/workspaces/@Model.WorkspaceSlug/inventory?Query=@Model.Ticket!.InventoryRef">@Model.Ticket!.InventoryRef</a></div>
-      }
       @if(Model.Contact != null)
       {
         <div>Contact: <span class="font-medium">@Model.Contact.Name</span> <span class="opacity-70">(@Model.Contact.Email)</span></div>
@@ -135,8 +131,47 @@
             </select>
           </div>
           <div>
-            <label class="label">Inventory Ref (SKU)</label>
-            <input name="EditInventoryRef" value="@Model.Ticket!.InventoryRef" class="input input-bordered w-full" />
+            <label class="label">Parts / Inventory</label>
+            <div id="inventory-products-section" class="card bg-base-200 p-3">
+              <div class="flex flex-wrap gap-2 mb-2 items-center">
+                <input id="inventory-search" class="input input-bordered grow" list="inventory-list" placeholder="Search inventory by name or SKU" />
+                <input id="inventory-qty" type="number" min="1" value="1" class="input input-bordered w-20" aria-label="Quantity" placeholder="Qty" />
+                <button type="button" class="btn btn-primary" id="add-inventory-btn">Add</button>
+                <div class="ml-auto flex items-center gap-2">
+                  <span id="invoice-count" class="badge">0 items</span>
+                  <button type="button" class="btn btn-soft btn-sm" id="clear-invoice-btn">Clear</button>
+                </div>
+              </div>
+              <datalist id="inventory-list">
+                @foreach (var i in Model.InventoryItems)
+                {
+                  <option value="@i.Name (@i.Sku)" data-id="@i.Id" data-sku="@i.Sku" data-name="@i.Name" data-price="@((i.Price ?? i.Cost).ToString(System.Globalization.CultureInfo.InvariantCulture))" />
+                }
+              </datalist>
+              <table class="table w-full" id="invoice-table">
+                <thead>
+                  <tr>
+                    <th>SKU</th>
+                    <th>Name</th>
+                    <th>Qty</th>
+                    <th>Unit Price</th>
+                    <th>Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="invoice-body">
+                  @* Rows will be dynamically added by JS *@
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colspan="4" class="text-right font-bold">Total</td>
+                    <td id="invoice-total" class="font-bold">$0.00</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <input type="hidden" name="TicketInventoriesJson" id="TicketInventoriesJson" />
           </div>
           <div>
             <label class="label">Assignee</label>
@@ -176,26 +211,229 @@
         </div>
         <script>
           (function(){
-            const statusColors = {
-@for (int i = 0; i < Model.Statuses.Count; i++)
-{
-    var s = Model.Statuses[i];
-    var color = string.IsNullOrWhiteSpace(s.Color) ? "neutral" : s.Color;
-@:$"\"{s.Name.Replace("\"","\\\"")}\": \"{color}\"{(i < Model.Statuses.Count - 1 ? "," : string.Empty)}"
-}
-            };
-            const priorityColors = {
-      @for (int i = 0; i < Model.Priorities.Count; i++)
-      {
-        var p = Model.Priorities[i];
-        var color = string.IsNullOrWhiteSpace(p.Color) ? "neutral" : p.Color;
-      @:$"\"{p.Name.Replace("\"","\\\"")}\": \"{color}\"{(i < Model.Priorities.Count - 1 ? "," : string.Empty)}"
-      }
-            };
+            @{ var statusDict = new System.Collections.Generic.Dictionary<string, string>();
+               foreach (var s in Model.Statuses)
+               {
+                 var key = s.Name ?? string.Empty;
+                 var val = string.IsNullOrWhiteSpace(s.Color) ? "neutral" : s.Color!;
+                 statusDict[key] = val;
+               }
+               var priorityDict = new System.Collections.Generic.Dictionary<string, string>();
+               foreach (var p in Model.Priorities)
+               {
+                 var key = p.Name ?? string.Empty;
+                 var val = string.IsNullOrWhiteSpace(p.Color) ? "neutral" : p.Color!;
+                 priorityDict[key] = val;
+               }
+               var statusJson = System.Text.Json.JsonSerializer.Serialize(statusDict);
+               var priorityJson = System.Text.Json.JsonSerializer.Serialize(priorityDict);
+            }
+            const statusColors = @Html.Raw(statusJson);
+            const priorityColors = @Html.Raw(priorityJson);
+            // Multi-inventory invoice logic
+            /* inventoryList server emission disabled
+            const inventoryListFromServer = [
+              @foreach (var i in Model.InventoryItems)
+              {
+                @:{ sku: "@((i.Sku ?? string.Empty).Replace("\"","\\\"").Replace("\\","\\\\"))", name: "@((i.Name ?? string.Empty).Replace("\"","\\\"").Replace("\\","\\\\"))", id: @i.Id, price: @((i.Price ?? i.Cost).ToString(System.Globalization.CultureInfo.InvariantCulture)) }
+                  @:{ sku: "@((i.Sku ?? string.Empty).Replace("\"","\\\"").Replace("\\","\\\\").Replace("\r"," ").Replace("\n"," "))", name: "@((i.Name ?? string.Empty).Replace("\"","\\\"").Replace("\\","\\\\").Replace("\r"," ").Replace("\n"," "))", id: @i.Id, price: @((i.Price ?? i.Cost).ToString(System.Globalization.CultureInfo.InvariantCulture)) }
+                @:(Model.InventoryItems.Last() == i ? "" : ",")
+              }
+            ];
+            */
+            const inventoryList = (function(){
+              const options = Array.from(document.querySelectorAll('#inventory-list option'));
+              return options.map(opt => ({
+                sku: opt.getAttribute('data-sku') || '',
+                name: opt.getAttribute('data-name') || '',
+                id: parseInt(opt.getAttribute('data-id') || '0', 10),
+                price: (parseFloat(opt.getAttribute('data-price') || '0') || 0)
+              }));
+            })();
+            const invoiceBody = document.getElementById('invoice-body');
+            const invoiceTotal = document.getElementById('invoice-total');
+            const ticketInventoriesJson = document.getElementById('TicketInventoriesJson');
+            let invoiceItems = [];
+
+            function renderInvoice() {
+              invoiceBody.innerHTML = '';
+              let total = 0;
+              invoiceItems.forEach((item, idx) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${item.sku}</td>
+                                 <td>${item.name}</td>
+                                 <td class='flex items-center gap-1'>
+                                   <button type='button' class='btn btn-xs' data-action='dec' data-idx='${idx}'>–</button>
+                                   <input type='number' min='1' value='${item.quantity}' class='input input-bordered input-xs w-16 qty-input' data-idx='${idx}' />
+                                   <button type='button' class='btn btn-xs' data-action='inc' data-idx='${idx}'>+</button>
+                                 </td>
+                                 <td>
+                                   <div class='flex items-center gap-1'>
+                                     <span>$</span>
+                                     <input type='number' min='0' step='0.01' value='${item.unitPrice.toFixed(2)}' class='input input-bordered input-xs w-24 price-input' data-idx='${idx}' />
+                                   </div>
+                                 </td>
+                                 <td>$${(item.unitPrice * item.quantity).toFixed(2)}</td>
+                                 <td><button type='button' class='btn btn-error btn-xs remove-btn' data-idx='${idx}'>Remove</button></td>`;
+                invoiceBody.appendChild(row);
+                total += item.unitPrice * item.quantity;
+              });
+              invoiceTotal.textContent = `$${total.toFixed(2)}`;
+              ticketInventoriesJson.value = JSON.stringify(invoiceItems);
+              const cnt = invoiceItems.reduce((a,b)=>a+b.quantity,0);
+              const countBadge = document.getElementById('invoice-count');
+              if (countBadge) countBadge.textContent = `${cnt} item${cnt===1?'':'s'}`;
+            }
+
+            function addItemResolved(item, qty){
+              if (!item) return false;
+              const existing = invoiceItems.find(ii => ii.id === item.id);
+              if (existing){
+                existing.quantity += qty;
+              } else {
+                invoiceItems.push({ sku: item.sku, name: item.name, id: item.id, quantity: qty, unitPrice: item.price });
+              }
+              renderInvoice();
+              return true;
+            }
+
+            function handleAddClick(){
+              const searchInput = document.getElementById('inventory-search');
+              const qtyInput = document.getElementById('inventory-qty');
+              const listEl = document.getElementById('inventory-list');
+              const searchRaw = (searchInput?.value || '').trim();
+              const search = searchRaw.toLowerCase();
+              const qty = parseInt(qtyInput?.value || '1', 10) || 1;
+              let item = null;
+              // Prefer an exact match from datalist options to get canonical id/sku/name/price
+              if (listEl && searchRaw !== '') {
+                const opts = Array.from(listEl.querySelectorAll('option'));
+                const matched = opts.find(o => (o.getAttribute('value') || '').toLowerCase() === search);
+                if (matched) {
+                  const id = parseInt(matched.getAttribute('data-id') || '0', 10);
+                  const sku = matched.getAttribute('data-sku') || '';
+                  const name = matched.getAttribute('data-name') || searchRaw;
+                  const priceStr = matched.getAttribute('data-price') || '0';
+                  const price = parseFloat(priceStr);
+                  item = { id, sku, name, price: isNaN(price) ? 0 : price };
+                }
+              }
+              // Fallback: case-insensitive, partial, and exact matches on local list
+              if (!item) {
+                item = inventoryList.find(i =>
+                  search === `${i.name.toLowerCase()} (${i.sku.toLowerCase()})` ||
+                  search === i.sku.toLowerCase() ||
+                  search === i.name.toLowerCase()
+                ) || inventoryList.find(i =>
+                  i.name.toLowerCase().includes(search) || i.sku.toLowerCase().includes(search)
+                );
+              }
+              if (addItemResolved(item, qty)){
+                if (searchInput) searchInput.value = '';
+                if (qtyInput) qtyInput.value = '1';
+              } else {
+                alert('No matching inventory item found.');
+              }
+            }
+            function bindAddButton(){
+              const addBtn = document.getElementById('add-inventory-btn');
+              if (addBtn) {
+                addBtn.addEventListener('click', handleAddClick);
+              } else {
+                // Fallback for dynamic render: delegate on document
+                document.addEventListener('click', function(e){
+                  const t = e.target;
+                  if (t && (t.id === 'add-inventory-btn' || (t.closest && t.closest('#add-inventory-btn')))){
+                    handleAddClick();
+                  }
+                });
+              }
+            }
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', bindAddButton);
+            } else {
+              bindAddButton();
+            }
+
+            // Allow Enter key to add when focused in inventory-search
+            document.getElementById('inventory-search').addEventListener('keydown', function(e){
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                const btn = document.getElementById('add-inventory-btn');
+                if (btn) btn.click();
+              }
+            });
+
+            const clearBtn = document.getElementById('clear-invoice-btn');
+            if (clearBtn){
+              clearBtn.addEventListener('click', function(){
+                invoiceItems = [];
+                renderInvoice();
+              });
+            }
+
+            invoiceBody.addEventListener('click', function(e) {
+              const btn = e.target && e.target.closest ? e.target.closest('button') : null;
+              if (!btn) return;
+              const idx = parseInt(btn.getAttribute('data-idx') || '-1', 10);
+              const action = btn.getAttribute('data-action');
+              if (action){
+                if (!isNaN(idx) && invoiceItems[idx]){
+                  if (action === 'inc') invoiceItems[idx].quantity += 1;
+                  if (action === 'dec') invoiceItems[idx].quantity = Math.max(1, invoiceItems[idx].quantity - 1);
+                  renderInvoice();
+                }
+                return;
+              }
+              if (btn.classList.contains('remove-btn')){
+                if (!isNaN(idx)){
+                  invoiceItems.splice(idx, 1);
+                  renderInvoice();
+                }
+              }
+            });
+
+            // Handle inline quantity changes
+            invoiceBody.addEventListener('input', function(e){
+              const el = e.target;
+              if (el && el.classList.contains('qty-input')){
+                const idx = parseInt(el.getAttribute('data-idx') || '-1', 10);
+                const qty = Math.max(1, parseInt(el.value || '1', 10));
+                if (!isNaN(idx) && invoiceItems[idx]){
+                  invoiceItems[idx].quantity = qty;
+                  renderInvoice();
+                }
+              }
+              if (el && el.classList.contains('price-input')){
+                const idx = parseInt(el.getAttribute('data-idx') || '-1', 10);
+                let price = parseFloat(el.value || '0');
+                if (isNaN(price) || price < 0) price = 0;
+                if (!isNaN(idx) && invoiceItems[idx]){
+                  invoiceItems[idx].unitPrice = price;
+                  renderInvoice();
+                }
+              }
+            });
+
+            // On page load, populate invoiceItems from Model.Ticket.TicketInventories if editing
+            @{ var preItems = (Model.Ticket?.TicketInventories ?? new List<Tickflo.Core.Entities.TicketInventory>())
+                  .Select(ti => new {
+                    sku = ti.Inventory?.Sku ?? string.Empty,
+                    name = ti.Inventory?.Name ?? string.Empty,
+                    id = ti.InventoryId,
+                    quantity = ti.Quantity,
+                    unitPrice = ti.UnitPrice
+                  }).ToList();
+               var preJson = System.Text.Json.JsonSerializer.Serialize(preItems);
+            }
+            invoiceItems = @Html.Raw(preJson);
+            renderInvoice();
             const form = document.getElementById('ticket-save-form');
             if (!form) return;
             form.addEventListener('submit', async function(e){
               e.preventDefault();
+              // Ensure hidden JSON reflects latest invoiceItems
+              try { ticketInventoriesJson.value = JSON.stringify(invoiceItems); } catch {}
               const btn = document.getElementById('ticket-save-btn');
               const fd = new FormData(form);
               let action = form.getAttribute('action');
