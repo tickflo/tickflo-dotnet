@@ -7,7 +7,7 @@
 <div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
-        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Teams", NewActionLabel = "New Team", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/users/teams/0/edit" })
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Teams", NewActionLabel = "New Team", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/users/teams/0/edit", AllowNewAction = Model.CanCreateTeams })
 
         <div class="card bg-base-100 mt-4">
             <div class="card-body p-0">
@@ -31,8 +31,13 @@
                                     <td class="hidden sm:table-cell">@count</td>
                                     <td>
                                         <div class="join md:join">
-                                            <a class="btn btn-soft join-item btn-sm" asp-page="/Workspaces/TeamsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@t.Id">Edit</a>
-                                            <a class="btn btn-soft join-item btn-sm" asp-page="/Workspaces/TeamsAssign" asp-route-slug="@Model.WorkspaceSlug" asp-route-teamId="@t.Id">Members</a>
+                                            @if (Model.CanEditTeams) {
+                                                <a class="btn btn-soft join-item btn-sm" asp-page="/Workspaces/TeamsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@t.Id">Edit</a>
+                                                <a class="btn btn-soft join-item btn-sm" asp-page="/Workspaces/TeamsAssign" asp-route-slug="@Model.WorkspaceSlug" asp-route-teamId="@t.Id">Members</a>
+                                            } else {
+                                                <button class="btn btn-soft join-item btn-sm" disabled>Edit</button>
+                                                <button class="btn btn-soft join-item btn-sm" disabled>Members</button>
+                                            }
                                         </div>
                                     </td>
                                 </tr>

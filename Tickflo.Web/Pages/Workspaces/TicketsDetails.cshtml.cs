@@ -33,8 +33,9 @@ public class TicketsDetailsModel : PageModel
     private readonly ITicketHistoryRepository _historyRepo;
     private readonly ITeamRepository _teamRepo;
     private readonly IInventoryRepository _inventoryRepo;
+    private readonly IRolePermissionRepository _rolePerms;
 
-    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITicketHistoryRepository historyRepo, ITeamRepository teamRepo, IInventoryRepository inventoryRepo)
+    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITicketHistoryRepository historyRepo, ITeamRepository teamRepo, IInventoryRepository inventoryRepo, IRolePermissionRepository rolePerms)
     {
         _workspaceRepo = workspaceRepo;
         _ticketRepo = ticketRepo;
@@ -49,6 +50,7 @@ public class TicketsDetailsModel : PageModel
         _historyRepo = historyRepo;
         _teamRepo = teamRepo;
         _inventoryRepo = inventoryRepo;
+        _rolePerms = rolePerms;
     }
     public List<Inventory> InventoryItems { get; private set; } = new();
 
@@ -58,6 +60,9 @@ public class TicketsDetailsModel : PageModel
     public Contact? Contact { get; private set; }
     public IReadOnlyList<Contact> Contacts { get; private set; } = Array.Empty<Contact>();
     public bool IsWorkspaceAdmin { get; private set; }
+    public bool CanViewTickets { get; private set; }
+    public bool CanEditTickets { get; private set; }
+    public bool CanCreateTickets { get; private set; }
     public List<User> Members { get; private set; } = new();
     public IReadOnlyList<Tickflo.Core.Entities.TicketStatus> Statuses { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketStatus>();
     public Dictionary<string,string> StatusColorByName { get; private set; } = new();
@@ -105,6 +110,20 @@ public class TicketsDetailsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
+        var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        int currentUserId = 0;
+        if (int.TryParse(uidStr, out var uidParsed)) currentUserId = uidParsed;
+        // Load effective permissions for tickets section
+        if (currentUserId > 0)
+        {
+            var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, currentUserId);
+            if (eff.TryGetValue("tickets", out var tp))
+            {
+                CanViewTickets = tp.CanView;
+                CanEditTickets = tp.CanEdit;
+                CanCreateTickets = tp.CanCreate;
+            }
+        }
         if (id > 0)
         {
             Ticket = await _ticketRepo.FindAsync(Workspace.Id, id);
@@ -125,7 +144,6 @@ public class TicketsDetailsModel : PageModel
         Contact = Ticket.ContactId.HasValue ? await _contactRepo.FindAsync(Workspace.Id, Ticket.ContactId.Value) : null;
         Contacts = await _contactRepo.ListAsync(Workspace.Id);
         InventoryItems = (await _inventoryRepo.ListAsync(Workspace.Id, null, "active")).ToList();
-        var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         IsWorkspaceAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
         var sts = await _statusRepo.ListAsync(Workspace.Id);
         if (sts.Count == 0)
@@ -209,8 +227,9 @@ public class TicketsDetailsModel : PageModel
         if (Workspace == null) return NotFound();
         var workspaceId = Workspace.Id;
         var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        var isAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, workspaceId);
-        if (!isAdmin) return Forbid();
+        int uid = 0;
+        bool isAdmin = int.TryParse(uidStr, out var uidParsedPost) && await _roles.IsAdminAsync(uidParsedPost, workspaceId);
+        if (uidParsedPost > 0) uid = uidParsedPost;
         // Robustly resolve ticket id: route -> form -> query
         int resolvedId = id;
         if (resolvedId <= 0)
@@ -238,6 +257,17 @@ public class TicketsDetailsModel : PageModel
             }
         }
         var isNew = resolvedId <= 0;
+        // Permission enforcement: require create for new, edit for update
+        if (!isAdmin)
+        {
+            var eff = (uid > 0) ? await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, uid) : new Dictionary<string, EffectiveSectionPermission>();
+            var allowed = false;
+            if (eff.TryGetValue("tickets", out var tp))
+            {
+                allowed = isNew ? tp.CanCreate : tp.CanEdit;
+            }
+            if (!allowed) return Forbid();
+        }
         Ticket? t = null;
         if (isNew)
         {

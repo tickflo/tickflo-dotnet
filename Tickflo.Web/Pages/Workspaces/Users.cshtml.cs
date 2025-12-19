@@ -16,10 +16,11 @@ public class UsersModel : PageModel
     private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
     private readonly IEmailSender _emailSender;
     private readonly Microsoft.AspNetCore.Http.IHttpContextAccessor _httpContextAccessor;
+    private readonly IRolePermissionRepository _rolePerms;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
-    public UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IEmailSender emailSender, Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor)
+    public UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IEmailSender emailSender, Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor, IRolePermissionRepository rolePerms)
     {
         _workspaceRepo = workspaceRepo;
         _userRepo = userRepo;
@@ -27,8 +28,11 @@ public class UsersModel : PageModel
         _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
         _emailSender = emailSender;
         _httpContextAccessor = httpContextAccessor;
+        _rolePerms = rolePerms;
     }
 
+    public bool CanCreateUsers { get; private set; }
+    public bool CanEditUsers { get; private set; }
     public async Task OnGetAsync(string slug)
     {
         WorkspaceSlug = slug;
@@ -39,6 +43,12 @@ public class UsersModel : PageModel
             if (int.TryParse(uidStr, out var uid))
             {
                 IsWorkspaceAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
+                var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
+                if (eff.TryGetValue("users", out var up))
+                {
+                    CanCreateUsers = up.CanCreate || IsWorkspaceAdmin;
+                    CanEditUsers = up.CanEdit || IsWorkspaceAdmin;
+                }
             }
             var memberships = await _userWorkspaceRepo.FindForWorkspaceAsync(Workspace.Id);
             PendingInvites = new List<InviteView>();
@@ -77,7 +87,12 @@ public class UsersModel : PageModel
         var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(uidStr, out var currentUserId)) return Forbid();
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(currentUserId, Workspace.Id);
-        if (!isAdmin) return Forbid();
+        if (!isAdmin)
+        {
+            var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, currentUserId);
+            var allowed = eff.TryGetValue("users", out var up) && up.CanEdit;
+            if (!allowed) return Forbid();
+        }
         var uw = await _userWorkspaceRepo.FindAsync(userId, Workspace.Id);
         if (uw == null) return NotFound();
         uw.Accepted = true;
@@ -95,7 +110,12 @@ public class UsersModel : PageModel
         var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(uidStr, out var currentUserId)) return Forbid();
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(currentUserId, Workspace.Id);
-        if (!isAdmin) return Forbid();
+        if (!isAdmin)
+        {
+            var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, currentUserId);
+            var allowed = eff.TryGetValue("users", out var up) && up.CanEdit;
+            if (!allowed) return Forbid();
+        }
         var uw = await _userWorkspaceRepo.FindAsync(userId, Workspace.Id);
         if (uw == null || uw.Accepted) return NotFound();
         var user = await _userRepo.FindByIdAsync(userId);

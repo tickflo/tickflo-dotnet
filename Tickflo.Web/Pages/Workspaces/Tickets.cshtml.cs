@@ -19,6 +19,9 @@ public class TicketsModel : PageModel
     private readonly ITicketPriorityRepository _priorityRepo;
     private readonly ITicketTypeRepository _typeRepo;
     private readonly ITeamRepository _teamRepo;
+    private readonly IRolePermissionRepository _rolePerms;
+    private readonly ITeamMemberRepository _teamMembers;
+    private readonly IUserWorkspaceRoleRepository _uwr;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
     public IReadOnlyList<Ticket> Tickets { get; private set; } = Array.Empty<Ticket>();
@@ -47,8 +50,10 @@ public class TicketsModel : PageModel
     public Dictionary<string, string> StatusColorByName { get; private set; } = new();
     public IReadOnlyList<Tickflo.Core.Entities.TicketPriority> PrioritiesList { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketPriority>();
     public Dictionary<string, string> PriorityColorByName { get; private set; } = new();
+    public bool CanCreateTickets { get; private set; }
+    public bool CanEditTickets { get; private set; }
 
-    public TicketsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserWorkspaceRepository userWorkspaces, IUserRepository users, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITeamRepository teamRepo)
+    public TicketsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserWorkspaceRepository userWorkspaces, IUserRepository users, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITeamRepository teamRepo, IRolePermissionRepository rolePerms, ITeamMemberRepository teamMembers, IUserWorkspaceRoleRepository uwr)
     {
         _workspaceRepo = workspaceRepo;
         _ticketRepo = ticketRepo;
@@ -60,6 +65,9 @@ public class TicketsModel : PageModel
         _priorityRepo = priorityRepo;
         _typeRepo = typeRepo;
         _teamRepo = teamRepo;
+        _rolePerms = rolePerms;
+        _teamMembers = teamMembers;
+        _uwr = uwr;
     }
     public IReadOnlyList<Tickflo.Core.Entities.TicketType> TypesList { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketType>();
     public Dictionary<string, string> TypeColorByName { get; private set; } = new();
@@ -124,7 +132,43 @@ public class TicketsModel : PageModel
             TeamsById = teams.ToDictionary(t => t.Id, t => t);
 
             var all = await _ticketRepo.ListAsync(Workspace.Id);
+            // Apply role-based ticket scope (mine or my team)
+            var uidStr2 = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            int currentUserId = 0;
+            bool isAdmin = false;
+            if (int.TryParse(uidStr2, out var uid2))
+            {
+                currentUserId = uid2;
+                isAdmin = await _uwr.IsAdminAsync(currentUserId, Workspace.Id);
+            }
+            // Compute edit/create permissions for UI actions
+            if (currentUserId > 0)
+            {
+                var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, currentUserId);
+                if (eff.TryGetValue("tickets", out var tp))
+                {
+                    CanCreateTickets = tp.CanCreate;
+                    CanEditTickets = tp.CanEdit;
+                }
+                else
+                {
+                    CanCreateTickets = isAdmin;
+                    CanEditTickets = isAdmin;
+                }
+            }
+            // Note: repository provides scope given admin flag
+            var scope = await _rolePerms.GetTicketViewScopeForUserAsync(Workspace.Id, currentUserId, isAdmin);
             var filtered = all.AsEnumerable();
+            if (scope == "mine" && currentUserId > 0)
+            {
+                filtered = filtered.Where(t => t.AssignedUserId == currentUserId);
+            }
+            else if (scope == "team" && currentUserId > 0)
+            {
+                var myTeams = await _teamMembers.ListTeamsForUserAsync(Workspace.Id, currentUserId);
+                var teamIds = myTeams.Select(t => t.Id).ToHashSet();
+                filtered = filtered.Where(t => t.AssignedTeamId.HasValue && teamIds.Contains(t.AssignedTeamId.Value));
+            }
             if (!string.IsNullOrWhiteSpace(Status))
             {
                 if (Status.Equals("Open", StringComparison.OrdinalIgnoreCase))

@@ -6,7 +6,7 @@
 <div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
-        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = (Model.ReportId == 0 ? "New Report" : "Edit Report") })
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = (Model.ReportId == 0 ? "New Report" : "Edit Report"), AllowNewAction = Model.CanCreateReports, NewActionLabel = "New Report", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/reports/0/edit" })
         <div class="card bg-base-100 shadow-sm mt-4 max-w-xl">
             <div class="card-body">
                 <form method="post">
@@ -23,7 +23,7 @@
                     </div>
                     <div class="card-actions flex flex-wrap gap-2 md:join">
                         @{ var saveLabel = (Model.ReportId == 0) ? "Create" : "Update"; }
-                        <button type="submit" class="btn btn-soft btn-primary md:join-item w-full md:w-auto">@saveLabel</button>
+                        <button type="submit" class="btn btn-soft btn-primary md:join-item w-full md:w-auto" @( (Model.ReportId == 0 ? Model.CanCreateReports : Model.CanEditReports) ? "" : "disabled")>@saveLabel</button>
                         <a class="btn btn-soft btn-ghost md:join-item" asp-page="/Workspaces/Reports" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Cancel</a>
                     </div>
                 </form>

@@ -28,7 +28,7 @@
                         <span asp-validation-for="Workspace.Slug" class="validator-hint"></span>
                     </div>
                     <div class="card-actions flex flex-wrap gap-2 md:join">
-                        <button type="submit" class="btn btn-soft btn-primary md:join-item w-full md:w-auto">Save</button>
+                        <button type="submit" class="btn btn-soft btn-primary md:join-item w-full md:w-auto" @(Model.CanEditSettings ? "" : "disabled")>Save</button>
                         <a class="btn btn-soft btn-ghost md:join-item" asp-page="/Workspace" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Cancel</a>
                     </div>
                 </form>
@@ -71,7 +71,7 @@
                                                 <input type="checkbox" name="isClosedState" value="true" @(s.IsClosedState ? "checked" : null) class="checkbox checkbox-xs" />
                                                 <span class="label-text ml-1">Closed</span>
                                             </label>
-                                            <button class="btn btn-soft btn-primary join-item btn-sm" type="submit">Save</button>
+                                            <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Save</button>
                                         </form>
                                     </td>
                                     <td><span class="@badgeCls" style="@badgeStyle">@s.Color</span></td>
@@ -80,7 +80,7 @@
                                         <form method="post" asp-page-handler="DeleteStatus" onsubmit="return confirm('Delete status @s.Name?');">
                                             <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
                                             <input type="hidden" name="id" value="@s.Id" />
-                                            <button class="btn btn-soft btn-error btn-xs" type="submit">Delete</button>
+                                            <button class="btn btn-soft btn-error btn-xs" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Delete</button>
                                         </form>
                                     </td>
                                 </tr>
@@ -91,7 +91,7 @@
                                         <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
                                         <input name="NewStatusName" placeholder="New status name" class="input input-bordered join-item input-sm w-40" />
                                         <input type="color" name="NewStatusColor" value="#3b82f6" class="join-item w-12 h-8 p-0 border rounded" />
-                                        <button class="btn btn-soft btn-primary join-item btn-sm" type="submit">Add</button>
+                                        <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanCreateSettings ? "" : "disabled")>Add</button>
                                     </form>
                                 </td>
                             </tr>
@@ -132,7 +132,7 @@
                                             <input name="name" value="@p.Name" class="input input-bordered join-item input-sm w-40" />
                                             <input type="color" name="color" value="@(isHex ? displayColor : "#3b82f6")" class="join-item w-12 h-8 p-0 border rounded" />
                                             <input type="number" name="sortOrder" value="@p.SortOrder" class="input input-bordered join-item input-sm w-20" />
-                                            <button class="btn btn-soft btn-primary join-item btn-sm" type="submit">Save</button>
+                                            <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Save</button>
                                         </form>
                                     </td>
                                     <td><span class="@badgeCls" style="@badgeStyle">@p.Color</span></td>
@@ -141,7 +141,7 @@
                                         <form method="post" asp-page-handler="DeletePriority" onsubmit="return confirm('Delete priority @p.Name?');">
                                             <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
                                             <input type="hidden" name="id" value="@p.Id" />
-                                            <button class="btn btn-soft btn-error btn-xs" type="submit">Delete</button>
+                                            <button class="btn btn-soft btn-error btn-xs" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Delete</button>
                                         </form>
                                     </td>
                                 </tr>
@@ -152,7 +152,7 @@
                                         <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
                                         <input name="NewPriorityName" placeholder="New priority name" class="input input-bordered join-item input-sm w-40" />
                                         <input type="color" name="NewPriorityColor" value="#f59e0b" class="join-item w-12 h-8 p-0 border rounded" />
-                                        <button class="btn btn-soft btn-primary join-item btn-sm" type="submit">Add</button>
+                                        <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanCreateSettings ? "" : "disabled")>Add</button>
                                     </form>
                                 </td>
                             </tr>
@@ -193,7 +193,7 @@
                                             <input name="name" value="@t.Name" class="input input-bordered join-item input-sm w-40" />
                                             <input type="color" name="color" value="@(isHex ? displayColor : "#14b8a6")" class="join-item w-12 h-8 p-0 border rounded" />
                                             <input type="number" name="sortOrder" value="@t.SortOrder" class="input input-bordered join-item input-sm w-20" />
-                                            <button class="btn btn-soft btn-primary join-item btn-sm" type="submit">Save</button>
+                                            <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Save</button>
                                         </form>
                                     </td>
                                     <td><span class="@badgeCls" style="@badgeStyle">@t.Color</span></td>
@@ -202,7 +202,7 @@
                                         <form method="post" asp-page-handler="DeleteType" onsubmit="return confirm('Delete type @t.Name?');">
                                             <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
                                             <input type="hidden" name="id" value="@t.Id" />
-                                            <button class="btn btn-soft btn-error btn-xs" type="submit">Delete</button>
+                                            <button class="btn btn-soft btn-error btn-xs" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Delete</button>
                                         </form>
                                     </td>
                                 </tr>
@@ -213,7 +213,7 @@
                                         <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
                                         <input name="NewTypeName" placeholder="New type name" class="input input-bordered join-item input-sm w-40" />
                                         <input type="color" name="NewTypeColor" value="#14b8a6" class="join-item w-12 h-8 p-0 border rounded" />
-                                        <button class="btn btn-soft btn-primary join-item btn-sm" type="submit">Add</button>
+                                        <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanCreateSettings ? "" : "disabled")>Add</button>
                                     </form>
                                 </td>
                             </tr>

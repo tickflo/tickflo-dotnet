@@ -13,6 +13,7 @@ public class TeamsEditModel : PageModel
     private readonly IUserWorkspaceRepository _userWorkspaces;
     private readonly IUserRepository _users;
     private readonly ITeamMemberRepository _teamMembers;
+    private readonly IRolePermissionRepository _rolePerms;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -34,7 +35,8 @@ public class TeamsEditModel : PageModel
         ITeamRepository teams,
         IUserWorkspaceRepository userWorkspaces,
         IUserRepository users,
-        ITeamMemberRepository teamMembers)
+        ITeamMemberRepository teamMembers,
+        IRolePermissionRepository rolePerms)
     {
         _workspaces = workspaces;
         _uwr = uwr;
@@ -42,7 +44,11 @@ public class TeamsEditModel : PageModel
         _userWorkspaces = userWorkspaces;
         _users = users;
         _teamMembers = teamMembers;
+        _rolePerms = rolePerms;
     }
+    public bool CanViewTeams { get; private set; }
+    public bool CanEditTeams { get; private set; }
+    public bool CanCreateTeams { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
     {
@@ -52,7 +58,18 @@ public class TeamsEditModel : PageModel
         var uidStr = HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
         var isAdmin = await _uwr.IsAdminAsync(uid, Workspace.Id);
-        if (!isAdmin) return Forbid();
+        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
+        if (isAdmin)
+        {
+            CanViewTeams = CanEditTeams = CanCreateTeams = true;
+        }
+        else if (eff.TryGetValue("teams", out var tp))
+        {
+            CanViewTeams = tp.CanView;
+            CanEditTeams = tp.CanEdit;
+            CanCreateTeams = tp.CanCreate;
+        }
+        if (!CanViewTeams) return Forbid();
 
         Id = id;
         await LoadWorkspaceUsersAsync();
@@ -82,7 +99,13 @@ public class TeamsEditModel : PageModel
         var uidStr = HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
         var isAdmin = await _uwr.IsAdminAsync(uid, Workspace.Id);
-        if (!isAdmin) return Forbid();
+        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
+        bool allowed = isAdmin;
+        if (!allowed && eff.TryGetValue("teams", out var tp))
+        {
+            allowed = (id == 0) ? tp.CanCreate : tp.CanEdit;
+        }
+        if (!allowed) return Forbid();
 
         // Ensure users list is available even if we return Page() on validation errors
         await LoadWorkspaceUsersAsync();

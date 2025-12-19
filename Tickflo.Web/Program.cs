@@ -43,6 +43,7 @@ builder.Services.AddScoped<ITicketTypeRepository, TicketTypeRepository>();
 builder.Services.AddScoped<ITicketHistoryRepository, TicketHistoryRepository>();
 builder.Services.AddScoped<ITeamRepository, TeamRepository>();
 builder.Services.AddScoped<ITeamMemberRepository, TeamMemberRepository>();
+builder.Services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
 // Realtime updates for tickets
 builder.Services.AddSignalR();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();

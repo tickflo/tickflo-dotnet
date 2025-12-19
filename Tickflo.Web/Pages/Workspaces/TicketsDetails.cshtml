@@ -75,11 +75,15 @@
     </div>
   </div>
 
-  @if(Model.IsWorkspaceAdmin)
+  @{
+    var isNewTicket = (Model.Ticket == null || Model.Ticket.Id == 0);
+    var canSubmit = isNewTicket ? Model.CanCreateTickets : Model.CanEditTickets;
+  }
+  @if(Model.CanViewTickets)
   {
     <div class="card bg-base-100">
       <div class="card-body">
-        <form method="post" asp-page-handler="Save" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@(@Model.Ticket?.Id ?? 0)" class="grid gap-3" id="ticket-save-form">
+        <form method="post" asp-page-handler="Save" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@(@Model.Ticket?.Id ?? 0)" class="grid gap-3" id="ticket-save-form" data-can-submit="@canSubmit.ToString().ToLower()">
           <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
              <input type="hidden" name="id" value="@Model.Ticket?.Id ?? 0" />
           <!-- Subject first -->
@@ -207,7 +211,7 @@
           </div>
           <div class="flex gap-2">
             @{ var saveLabel = (Model.Ticket != null && Model.Ticket.Id > 0) ? "Update" : "Save"; }
-            <button class="btn btn-primary" type="submit" id="ticket-save-btn">@saveLabel</button>
+            <button class="btn btn-primary" type="submit" id="ticket-save-btn" @(canSubmit ? "" : "disabled")>@saveLabel</button>
             <a class="btn btn-soft" asp-page="/Workspaces/Tickets" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Cancel</a>
           </div>
         </form>
@@ -440,6 +444,19 @@
             if (!form) return;
             form.addEventListener('submit', async function(e){
               e.preventDefault();
+              // Block if user lacks create/edit permission
+              const canSubmitAttr = form.getAttribute('data-can-submit');
+              const canSubmit = (canSubmitAttr === 'true');
+              if (!canSubmit) {
+                const toast = document.getElementById('save-error-toast');
+                const msg = document.getElementById('save-error-toast-msg');
+                if (toast && msg){
+                  msg.textContent = 'You do not have permission to save this ticket.';
+                  toast.style.display = '';
+                  setTimeout(()=>{ toast.style.display = 'none'; }, 3000);
+                }
+                return;
+              }
               // Ensure hidden JSON reflects latest invoiceItems
               try { ticketInventoriesJson.value = JSON.stringify(invoiceItems); } catch {}
               const btn = document.getElementById('ticket-save-btn');

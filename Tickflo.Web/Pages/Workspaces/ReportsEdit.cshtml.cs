@@ -11,6 +11,7 @@ public class ReportsEditModel : PageModel
     private readonly IReportRepository _reportRepo;
     private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IRolePermissionRepository _rolePerms;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
@@ -21,13 +22,17 @@ public class ReportsEditModel : PageModel
     [BindProperty]
     public bool Ready { get; set; }
 
-    public ReportsEditModel(IWorkspaceRepository workspaceRepo, IReportRepository reportRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IHttpContextAccessor httpContextAccessor)
+    public ReportsEditModel(IWorkspaceRepository workspaceRepo, IReportRepository reportRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IHttpContextAccessor httpContextAccessor, IRolePermissionRepository rolePerms)
     {
         _workspaceRepo = workspaceRepo;
         _reportRepo = reportRepo;
         _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
         _httpContextAccessor = httpContextAccessor;
+        _rolePerms = rolePerms;
     }
+    public bool CanViewReports { get; private set; }
+    public bool CanEditReports { get; private set; }
+    public bool CanCreateReports { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(string slug, int reportId = 0)
     {
@@ -38,7 +43,18 @@ public class ReportsEditModel : PageModel
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
         var workspaceId = Workspace.Id;
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
-        if (!isAdmin) return Forbid();
+        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, uid);
+        if (isAdmin)
+        {
+            CanViewReports = CanEditReports = CanCreateReports = true;
+        }
+        else if (eff.TryGetValue("reports", out var rp))
+        {
+            CanViewReports = rp.CanView;
+            CanEditReports = rp.CanEdit;
+            CanCreateReports = rp.CanCreate;
+        }
+        if (!CanViewReports) return Forbid();
 
         if (reportId > 0)
         {
@@ -66,7 +82,13 @@ public class ReportsEditModel : PageModel
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
         var workspaceId = Workspace.Id;
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
-        if (!isAdmin) return Forbid();
+        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, uid);
+        bool allowed = isAdmin;
+        if (!allowed && eff.TryGetValue("reports", out var rp))
+        {
+            allowed = (ReportId == 0) ? rp.CanCreate : rp.CanEdit;
+        }
+        if (!allowed) return Forbid();
         if (!ModelState.IsValid) return Page();
 
         var nameTrim = Name?.Trim() ?? string.Empty;

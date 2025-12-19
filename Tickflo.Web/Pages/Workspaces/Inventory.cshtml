@@ -7,7 +7,7 @@
 <div class="flex flex-row gap-4">
   @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
   <section class="p-6 flex-1">
-@await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Inventory", NewActionLabel = "New Item", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/inventory/0/edit", AllowNewAction = Model.IsWorkspaceAdmin })
+@await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Inventory", NewActionLabel = "New Item", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/inventory/0/edit", AllowNewAction = Model.CanCreateInventory })
 
 <div class="grid gap-4">
   <div class="flex items-center justify-between">
@@ -22,7 +22,11 @@
     </form>
 
     <div class="join md:join">
-      <a class="btn btn-soft join-item btn-sm md:btn-md" href="/workspaces/@Model.Workspace?.Slug/inventory/0/edit">New Item</a>
+      @if (Model.CanCreateInventory) {
+        <a class="btn btn-soft join-item btn-sm md:btn-md" href="/workspaces/@Model.Workspace?.Slug/inventory/0/edit">New Item</a>
+      } else {
+        <button class="btn btn-soft join-item btn-sm md:btn-md" disabled>New Item</button>
+      }
     </div>
   </div>
 
@@ -62,8 +66,12 @@
           </td>
           <td>
             <div class="join">
-              <a class="btn btn-soft join-item btn-sm" href="/workspaces/@Model.Workspace?.Slug/inventory/@i.Id/edit">Edit</a>
-              @if(Model.IsWorkspaceAdmin)
+              @if (Model.CanEditInventory) {
+                <a class="btn btn-soft join-item btn-sm" href="/workspaces/@Model.Workspace?.Slug/inventory/@i.Id/edit">Edit</a>
+              } else {
+                <button class="btn btn-soft join-item btn-sm" disabled>Edit</button>
+              }
+              @if(Model.CanEditInventory)
               {
                 if (i.Status != "archived")
                 {

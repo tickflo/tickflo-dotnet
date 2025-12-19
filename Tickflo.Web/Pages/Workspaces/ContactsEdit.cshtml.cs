@@ -11,10 +11,14 @@ public class ContactsEditModel : PageModel
     private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
     private readonly IContactRepository _contactRepo;
     private readonly ITicketPriorityRepository _priorityRepo;
+    private readonly IRolePermissionRepository _rolePerms;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
     public int Id { get; private set; }
+    public bool CanViewContacts { get; private set; }
+    public bool CanEditContacts { get; private set; }
+    public bool CanCreateContacts { get; private set; }
 
     [BindProperty] public string Name { get; set; } = string.Empty;
     [BindProperty] public string Email { get; set; } = string.Empty;
@@ -26,12 +30,13 @@ public class ContactsEditModel : PageModel
     [BindProperty] public string? PreferredChannel { get; set; }
     [BindProperty] public string? Priority { get; set; }
 
-    public ContactsEditModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IContactRepository contactRepo, ITicketPriorityRepository priorityRepo)
+    public ContactsEditModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IContactRepository contactRepo, ITicketPriorityRepository priorityRepo, IRolePermissionRepository rolePerms)
     {
         _workspaceRepo = workspaceRepo;
         _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
         _contactRepo = contactRepo;
         _priorityRepo = priorityRepo;
+        _rolePerms = rolePerms;
     }
 
     public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
@@ -44,7 +49,20 @@ public class ContactsEditModel : PageModel
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
         var workspaceId = Workspace.Id;
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
-        if (!isAdmin) return Forbid();
+        // Compute effective permissions for contacts
+        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, uid);
+        if (isAdmin)
+        {
+            CanViewContacts = CanEditContacts = CanCreateContacts = true;
+        }
+        else if (eff.TryGetValue("contacts", out var cp))
+        {
+            CanViewContacts = cp.CanView;
+            CanEditContacts = cp.CanEdit;
+            CanCreateContacts = cp.CanCreate;
+        }
+        // Restrict page view if lacking view permission
+        if (!CanViewContacts) return Forbid();
         if (id > 0)
         {
             var contact = await _contactRepo.FindAsync(workspaceId, id);
@@ -86,7 +104,13 @@ public class ContactsEditModel : PageModel
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
         var workspaceId = Workspace.Id;
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
-        if (!isAdmin) return Forbid();
+        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, uid);
+        bool allowed = isAdmin;
+        if (!allowed && eff.TryGetValue("contacts", out var cp))
+        {
+            allowed = (id == 0) ? cp.CanCreate : cp.CanEdit;
+        }
+        if (!allowed) return Forbid();
         if (!ModelState.IsValid)
         {
             ViewData["Priorities"] = await _priorityRepo.ListAsync(workspaceId);

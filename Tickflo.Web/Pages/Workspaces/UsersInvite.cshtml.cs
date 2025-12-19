@@ -24,6 +24,7 @@ public class UsersInviteModel : PageModel
     private readonly ITokenRepository _tokenRepo;
     private readonly IRoleRepository _roleRepo;
     private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
+    private readonly IRolePermissionRepository _rolePerms;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
     [BindProperty]
@@ -33,7 +34,7 @@ public class UsersInviteModel : PageModel
     [BindProperty]
     public string Role { get; set; } = "Member";
 
-    public UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IHttpContextAccessor httpContextAccessor, IPasswordHasher passwordHasher, IEmailSender emailSender, ITokenRepository tokenRepo, IRoleRepository roleRepo)
+    public UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IHttpContextAccessor httpContextAccessor, IPasswordHasher passwordHasher, IEmailSender emailSender, ITokenRepository tokenRepo, IRoleRepository roleRepo, IRolePermissionRepository rolePerms)
     {
         _workspaceRepo = workspaceRepo;
         _userRepo = userRepo;
@@ -44,7 +45,10 @@ public class UsersInviteModel : PageModel
         _emailSender = emailSender;
         _tokenRepo = tokenRepo;
         _roleRepo = roleRepo;
+        _rolePerms = rolePerms;
     }
+    public bool CanViewUsers { get; private set; }
+    public bool CanCreateUsers { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {
@@ -56,8 +60,11 @@ public class UsersInviteModel : PageModel
         if (!int.TryParse(uidStr, out var uid))
             return Forbid();
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
-        if (!isAdmin)
-            return Forbid();
+        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
+        CanViewUsers = isAdmin || (eff.TryGetValue("users", out var up) && up.CanView);
+        CanCreateUsers = isAdmin || (eff.TryGetValue("users", out var up2) && up2.CanCreate);
+        if (!CanViewUsers) return Forbid();
+        if (!CanCreateUsers) return Forbid();
         return Page();
     }
 
@@ -82,7 +89,11 @@ public class UsersInviteModel : PageModel
 
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(currentUserId, Workspace.Id);
         if (!isAdmin)
-            return Forbid();
+        {
+            var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, currentUserId);
+            var allowed = eff.TryGetValue("users", out var up) && up.CanCreate;
+            if (!allowed) return Forbid();
+        }
 
         var emailNorm = Email.Trim().ToLowerInvariant();
         var user = await _userRepo.FindByEmailAsync(emailNorm);

@@ -13,14 +13,16 @@ namespace Tickflo.Web.Pages.Workspaces
         private readonly IInventoryRepository _inventory;
         private readonly IWorkspaceRepository _workspaces;
         private readonly IUserWorkspaceRoleRepository _roles;
+        private readonly IRolePermissionRepository _rolePerms;
         private readonly IHttpContextAccessor _http;
 
-        public InventoryModel(IInventoryRepository inventory, IWorkspaceRepository workspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http)
+        public InventoryModel(IInventoryRepository inventory, IWorkspaceRepository workspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, IRolePermissionRepository rolePerms)
         {
             _inventory = inventory;
             _workspaces = workspaces;
             _roles = roles;
             _http = http;
+            _rolePerms = rolePerms;
         }
 
         [BindProperty(SupportsGet = true)]
@@ -31,6 +33,8 @@ namespace Tickflo.Web.Pages.Workspaces
 
         public string WorkspaceSlug { get; private set; } = string.Empty;
         public bool IsWorkspaceAdmin { get; private set; }
+        public bool CanCreateInventory { get; private set; }
+        public bool CanEditInventory { get; private set; }
         public Workspace? Workspace { get; set; }
         public IEnumerable<Inventory> Items { get; set; } = new List<Inventory>();
 
@@ -44,6 +48,20 @@ namespace Tickflo.Web.Pages.Workspaces
             }
             var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             IsWorkspaceAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
+            if (int.TryParse(uidStr, out var currentUserId))
+            {
+                var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, currentUserId);
+                if (eff.TryGetValue("inventory", out var ip))
+                {
+                    CanCreateInventory = ip.CanCreate || IsWorkspaceAdmin;
+                    CanEditInventory = ip.CanEdit || IsWorkspaceAdmin;
+                }
+                else
+                {
+                    CanCreateInventory = IsWorkspaceAdmin;
+                    CanEditInventory = IsWorkspaceAdmin;
+                }
+            }
             Items = await _inventory.ListAsync(Workspace.Id, Query, Status);
             return Page();
         }
@@ -58,7 +76,13 @@ namespace Tickflo.Web.Pages.Workspaces
             }
             var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             var isAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
-            if (!isAdmin)
+            bool allowed = isAdmin;
+            if (!allowed && int.TryParse(uidStr, out var currentUserId))
+            {
+                var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, currentUserId);
+                if (eff.TryGetValue("inventory", out var ip)) allowed = ip.CanEdit;
+            }
+            if (!allowed)
             {
                 return Forbid();
             }
@@ -82,7 +106,13 @@ namespace Tickflo.Web.Pages.Workspaces
             }
             var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             var isAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
-            if (!isAdmin)
+            bool allowed = isAdmin;
+            if (!allowed && int.TryParse(uidStr, out var currentUserId))
+            {
+                var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, currentUserId);
+                if (eff.TryGetValue("inventory", out var ip)) allowed = ip.CanEdit;
+            }
+            if (!allowed)
             {
                 return Forbid();
             }

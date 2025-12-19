@@ -23,6 +23,8 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
     public DbSet<TicketHistory> TicketHistory => Set<TicketHistory>();
     public DbSet<Team> Teams => Set<Team>();
     public DbSet<TeamMember> TeamMembers => Set<TeamMember>();
+    public DbSet<Permission> Permissions => Set<Permission>();
+    public DbSet<RolePermissionLink> RolePermissions => Set<RolePermissionLink>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -93,6 +95,15 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
 
         modelBuilder.Entity<TeamMember>()
             .HasKey(tm => new { tm.TeamId, tm.UserId });
+
+        // Permissions catalog
+        modelBuilder.Entity<Permission>()
+            .HasIndex(p => new { p.Action, p.Resource })
+            .IsUnique();
+
+        // Role to permission link table
+        modelBuilder.Entity<RolePermissionLink>()
+            .HasKey(rp => new { rp.RoleId, rp.PermissionId });
 
         base.OnModelCreating(modelBuilder);
     }

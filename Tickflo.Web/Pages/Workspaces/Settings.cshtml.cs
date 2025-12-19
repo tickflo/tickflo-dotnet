@@ -11,6 +11,7 @@ public class SettingsModel : PageModel
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
+    private readonly IRolePermissionRepository _rolePermRepo;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ITicketStatusRepository _statusRepo;
     private readonly ITicketPriorityRepository _priorityRepo;
@@ -18,7 +19,7 @@ public class SettingsModel : PageModel
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
-    public SettingsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IHttpContextAccessor httpContextAccessor, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo)
+    public SettingsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IHttpContextAccessor httpContextAccessor, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, IRolePermissionRepository rolePermRepo)
     {
         _workspaceRepo = workspaceRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
@@ -27,11 +28,42 @@ public class SettingsModel : PageModel
         _statusRepo = statusRepo;
         _priorityRepo = priorityRepo;
         _typeRepo = typeRepo;
+        _rolePermRepo = rolePermRepo;
     }
 
     public IReadOnlyList<Tickflo.Core.Entities.TicketStatus> Statuses { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketStatus>();
     public IReadOnlyList<Tickflo.Core.Entities.TicketPriority> Priorities { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketPriority>();
     public IReadOnlyList<Tickflo.Core.Entities.TicketType> Types { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketType>();
+
+    public bool CanViewSettings { get; private set; }
+    public bool CanEditSettings { get; private set; }
+    public bool CanCreateSettings { get; private set; }
+    public bool IsWorkspaceAdmin { get; private set; }
+
+    private async Task<(int userId, bool isAdmin)> ResolveUserAsync()
+    {
+        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(uidStr, out var uid)) return (0, false);
+        var isAdmin = Workspace != null && await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
+        return (uid, isAdmin);
+    }
+
+    private async Task<bool> EnsurePermissionsAsync(int userId, bool isAdmin)
+    {
+        IsWorkspaceAdmin = isAdmin;
+        if (Workspace == null) return false;
+        if (isAdmin)
+        {
+            CanViewSettings = CanEditSettings = CanCreateSettings = true;
+            return true;
+        }
+        var perms = await _rolePermRepo.GetEffectivePermissionsForUserAsync(Workspace.Id, userId);
+        if (!perms.TryGetValue("settings", out var eff)) eff = new EffectiveSectionPermission { Section = "settings" };
+        CanViewSettings = eff.CanView;
+        CanEditSettings = eff.CanEdit;
+        CanCreateSettings = eff.CanCreate;
+        return true;
+    }
 
     [BindProperty]
     public string? NewStatusName { get; set; }
@@ -53,10 +85,10 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
-        if (!isAdmin) return Forbid();
+        var (uid, isAdmin) = await ResolveUserAsync();
+        if (uid == 0) return Forbid();
+        await EnsurePermissionsAsync(uid, isAdmin);
+        if (!CanViewSettings) return Forbid();
         // Load or bootstrap default statuses
         var list = await _statusRepo.ListAsync(Workspace.Id);
         if (list.Count == 0)
@@ -111,10 +143,10 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
-        if (!isAdmin) return Forbid();
+        var (uid, isAdmin) = await ResolveUserAsync();
+        if (uid == 0) return Forbid();
+        await EnsurePermissionsAsync(uid, isAdmin);
+        if (!CanCreateSettings) return Forbid();
         var name = (NewStatusName ?? string.Empty).Trim();
         var color = (NewStatusColor ?? "neutral").Trim();
         if (!string.IsNullOrWhiteSpace(name))
@@ -140,10 +172,10 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
-        if (!isAdmin) return Forbid();
+        var (uid, isAdmin) = await ResolveUserAsync();
+        if (uid == 0) return Forbid();
+        await EnsurePermissionsAsync(uid, isAdmin);
+        if (!CanCreateSettings) return Forbid();
         var name = (NewPriorityName ?? string.Empty).Trim();
         var color = (NewPriorityColor ?? "neutral").Trim();
         if (!string.IsNullOrWhiteSpace(name))
@@ -169,10 +201,10 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
-        if (!isAdmin) return Forbid();
+        var (uid, isAdmin) = await ResolveUserAsync();
+        if (uid == 0) return Forbid();
+        await EnsurePermissionsAsync(uid, isAdmin);
+        if (!CanCreateSettings) return Forbid();
         var name = (NewTypeName ?? string.Empty).Trim();
         var color = (NewTypeColor ?? "neutral").Trim();
         if (!string.IsNullOrWhiteSpace(name))
@@ -198,10 +230,10 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
-        if (!isAdmin) return Forbid();
+        var (uid, isAdmin) = await ResolveUserAsync();
+        if (uid == 0) return Forbid();
+        await EnsurePermissionsAsync(uid, isAdmin);
+        if (!CanEditSettings) return Forbid();
         var s = await _statusRepo.FindByIdAsync(Workspace.Id, id);
         if (s == null) return NotFound();
         s.Name = (name ?? s.Name).Trim();
@@ -221,10 +253,10 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
-        if (!isAdmin) return Forbid();
+        var (uid, isAdmin) = await ResolveUserAsync();
+        if (uid == 0) return Forbid();
+        await EnsurePermissionsAsync(uid, isAdmin);
+        if (!CanEditSettings) return Forbid();
         var p = await _priorityRepo.FindAsync(Workspace.Id, name) ?? (await _priorityRepo.ListAsync(Workspace.Id)).FirstOrDefault(x => x.Id == id);
         if (p == null) return NotFound();
         p.Name = (name ?? p.Name).Trim();
@@ -241,10 +273,10 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
-        if (!isAdmin) return Forbid();
+        var (uid, isAdmin) = await ResolveUserAsync();
+        if (uid == 0) return Forbid();
+        await EnsurePermissionsAsync(uid, isAdmin);
+        if (!CanEditSettings) return Forbid();
         var t = await _typeRepo.FindByIdAsync(Workspace.Id, id);
         if (t == null) return NotFound();
         t.Name = (name ?? t.Name).Trim();
@@ -261,10 +293,10 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
-        if (!isAdmin) return Forbid();
+        var (uid, isAdmin) = await ResolveUserAsync();
+        if (uid == 0) return Forbid();
+        await EnsurePermissionsAsync(uid, isAdmin);
+        if (!CanEditSettings) return Forbid();
         await _statusRepo.DeleteAsync(Workspace.Id, id);
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
@@ -274,10 +306,10 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
-        if (!isAdmin) return Forbid();
+        var (uid, isAdmin) = await ResolveUserAsync();
+        if (uid == 0) return Forbid();
+        await EnsurePermissionsAsync(uid, isAdmin);
+        if (!CanEditSettings) return Forbid();
         await _priorityRepo.DeleteAsync(Workspace.Id, id);
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
@@ -287,10 +319,10 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
-        if (!isAdmin) return Forbid();
+        var (uid, isAdmin) = await ResolveUserAsync();
+        if (uid == 0) return Forbid();
+        await EnsurePermissionsAsync(uid, isAdmin);
+        if (!CanEditSettings) return Forbid();
         await _typeRepo.DeleteAsync(Workspace.Id, id);
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }

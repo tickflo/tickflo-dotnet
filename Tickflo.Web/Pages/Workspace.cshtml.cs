@@ -21,6 +21,9 @@ public class WorkspaceModel : PageModel
     private readonly IUserRepository _userRepo;
     private readonly ITeamRepository _teamRepo;
     private readonly ITicketPriorityRepository _priorityRepo;
+    private readonly IRolePermissionRepository _rolePerms;
+    private readonly IUserWorkspaceRoleRepository _uwr;
+    private readonly ITeamMemberRepository _teamMembers;
 
     public Workspace? Workspace { get; set; }
     public bool IsMember { get; set; }
@@ -56,7 +59,10 @@ public class WorkspaceModel : PageModel
         ITicketTypeRepository typeRepo,
         IUserRepository userRepo,
         ITicketPriorityRepository priorityRepo,
-        ITeamRepository teamRepo)
+        ITeamRepository teamRepo,
+        IRolePermissionRepository rolePerms,
+        IUserWorkspaceRoleRepository uwr,
+        ITeamMemberRepository teamMembers)
     {
         _workspaceRepo = workspaceRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
@@ -67,6 +73,9 @@ public class WorkspaceModel : PageModel
         _userRepo = userRepo;
         _priorityRepo = priorityRepo;
         _teamRepo = teamRepo;
+        _rolePerms = rolePerms;
+        _uwr = uwr;
+        _teamMembers = teamMembers;
     }
 
     public async Task<IActionResult> OnGetAsync(string? slug, int? range, string? assignment)
@@ -171,7 +180,24 @@ public class WorkspaceModel : PageModel
         WorkspaceTeams = await _teamRepo.ListForWorkspaceAsync(workspaceId);
 
         var tickets = await _ticketRepo.ListAsync(workspaceId);
-        TotalTickets = tickets.Count;
+        // Apply role-based ticket scope filtering
+        IEnumerable<Tickflo.Core.Entities.Ticket> visibleTickets = tickets;
+        if (userId.HasValue)
+        {
+            var isAdmin = await _uwr.IsAdminAsync(userId.Value, workspaceId);
+            var scope = await _rolePerms.GetTicketViewScopeForUserAsync(workspaceId, userId.Value, isAdmin);
+            if (scope == "mine")
+            {
+                visibleTickets = visibleTickets.Where(t => t.AssignedUserId == userId.Value);
+            }
+            else if (scope == "team")
+            {
+                var myTeams = await _teamMembers.ListTeamsForUserAsync(workspaceId, userId.Value);
+                var teamIds = myTeams.Select(t => t.Id).ToHashSet();
+                visibleTickets = visibleTickets.Where(t => t.AssignedTeamId.HasValue && teamIds.Contains(t.AssignedTeamId.Value));
+            }
+        }
+        TotalTickets = visibleTickets.Count();
 
         StatusList = (await _statusRepo.ListAsync(workspaceId)).ToList();
         var closedNames = new HashSet<string>(StatusList.Where(s => s.IsClosedState).Select(s => s.Name), System.StringComparer.OrdinalIgnoreCase);
@@ -183,10 +209,10 @@ public class WorkspaceModel : PageModel
         var typeColor = TypeList.GroupBy(t => t.Name, System.StringComparer.OrdinalIgnoreCase)
               .ToDictionary(g => g.Key, g => g.First().Color, System.StringComparer.OrdinalIgnoreCase);
 
-        ResolvedTickets = tickets.Count(t => closedNames.Contains(t.Status));
+        ResolvedTickets = visibleTickets.Count(t => closedNames.Contains(t.Status));
         // Open tickets: not closed (case-insensitive)
         var openNames = new HashSet<string>(StatusList.Where(s => !s.IsClosedState).Select(s => s.Name), System.StringComparer.OrdinalIgnoreCase);
-        OpenTickets = tickets.Count(t => openNames.Contains(t.Status));
+        OpenTickets = visibleTickets.Count(t => openNames.Contains(t.Status));
 
         var memberships = await _userWorkspaceRepo.FindForWorkspaceAsync(workspaceId);
         ActiveMembers = memberships.Count(m => m.Accepted);
@@ -197,10 +223,10 @@ public class WorkspaceModel : PageModel
         PriorityCounts = PriorityList
             .ToDictionary(
                 p => p.Name,
-                p => tickets.Count(t => (t.Priority ?? "Normal") == p.Name)
+                p => visibleTickets.Count(t => (t.Priority ?? "Normal") == p.Name)
             );
         // Add any tickets with priorities not in the custom list
-        foreach (var t in tickets)
+        foreach (var t in visibleTickets)
         {
             var p = string.IsNullOrWhiteSpace(t.Priority) ? "Normal" : t.Priority;
             if (!PriorityCounts.ContainsKey(p))
@@ -210,7 +236,7 @@ public class WorkspaceModel : PageModel
         }
 
         // Assignment filter logic
-        IEnumerable<Tickflo.Core.Entities.Ticket> filtered = tickets;
+        IEnumerable<Tickflo.Core.Entities.Ticket> filtered = visibleTickets;
         if (assignmentFilter == "unassigned")
         {
             filtered = filtered.Where(t => !t.AssignedUserId.HasValue);
@@ -255,7 +281,7 @@ public class WorkspaceModel : PageModel
 
         // Top members by closed ticket count in selected range
         var cutoff = DateTime.UtcNow.AddDays(-rangeDays);
-        var closedAssigned = tickets
+        var closedAssigned = visibleTickets
             .Where(t => t.AssignedUserId.HasValue && closedNames.Contains(t.Status) && (t.UpdatedAt ?? t.CreatedAt) >= cutoff)
             .GroupBy(t => t.AssignedUserId!.Value)
             .Select(g => new { UserId = g.Key, Count = g.Count() })
@@ -275,7 +301,7 @@ public class WorkspaceModel : PageModel
         }
 
         // Average resolution time for closed tickets (selected range)
-        var closedForAvg = tickets.Where(t => closedNames.Contains(t.Status) && (t.UpdatedAt ?? t.CreatedAt) >= cutoff && (t.UpdatedAt.HasValue)).ToList();
+        var closedForAvg = visibleTickets.Where(t => closedNames.Contains(t.Status) && (t.UpdatedAt ?? t.CreatedAt) >= cutoff && (t.UpdatedAt.HasValue)).ToList();
         if (closedForAvg.Count > 0)
         {
             var avgTicks = closedForAvg.Average(t => (t.UpdatedAt!.Value - t.CreatedAt).Ticks);

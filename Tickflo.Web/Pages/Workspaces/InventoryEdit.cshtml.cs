@@ -13,16 +13,21 @@ namespace Tickflo.Web.Pages.Workspaces
         private readonly IWorkspaceRepository _workspaces;
         private readonly ILocationRepository _locations;
         private readonly IUserWorkspaceRoleRepository _roles;
+        private readonly IRolePermissionRepository _rolePerms;
         private readonly IHttpContextAccessor _http;
 
-        public InventoryEditModel(IInventoryRepository inventory, IWorkspaceRepository workspaces, ILocationRepository locations, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http)
+        public InventoryEditModel(IInventoryRepository inventory, IWorkspaceRepository workspaces, ILocationRepository locations, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, IRolePermissionRepository rolePerms)
         {
             _inventory = inventory;
             _workspaces = workspaces;
             _locations = locations;
             _roles = roles;
             _http = http;
+            _rolePerms = rolePerms;
         }
+    public bool CanViewInventory { get; private set; }
+    public bool CanEditInventory { get; private set; }
+    public bool CanCreateInventory { get; private set; }
 
         public string WorkspaceSlug { get; private set; } = string.Empty;
         public Workspace? Workspace { get; set; }
@@ -39,7 +44,18 @@ namespace Tickflo.Web.Pages.Workspaces
             var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             var workspaceId = Workspace.Id;
             var isAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, workspaceId);
-            if (!isAdmin) return Forbid();
+            var eff = int.TryParse(uidStr, out var currentUserId) ? await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, currentUserId) : new Dictionary<string, EffectiveSectionPermission>();
+            if (isAdmin)
+            {
+                CanViewInventory = CanEditInventory = CanCreateInventory = true;
+            }
+            else if (eff.TryGetValue("inventory", out var ip))
+            {
+                CanViewInventory = ip.CanView;
+                CanEditInventory = ip.CanEdit;
+                CanCreateInventory = ip.CanCreate;
+            }
+            if (!CanViewInventory) return Forbid();
             if (id > 0)
             {
                 var existing = await _inventory.FindAsync(workspaceId, id);
@@ -62,7 +78,13 @@ namespace Tickflo.Web.Pages.Workspaces
             var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             var workspaceId = Workspace.Id;
             var isAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, workspaceId);
-            if (!isAdmin) return Forbid();
+            var eff = int.TryParse(uidStr, out var currentUserId) ? await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, currentUserId) : new Dictionary<string, EffectiveSectionPermission>();
+            bool allowed = isAdmin;
+            if (!allowed && eff.TryGetValue("inventory", out var ip))
+            {
+                allowed = (id == 0) ? ip.CanCreate : ip.CanEdit;
+            }
+            if (!allowed) return Forbid();
 
             if (!ModelState.IsValid)
             {

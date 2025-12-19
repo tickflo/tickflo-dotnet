@@ -13,6 +13,7 @@ public class TeamsAssignModel : PageModel
     private readonly IUserWorkspaceRoleRepository _uwr;
     private readonly ITeamRepository _teams;
     private readonly ITeamMemberRepository _members;
+    private readonly IRolePermissionRepository _rolePerms;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -25,7 +26,7 @@ public class TeamsAssignModel : PageModel
     [BindProperty]
     public int TeamId { get; set; }
 
-    public TeamsAssignModel(IWorkspaceRepository workspaces, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository uwr, ITeamRepository teams, ITeamMemberRepository members)
+    public TeamsAssignModel(IWorkspaceRepository workspaces, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository uwr, ITeamRepository teams, ITeamMemberRepository members, IRolePermissionRepository rolePerms)
     {
         _workspaces = workspaces;
         _users = users;
@@ -33,7 +34,10 @@ public class TeamsAssignModel : PageModel
         _uwr = uwr;
         _teams = teams;
         _members = members;
+        _rolePerms = rolePerms;
     }
+    public bool CanViewTeams { get; private set; }
+    public bool CanEditTeams { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(string slug, int teamId)
     {
@@ -43,7 +47,10 @@ public class TeamsAssignModel : PageModel
         var uidStr = HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
         var isAdmin = await _uwr.IsAdminAsync(uid, Workspace.Id);
-        if (!isAdmin) return Forbid();
+        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
+        CanViewTeams = isAdmin || (eff.TryGetValue("teams", out var tp) && tp.CanView);
+        CanEditTeams = isAdmin || (eff.TryGetValue("teams", out var tp2) && tp2.CanEdit);
+        if (!CanViewTeams) return Forbid();
 
         TeamId = teamId;
         Team = await _teams.FindByIdAsync(teamId);
@@ -68,7 +75,9 @@ public class TeamsAssignModel : PageModel
         var uidStr = HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
         var isAdmin = await _uwr.IsAdminAsync(uid, Workspace.Id);
-        if (!isAdmin) return Forbid();
+        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
+        var allowed = isAdmin || (eff.TryGetValue("teams", out var tp) && tp.CanEdit);
+        if (!allowed) return Forbid();
 
         if (TeamId <= 0 || SelectedUserId <= 0)
         {
@@ -89,7 +98,9 @@ public class TeamsAssignModel : PageModel
         var uidStr = HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(uidStr, out var uid)) return Forbid();
         var isAdmin = await _uwr.IsAdminAsync(uid, Workspace.Id);
-        if (!isAdmin) return Forbid();
+        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
+        var allowed = isAdmin || (eff.TryGetValue("teams", out var tp) && tp.CanEdit);
+        if (!allowed) return Forbid();
 
         await _members.RemoveAsync(TeamId, userId);
         return RedirectToPage("/Workspaces/TeamsAssign", new { slug, teamId = TeamId });
