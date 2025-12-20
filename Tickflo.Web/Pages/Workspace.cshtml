@@ -55,38 +55,52 @@
             <div class="flex flex-col gap-8">
                 <div class="mb-2">
                     <h1 class="text-3xl font-bold tracking-tight mb-1">Dashboard</h1>
-                    <div class="text-base-content/60">Workspace: <span class="font-semibold">@Model.Workspace.Name</span> <span class="ml-2 badge badge-outline">@Model.Workspace.Slug</span></div>
+                    <div class="text-base-content/60 flex items-center gap-2 flex-wrap">
+                        <span>Workspace: <span class="font-semibold">@Model.Workspace.Name</span></span>
+                        <span class="badge badge-outline">@Model.Workspace.Slug</span>
+                        @if (Model.CanViewTickets)
+                        {
+                            var scopeLabel = string.IsNullOrWhiteSpace(Model.TicketViewScope) ? "ALL" : Model.TicketViewScope.ToUpperInvariant();
+                            <span class="badge badge-soft">Scope: @scopeLabel</span>
+                        }
+                    </div>
                 </div>
                 <!-- Stat Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                    <a href="/workspaces/@Model.Workspace.Slug/tickets?status=Open&range=@Model.RangeDays" style="text-decoration:none">
-                        <div class="card bg-primary text-primary-content shadow-xl cursor-pointer hover:shadow-2xl transition-shadow">
-                            <div class="card-body">
-                                <div class="flex items-center gap-3">
-                                    <i class="fa fa-ticket-alt fa-2x"></i>
-                                    <div>
-                                        <div class="text-lg font-bold">Open Tickets</div>
-                                        <div class="text-3xl font-extrabold">@Model.OpenTickets</div>
-                                        <div class="text-xs opacity-80">of @Model.TotalTickets total</div>
+                    @if (Model.CanViewTickets)
+                    {
+                        <a href="/workspaces/@Model.Workspace.Slug/tickets?status=Open&range=@Model.RangeDays" style="text-decoration:none">
+                            <div class="card bg-primary text-primary-content shadow-xl cursor-pointer hover:shadow-2xl transition-shadow">
+                                <div class="card-body">
+                                    <div class="flex items-center gap-3">
+                                        <i class="fa fa-ticket-alt fa-2x"></i>
+                                        <div>
+                                            <div class="text-lg font-bold">Open Tickets</div>
+                                            <div class="text-3xl font-extrabold">@Model.OpenTickets</div>
+                                            <div class="text-xs opacity-80">of @Model.TotalTickets total</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </a>
-                    <a href="/workspaces/@Model.Workspace.Slug/tickets?status=Closed&range=@Model.RangeDays" style="text-decoration:none">
-                        <div class="card bg-success text-success-content shadow-xl cursor-pointer hover:shadow-2xl transition-shadow">
-                            <div class="card-body">
-                                <div class="flex items-center gap-3">
-                                    <i class="fa fa-check-circle fa-2x"></i>
-                                    <div>
-                                        <div class="text-lg font-bold">Resolved</div>
-                                        <div class="text-3xl font-extrabold">@Model.ResolvedTickets</div>
-                                        <div class="text-xs opacity-80">last @Model.RangeDays days</div>
+                        </a>
+                    }
+                    @if (Model.CanViewTickets)
+                    {
+                        <a href="/workspaces/@Model.Workspace.Slug/tickets?status=Closed&range=@Model.RangeDays" style="text-decoration:none">
+                            <div class="card bg-success text-success-content shadow-xl cursor-pointer hover:shadow-2xl transition-shadow">
+                                <div class="card-body">
+                                    <div class="flex items-center gap-3">
+                                        <i class="fa fa-check-circle fa-2x"></i>
+                                        <div>
+                                            <div class="text-lg font-bold">Resolved</div>
+                                            <div class="text-3xl font-extrabold">@Model.ResolvedTickets</div>
+                                            <div class="text-xs opacity-80">last @Model.RangeDays days</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </a>
+                        </a>
+                    }
                     <div class="card bg-info text-info-content shadow-xl">
                         <div class="card-body">
                             <div class="flex items-center gap-3">
@@ -99,6 +113,8 @@
                             </div>
                         </div>
                     </div>
+                    @if (Model.CanViewTickets)
+                    {
                     <div class="card bg-warning text-warning-content shadow-xl">
                         <div class="card-body">
                             <div class="flex items-center gap-3">
@@ -111,6 +127,9 @@
                             </div>
                         </div>
                     </div>
+                    }
+                    @if (Model.CanViewTickets)
+                    {
                     <div class="card bg-base-200 text-base-content shadow-xl">
                         <div class="card-body">
                             <div class="flex items-center gap-3">
@@ -135,6 +154,9 @@
                             </div>
                         </div>
                     </div>
+                    }
+                    @if (Model.CanViewTickets)
+                    {
                     <div class="card bg-base-200 text-base-content shadow-xl">
                         <div class="card-body">
                             <div class="flex items-center gap-3">
@@ -159,10 +181,13 @@
                             </div>
                         </div>
                     </div>
+                    }
                 </div>
                 <!-- Main Content Grid -->
                 <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
                     <!-- Recent Tickets Table -->
+                    @if (Model.CanViewTickets)
+                    {
                     <div class="xl:col-span-2">
                         <div class="card bg-base-100 shadow-xl">
                             <div class="card-body">
@@ -249,7 +274,10 @@
                             </div>
                         </div>
                     </div>
+                    }
                     <!-- Top Members Card -->
+                    @if (Model.CanViewTickets)
+                    {
                     <div>
                         <div class="card bg-base-100 shadow-xl">
                             <div class="card-body">
@@ -272,6 +300,7 @@
                             </div>
                         </div>
                     </div>
+                    }
                 </div>
             </div>
         }

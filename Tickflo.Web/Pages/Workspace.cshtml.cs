@@ -45,6 +45,9 @@ public class WorkspaceModel : PageModel
     public List<Team> WorkspaceTeams { get; set; } = new();
     public List<TicketStatus> StatusList { get; set; } = new();
     public List<TicketType> TypeList { get; set; } = new();
+    public bool CanViewDashboard { get; set; }
+    public bool CanViewTickets { get; set; }
+    public string TicketViewScope { get; set; } = string.Empty;
 
     // Priority counts
     public Dictionary<string, int> PriorityCounts { get; set; } = new();
@@ -149,6 +152,29 @@ public class WorkspaceModel : PageModel
                 var idClaim = dashboardUser.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (int.TryParse(idClaim, out var uid))
                     userId = uid;
+            }
+            // Permission gating: require dashboard view permission for workspace
+            if (userId.HasValue)
+            {
+                var isAdmin = await _uwr.IsAdminAsync(userId.Value, Workspace.Id);
+                if (isAdmin)
+                {
+                    CanViewDashboard = true;
+                    CanViewTickets = true;
+                    TicketViewScope = "all";
+                }
+                else
+                {
+                    var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, userId.Value);
+                    if (eff.TryGetValue("dashboard", out var dp)) CanViewDashboard = dp.CanView;
+                    if (eff.TryGetValue("tickets", out var tp)) CanViewTickets = tp.CanView;
+                    // Derive ticket scope label
+                    TicketViewScope = await _rolePerms.GetTicketViewScopeForUserAsync(Workspace.Id, userId.Value, isAdmin);
+                }
+            }
+            if (!CanViewDashboard)
+            {
+                return Forbid();
             }
             await LoadDashboardDataAsync(Workspace.Id, RangeDays, AssignmentFilter, userId);
         }

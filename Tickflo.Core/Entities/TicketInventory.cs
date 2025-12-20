@@ -12,8 +12,8 @@ namespace Tickflo.Core.Entities
         public decimal TotalPrice => Quantity * UnitPrice;
 
         [ForeignKey("TicketId")]
-        public Ticket Ticket { get; set; }
+        public Ticket? Ticket { get; set; }
         [ForeignKey("InventoryId")]
-        public Inventory Inventory { get; set; }
+        public Inventory? Inventory { get; set; }
     }
 }

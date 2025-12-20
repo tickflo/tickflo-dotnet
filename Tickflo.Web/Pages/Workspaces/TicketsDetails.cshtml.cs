@@ -34,8 +34,9 @@ public class TicketsDetailsModel : PageModel
     private readonly ITeamRepository _teamRepo;
     private readonly IInventoryRepository _inventoryRepo;
     private readonly IRolePermissionRepository _rolePerms;
+    private readonly ITeamMemberRepository _teamMembers;
 
-    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITicketHistoryRepository historyRepo, ITeamRepository teamRepo, IInventoryRepository inventoryRepo, IRolePermissionRepository rolePerms)
+    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITicketHistoryRepository historyRepo, ITeamRepository teamRepo, IInventoryRepository inventoryRepo, IRolePermissionRepository rolePerms, ITeamMemberRepository teamMembers)
     {
         _workspaceRepo = workspaceRepo;
         _ticketRepo = ticketRepo;
@@ -51,6 +52,7 @@ public class TicketsDetailsModel : PageModel
         _teamRepo = teamRepo;
         _inventoryRepo = inventoryRepo;
         _rolePerms = rolePerms;
+        _teamMembers = teamMembers;
     }
     public List<Inventory> InventoryItems { get; private set; } = new();
 
@@ -63,6 +65,7 @@ public class TicketsDetailsModel : PageModel
     public bool CanViewTickets { get; private set; }
     public bool CanEditTickets { get; private set; }
     public bool CanCreateTickets { get; private set; }
+    public string? TicketViewScope { get; private set; }
     public List<User> Members { get; private set; } = new();
     public IReadOnlyList<Tickflo.Core.Entities.TicketStatus> Statuses { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketStatus>();
     public Dictionary<string,string> StatusColorByName { get; private set; } = new();
@@ -122,12 +125,50 @@ public class TicketsDetailsModel : PageModel
                 CanViewTickets = tp.CanView;
                 CanEditTickets = tp.CanEdit;
                 CanCreateTickets = tp.CanCreate;
+                TicketViewScope = string.IsNullOrWhiteSpace(tp.TicketViewScope) ? "all" : tp.TicketViewScope;
+            }
+        }
+        // Admin override
+        IsWorkspaceAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
+        if (IsWorkspaceAdmin)
+        {
+            CanViewTickets = true;
+            CanEditTickets = true;
+            CanCreateTickets = true;
+            TicketViewScope = "all";
+        }
+        // Enforce view/create permission before loading details
+        if (!IsWorkspaceAdmin)
+        {
+            if (id > 0)
+            {
+                if (!CanViewTickets) return Forbid();
+            }
+            else
+            {
+                if (!CanCreateTickets) return Forbid();
             }
         }
         if (id > 0)
         {
             Ticket = await _ticketRepo.FindAsync(Workspace.Id, id);
             if (Ticket == null) return NotFound();
+            // Enforce ticket scope for details when not admin
+            if (!IsWorkspaceAdmin && currentUserId > 0)
+            {
+                var scope = string.IsNullOrWhiteSpace(TicketViewScope) ? "all" : TicketViewScope!.ToLowerInvariant();
+                if (scope == "mine")
+                {
+                    if (Ticket.AssignedUserId != currentUserId) return Forbid();
+                }
+                else if (scope == "team")
+                {
+                    var myTeams = await _teamMembers.ListTeamsForUserAsync(Workspace.Id, currentUserId);
+                    var teamIds = myTeams.Select(t => t.Id).ToHashSet();
+                    var inScope = (Ticket.AssignedUserId == currentUserId) || (Ticket.AssignedTeamId.HasValue && teamIds.Contains(Ticket.AssignedTeamId.Value));
+                    if (!inScope) return Forbid();
+                }
+            }
             // Load history only for existing tickets
             History = await _historyRepo.ListForTicketAsync(Workspace.Id, id);
         }
@@ -144,7 +185,6 @@ public class TicketsDetailsModel : PageModel
         Contact = Ticket.ContactId.HasValue ? await _contactRepo.FindAsync(Workspace.Id, Ticket.ContactId.Value) : null;
         Contacts = await _contactRepo.ListAsync(Workspace.Id);
         InventoryItems = (await _inventoryRepo.ListAsync(Workspace.Id, null, "active")).ToList();
-        IsWorkspaceAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
         var sts = await _statusRepo.ListAsync(Workspace.Id);
         if (sts.Count == 0)
         {
@@ -315,6 +355,22 @@ public class TicketsDetailsModel : PageModel
         {
             t = await _ticketRepo.FindAsync(workspaceId, resolvedId);
             if (t == null) return NotFound();
+            // Enforce ticket scope for edit when not admin
+            if (!isAdmin && uid > 0)
+            {
+                var scope = await _rolePerms.GetTicketViewScopeForUserAsync(workspaceId, uid, isAdmin);
+                if (scope == "mine")
+                {
+                    if (t.AssignedUserId != uid) return Forbid();
+                }
+                else if (scope == "team")
+                {
+                    var myTeams = await _teamMembers.ListTeamsForUserAsync(workspaceId, uid);
+                    var teamIds = myTeams.Select(tm => tm.Id).ToHashSet();
+                    var inScope = (t.AssignedUserId == uid) || (t.AssignedTeamId.HasValue && teamIds.Contains(t.AssignedTeamId.Value));
+                    if (!inScope) return Forbid();
+                }
+            }
             // Snapshot old values for diff
             var old = new {
                 t.Subject,

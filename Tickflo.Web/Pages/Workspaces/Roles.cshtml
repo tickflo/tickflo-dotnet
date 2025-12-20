@@ -19,12 +19,23 @@
             <div class="card-body">
                 <h2 class="card-title">Roles</h2>
                 <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
+                @{ var roleCount = Model.Roles?.Count ?? 0; var assignedTotal = (Model.RoleAssignmentCounts != null ? Model.RoleAssignmentCounts.Values.Sum() : 0); }
+                <div class="stats stats-horizontal bg-base-200 rounded-lg mt-4">
+                    <div class="stat">
+                        <div class="stat-title">Total Roles</div>
+                        <div class="stat-value text-primary">@roleCount</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-title">Assigned Users</div>
+                        <div class="stat-value text-secondary">@assignedTotal</div>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="card bg-base-100 shadow-sm mt-4">
             <div class="card-body">
                 <div class="overflow-x-auto">
-                    <table class="table table-md">
+                    <table class="table table-zebra table-md">
                         <thead>
                             <tr>
                                 <th>Name</th>
@@ -47,16 +58,28 @@
                                 foreach (var r in Model.Roles)
                                 {
                                     <tr>
+                                        @{ var assignedCount = 0; if (Model.RoleAssignmentCounts != null && Model.RoleAssignmentCounts.TryGetValue(r.Id, out var tmp)) { assignedCount = tmp; } }
                                         <td>@r.Name</td>
-                                        <td>@(r.Admin ? "Yes" : "No")</td>
-                                        <td>@Model.RoleAssignmentCounts.GetValueOrDefault(r.Id)</td>
+                                        <td>
+                                            @if (r.Admin)
+                                            {
+                                                <span class="badge badge-primary">Admin</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge">Member</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-soft badge-info">@assignedCount</span>
+                                        </td>
                                         <td>
                                             <div class="flex flex-wrap gap-2 md:join">
-                                                <a class="btn btn-soft btn-xs btn-ghost md:join-item" href="/workspaces/@Model.WorkspaceSlug/users/roles/@r.Id/edit">Edit</a>
+                                                <a class="btn btn-outline btn-xs md:join-item" href="/workspaces/@Model.WorkspaceSlug/users/roles/@r.Id/edit">Edit</a>
                                                 <form method="post" action="/workspaces/@Model.WorkspaceSlug/users/roles/@r.Id/delete" onsubmit="return confirm('Delete role @r.Name?');">
-                                                    <button class="btn btn-soft btn-xs btn-error md:join-item" type="submit" @(Model.RoleAssignmentCounts.GetValueOrDefault(r.Id) > 0 ? "disabled" : null)>Delete</button>
+                                                    <button class="btn btn-error btn-outline btn-xs md:join-item" type="submit" @(assignedCount > 0 ? "disabled" : null)>Delete</button>
                                                 </form>
-                                                @if (Model.RoleAssignmentCounts.GetValueOrDefault(r.Id) > 0)
+                                                @if (assignedCount > 0)
                                                 {
                                                     <span class="text-xs text-base-content/70 ml-2">Unassign users before deleting.</span>
                                                 }
