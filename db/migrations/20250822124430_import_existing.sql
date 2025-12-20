@@ -1457,3 +1457,65 @@ CREATE INDEX IF NOT EXISTS idx_ticket_history_ws_ticket_time
 
 -- migrate:down
 
+--
+-- Reporting enhancements: add definition/schedule columns and report_runs table (idempotent)
+--
+
+-- Add columns to reports for definition and scheduling (idempotent)
+DO $$
+BEGIN
+    BEGIN
+        ALTER TABLE public.reports ADD COLUMN definition_json text;
+    EXCEPTION WHEN duplicate_column THEN NULL; END;
+
+    BEGIN
+        ALTER TABLE public.reports ADD COLUMN schedule_enabled boolean NOT NULL DEFAULT false;
+    EXCEPTION WHEN duplicate_column THEN NULL; END;
+
+    BEGIN
+        ALTER TABLE public.reports ADD COLUMN schedule_type character varying(10) NOT NULL DEFAULT 'none'; -- none|daily|weekly|monthly
+    EXCEPTION WHEN duplicate_column THEN NULL; END;
+
+    BEGIN
+        ALTER TABLE public.reports ADD COLUMN schedule_time time;
+    EXCEPTION WHEN duplicate_column THEN NULL; END;
+
+    BEGIN
+        ALTER TABLE public.reports ADD COLUMN schedule_day_of_week integer; -- 0=Sunday..6=Saturday
+    EXCEPTION WHEN duplicate_column THEN NULL; END;
+
+    BEGIN
+        ALTER TABLE public.reports ADD COLUMN schedule_day_of_month integer; -- 1..31
+    EXCEPTION WHEN duplicate_column THEN NULL; END;
+END$$;
+
+-- Create report_runs table (idempotent)
+CREATE TABLE IF NOT EXISTS public.report_runs (
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    workspace_id integer NOT NULL,
+    report_id integer NOT NULL,
+    status character varying(20) NOT NULL DEFAULT 'Pending',
+    started_at timestamp with time zone NOT NULL DEFAULT now(),
+    finished_at timestamp with time zone NULL,
+    row_count integer NOT NULL DEFAULT 0,
+    file_path text NULL
+);
+
+-- Indexes and FKs
+DO $$ BEGIN
+    ALTER TABLE ONLY public.report_runs
+        ADD CONSTRAINT report_runs_report_fk FOREIGN KEY (report_id) REFERENCES public.reports(id);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    ALTER TABLE ONLY public.report_runs
+        ADD CONSTRAINT report_runs_workspace_fk FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE INDEX IF NOT EXISTS report_runs_workspace_report_idx ON public.report_runs (workspace_id, report_id, started_at DESC);
+
+-- Add content columns for DB-stored report files (idempotent)
+ALTER TABLE public.report_runs ADD COLUMN IF NOT EXISTS file_bytes bytea;
+ALTER TABLE public.report_runs ADD COLUMN IF NOT EXISTS content_type text;
+ALTER TABLE public.report_runs ADD COLUMN IF NOT EXISTS file_name text;
+

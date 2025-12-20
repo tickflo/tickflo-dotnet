@@ -1,0 +1,53 @@
+@page "/workspaces/{slug}/reports/{reportId:int}/runs"
+@model Tickflo.Web.Pages.Workspaces.ReportRunsModel
+@{
+    ViewData["Title"] = "Report Runs";
+}
+<div class="flex flex-row gap-4">
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+    <section class="p-6 flex-1">
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = $"Runs: {Model.Report?.Name ?? "Report"}", AllowNewAction = false })
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body">
+                <div class="overflow-x-auto rounded-box bg-base-100">
+                    <table class="table table-zebra table-md">
+                        <thead>
+                            <tr>
+                                <th>Started</th>
+                                <th>Finished</th>
+                                <th>Status</th>
+                                <th>Rows</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Runs == null || !Model.Runs.Any())
+                            {
+                                <tr><td colspan="5"><div class="alert alert-info">No runs yet.</div></td></tr>
+                            }
+                            else
+                            {
+                                foreach (var rr in Model.Runs)
+                                {
+                                    <tr>
+                                        <td>@rr.StartedAt.ToString("g")</td>
+                                        <td>@(rr.FinishedAt.HasValue ? rr.FinishedAt.Value.ToString("g") : "-")</td>
+                                        <td><span class="badge badge-soft">@rr.Status</span></td>
+                                        <td>@rr.RowCount</td>
+                                        <td>
+                                            @if (string.Equals(rr.Status, "Succeeded", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <a class="btn btn-soft btn-xs btn-secondary" asp-page="/Workspaces/ReportRunView" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@Model.ReportId" asp-route-runId="@rr.Id">View</a>
+                                                <a class="btn btn-soft btn-xs btn-primary" asp-page="/Workspaces/ReportRunDownload" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@Model.ReportId" asp-route-runId="@rr.Id">Download CSV</a>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>

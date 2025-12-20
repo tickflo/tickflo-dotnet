@@ -1,0 +1,163 @@
+@page "/workspaces/{slug}/reports/{reportId:int}/runs/{runId:int}/view"
+@model Tickflo.Web.Pages.Workspaces.ReportRunViewModel
+@{
+    ViewData["Title"] = "View Report Run";
+}
+<div class="flex flex-row gap-4">
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+    <section class="p-6 flex-1">
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = $"Report: {Model.Report?.Name ?? "Report"}", AllowNewAction = false })
+        <div class="mb-4 flex flex-wrap items-center gap-2">
+            <a class="btn btn-soft" asp-page="/Workspaces/ReportRuns" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@Model.ReportId">Back to Runs</a>
+            @if (Model.Run != null && string.Equals(Model.Run.Status, "Succeeded", StringComparison.OrdinalIgnoreCase) && Model.HasContent)
+            {
+                <a class="btn btn-primary btn-soft" asp-page="/Workspaces/ReportRunDownload" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@Model.ReportId" asp-route-runId="@Model.Run.Id">Download CSV</a>
+            }
+            <button type="button" id="exportVisibleBtn" class="btn btn-soft">Export visible page CSV</button>
+            <form method="get" class="ml-auto flex items-center gap-2">
+                <input type="hidden" name="page" value="@Model.Page" />
+                <label class="label-text text-sm">Rows per page</label>
+                <select name="take" class="select select-bordered select-sm" onchange="this.form.submit()">
+                    @foreach (var opt in new[]{50,100,200,500,1000})
+                    {
+                        <option value="@opt" selected="@(Model.Take == opt)">@opt</option>
+                    }
+                </select>
+            </form>
+            <div class="join">
+                <a class="btn btn-soft btn-sm join-item @(Model.Page <= 1 ? "btn-disabled" : null)"
+                   asp-page="/Workspaces/ReportRunView"
+                   asp-route-slug="@Model.WorkspaceSlug"
+                   asp-route-reportId="@Model.ReportId"
+                   asp-route-runId="@Model.RunId"
+                   asp-route-page="@(Model.Page - 1)"
+                   asp-route-take="@Model.Take">Prev</a>
+                <span class="btn btn-soft btn-sm join-item no-pointer-events">Page @Model.Page of @Model.TotalPages</span>
+                <a class="btn btn-soft btn-sm join-item @(Model.Page >= Model.TotalPages ? "btn-disabled" : null)"
+                   asp-page="/Workspaces/ReportRunView"
+                   asp-route-slug="@Model.WorkspaceSlug"
+                   asp-route-reportId="@Model.ReportId"
+                   asp-route-runId="@Model.RunId"
+                   asp-route-page="@(Model.Page + 1)"
+                   asp-route-take="@Model.Take">Next</a>
+            </div>
+            <div class="text-sm opacity-80">
+                <span class="badge badge-soft">Started: @Model.Run?.StartedAt.ToString("g")</span>
+                <span class="badge badge-soft">Status: @Model.Run?.Status</span>
+                <span class="badge badge-soft">Rows: @Model.TotalRows</span>
+                @if (Model.TotalRows > 0)
+                {
+                    <span class="badge badge-info">Showing @Model.FromRow - @Model.ToRow</span>
+                }
+            </div>
+        </div>
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body">
+                @if (!Model.HasContent)
+                {
+                    <div class="alert alert-info">
+                        This run has no stored data. It may have been generated before DB storage was enabled. Please re-run the report to view it here.
+                    </div>
+                }
+                else if (Model.Headers == null || Model.Headers.Count == 0)
+                {
+                    <div class="alert alert-info">No data available to display for this run.</div>
+                }
+                else
+                {
+                    <div class="overflow-x-auto rounded-box bg-base-100">
+                        <table id="reportTable" class="table table-zebra table-md">
+                            <thead class="bg-base-200 sticky top-0">
+                                <tr>
+                                    @for (int i = 0; i < Model.Headers.Count; i++)
+                                    {
+                                        <th data-col-index="@i">@Model.Headers[i]</th>
+                                    }
+                                </tr>
+                                <tr>
+                                    @for (int i = 0; i < Model.Headers.Count; i++)
+                                    {
+                                        <th>
+                                            <input class="input input-bordered input-xs w-full filter-input" data-col-index="@i" placeholder="Filter" />
+                                        </th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in Model.Rows)
+                                {
+                                    <tr>
+                                        @for (int i = 0; i < Model.Headers.Count; i++)
+                                        {
+                                            var cell = i < row.Count ? row[i] : string.Empty;
+                                            <td>@cell</td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+</div>
+
+<script>
+    (function () {
+        const table = document.getElementById('reportTable');
+        if (!table) return;
+        const inputs = Array.from(table.querySelectorAll('input.filter-input'));
+        const tbody = table.querySelector('tbody');
+        const rows = () => Array.from(tbody.querySelectorAll('tr'));
+
+        function normalize(v) { return (v || '').toString().toLowerCase(); }
+
+        function applyFilters() {
+            const filters = inputs.map(inp => ({ i: parseInt(inp.getAttribute('data-col-index')), v: normalize(inp.value) }));
+            rows().forEach(tr => {
+                const tds = Array.from(tr.children);
+                let ok = true;
+                for (const f of filters) {
+                    if (!f.v) continue;
+                    const cellText = normalize(tds[f.i] ? tds[f.i].textContent : '');
+                    if (!cellText.includes(f.v)) { ok = false; break; }
+                }
+                tr.style.display = ok ? '' : 'none';
+            });
+        }
+        inputs.forEach(inp => inp.addEventListener('input', applyFilters));
+
+        function csvEscape(s) {
+            if (s == null) return '';
+            s = s.toString();
+            if (/[",\n\r]/.test(s)) {
+                return '"' + s.replace(/"/g, '""') + '"';
+            }
+            return s;
+        }
+
+        function exportVisible() {
+            const headerCells = Array.from(table.tHead.rows[0].cells);
+            const headers = headerCells.map(th => th.textContent || '');
+            const visibleRows = rows().filter(tr => tr.style.display !== 'none');
+            const dataLines = visibleRows.map(tr => Array.from(tr.cells).map(td => td.textContent || ''));
+            let csv = headers.map(csvEscape).join(',') + '\r\n';
+            for (const r of dataLines) {
+                csv += r.map(csvEscape).join(',') + '\r\n';
+            }
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'report-visible.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        const exportBtn = document.getElementById('exportVisibleBtn');
+        if (exportBtn) exportBtn.addEventListener('click', exportVisible);
+    })();
+</script>

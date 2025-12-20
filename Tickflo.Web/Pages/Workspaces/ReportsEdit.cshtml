@@ -15,11 +15,89 @@
                         <input class="input validator w-full" asp-for="Name" />
                         <span asp-validation-for="Name" class="validator-hint"></span>
                     </div>
+                    <div class="divider">Definition</div>
+                    <div class="fieldset">
+                        <label class="label"><span class="label-text">Source</span></label>
+                        <select class="select w-full" asp-for="Source">
+                            @foreach (var s in Model.Sources.Keys)
+                            {
+                                <option value="@s" selected="@(Model.Source==s)">@s</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="fieldset">
+                        <label class="label"><span class="label-text">Fields (comma separated)</span></label>
+                        <input class="input w-full" asp-for="FieldsCsv" />
+                        <label class="label"><span class="label-text-alt">Available: @string.Join(", ", Model.Sources.ContainsKey(Model.Source) ? Model.Sources[Model.Source] : System.Array.Empty<string>())</span></label>
+                    </div>
+                    <div class="fieldset">
+                        <label class="label"><span class="label-text">Filters (JSON array)</span></label>
+                        <textarea class="textarea w-full" asp-for="FiltersJson" rows="4" placeholder='[{ "field": "Status", "op": "eq", "value": "Closed" }]'></textarea>
+                        <div class="mt-2 flex flex-wrap gap-2 text-sm">
+                            <span class="opacity-70">Presets:</span>
+                            <button type="button" class="btn btn-xs btn-soft" onclick="setFieldsPreset()">Default Fields</button>
+                            <button type="button" class="btn btn-xs" onclick="setFilterPreset('location-eq')">LocationId eq</button>
+                            <button type="button" class="btn btn-xs" onclick="setFilterPreset('location-in')">LocationId in</button>
+                            <button type="button" class="btn btn-xs" onclick="setFilterPreset('charge-eq')">ChargeLocationId eq</button>
+                            <button type="button" class="btn btn-xs" onclick="setFilterPreset('charge-in')">ChargeLocationId in</button>
+                            <span class="opacity-70 ml-2">Date range:</span>
+                            <button type="button" class="btn btn-xs btn-soft" onclick="setDatePreset('last7')">Last 7 days</button>
+                            <button type="button" class="btn btn-xs btn-soft" onclick="setDatePreset('last30')">Last 30 days</button>
+                            <button type="button" class="btn btn-xs btn-soft" onclick="setDatePreset('thisMonth')">This month</button>
+                            <button type="button" class="btn btn-xs btn-soft" onclick="setDatePreset('lastMonth')">Last month</button>
+                        </div>
+                        <div class="mt-3 flex flex-col md:flex-row gap-2 md:items-center">
+                            <label class="label"><span class="label-text">Suggested templates</span></label>
+                            <select class="select select-sm w-full md:w-auto" id="TemplateSelect">
+                                <option value="">Select a template…</option>
+                                <option value="tickets-location-charge">Tickets: by Location with Charge</option>
+                                <option value="tickets-locations-charge">Tickets: by Locations (multiple) with Charge</option>
+                                <option value="inventory-by-location">Inventory: by Location with Ticket Metrics</option>
+                                <option value="locations-overview">Locations: Overview Metrics</option>
+                                <option value="tickets-open-last7">Tickets: Open last 7 days</option>
+                                <option value="tickets-assigned-user">Tickets: Assigned to User</option>
+                                <option value="tickets-assigned-team">Tickets: Assigned to Team</option>
+                                <option value="tickets-by-priority">Tickets: By Priority</option>
+                                <option value="tickets-by-type">Tickets: By Type</option>
+                                <option value="tickets-by-contact">Tickets: By Contact</option>
+                                <option value="inventory-low-stock">Inventory: Low Stock (<= 5)</option>
+                                <option value="contacts-new-30">Contacts: Created last 30 days</option>
+                            </select>
+                            <button type="button" class="btn btn-xs btn-primary md:ml-2" onclick="applyTemplate()">Apply</button>
+                        </div>
+                    </div>
                     <div class="fieldset">
                         <label class="label cursor-pointer">
                             <span class="label-text">Ready</span>
                             <input type="checkbox" class="toggle" asp-for="Ready" />
                         </label>
+                    </div>
+                    <div class="divider">Schedule</div>
+                    <div class="fieldset">
+                        <label class="label cursor-pointer">
+                            <span class="label-text">Enable Schedule</span>
+                            <input type="checkbox" class="toggle" asp-for="ScheduleEnabled" />
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="fieldset">
+                            <label class="label"><span class="label-text">Type</span></label>
+                            <select class="select w-full" asp-for="ScheduleType">
+                                <option value="none">None</option>
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                        </div>
+                        <div class="fieldset">
+                            <label class="label"><span class="label-text">Time (UTC HH:mm)</span></label>
+                            <input class="input w-full" asp-for="ScheduleTime" placeholder="08:00" />
+                        </div>
+                        <div class="fieldset">
+                            <label class="label"><span class="label-text">Day (weekly 0-6 / monthly 1-31)</span></label>
+                            <input class="input w-full" asp-for="ScheduleDayOfWeek" />
+                            <input type="hidden" asp-for="ScheduleDayOfMonth" />
+                        </div>
                     </div>
                     <div class="card-actions flex flex-wrap gap-2 md:join">
                         @{ var saveLabel = (Model.ReportId == 0) ? "Create" : "Update"; }
@@ -31,3 +109,168 @@
         </div>
     </section>
     </div>
+
+<script>
+    (function(){
+        const sourceEl = document.getElementById('Source');
+        const fieldsEl = document.getElementById('FieldsCsv');
+        const filtersEl = document.getElementById('FiltersJson');
+        const tplEl = document.getElementById('TemplateSelect');
+
+        const defaults = {
+            tickets: 'Id,Subject,Status,ChargeAmount',
+            contacts: 'Id,Name,Email,Status,CreatedAt',
+            locations: 'Id,Name,InventoryCount,OpenTicketCount,LastTicketAt',
+            inventory: 'Id,Sku,Name,Quantity,LocationId,Status,TicketCount,OpenTicketCount'
+        };
+
+        window.setFieldsPreset = function(){
+            const src = (sourceEl?.value || '').toLowerCase();
+            fieldsEl && (fieldsEl.value = defaults[src] || fieldsEl.value);
+        };
+
+        window.setFilterPreset = function(kind){
+            const src = (sourceEl?.value || '').toLowerCase();
+            let tpl = '';
+            if (src === 'tickets'){
+                if (kind === 'location-eq') tpl = '[{ "field": "LocationId", "op": "eq", "value": 0 }]';
+                if (kind === 'location-in') tpl = '[{ "field": "LocationId", "op": "in", "value": [0,1] }]';
+                if (kind === 'charge-eq') tpl = '[{ "field": "ChargeLocationId", "op": "eq", "value": 0 }]';
+                if (kind === 'charge-in') tpl = '[{ "field": "ChargeLocationId", "op": "in", "value": [0,1] }]';
+            }
+            if (tpl && filtersEl){ filtersEl.value = tpl; }
+        };
+
+        window.applyTemplate = function(){
+            const key = tplEl?.value || '';
+            if (!key) return;
+            switch(key){
+                case 'tickets-location-charge':
+                    if (sourceEl) sourceEl.value = 'tickets';
+                    if (fieldsEl) fieldsEl.value = 'Id,Subject,Status,ChargeAmount,ChargeAmountAtLocation';
+                    if (filtersEl) filtersEl.value = '[\n  { "field": "LocationId", "op": "eq", "value": 0 },\n  { "field": "ChargeLocationId", "op": "eq", "value": 0 }\n]';
+                    break;
+                case 'tickets-locations-charge':
+                    if (sourceEl) sourceEl.value = 'tickets';
+                    if (fieldsEl) fieldsEl.value = 'Id,Subject,Status,ChargeAmount,ChargeAmountAtLocation';
+                    if (filtersEl) filtersEl.value = '[\n  { "field": "LocationId", "op": "in", "value": [0,1] },\n  { "field": "ChargeLocationId", "op": "in", "value": [0,1] }\n]';
+                    break;
+                case 'inventory-by-location':
+                    if (sourceEl) sourceEl.value = 'inventory';
+                    if (fieldsEl) fieldsEl.value = 'Id,Sku,Name,Quantity,LocationId,Status,TicketCount,OpenTicketCount,LastTicketAt';
+                    if (filtersEl) filtersEl.value = '[\n  { "field": "LocationId", "op": "eq", "value": 0 }\n]';
+                    break;
+                case 'locations-overview':
+                    if (sourceEl) sourceEl.value = 'locations';
+                    if (fieldsEl) fieldsEl.value = 'Id,Name,InventoryCount,OpenTicketCount,LastTicketAt';
+                    if (filtersEl) filtersEl.value = '[]';
+                    break;
+                case 'tickets-open-last7':
+                    if (sourceEl) sourceEl.value = 'tickets';
+                    if (fieldsEl) fieldsEl.value = 'Id,Subject,Status,Priority,CreatedAt,ChargeAmount';
+                    if (filtersEl) filtersEl.value = '[\n  { "field": "Status", "op": "eq", "value": "Open" },\n  { "field": "CreatedAt", "op": "between", "value": ["YYYY-MM-DDT00:00:00Z","YYYY-MM-DDT23:59:59Z"] }\n]';
+                    break;
+                case 'tickets-assigned-user':
+                    if (sourceEl) sourceEl.value = 'tickets';
+                    if (fieldsEl) fieldsEl.value = 'Id,Subject,Status,AssignedUserId,CreatedAt,ChargeAmount';
+                    if (filtersEl) filtersEl.value = '[\n  { "field": "AssignedUserId", "op": "eq", "value": 0 }\n]';
+                    break;
+                case 'tickets-assigned-team':
+                    if (sourceEl) sourceEl.value = 'tickets';
+                    if (fieldsEl) fieldsEl.value = 'Id,Subject,Status,AssignedTeamId,CreatedAt,ChargeAmount';
+                    if (filtersEl) filtersEl.value = '[\n  { "field": "AssignedTeamId", "op": "eq", "value": 0 }\n]';
+                    break;
+                case 'tickets-by-priority':
+                    if (sourceEl) sourceEl.value = 'tickets';
+                    if (fieldsEl) fieldsEl.value = 'Id,Subject,Priority,Status,CreatedAt';
+                    if (filtersEl) filtersEl.value = '[\n  { "field": "Priority", "op": "eq", "value": "High" }\n]';
+                    break;
+                case 'tickets-by-type':
+                    if (sourceEl) sourceEl.value = 'tickets';
+                    if (fieldsEl) fieldsEl.value = 'Id,Subject,Type,Status,CreatedAt';
+                    if (filtersEl) filtersEl.value = '[\n  { "field": "Type", "op": "eq", "value": "Bug" }\n]';
+                    break;
+                case 'tickets-by-contact':
+                    if (sourceEl) sourceEl.value = 'tickets';
+                    if (fieldsEl) fieldsEl.value = 'Id,Subject,ContactId,Status,CreatedAt,ChargeAmount';
+                    if (filtersEl) filtersEl.value = '[\n  { "field": "ContactId", "op": "eq", "value": 0 }\n]';
+                    break;
+                case 'inventory-low-stock':
+                    if (sourceEl) sourceEl.value = 'inventory';
+                    if (fieldsEl) fieldsEl.value = 'Id,Sku,Name,Quantity,MinStock,LocationId,Status';
+                    if (filtersEl) filtersEl.value = '[\n  { "field": "Quantity", "op": "lte", "value": 5 },\n  { "field": "Status", "op": "eq", "value": "active" }\n]';
+                    break;
+                case 'contacts-new-30':
+                    if (sourceEl) sourceEl.value = 'contacts';
+                    if (fieldsEl) fieldsEl.value = 'Id,Name,Email,Status,CreatedAt';
+                    if (filtersEl) filtersEl.value = '[\n  { "field": "CreatedAt", "op": "between", "value": ["YYYY-MM-DDT00:00:00Z","YYYY-MM-DDT23:59:59Z"] }\n]';
+                    break;
+            }
+        };
+
+        function tryParseFilters(text){
+            try {
+                const parsed = JSON.parse(text || '[]');
+                return Array.isArray(parsed) ? parsed : [];
+            } catch { return []; }
+        }
+
+        function setFiltersArray(arr){
+            if (!filtersEl) return;
+            filtersEl.value = JSON.stringify(arr, null, 2);
+        }
+
+        function removeCreatedAt(filters){
+            return (filters || []).filter(f => (f?.field || f?.Field) !== 'CreatedAt');
+        }
+
+        function isoStartOfDay(d){
+            const dt = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0,0,0));
+            return dt.toISOString();
+        }
+        function isoEndOfDay(d){
+            const dt = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 23,59,59));
+            return dt.toISOString();
+        }
+
+        window.setDatePreset = function(kind){
+            if (!filtersEl) return;
+            const src = (sourceEl?.value || '').toLowerCase();
+            // Only apply to sources with CreatedAt filter support
+            if (!['tickets','contacts','inventory'].includes(src)) return;
+            let startIso = '', endIso = '';
+            const now = new Date();
+            const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+            if (kind === 'last7'){
+                const start = new Date(today); start.setUTCDate(start.getUTCDate() - 6);
+                startIso = isoStartOfDay(start); endIso = isoEndOfDay(today);
+            } else if (kind === 'last30'){
+                const start = new Date(today); start.setUTCDate(start.getUTCDate() - 29);
+                startIso = isoStartOfDay(start); endIso = isoEndOfDay(today);
+            } else if (kind === 'thisMonth'){
+                const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
+                startIso = isoStartOfDay(start); endIso = isoEndOfDay(today);
+            } else if (kind === 'lastMonth'){
+                const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth()-1, 1));
+                const end = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 0));
+                startIso = isoStartOfDay(start); endIso = isoEndOfDay(end);
+            }
+            if (!startIso || !endIso) return;
+            let arr = tryParseFilters(filtersEl.value);
+            arr = removeCreatedAt(arr);
+            arr.push({ field: 'CreatedAt', op: 'between', value: [startIso, endIso] });
+            setFiltersArray(arr);
+        }
+
+        // Auto-apply defaults on source change if fields are empty or match previous default
+        const applyDefaultOnChange = function(){
+            const src = (sourceEl?.value || '').toLowerCase();
+            if (!fieldsEl) return;
+            const val = (fieldsEl.value || '').trim();
+            if (!val || Object.values(defaults).includes(val)){
+                fieldsEl.value = defaults[src] || val;
+            }
+        };
+        sourceEl && sourceEl.addEventListener('change', applyDefaultOnChange);
+    })();
+</script>

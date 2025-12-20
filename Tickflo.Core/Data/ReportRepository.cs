@@ -25,6 +25,12 @@ public class ReportRepository(TickfloDbContext db) : IReportRepository
         existing.Name = report.Name;
         existing.Ready = report.Ready;
         existing.LastRun = report.LastRun;
+        existing.DefinitionJson = report.DefinitionJson;
+        existing.ScheduleEnabled = report.ScheduleEnabled;
+        existing.ScheduleType = report.ScheduleType;
+        existing.ScheduleTime = report.ScheduleTime;
+        existing.ScheduleDayOfWeek = report.ScheduleDayOfWeek;
+        existing.ScheduleDayOfMonth = report.ScheduleDayOfMonth;
         await db.SaveChangesAsync();
         return existing;
     }

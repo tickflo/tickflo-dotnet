@@ -35,6 +35,7 @@ builder.Services.AddScoped<IUserWorkspaceRoleRepository, UserWorkspaceRoleReposi
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<ILocationRepository, LocationRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
+builder.Services.AddScoped<IReportRunRepository, ReportRunRepository>();
 builder.Services.AddScoped<IContactRepository, ContactRepository>();
 builder.Services.AddScoped<ITicketRepository, TicketRepository>();
 builder.Services.AddScoped<ITicketStatusRepository, TicketStatusRepository>();
@@ -67,6 +68,10 @@ builder.Services.AddRazorPages(options =>
     // Removed legacy '/new' route mappings; use unified edit/details routes.
 });
 builder.Services.AddControllers();
+
+// Reporting services
+builder.Services.AddScoped<Tickflo.Web.Services.IReportingService, Tickflo.Web.Services.ReportingService>();
+builder.Services.AddHostedService<Tickflo.Web.Services.ScheduledReportsHostedService>();
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
