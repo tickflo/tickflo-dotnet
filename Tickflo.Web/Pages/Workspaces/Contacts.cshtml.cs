@@ -23,6 +23,9 @@ public class ContactsModel : PageModel
     [BindProperty(SupportsGet = true)]
     public string? Priority { get; set; }
 
+    [BindProperty(SupportsGet = true)]
+    public string? Query { get; set; }
+
     public ContactsModel(IWorkspaceRepository workspaceRepo, IContactRepository contactRepo, ITicketPriorityRepository priorityRepo, IRolePermissionRepository rolePerms)
     {
         _workspaceRepo = workspaceRepo;
@@ -51,14 +54,21 @@ public class ContactsModel : PageModel
                 }
             }
             var all = await _contactRepo.ListAsync(Workspace.Id);
+            IEnumerable<Contact> filtered = all;
             if (!string.IsNullOrWhiteSpace(Priority))
             {
-                Contacts = all.Where(c => string.Equals(c.Priority, Priority, StringComparison.OrdinalIgnoreCase)).ToList();
+                filtered = filtered.Where(c => string.Equals(c.Priority, Priority, StringComparison.OrdinalIgnoreCase));
             }
-            else
+            if (!string.IsNullOrWhiteSpace(Query))
             {
-                Contacts = all;
+                var q = Query.Trim();
+                filtered = filtered.Where(c =>
+                    (!string.IsNullOrWhiteSpace(c.Name) && c.Name.Contains(q, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrWhiteSpace(c.Email) && c.Email.Contains(q, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrWhiteSpace(c.Company) && c.Company.Contains(q, StringComparison.OrdinalIgnoreCase))
+                );
             }
+            Contacts = filtered.ToList();
             Priorities = await _priorityRepo.ListAsync(Workspace.Id);
             PriorityColorByName = Priorities.ToDictionary(p => p.Name, p => string.IsNullOrWhiteSpace(p.Color) ? "neutral" : p.Color);
         }

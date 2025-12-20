@@ -34,7 +34,7 @@
         </div>
         <div class="card bg-base-100 shadow-sm mt-4">
             <div class="card-body">
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto rounded-box bg-base-100">
                     <table class="table table-zebra table-md">
                         <thead>
                             <tr>
@@ -63,25 +63,29 @@
                                         <td>
                                             @if (r.Admin)
                                             {
-                                                <span class="badge badge-primary">Admin</span>
+                                                <span class="badge badge-soft badge-primary">Admin</span>
                                             }
                                             else
                                             {
-                                                <span class="badge">Member</span>
+                                                <span class="badge badge-soft">Member</span>
                                             }
                                         </td>
                                         <td>
                                             <span class="badge badge-soft badge-info">@assignedCount</span>
                                         </td>
                                         <td>
-                                            <div class="flex flex-wrap gap-2 md:join">
-                                                <a class="btn btn-outline btn-xs md:join-item" href="/workspaces/@Model.WorkspaceSlug/users/roles/@r.Id/edit">Edit</a>
+                                            <div class="flex flex-wrap gap-2">
+                                                @await Html.PartialAsync("_ActionRow", new Tickflo.Web.Pages.Shared.ActionRowView {
+                                                    Actions = new List<Tickflo.Web.Pages.Shared.ActionItem> {
+                                                        new Tickflo.Web.Pages.Shared.ActionItem { Label = "Edit", Href = $"/workspaces/{Model.WorkspaceSlug}/users/roles/{r.Id}/edit", Disabled = false, ButtonClass = "btn btn-soft btn-xs" }
+                                                    }
+                                                })
                                                 <form method="post" action="/workspaces/@Model.WorkspaceSlug/users/roles/@r.Id/delete" onsubmit="return confirm('Delete role @r.Name?');">
-                                                    <button class="btn btn-error btn-outline btn-xs md:join-item" type="submit" @(assignedCount > 0 ? "disabled" : null)>Delete</button>
+                                                    <button class="btn btn-soft btn-error btn-xs" type="submit" @(assignedCount > 0 ? "disabled" : null)>Delete</button>
                                                 </form>
                                                 @if (assignedCount > 0)
                                                 {
-                                                    <span class="text-xs text-base-content/70 ml-2">Unassign users before deleting.</span>
+                                                    <span class="text-xs text-base-content/70">Unassign users before deleting.</span>
                                                 }
                                             </div>
                                         </td>
@@ -90,6 +94,9 @@
                             }
                         </tbody>
                     </table>
+                </div>
+                <div class="alert alert-soft mt-2">
+                    <span>Note: Unassign users from a role before deleting it.</span>
                 </div>
             </div>
         </div>

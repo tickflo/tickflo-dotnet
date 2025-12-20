@@ -20,8 +20,8 @@
         </div>
         <div class="card bg-base-100 shadow-sm mt-4">
             <div class="card-body">
-                <div class="overflow-x-auto">
-                    <table class="table table-md">
+                <div class="overflow-x-auto rounded-box bg-base-100">
+                    <table class="table table-zebra table-md">
                         <thead>
                             <tr>
                                 <th>Name</th>
@@ -46,7 +46,7 @@
                                     <tr>
                                         <td class="break-all">@loc.Name</td>
                                         <td class="hidden sm:table-cell break-all">@loc.Address</td>
-                                        <td><span class="badge">@(loc.Active ? "Active" : "Inactive")</span></td>
+                                        <td><span class="badge badge-soft">@(loc.Active ? "Active" : "Inactive")</span></td>
                                         <td>
                                             <div class="flex flex-wrap gap-2 md:join">
                                                 @if (Model.CanEditLocations) {

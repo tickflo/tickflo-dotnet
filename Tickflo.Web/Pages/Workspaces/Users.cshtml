@@ -19,12 +19,12 @@
                 <h2 class="card-title">Pending Invites</h2>
             @if (!Model.PendingInvites.Any())
             {
-                <div class="alert alert-info">No pending invites.</div>
+                <div class="alert alert-soft alert-info">No pending invites.</div>
             }
             else
             {
-                <div class="overflow-x-auto mt-2">
-                <table class="table table-md">
+                <div class="overflow-x-auto rounded-box mt-2">
+                <table class="table table-zebra table-md">
                     <thead>
                         <tr>
                             <th>Email</th>

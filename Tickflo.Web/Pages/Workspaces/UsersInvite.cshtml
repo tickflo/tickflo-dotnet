@@ -12,12 +12,12 @@
                 <form method="post">
                     <div class="fieldset">
                         <label class="label" for="Email"><span class="label-text">Email</span></label>
-                        <input class="input validator w-full" asp-for="Email" />
+                        <input class="input input-bordered validator w-full" asp-for="Email" />
                         <span asp-validation-for="Email" class="validator-hint"></span>
                     </div>
                     <div class="fieldset">
                         <label class="label" for="Role"><span class="label-text">Role</span></label>
-                        <select class="select validator w-full" asp-for="Role"><option>Member</option><option>Admin</option></select>
+                        <select class="select select-bordered validator w-full" asp-for="Role"><option>Member</option><option>Admin</option></select>
                         <span asp-validation-for="Role" class="validator-hint"></span>
                     </div>
                     <div class="card-actions justify-start mt-2 flex flex-wrap gap-2 md:join">

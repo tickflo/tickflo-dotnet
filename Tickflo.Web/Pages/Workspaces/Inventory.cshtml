@@ -11,26 +11,31 @@
 
 <div class="grid gap-4">
   <div class="flex items-center justify-between">
-    <form method="get" class="join md:join">
-      <input name="Query" value="@Model.Query" placeholder="Search name or SKU" class="input input-bordered join-item input-sm md:input-md" />
-      <select name="Status" class="select select-bordered join-item select-sm md:select-md">
-        <option value="">All</option>
-        <option value="active" selected>Active</option>
-        <option value="archived">Archived</option>
-      </select>
-      <button class="btn btn-soft join-item btn-sm md:btn-md">Filter</button>
-    </form>
-
-    <div class="join md:join">
-      @if (Model.CanCreateInventory) {
-        <a class="btn btn-soft join-item btn-sm md:btn-md" href="/workspaces/@Model.Workspace?.Slug/inventory/0/edit">New Item</a>
-      } else {
-        <button class="btn btn-soft join-item btn-sm md:btn-md" disabled>New Item</button>
+    @await Html.PartialAsync("_FilterBar", new Tickflo.Web.Pages.Shared.FilterBarView {
+      QueryParamName = "Query",
+      QueryValue = Model.Query,
+      Placeholder = "Search name or SKU",
+      SubmitLabel = "Filter",
+      Selects = new List<Tickflo.Web.Pages.Shared.FilterSelect> {
+        new Tickflo.Web.Pages.Shared.FilterSelect {
+          Name = "Status",
+          Options = new List<Tickflo.Web.Pages.Shared.FilterOption> {
+            new Tickflo.Web.Pages.Shared.FilterOption { Value = "", Label = "All", Selected = string.IsNullOrEmpty(Model.Status) },
+            new Tickflo.Web.Pages.Shared.FilterOption { Value = "active", Label = "Active", Selected = (Model.Status ?? string.Empty) == "active" },
+            new Tickflo.Web.Pages.Shared.FilterOption { Value = "archived", Label = "Archived", Selected = (Model.Status ?? string.Empty) == "archived" }
+          }
+        }
       }
-    </div>
+    })
+
+    @await Html.PartialAsync("_ActionRow", new Tickflo.Web.Pages.Shared.ActionRowView {
+      Actions = new List<Tickflo.Web.Pages.Shared.ActionItem> {
+        new Tickflo.Web.Pages.Shared.ActionItem { Label = "New Item", Href = Model.CanCreateInventory ? $"/workspaces/{Model.Workspace?.Slug}/inventory/0/edit" : null, Disabled = !Model.CanCreateInventory, ButtonClass = "btn btn-soft" }
+      }
+    })
   </div>
 
-  <div class="overflow-x-auto">
+  <div class="overflow-x-auto rounded-box bg-base-100">
     <table class="table table-zebra table-md">
       <thead>
         <tr>

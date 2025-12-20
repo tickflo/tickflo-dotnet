@@ -15,30 +15,29 @@
                         <h2 class="card-title">Contacts</h2>
                         <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
                     </div>
-                    <form method="get" class="join">
-                        <select name="Priority" class="select select-bordered join-item select-sm md:select-md">
-                            <option value="">All Priorities</option>
-                            @foreach (var p in Model.Priorities)
-                            {
-                                if (string.Equals(Model.Priority, p.Name, StringComparison.OrdinalIgnoreCase))
-                                {
-                                    <option value="@p.Name" selected>@p.Name</option>
-                                }
-                                else
-                                {
-                                    <option value="@p.Name">@p.Name</option>
-                                }
+                    @await Html.PartialAsync("_FilterBar", new Tickflo.Web.Pages.Shared.FilterBarView {
+                        QueryParamName = "Query",
+                        QueryValue = Model.Query,
+                        Placeholder = "Search contacts by name or email",
+                        SubmitLabel = "Filter",
+                        Selects = new List<Tickflo.Web.Pages.Shared.FilterSelect> {
+                            new Tickflo.Web.Pages.Shared.FilterSelect {
+                                Name = "Priority",
+                                Options = Model.Priorities.Select(p => new Tickflo.Web.Pages.Shared.FilterOption {
+                                    Value = p.Name ?? string.Empty,
+                                    Label = p.Name ?? "",
+                                    Selected = string.Equals(Model.Priority ?? string.Empty, p.Name ?? string.Empty, System.StringComparison.OrdinalIgnoreCase)
+                                }).Prepend(new Tickflo.Web.Pages.Shared.FilterOption { Value = "", Label = "All Priorities", Selected = string.IsNullOrEmpty(Model.Priority) }).ToList()
                             }
-                        </select>
-                        <button class="btn btn-soft join-item btn-sm md:btn-md">Filter</button>
-                    </form>
+                        }
+                    })
                 </div>
             </div>
         </div>
         <div class="card bg-base-100 shadow-sm mt-4">
             <div class="card-body">
-                <div class="overflow-x-auto">
-                    <table class="table table-md">
+                <div class="overflow-x-auto rounded-box bg-base-100">
+                    <table class="table table-zebra table-md">
                         <thead>
                             <tr>
                                 <th>Name</th>
@@ -81,8 +80,8 @@
                                                     var pStyle = pIsHex ? $"background-color: {pcolor}; color: #fff;" : null;
                                                     <span class="@pCls" style="@pStyle">@c.Priority</span>
                                                 }
-                                                @if (!string.IsNullOrWhiteSpace(c.PreferredChannel)) { <span class="badge">@c.PreferredChannel</span> }
-                                                @if (!string.IsNullOrWhiteSpace(c.Status)) { <span class="badge">@c.Status</span> }
+                                                @if (!string.IsNullOrWhiteSpace(c.PreferredChannel)) { <span class="badge badge-soft">@c.PreferredChannel</span> }
+                                                @if (!string.IsNullOrWhiteSpace(c.Status)) { <span class="badge badge-soft">@c.Status</span> }
                                             </div>
                                         </td>
                                         <td>

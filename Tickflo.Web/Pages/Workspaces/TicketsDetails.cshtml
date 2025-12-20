@@ -131,7 +131,7 @@
             <div>
               <label class="label">Assignee</label>
               <input type="hidden" id="assignedUserId" name="assignedUserId" value="@Model.Ticket!.AssignedUserId" />
-              <input id="assignee-search" class="input w-full" list="assignees-list" placeholder="Search assignee by name or email" />
+              <input id="assignee-search" class="input input-bordered w-full" list="assignees-list" placeholder="Search assignee by name or email" />
               <datalist id="assignees-list">
                 <option value="Unassigned" data-id=""></option>
                 @foreach (var u in Model.Members)
@@ -143,7 +143,7 @@
             <div>
               <label class="label">Team</label>
               <input type="hidden" id="assignedTeamId" name="assignedTeamId" value="@Model.Ticket!.AssignedTeamId" />
-              <input id="team-search" class="input w-full" list="teams-list" placeholder="Search team by name" />
+              <input id="team-search" class="input input-bordered w-full" list="teams-list" placeholder="Search team by name" />
               <datalist id="teams-list">
                 <option value="None" data-id=""></option>
                 @foreach (var t in Model.Teams)
@@ -184,7 +184,7 @@
                   <option value="@i.Name (@i.Sku)" data-id="@i.Id" data-sku="@i.Sku" data-name="@i.Name" data-price="@((i.Price ?? i.Cost).ToString(System.Globalization.CultureInfo.InvariantCulture))" />
                 }
               </datalist>
-              <table class="table w-full" id="invoice-table">
+              <table class="table table-zebra table-md w-full" id="invoice-table">
                 <thead>
                   <tr>
                     <th>SKU</th>

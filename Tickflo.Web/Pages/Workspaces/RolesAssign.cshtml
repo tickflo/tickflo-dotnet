@@ -43,7 +43,7 @@
 
         <div class="card bg-base-100 shadow-sm mt-8">
             <div class="card-body p-0">
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto rounded-box bg-base-100">
                     <table class="table table-zebra table-md">
                         <thead>
                             <tr>
@@ -67,7 +67,7 @@
                                                     <form method="post" asp-page-handler="Remove" class="inline ml-2">
                                                         <input type="hidden" name="userId" value="@m.Id" />
                                                         <input type="hidden" name="roleId" value="@r.Id" />
-                                                        <button type="submit" class="btn btn-outline btn-error btn-xs">Remove</button>
+                                                        <button type="submit" class="btn btn-soft btn-error btn-xs">Remove</button>
                                                     </form>
                                                 </span>
                                             }

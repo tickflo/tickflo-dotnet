@@ -1,0 +1,18 @@
+@model Tickflo.Web.Pages.Shared.FilterBarView
+<form method="get" class="join md:join">
+  <input name="@Model.QueryParamName" value="@Model.QueryValue" placeholder="@Model.Placeholder" class="input input-bordered join-item input-sm md:input-md" />
+  @if (Model.Selects != null && Model.Selects.Count > 0)
+  {
+    foreach (var sel in Model.Selects)
+    {
+      var cls = string.IsNullOrWhiteSpace(sel.CssClass) ? "select select-bordered join-item select-sm md:select-md" : sel.CssClass!;
+      <select name="@sel.Name" class="@cls">
+        @foreach (var opt in sel.Options)
+        {
+          if (opt.Selected) {<option value="@opt.Value" selected>@opt.Label</option>} else {<option value="@opt.Value">@opt.Label</option>}
+        }
+      </select>
+    }
+  }
+  <button class="btn btn-soft join-item btn-sm md:btn-md">@Model.SubmitLabel</button>
+</form>

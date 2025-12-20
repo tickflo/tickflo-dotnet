@@ -20,8 +20,8 @@
         </div>
         <div class="card bg-base-100 shadow-sm mt-4">
             <div class="card-body">
-                <div class="overflow-x-auto">
-                    <table class="table table-md">
+                <div class="overflow-x-auto rounded-box bg-base-100">
+                    <table class="table table-zebra table-md">
                         <thead>
                             <tr>
                                 <th>Name</th>
@@ -45,7 +45,7 @@
                                 {
                                     <tr>
                                         <td class="break-all">@rep.Name</td>
-                                        <td><span class="badge">@(rep.Ready ? "Ready" : "Draft")</span></td>
+                                        <td><span class="badge badge-soft">@(rep.Ready ? "Ready" : "Draft")</span></td>
                                         <td class="hidden md:table-cell">@(rep.LastRun.HasValue ? rep.LastRun.Value.ToString("g") : "Never")</td>
                                         <td>
                                             <div class="flex flex-wrap gap-2 md:join">
