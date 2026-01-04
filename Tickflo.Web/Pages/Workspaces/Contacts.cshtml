@@ -8,7 +8,7 @@
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Contacts", NewActionLabel = "New Contact", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/contacts/0/edit", AllowNewAction = Model.CanCreateContacts })
-        <div class="card bg-base-100 shadow-sm">
+        <div class="card bg-base-100 shadow-sm rounded-3xl">
             <div class="card-body">
                 <div class="flex items-center justify-between">
                     <div>
@@ -34,7 +34,7 @@
                 </div>
             </div>
         </div>
-        <div class="card bg-base-100 shadow-sm mt-4">
+        <div class="card bg-base-100 shadow-sm rounded-3xl mt-4">
             <div class="card-body">
                 <div class="overflow-x-auto rounded-box bg-base-100">
                     <table class="table table-zebra table-md">
@@ -80,8 +80,8 @@
                                                     var pStyle = pIsHex ? $"background-color: {pcolor}; color: #fff;" : null;
                                                     <span class="@pCls" style="@pStyle">@c.Priority</span>
                                                 }
-                                                @if (!string.IsNullOrWhiteSpace(c.PreferredChannel)) { <span class="badge badge-soft">@c.PreferredChannel</span> }
-                                                @if (!string.IsNullOrWhiteSpace(c.Status)) { <span class="badge badge-soft">@c.Status</span> }
+                                                @if (!string.IsNullOrWhiteSpace(c.PreferredChannel)) { <span class="badge badge-soft rounded-full">@c.PreferredChannel</span> }
+                                                @if (!string.IsNullOrWhiteSpace(c.Status)) { <span class="badge badge-soft rounded-full">@c.Status</span> }
                                             </div>
                                         </td>
                                         <td>

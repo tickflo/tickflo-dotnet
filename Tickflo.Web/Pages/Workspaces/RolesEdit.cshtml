@@ -9,7 +9,7 @@
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.WorkspaceSlug, SectionTitle = ((Model.Role == null || Model.Role.Id == 0) ? "New User Role" : "Edit User Role") })
 
-        <div class="card bg-base-100 shadow-sm mt-4">
+        <div class="card bg-base-100 shadow-sm rounded-3xl mt-4 rounded-3xl">
             <div class="card-body">
                 <h2 class="card-title">@((Model.Role == null || Model.Role.Id == 0) ? "New Role" : "Edit Role")</h2>
                 <form method="post" class="grid gap-4">

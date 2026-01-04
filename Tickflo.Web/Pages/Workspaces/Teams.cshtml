@@ -9,7 +9,7 @@
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Teams", NewActionLabel = "New Team", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/users/teams/0/edit", AllowNewAction = Model.CanCreateTeams })
 
-        <div class="card bg-base-100 mt-4">
+        <div class="card bg-base-100 mt-4 rounded-3xl">
             <div class="card-body p-0">
                 <div class="overflow-x-auto rounded-box bg-base-100">
                     <table class="table table-zebra table-md">

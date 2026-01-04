@@ -12,14 +12,14 @@
         {
             <div class="alert alert-success my-4">@s2</div>
         }
-        <div class="card bg-base-100 shadow-sm">
+        <div class="card bg-base-100 shadow-sm rounded-3xl">
             <div class="card-body">
                 <h2 class="card-title">Reports</h2>
                 <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
                 
             </div>
         </div>
-        <div class="card bg-base-100 shadow-sm mt-4">
+        <div class="card bg-base-100 shadow-sm rounded-3xl mt-4 rounded-3xl">
             <div class="card-body">
                 <div class="overflow-x-auto rounded-box bg-base-100">
                     <table class="table table-zebra table-md">
@@ -46,7 +46,7 @@
                                 {
                                     <tr>
                                         <td class="break-all">@rep.Name</td>
-                                        <td><span class="badge badge-soft">@(rep.Ready ? "Ready" : "Draft")</span></td>
+                                        <td><span class="badge badge-soft rounded-full">@(rep.Ready ? "Ready" : "Draft")</span></td>
                                         <td class="hidden md:table-cell">@(rep.LastRun.HasValue ? rep.LastRun.Value.ToString("g") : "Never")</td>
                                         <td>
                                             <div class="flex flex-wrap gap-2 md:join">

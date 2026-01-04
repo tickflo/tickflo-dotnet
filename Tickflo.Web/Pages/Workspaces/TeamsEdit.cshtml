@@ -8,7 +8,7 @@
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = (Model.Id == 0 ? "New Team" : "Edit Team"), AllowNewAction = Model.CanCreateTeams, NewActionLabel = "New Team", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/users/teams/0/edit" })
-        <div class="card bg-base-100 shadow-sm mt-4 max-w-xl">
+        <div class="card bg-base-100 shadow-sm rounded-3xl mt-4 max-w-xl rounded-3xl">
             <div class="card-body">
                 <form method="post">
                     <div class="fieldset">
@@ -38,7 +38,7 @@
                                 var u = Model.WorkspaceUsers.FirstOrDefault(x => x.Id == mid);
                                 if (u != null)
                                 {
-                                    <span class="badge badge-soft" data-id="@u.Id">
+                                    <span class="badge badge-soft rounded-full" data-id="@u.Id">
                                         @u.Name (@u.Email)
                                         <button type="button" class="btn btn-ghost btn-xs ml-2 remove-member" aria-label="Remove" title="Remove">✕</button>
                                     </span>

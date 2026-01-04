@@ -23,7 +23,7 @@
             <div class="alert alert-error mb-4">@TempData["Error"]</div>
         }
 
-        <div class="card bg-base-100 shadow-sm">
+        <div class="card bg-base-100 shadow-sm rounded-3xl">
             <div class="card-body p-0">
                 <div class="overflow-x-auto">
                     <table class="table table-zebra table-md">
@@ -45,11 +45,11 @@
                                     <td>
                                         @if (u.SystemAdmin)
                                         {
-                                            <span class="badge badge-soft badge-primary">Yes</span>
+                                            <span class="badge badge-soft badge-primary rounded-full">Yes</span>
                                         }
                                         else
                                         {
-                                            <span class="badge badge-soft">No</span>
+                                            <span class="badge badge-soft rounded-full">No</span>
                                         }
                                     </td>
                                       <td class="hidden sm:table-cell">@u.CreatedAt.ToString("yyyy-MM-dd")</td>

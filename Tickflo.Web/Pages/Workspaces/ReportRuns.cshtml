@@ -7,7 +7,7 @@
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = $"Runs: {Model.Report?.Name ?? "Report"}", AllowNewAction = false })
-        <div class="card bg-base-100 shadow-sm">
+        <div class="card bg-base-100 shadow-sm rounded-3xl">
             <div class="card-body">
                 <div class="overflow-x-auto rounded-box bg-base-100">
                     <table class="table table-zebra table-md">
@@ -32,7 +32,7 @@
                                     <tr>
                                         <td>@rr.StartedAt.ToString("g")</td>
                                         <td>@(rr.FinishedAt.HasValue ? rr.FinishedAt.Value.ToString("g") : "-")</td>
-                                        <td><span class="badge badge-soft">@rr.Status</span></td>
+                                        <td><span class="badge badge-soft rounded-full">@rr.Status</span></td>
                                         <td>@rr.RowCount</td>
                                         <td>
                                             @if (string.Equals(rr.Status, "Succeeded", StringComparison.OrdinalIgnoreCase))

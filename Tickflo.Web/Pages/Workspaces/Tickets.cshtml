@@ -110,7 +110,7 @@
             <label class="label cursor-pointer join-item px-3">
                 <span class="label-text mr-2">Mine</span>
                 <input type="checkbox" name="Mine" value="true" class="checkbox checkbox-sm" @(Model.Mine ? "checked" : "") />
-                <span class="badge badge-soft ml-2">@Model.MyCount</span>
+                <span class="badge badge-soft ml-2 rounded-full">@Model.MyCount</span>
             </label>
             <button class="btn btn-soft join-item btn-sm md:btn-md">Filter</button>
         </form>
@@ -175,11 +175,11 @@
                         <td class="hidden sm:table-cell">
                         @if (t.AssignedTeamId.HasValue && Model.TeamsById.TryGetValue(t.AssignedTeamId.Value, out var team))
                         {
-                            <span class="badge badge-soft">@team.Name</span>
+                            <span class="badge badge-soft rounded-full">@team.Name</span>
                         }
                         else if (t.AssignedUserId.HasValue && Model.UsersById.TryGetValue(t.AssignedUserId.Value, out var au))
                         {
-                            <span class="badge badge-soft">@au.Name</span>
+                            <span class="badge badge-soft rounded-full">@au.Name</span>
                             <span class="opacity-60 ml-2">(@au.Email)</span>
                         }
                         else
@@ -355,7 +355,7 @@
                         const badgeCell = form.closest('tr')?.querySelector('td:nth-child(5)');
                         if (badgeCell){
                             if (hidden.value){
-                                badgeCell.innerHTML = `<span class="badge badge-soft">${input.value}</span>`;
+                                badgeCell.innerHTML = `<span class="badge badge-soft rounded-full">${input.value}</span>`;
                             } else {
                                 badgeCell.innerHTML = `<span class="badge">Unassigned</span>`;
                             }
@@ -406,7 +406,7 @@
                                         const isHex = (typeof color === 'string') && color.startsWith('#');
                                         const statusSpan = isHex
                                                 ? `<span class="badge" style="background-color: ${color}; color: #fff;">${t.status}</span>`
-                                                : `<span class="badge badge-soft badge-${color}">${t.status}</span>`;
+                                                : `<span class="badge badge-soft badge-${color} rounded-full">${t.status}</span>`;
                     tr.innerHTML = `
                         <td><a class="link link-hover" href="/workspaces/${slug}/tickets/${t.id}?${rowQs}">${t.subject}</a></td>
                         ${(() => { const tc = typeColors[t.type] || 'neutral'; const tIsHex = (typeof tc === 'string') && tc.startsWith('#'); return tIsHex ? `<td><span class=\"badge badge-soft\" style=\"background-color: ${tc}; color: #fff;\">${t.type}</span></td>` : `<td><span class=\"badge badge-soft badge-${tc}\">${t.type}</span></td>`; })()}
@@ -414,13 +414,13 @@
                             const pc = priorityColors[t.priority] || 'neutral';
                             const pIsHex = (typeof pc === 'string') && pc.startsWith('#');
                             const prioSpan = pIsHex
-                                ? `<span class="badge badge-soft" style="background-color: ${pc}; color: #fff;">${t.priority}</span>`
-                                : `<span class="badge badge-soft badge-${pc}">${t.priority}</span>`;
+                                ? `<span class="badge badge-soft rounded-full" style="background-color: ${pc}; color: #fff;">${t.priority}</span>`
+                                : `<span class="badge badge-soft badge-${pc} rounded-full">${t.priority}</span>`;
                             }
                         <td>${prioSpan}</td>
                                                 <td>${statusSpan}</td>
                         <td><span>${contactDisplay}</span></td>
-                        <td class="hidden sm:table-cell"><span class="badge ${t.assignedUserId ? 'badge-soft' : ''}">${t.assignedUserId ? (t.assignedDisplay || 'Assigned') : 'Unassigned'}</span></td>
+                        <td class="hidden sm:table-cell"><span class="badge ${t.assignedUserId ? 'badge-soft' : ''} rounded-full">${t.assignedUserId ? (t.assignedDisplay || 'Assigned') : 'Unassigned'}</span></td>
                             <td class="hidden sm:table-cell"><span class="opacity-80" title="${t.inventoryDetails || ''}">${t.inventorySummary || '—'}</span></td>
                         <td class="hidden md:table-cell">${created}</td>
                         <td>
@@ -486,7 +486,7 @@
                     if (!assigneeCell) return;
                     if (t.assignedUserId){
                         const label = t.assignedDisplay || 'Assigned';
-                        assigneeCell.innerHTML = `<span class="badge badge-soft">${label}</span>`;
+                        assigneeCell.innerHTML = `<span class="badge badge-soft rounded-full">${label}</span>`;
                     } else {
                         assigneeCell.innerHTML = `<span class="badge">Unassigned</span>`;
                     }

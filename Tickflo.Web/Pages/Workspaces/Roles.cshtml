@@ -15,7 +15,7 @@
                 <span>@err</span>
             </div>
         }
-        <div class="card bg-base-100 shadow-sm">
+        <div class="card bg-base-100 shadow-sm rounded-3xl">
             <div class="card-body">
                 <h2 class="card-title">Roles</h2>
                 <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
@@ -32,7 +32,7 @@
                 </div>
             </div>
         </div>
-        <div class="card bg-base-100 shadow-sm mt-4">
+        <div class="card bg-base-100 shadow-sm rounded-3xl mt-4 rounded-3xl">
             <div class="card-body">
                 <div class="overflow-x-auto rounded-box bg-base-100">
                     <table class="table table-zebra table-md">
@@ -63,15 +63,15 @@
                                         <td>
                                             @if (r.Admin)
                                             {
-                                                <span class="badge badge-soft badge-primary">Admin</span>
+                                                <span class="badge badge-soft badge-primary rounded-full">Admin</span>
                                             }
                                             else
                                             {
-                                                <span class="badge badge-soft">Member</span>
+                                                <span class="badge badge-soft rounded-full">Member</span>
                                             }
                                         </td>
                                         <td>
-                                            <span class="badge badge-soft badge-info">@assignedCount</span>
+                                            <span class="badge badge-soft badge-info rounded-full">@assignedCount</span>
                                         </td>
                                         <td>
                                             <div class="flex flex-wrap gap-2">

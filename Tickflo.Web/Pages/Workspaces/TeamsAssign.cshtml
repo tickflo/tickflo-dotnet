@@ -9,7 +9,7 @@
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = $"Team: {Model.Team?.Name}" })
 
-        <div class="card bg-base-100 shadow-sm mt-4 max-w-3xl">
+        <div class="card bg-base-100 shadow-sm rounded-3xl mt-4 max-w-3xl rounded-3xl">
             <div class="card-body">
                 <h2 class="card-title">Members</h2>
                 <form method="post" asp-page-handler="Add" class="grid gap-4 md:grid-cols-3 items-end">
@@ -32,7 +32,7 @@
             </div>
         </div>
 
-        <div class="card bg-base-100 shadow-sm mt-8">
+        <div class="card bg-base-100 shadow-sm rounded-3xl mt-8 rounded-3xl">
             <div class="card-body p-0">
                 <div class="overflow-x-auto">
                     <table class="table table-md">

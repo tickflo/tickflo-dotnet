@@ -42,16 +42,16 @@
                    asp-route-take="@Model.Take">Next</a>
             </div>
             <div class="text-sm opacity-80">
-                <span class="badge badge-soft">Started: @Model.Run?.StartedAt.ToString("g")</span>
-                <span class="badge badge-soft">Status: @Model.Run?.Status</span>
-                <span class="badge badge-soft">Rows: @Model.TotalRows</span>
+                <span class="badge badge-soft rounded-full">Started: @Model.Run?.StartedAt.ToString("g")</span>
+                <span class="badge badge-soft rounded-full">Status: @Model.Run?.Status</span>
+                <span class="badge badge-soft rounded-full">Rows: @Model.TotalRows</span>
                 @if (Model.TotalRows > 0)
                 {
-                    <span class="badge badge-info">Showing @Model.FromRow - @Model.ToRow</span>
+                    <span class="badge badge-info rounded-full">Showing @Model.FromRow - @Model.ToRow</span>
                 }
             </div>
         </div>
-        <div class="card bg-base-100 shadow-sm">
+        <div class="card bg-base-100 shadow-sm rounded-3xl">
             <div class="card-body">
                 @if (!Model.HasContent)
                 {

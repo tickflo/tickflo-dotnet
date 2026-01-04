@@ -9,7 +9,7 @@
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Assign Roles" })
 
-        <div class="card bg-base-100 shadow-sm mt-4 max-w-3xl">
+        <div class="card bg-base-100 shadow-sm rounded-3xl mt-4 max-w-3xl rounded-3xl">
             <div class="card-body">
                 <h2 class="card-title">Assign Roles</h2>
                 <form method="post" asp-page-handler="Assign" class="grid gap-4 md:grid-cols-3 items-end">
@@ -41,7 +41,7 @@
             </div>
         </div>
 
-        <div class="card bg-base-100 shadow-sm mt-8">
+        <div class="card bg-base-100 shadow-sm rounded-3xl mt-8 rounded-3xl">
             <div class="card-body p-0">
                 <div class="overflow-x-auto rounded-box bg-base-100">
                     <table class="table table-zebra table-md">
@@ -63,7 +63,7 @@
                                             foreach (var r in roles)
                                             {
                                                 <span class="inline-flex items-center mr-2">
-                                                    <span class="badge badge-soft badge-secondary">@r.Name</span>
+                                                    <span class="badge badge-soft badge-secondary rounded-full">@r.Name</span>
                                                     <form method="post" asp-page-handler="Remove" class="inline ml-2">
                                                         <input type="hidden" name="userId" value="@m.Id" />
                                                         <input type="hidden" name="roleId" value="@r.Id" />

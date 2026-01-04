@@ -7,7 +7,7 @@
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = (Model.Id == 0 ? "New Contact" : "Edit Contact"), AllowNewAction = Model.CanCreateContacts, NewActionLabel = "New Contact", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/contacts/0/edit" })
-        <div class="card bg-base-100 shadow-sm mt-4 max-w-xl">
+        <div class="card bg-base-100 shadow-sm rounded-3xl mt-4 max-w-xl rounded-3xl">
             <div class="card-body">
                 <form method="post">
                     <div class="fieldset">

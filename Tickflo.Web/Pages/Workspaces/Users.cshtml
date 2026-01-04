@@ -8,13 +8,13 @@
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="p-6 flex-1">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Users", NewActionLabel = "Invite User", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/users/invite", AllowNewAction = (Model.CanCreateUsers || Model.IsWorkspaceAdmin) })
-        <div class="card bg-base-100 shadow-sm">
+        <div class="card bg-base-100 shadow-sm rounded-3xl">
             <div class="card-body">
                 <h2 class="card-title">Users</h2>
                 <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
             </div>
         </div>
-        <div class="card bg-base-100 shadow-sm mt-4">
+        <div class="card bg-base-100 shadow-sm rounded-3xl mt-4 rounded-3xl">
             <div class="card-body">
                 <h2 class="card-title">Pending Invites</h2>
             @if (!Model.PendingInvites.Any())

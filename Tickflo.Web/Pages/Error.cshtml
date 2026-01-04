@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model ErrorModel
 @{
     ViewData["Title"] = "Error";
@@ -7,7 +7,7 @@
 <div class="flex">
     @await Html.PartialAsync("_AppSidebar")
     <section class="p-6 flex-1">
-        <div class="card bg-base-100 shadow-sm">
+        <div class="card bg-base-100 shadow-sm rounded-3xl">
             <div class="card-body">
                 <h1 class="card-title">Something went wrong</h1>
                 <div role="alert" class="alert alert-error alert-soft mt-2">
@@ -18,7 +18,7 @@
                 {
                     <div class="mt-2 text-sm">
                         <span class="opacity-70">Request ID:</span>
-                        <span class="badge badge-soft badge-primary">@Model.RequestId</span>
+                        <span class="badge badge-soft badge-primary rounded-full">@Model.RequestId</span>
                     </div>
                 }
 

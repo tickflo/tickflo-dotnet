@@ -62,10 +62,10 @@
           <td class="hidden md:table-cell">@(i.Price.HasValue ? "$" + i.Price.Value.ToString("0.00") : "-")</td>
           <td>
             <div class="flex gap-2 items-center">
-              <span class="badge badge-soft">@i.Status</span>
+              <span class="badge badge-soft rounded-full">@i.Status</span>
               @if (low)
               {
-                <span class="badge badge-warning badge-soft">Low</span>
+                <span class="badge badge-warning badge-soft rounded-full">Low</span>
               }
             </div>
           </td>
