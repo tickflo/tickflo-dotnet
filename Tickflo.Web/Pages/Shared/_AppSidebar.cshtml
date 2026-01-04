@@ -13,26 +13,50 @@
         isAdmin = me?.SystemAdmin == true;
     }
 }
-<aside class="block sticky top-0 h-screen w-60 shrink-0 overflow-y-auto bg-base-200 px-4 py-6" aria-labelledby="app-nav">
-  <nav id="app-nav" aria-label="App navigation" class="p-2">
-    <ul class="menu menu-sm w-56 rounded-box bg-base-200">
-      <li><a href="/" class="@(path.Equals("/", StringComparison.OrdinalIgnoreCase) ? "menu-active" : null)" aria-current="@(path.Equals("/", StringComparison.OrdinalIgnoreCase) ? "page" : null)"><i class="fa fa-house"></i> Home</a></li>
-      <li class="menu-title">General</li>
-      <li>
-        <a class="@(IsActive("/workspaces/") ? "menu-active" : null)" href="/workspaces" aria-current="@(IsActive("/workspaces/") ? "page" : null)"><i class="fa fa-layer-group"></i> Workspaces</a>
-      </li>
-      <li>
-        <a class="@(IsActive("/login") ? "menu-active" : null)" href="/login" aria-current="@(IsActive("/login") ? "page" : null)"><i class="fa fa-right-to-bracket"></i> Login</a>
-      </li>
-      <li>
-        <a class="@(IsActive("/signup") ? "menu-active" : null)" href="/signup" aria-current="@(IsActive("/signup") ? "page" : null)"><i class="fa fa-user-plus"></i> Sign Up</a>
-      </li>
-      @if (isAdmin) {
-        <li class="menu-title">Admin</li>
-        <li>
-          <a class="@(IsActive("/Users/") ? "menu-active" : null)" asp-page="/Users/Index" aria-current="@(IsActive("/Users/") ? "page" : null)"><i class="fa fa-users"></i> Users</a>
-        </li>
-      }
-    </ul>
-  </nav>
+<aside class="block sticky top-6 h-[calc(100vh-2rem)] w-64 shrink-0 overflow-y-auto px-3">
+    <div class="glass-panel p-4 h-full">
+        <div class="flex items-center justify-between mb-3 px-1">
+            <div class="text-[11px] font-semibold text-base-content/70 uppercase tracking-wide">Navigation</div>
+            <span class="badge badge-outline badge-sm rounded-full">App</span>
+        </div>
+        <nav id="app-nav" aria-label="App navigation" class="p-1">
+            <ul class="menu menu-sm w-full gap-1 text-sm font-medium">
+                <li>
+                    <a href="/" class="@(path.Equals("/", StringComparison.OrdinalIgnoreCase) ? "active menu-active" : null) rounded-2xl flex items-center gap-2">
+                        <i class="fa fa-house"></i>
+                        <span>Home</span>
+                    </a>
+                </li>
+                <li class="menu-title px-2 text-[11px]">General</li>
+                <li>
+                    <a class="@(IsActive("/workspaces/") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" href="/workspaces">
+                        <i class="fa fa-layer-group"></i>
+                        <span>Workspaces</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="@(IsActive("/login") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" href="/login">
+                        <i class="fa fa-right-to-bracket"></i>
+                        <span>Login</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="@(IsActive("/signup") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" href="/signup">
+                        <i class="fa fa-user-plus"></i>
+                        <span>Sign Up</span>
+                    </a>
+                </li>
+                @if (isAdmin)
+                {
+                    <li class="menu-title px-2 text-[11px]">Admin</li>
+                    <li>
+                        <a class="@(IsActive("/Users/") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" asp-page="/Users/Index">
+                            <i class="fa fa-users"></i>
+                            <span>Users</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    </div>
 </aside>

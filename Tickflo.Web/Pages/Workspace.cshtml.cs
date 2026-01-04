@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Config;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 using System.Collections.Generic;
@@ -24,6 +25,7 @@ public class WorkspaceModel : PageModel
     private readonly IRolePermissionRepository _rolePerms;
     private readonly IUserWorkspaceRoleRepository _uwr;
     private readonly ITeamMemberRepository _teamMembers;
+    private readonly SettingsConfig _settingsConfig;
 
     public Workspace? Workspace { get; set; }
     public bool IsMember { get; set; }
@@ -53,6 +55,17 @@ public class WorkspaceModel : PageModel
     public Dictionary<string, int> PriorityCounts { get; set; } = new();
     public List<TicketPriority> PriorityList { get; set; } = new();
 
+    // Activity sparkline data
+    public List<ActivityPoint> ActivitySeries { get; set; } = new();
+
+    // Theme/Color properties
+    public string DashboardTheme { get; set; } = "light";
+    public string PrimaryColor { get; set; } = "primary";
+    public string SuccessColor { get; set; } = "success";
+    public string InfoColor { get; set; } = "info";
+    public string WarningColor { get; set; } = "warning";
+    public string ErrorColor { get; set; } = "error";
+
     public WorkspaceModel(
         IWorkspaceRepository workspaceRepo,
         IUserWorkspaceRepository userWorkspaceRepo,
@@ -65,7 +78,8 @@ public class WorkspaceModel : PageModel
         ITeamRepository teamRepo,
         IRolePermissionRepository rolePerms,
         IUserWorkspaceRoleRepository uwr,
-        ITeamMemberRepository teamMembers)
+        ITeamMemberRepository teamMembers,
+        SettingsConfig settingsConfig)
     {
         _workspaceRepo = workspaceRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
@@ -79,6 +93,20 @@ public class WorkspaceModel : PageModel
         _rolePerms = rolePerms;
         _uwr = uwr;
         _teamMembers = teamMembers;
+        _settingsConfig = settingsConfig;
+
+        // Initialize theme from settings
+        InitializeTheme();
+    }
+
+    private void InitializeTheme()
+    {
+        DashboardTheme = _settingsConfig?.Theme?.Default ?? "light";
+        PrimaryColor = "primary";
+        SuccessColor = "success";
+        InfoColor = "info";
+        WarningColor = "warning";
+        ErrorColor = "error";
     }
 
     public async Task<IActionResult> OnGetAsync(string? slug, int? range, string? assignment)
@@ -223,6 +251,7 @@ public class WorkspaceModel : PageModel
                 visibleTickets = visibleTickets.Where(t => t.AssignedTeamId.HasValue && teamIds.Contains(t.AssignedTeamId.Value));
             }
         }
+        visibleTickets = visibleTickets.ToList();
         TotalTickets = visibleTickets.Count();
 
         StatusList = (await _statusRepo.ListAsync(workspaceId)).ToList();
@@ -242,6 +271,18 @@ public class WorkspaceModel : PageModel
 
         var memberships = await _userWorkspaceRepo.FindForWorkspaceAsync(workspaceId);
         ActiveMembers = memberships.Count(m => m.Accepted);
+
+        // Activity series (created vs closed per day in range)
+        var startDate = DateTime.UtcNow.Date.AddDays(-rangeDays + 1);
+        var dateWindow = Enumerable.Range(0, rangeDays).Select(i => startDate.AddDays(i)).ToList();
+        ActivitySeries = dateWindow
+            .Select(d => new ActivityPoint
+            {
+                Label = d.ToString("MMM dd"),
+                Created = visibleTickets.Count(t => t.CreatedAt.Date == d.Date),
+                Closed = visibleTickets.Count(t => closedNames.Contains(t.Status) && (t.UpdatedAt ?? t.CreatedAt).Date == d.Date)
+            })
+            .ToList();
 
         // Get custom priorities for this workspace
         PriorityList = (await _priorityRepo.ListAsync(workspaceId)).ToList();
@@ -384,5 +425,12 @@ public class MemberStat
     public int UserId { get; set; }
     public string Name { get; set; } = string.Empty;
     public int ResolvedCount { get; set; }
+}
+
+public class ActivityPoint
+{
+    public string Label { get; set; } = string.Empty;
+    public int Created { get; set; }
+    public int Closed { get; set; }
 }
 

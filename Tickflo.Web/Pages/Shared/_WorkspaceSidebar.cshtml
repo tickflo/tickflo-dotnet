@@ -7,6 +7,8 @@
     var slug = Model ?? string.Empty;
     var path = ViewContext?.HttpContext?.Request?.Path.Value ?? "";
     bool IsActive(string segment) => path.Contains(segment, StringComparison.OrdinalIgnoreCase);
+    var query = ViewContext?.HttpContext?.Request?.Query;
+    var statusFilter = query? ["status"].ToString() ?? string.Empty;
     var uidStr = HttpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
     bool isAdmin = false;
     int workspaceId = 0;
@@ -47,73 +49,73 @@
     var canTeams = Can("teams");
     var canSettings = Can("settings");
 }
-<aside class="block sticky top-0 h-screen w-60 shrink-0 overflow-y-auto bg-base-200 px-4 py-6 mr-3" aria-labelledby="workspace-nav">
-    <nav id="workspace-nav" aria-label="Workspace navigation" class="p-2">
-        <ul class="menu menu-sm w-56 rounded-box bg-base-200">
-            <li class="menu-title">Overview</li>
-            @if (canDashboard)
-            {
-                <li><a class="@(IsActive($"/workspaces/{slug}") && !IsActive("/contacts") && !IsActive("/tickets") && !IsActive("/reports") && !IsActive("/locations") && !IsActive("/inventory") && !IsActive("/users") && !IsActive("/users/roles") && !IsActive("/settings") ? "menu-active" : null)" asp-page="/Workspace" asp-route-slug="@slug" aria-current="@(IsActive($"/workspaces/{slug}") && !IsActive("/contacts") && !IsActive("/tickets") && !IsActive("/reports") && !IsActive("/locations") && !IsActive("/inventory") && !IsActive("/users") && !IsActive("/users/roles") && !IsActive("/settings") ? "page" : null)"><i class="fa fa-house"></i> Dashboard</a></li>
-            }
-            @if (canContacts)
-            {
-                <li><a class="@(IsActive("/contacts") ? "menu-active" : null)" asp-page="/Workspaces/Contacts" asp-route-slug="@slug" aria-current="@(IsActive("/contacts") ? "page" : null)"><i class="fa fa-address-book"></i> Contacts</a></li>
-            }
-            <li>
+<aside class="block sticky top-6 h-[calc(100vh-2rem)] w-64 shrink-0 overflow-y-auto px-3 mr-3" aria-labelledby="workspace-nav">
+    <div class="glass-panel p-4 h-full">
+        <div class="flex items-center justify-between mb-3 px-1">
+            <div class="text-[11px] font-semibold text-base-content/70 uppercase tracking-wide">Workspace</div>
+            <span class="badge badge-outline badge-sm rounded-full">Nav</span>
+        </div>
+        <nav id="workspace-nav" aria-label="Workspace navigation" class="p-1">
+            <ul class="menu menu-sm w-full gap-1 text-sm font-medium">
+                <li class="menu-title px-2 text-[11px]">Overview</li>
+                @if (canDashboard)
+                {
+                    var isDashboard = IsActive($"/workspaces/{slug}") && !IsActive("/contacts") && !IsActive("/tickets") && !IsActive("/reports") && !IsActive("/locations") && !IsActive("/inventory") && !IsActive("/users") && !IsActive("/settings");
+                    <li><a class="@(isDashboard ? "active menu-active" : null) rounded-2xl flex items-center gap-2" asp-page="/Workspace" asp-route-slug="@slug"><i class="fa fa-house"></i><span>Dashboard</span></a></li>
+                }
+                @if (canContacts)
+                {
+                    <li><a class="@(IsActive("/contacts") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" asp-page="/Workspaces/Contacts" asp-route-slug="@slug"><i class="fa fa-address-book"></i><span>Contacts</span></a></li>
+                }
                 @if (canTickets)
                 {
-                    <details>
-                        <summary><i class="fa fa-ticket"></i> Tickets</summary>
-                        <ul>
-                            <li><a class="@(IsActive("/tickets") ? "menu-active" : null)" asp-page="/Workspaces/Tickets" asp-route-slug="@slug" aria-current="@(IsActive("/tickets") ? "page" : null)">Inbox</a></li>
-                            <li><a class="@(IsActive("/tickets") ? "menu-active" : null)" asp-page="/Workspaces/Tickets" asp-route-slug="@slug" aria-current="@(IsActive("/tickets") ? "page" : null)">Closed</a></li>
-                            <li><a class="@(IsActive("/tickets") ? "menu-active" : null)" asp-page="/Workspaces/Tickets" asp-route-slug="@slug" aria-current="@(IsActive("/tickets") ? "page" : null)">All</a></li>
-                        </ul>
-                    </details>
+                    var ticketsActive = IsActive("/tickets");
+                    <li><a class="@(ticketsActive ? "active menu-active" : null) rounded-2xl flex items-center gap-2" asp-page="/Workspaces/Tickets" asp-route-slug="@slug"><i class="fa fa-ticket"></i><span>Tickets</span></a></li>
                 }
-            </li>
-            @if (canReports)
-            {
-                <li><a class="@(IsActive("/reports") ? "menu-active" : null)" asp-page="/Workspaces/Reports" asp-route-slug="@slug" aria-current="@(IsActive("/reports") ? "page" : null)"><i class="fa fa-file-alt"></i> Reports</a></li>
-            }
-            @if (canLocations)
-            {
-                <li><a class="@(IsActive("/locations") ? "menu-active" : null)" asp-page="/Workspaces/Locations" asp-route-slug="@slug" aria-current="@(IsActive("/locations") ? "page" : null)"><i class="fa fa-map-marker-alt"></i> Locations</a></li>
-            }
-            @if (canInventory)
-            {
-                <li><a class="@(IsActive("/inventory") ? "menu-active" : null)" asp-page="/Workspaces/Inventory" asp-route-slug="@slug" aria-current="@(IsActive("/inventory") ? "page" : null)"><i class="fa fa-boxes"></i> Inventory</a></li>
-            }
-            <li>
+                @if (canReports)
+                {
+                    <li><a class="@(IsActive("/reports") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" asp-page="/Workspaces/Reports" asp-route-slug="@slug"><i class="fa fa-file-alt"></i><span>Reports</span></a></li>
+                }
+                @if (canLocations)
+                {
+                    <li><a class="@(IsActive("/locations") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" asp-page="/Workspaces/Locations" asp-route-slug="@slug"><i class="fa fa-map-marker-alt"></i><span>Locations</span></a></li>
+                }
+                @if (canInventory)
+                {
+                    <li><a class="@(IsActive("/inventory") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" asp-page="/Workspaces/Inventory" asp-route-slug="@slug"><i class="fa fa-boxes"></i><span>Inventory</span></a></li>
+                }
                 @if (canUsers || canRoles || canTeams || isAdmin)
                 {
-                    <details>
-                        <summary><i class="fa fa-users"></i> Members</summary>
-                        <ul>
-                            @if (canUsers)
-                            {
-                                <li><a class="@(IsActive("/users") ? "menu-active" : null)" asp-page="/Workspaces/Users" asp-route-slug="@slug" aria-current="@(IsActive("/users") ? "page" : null)">Users</a></li>
-                            }
-                            @if (canRoles)
-                            {
-                                <li><a class="@(IsActive("/users/roles") ? "menu-active" : null)" asp-page="/Workspaces/Roles" asp-route-slug="@slug" aria-current="@(IsActive("/users/roles") ? "page" : null)">Roles</a></li>
-                            }
-                            @if (canTeams)
-                            {
-                                <li><a class="@(IsActive("/users/teams") ? "menu-active" : null)" asp-page="/Workspaces/Teams" asp-route-slug="@slug" aria-current="@(IsActive("/users/teams") ? "page" : null)">Teams</a></li>
-                            }
-                            @if (isAdmin)
-                            {
-                                <li><a class="@(IsActive("/Users/Index") ? "menu-active" : null)" asp-page="/Users/Index" aria-current="@(IsActive("/Users/Index") ? "page" : null)">All Users (Admin)</a></li>
-                            }
-                        </ul>
-                    </details>
+                    var membersActive = IsActive("/users") || IsActive("/users/roles") || IsActive("/users/teams") || IsActive("/Users/Index");
+                    <li>
+                        <details class="rounded-2xl" @(membersActive ? "open" : string.Empty)>
+                            <summary class="flex items-center gap-2"><i class="fa fa-users"></i><span>Members</span></summary>
+                            <ul>
+                                @if (canUsers)
+                                {
+                                    <li><a class="@(IsActive("/users") && !IsActive("/users/roles") && !IsActive("/users/teams") ? "active menu-active" : null) rounded-2xl" asp-page="/Workspaces/Users" asp-route-slug="@slug">Users</a></li>
+                                }
+                                @if (canRoles)
+                                {
+                                    <li><a class="@(IsActive("/users/roles") ? "active menu-active" : null) rounded-2xl" asp-page="/Workspaces/Roles" asp-route-slug="@slug">Roles</a></li>
+                                }
+                                @if (canTeams)
+                                {
+                                    <li><a class="@(IsActive("/users/teams") ? "active menu-active" : null) rounded-2xl" asp-page="/Workspaces/Teams" asp-route-slug="@slug">Teams</a></li>
+                                }
+                                @if (isAdmin)
+                                {
+                                    <li><a class="@(IsActive("/Users/Index") ? "active menu-active" : null) rounded-2xl" asp-page="/Users/Index">All Users (Admin)</a></li>
+                                }
+                            </ul>
+                        </details>
+                    </li>
                 }
-            </li>
-            @if (canSettings)
-            {
-                <li><a class="@(IsActive("/settings") ? "menu-active" : null)" asp-page="/Workspaces/Settings" asp-route-slug="@slug" aria-current="@(IsActive("/settings") ? "page" : null)"><i class="fa fa-cog"></i> Settings</a></li>
-            }
-        </ul>
-    </nav>
+                @if (canSettings)
+                {
+                    <li><a class="@(IsActive("/settings") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" asp-page="/Workspaces/Settings" asp-route-slug="@slug"><i class="fa fa-cog"></i><span>Settings</span></a></li>
+                }
+            </ul>
+        </nav>
+    </div>
 </aside>

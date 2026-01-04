@@ -35,6 +35,15 @@
     @apply bg-base-300/50;
 }
 
+/* Global Nexus-inspired surface styling */
+.shell-outer {
+    @apply bg-gradient-to-br from-base-200 via-base-100 to-base-200 min-h-screen text-base-content;
+}
+
+.glass-panel {
+    @apply bg-base-100/85 border border-base-200/80 shadow-xl backdrop-blur rounded-3xl;
+}
+
 /* App-wide shell and spacing */
 .app-shell {
     @apply bg-base-200/40 min-h-screen;
@@ -46,7 +55,7 @@
 
 /* Card and table polish for consistent look */
 .card {
-    @apply bg-base-100/90 border border-base-200 shadow-lg rounded-3xl;
+    @apply bg-base-100/90 border border-base-200 shadow-lg rounded-3xl backdrop-blur;
 }
 
 .card .card-body {
@@ -54,15 +63,27 @@
 }
 
 .table {
-    @apply rounded-2xl overflow-hidden;
+    @apply rounded-2xl overflow-hidden border border-base-200 bg-base-100/90 shadow-sm backdrop-blur;
 }
 
 .table thead {
-    @apply bg-base-200/70 text-xs uppercase tracking-wide text-base-content/60;
+    @apply bg-base-200/70 text-[11px] uppercase tracking-wide text-base-content/60;
 }
 
 .table :where(th, td) {
-    @apply align-middle;
+    @apply align-middle px-4 py-3;
+}
+
+.table tbody tr {
+    @apply border-base-200/80;
+}
+
+.table tbody tr:hover {
+    @apply bg-base-200/70;
+}
+
+.table :where(tbody td) {
+    @apply text-sm text-base-content;
 }
 
 .table :where(thead th:first-child) {
@@ -71,6 +92,10 @@
 
 .table :where(thead th:last-child) {
     @apply rounded-tr-2xl;
+}
+
+.table-zebra tbody tr:nth-child(even) {
+    @apply bg-base-100/70;
 }
 
 /* Section title helpers */
@@ -91,22 +116,43 @@
     @apply rounded-2xl;
 }
 
+.btn-primary {
+    @apply bg-gradient-to-r from-primary to-secondary text-primary-content border-0 shadow-lg hover:shadow-xl transition-all;
+}
+
+.btn-secondary {
+    @apply bg-gradient-to-r from-secondary to-accent text-secondary-content border-0 shadow-lg hover:shadow-xl transition-all;
+}
+
+.btn-outline {
+    @apply border-base-300 text-base-content hover:border-primary hover:text-primary;
+}
+
+.btn-ghost {
+    @apply text-base-content/80 hover:text-base-content hover:bg-base-200/60;
+}
+
 .btn-soft {
-    @apply shadow-sm;
+    @apply shadow-sm bg-base-200/60 border border-base-200 text-base-content hover:bg-base-200;
 }
 
 .input,
 .select,
 .textarea {
-    @apply rounded-2xl;
+    @apply rounded-2xl bg-base-100/80 border border-base-200 text-base-content focus:border-primary focus:ring-2 focus:ring-primary/30 focus:outline-none;
+}
+
+.label,
+.label-text {
+    @apply text-sm font-medium text-base-content/80;
 }
 
 .badge {
-    @apply rounded-2xl;
+    @apply rounded-2xl border-base-200/70 bg-base-200/50 text-base-content;
 }
 
 .alert {
-    @apply rounded-2xl;
+    @apply rounded-2xl border border-base-200 bg-base-100/90 backdrop-blur;
 }
 
 .modal-box {
@@ -118,11 +164,11 @@
 }
 
 .menu {
-    @apply rounded-2xl;
+    @apply rounded-2xl border border-base-200/80 bg-base-100/90 backdrop-blur;
 }
 
 .navbar {
-    @apply rounded-2xl;
+    @apply rounded-2xl bg-base-100/85 border border-base-200/80 shadow-lg backdrop-blur;
 }
 
 .progress {
@@ -135,4 +181,93 @@
 
 .avatar-group .avatar {
     @apply rounded-2xl;
+}
+
+.form-control,
+.form-control .input,
+.form-control .select,
+.form-control .textarea {
+    @apply bg-base-100/80 border border-base-200 rounded-2xl shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/30;
+}
+
+.divider {
+    @apply text-base-content/60;
+}
+
+.stat {
+    @apply bg-base-100/80 border border-base-200 rounded-3xl shadow-md;
+}
+
+.stat .stat-value {
+    @apply text-3xl font-semibold;
+}
+
+/* Form and control polish */
+.input-group {
+    @apply rounded-2xl overflow-hidden border border-base-200 bg-base-100/90 shadow-sm;
+}
+
+.form-hint {
+    @apply text-xs text-base-content/60 mt-1;
+}
+
+.checkbox,
+.radio,
+.toggle {
+    @apply border-base-300 bg-base-100/90;
+}
+
+/* Tabs */
+.tabs-boxed {
+    @apply bg-base-100/80 border border-base-200 rounded-2xl p-1;
+}
+
+.tab {
+    @apply rounded-2xl px-4 py-2 text-sm font-medium text-base-content/70;
+}
+
+.tab-active {
+    @apply bg-base-200 text-base-content shadow-sm;
+}
+
+/* Breadcrumbs */
+.breadcrumbs {
+    @apply bg-base-100/80 border border-base-200 rounded-2xl px-4 py-2 text-sm shadow-sm;
+}
+
+.breadcrumbs > ul > li > a,
+.breadcrumbs > ul > li {
+    @apply text-base-content/80 font-medium;
+}
+
+/* Pagination joins */
+.pagination {
+    @apply inline-flex items-center gap-2;
+}
+
+.pagination .btn {
+    @apply btn-sm rounded-full;
+}
+
+/* Badges */
+.badge-soft {
+    @apply bg-base-200/70 border border-base-200 text-base-content;
+}
+
+.badge-ghost {
+    @apply bg-transparent border border-base-300 text-base-content/70;
+}
+
+/* Timeline and steps */
+.step {
+    @apply rounded-full border-base-300 bg-base-100/80;
+}
+
+.steps .step:before {
+    @apply bg-base-300;
+}
+
+/* Collapses */
+.collapse {
+    @apply rounded-2xl border border-base-200 bg-base-100/80 shadow-sm;
 }
