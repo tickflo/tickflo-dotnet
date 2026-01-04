@@ -27,6 +27,8 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
     public DbSet<TeamMember> TeamMembers => Set<TeamMember>();
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<RolePermissionLink> RolePermissions => Set<RolePermissionLink>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<UserNotificationPreference> UserNotificationPreferences => Set<UserNotificationPreference>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -114,6 +116,10 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
         // Role to permission link table
         modelBuilder.Entity<RolePermissionLink>()
             .HasKey(rp => new { rp.RoleId, rp.PermissionId });
+
+        // User notification preferences
+        modelBuilder.Entity<UserNotificationPreference>()
+            .HasKey(unp => new { unp.UserId, unp.NotificationType });
 
         base.OnModelCreating(modelBuilder);
     }

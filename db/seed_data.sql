@@ -4,6 +4,8 @@
 -- =============================================
 
 -- Clear existing data (in reverse order of dependencies)
+DELETE FROM public.notifications;
+DELETE FROM public.user_notification_preferences;
 DELETE FROM public.role_permissions;
 DELETE FROM public.user_workspace_roles;
 DELETE FROM public.user_workspaces;
@@ -42,6 +44,7 @@ ALTER SEQUENCE public.ticket_statuses_id_seq RESTART WITH 1;
 ALTER SEQUENCE public.priorities_id_seq RESTART WITH 1;
 ALTER SEQUENCE public.ticket_types_id_seq RESTART WITH 1;
 ALTER SEQUENCE public.report_runs_id_seq RESTART WITH 1;
+ALTER SEQUENCE public.notifications_id_seq RESTART WITH 1;
 
 -- =============================================
 -- Users
@@ -487,4 +490,72 @@ UPDATE public.reports SET last_run = NOW() - INTERVAL '4 days' WHERE id = 7;
 -- - lisa@demo.com (Support Agent)
 -- - tom@demo.com (Developer)
 -- - emma@demo.com (Sales Rep)
+
+-- =============================================
+-- Notifications
+-- Sample notifications for different types and delivery methods
+-- =============================================
+INSERT INTO public.notifications (workspace_id, user_id, type, delivery_method, priority, subject, body, status, created_at, created_by) VALUES
+-- Email notifications
+(1, 2, 'workspace_invite', 'email', 'high', 'Welcome to Acme Corporation', '<p>You have been invited to join <strong>Acme Corporation</strong> workspace.</p><p>Click here to accept the invitation and get started.</p>', 'sent', NOW() - INTERVAL '3 days', 1),
+(1, 3, 'ticket_assigned', 'email', 'normal', 'Ticket #1001 assigned to you', '<p>A new ticket has been assigned to you:</p><p><strong>Title:</strong> Email not syncing on mobile device</p><p><strong>Priority:</strong> High</p>', 'sent', NOW() - INTERVAL '2 days', 2),
+(2, 5, 'ticket_comment', 'email', 'normal', 'New comment on Ticket #1005', '<p>Lisa Johnson added a comment to your ticket:</p><blockquote>I have identified the root cause. Will update shortly.</blockquote>', 'sent', NOW() - INTERVAL '1 day', 4),
+
+-- In-app notifications
+(1, 2, 'ticket_status_change', 'in_app', 'normal', 'Ticket #1001 status updated', 'Ticket status changed from Open to In Progress', 'sent', NOW() - INTERVAL '2 hours', 3),
+(1, 3, 'ticket_assigned', 'in_app', 'normal', 'New ticket assigned', 'Ticket #1015 "Network connectivity issues" has been assigned to you', 'sent', NOW() - INTERVAL '1 hour', 2),
+(2, 4, 'report_completed', 'in_app', 'low', 'Weekly report completed', 'Your weekly ticket report has finished processing', 'sent', NOW() - INTERVAL '30 minutes', NULL),
+(3, 6, 'mention', 'in_app', 'high', 'You were mentioned in a comment', 'Tom Wilson mentioned you in ticket #1012', 'pending', NOW() - INTERVAL '15 minutes', 5),
+
+-- Pending batch notifications
+(1, 2, 'ticket_summary', 'email', 'low', 'Daily Ticket Summary', '<p>Your daily ticket summary for Acme Corporation:</p><ul><li>5 new tickets</li><li>3 resolved</li><li>2 pending your review</li></ul>', 'pending', NOW(), NULL),
+(1, 3, 'ticket_summary', 'email', 'low', 'Daily Ticket Summary', '<p>Your daily ticket summary for Acme Corporation:</p><ul><li>3 assigned to you</li><li>1 awaiting response</li></ul>', 'pending', NOW(), NULL),
+
+-- Failed notification example
+(2, 5, 'password_reset', 'email', 'urgent', 'Password Reset Request', '<p>You requested a password reset for your account.</p><p>Click the link below to reset your password:</p>', 'failed', NOW() - INTERVAL '1 day', NULL);
+
+-- Add failure reason for the failed notification
+UPDATE public.notifications SET 
+    failed_at = NOW() - INTERVAL '1 day',
+    failure_reason = 'SMTP connection timeout'
+WHERE status = 'failed';
+
+-- =============================================
+-- User Notification Preferences
+-- Sample preferences showing different user preferences
+-- =============================================
+INSERT INTO public.user_notification_preferences (user_id, notification_type, email_enabled, in_app_enabled, sms_enabled, push_enabled, created_at) VALUES
+-- User 1 (John Admin) - Prefers email and in-app for everything
+(1, 'workspace_invite', true, true, false, false, NOW()),
+(1, 'ticket_assigned', true, true, false, false, NOW()),
+(1, 'ticket_comment', true, true, false, false, NOW()),
+(1, 'ticket_status_change', true, true, false, false, NOW()),
+
+-- User 2 (Jane Smith) - Only wants urgent notifications via email
+(2, 'workspace_invite', true, false, false, false, NOW()),
+(2, 'ticket_assigned', true, true, false, false, NOW()),
+(2, 'ticket_summary', false, true, false, false, NOW()),
+(2, 'mention', true, true, true, false, NOW()),
+
+-- User 3 (Bob Johnson) - Prefers in-app only, no emails
+(3, 'ticket_assigned', false, true, false, false, NOW()),
+(3, 'ticket_comment', false, true, false, false, NOW()),
+(3, 'ticket_status_change', false, true, false, false, NOW()),
+(3, 'mention', false, true, false, false, NOW()),
+
+-- User 4 (Alice Williams) - All channels enabled for critical items
+(4, 'workspace_invite', true, true, true, true, NOW()),
+(4, 'ticket_assigned', true, true, false, true, NOW()),
+(4, 'mention', true, true, true, true, NOW()),
+(4, 'password_reset', true, true, true, false, NOW()),
+
+-- User 5 (Charlie Brown) - Mixed preferences
+(5, 'ticket_assigned', true, true, false, false, NOW()),
+(5, 'ticket_comment', false, true, false, false, NOW()),
+(5, 'report_completed', true, false, false, false, NOW()),
+(5, 'ticket_summary', true, false, false, false, NOW());
+
+-- Note: Users with no preferences will use system defaults:
+-- email_enabled=true, in_app_enabled=true, sms_enabled=false, push_enabled=false
+
 -- =============================================

@@ -80,6 +80,42 @@ public class SettingsModel : PageModel
     [BindProperty]
     public string? NewTypeColor { get; set; }
 
+    // Notification configuration properties
+    [BindProperty]
+    public bool NotificationsEnabled { get; set; } = true;
+    
+    // Email Integration
+    [BindProperty]
+    public bool EmailIntegrationEnabled { get; set; } = true;
+    [BindProperty]
+    public string EmailProvider { get; set; } = "smtp";
+    
+    // SMS Integration
+    [BindProperty]
+    public bool SmsIntegrationEnabled { get; set; } = false;
+    [BindProperty]
+    public string SmsProvider { get; set; } = "none";
+    
+    // Push Integration
+    [BindProperty]
+    public bool PushIntegrationEnabled { get; set; } = false;
+    [BindProperty]
+    public string PushProvider { get; set; } = "none";
+    
+    // In-App (always enabled, no external integration needed)
+    [BindProperty]
+    public bool InAppNotificationsEnabled { get; set; } = true;
+    
+    // Scheduling
+    [BindProperty]
+    public int BatchNotificationDelay { get; set; } = 30;
+    [BindProperty]
+    public int DailySummaryHour { get; set; } = 9;
+    [BindProperty]
+    public bool MentionNotificationsUrgent { get; set; } = true;
+    [BindProperty]
+    public bool TicketAssignmentNotificationsHigh { get; set; } = true;
+
     public async Task<IActionResult> OnGetAsync(string slug)
     {
         WorkspaceSlug = slug;
@@ -135,6 +171,31 @@ public class SettingsModel : PageModel
             tlist = await _typeRepo.ListAsync(Workspace.Id);
         }
         Types = tlist;
+        
+        // Load notification integration settings from workspace metadata or use defaults
+        // For now, using defaults - these would typically be stored in a workspace_settings table
+        NotificationsEnabled = true;
+        
+        // Email Integration - SMTP is default, always available
+        EmailIntegrationEnabled = true;
+        EmailProvider = "smtp";
+        
+        // SMS Integration - Disabled by default, requires setup
+        SmsIntegrationEnabled = false;
+        SmsProvider = "none";
+        
+        // Push Integration - Disabled by default, requires setup
+        PushIntegrationEnabled = false;
+        PushProvider = "none";
+        
+        // In-App - Always enabled, no external provider needed
+        InAppNotificationsEnabled = true;
+        
+        BatchNotificationDelay = 30;
+        DailySummaryHour = 9;
+        MentionNotificationsUrgent = true;
+        TicketAssignmentNotificationsHigh = true;
+        
         return Page();
     }
 
@@ -324,6 +385,31 @@ public class SettingsModel : PageModel
         await EnsurePermissionsAsync(uid, isAdmin);
         if (!CanEditSettings) return Forbid();
         await _typeRepo.DeleteAsync(Workspace.Id, id);
+        return RedirectToPage("/Workspaces/Settings", new { slug });
+    }
+
+    public async Task<IActionResult> OnPostSaveNotificationSettingsAsync(string slug)
+    {
+        WorkspaceSlug = slug;
+        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
+        if (Workspace == null) return NotFound();
+        var (uid, isAdmin) = await ResolveUserAsync();
+        if (uid == 0) return Forbid();
+        await EnsurePermissionsAsync(uid, isAdmin);
+        if (!CanEditSettings) return Forbid();
+        
+        // TODO: Save notification settings to workspace_settings table or workspace metadata
+        // For now, this would just redirect back
+        // In production, you'd store these in a workspace_settings table:
+        // await _workspaceSettingsRepo.SaveAsync(new WorkspaceSettings
+        // {
+        //     WorkspaceId = Workspace.Id,
+        //     NotificationsEnabled = NotificationsEnabled,
+        //     EmailNotificationsEnabled = EmailNotificationsEnabled,
+        //     ...
+        // });
+        
+        TempData["NotificationSettingsSaved"] = true;
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
 }

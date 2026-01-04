@@ -6,6 +6,7 @@ using Tickflo.Core.Config;
 using Tickflo.Core.Data;
 using Tickflo.Core.Services.Auth;
 using Tickflo.Core.Services.Email;
+using Tickflo.Core.Services.Notifications;
 using AuthenticationService = Tickflo.Core.Services.AuthenticationService;
 using IAuthenticationService = Tickflo.Core.Services.IAuthenticationService;
 using Amazon.S3;
@@ -45,11 +46,14 @@ builder.Services.AddScoped<ITicketHistoryRepository, TicketHistoryRepository>();
 builder.Services.AddScoped<ITeamRepository, TeamRepository>();
 builder.Services.AddScoped<ITeamMemberRepository, TeamMemberRepository>();
 builder.Services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<IUserNotificationPreferenceRepository, UserNotificationPreferenceRepository>();
 // Realtime updates for tickets
 builder.Services.AddSignalR();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IWorkspaceRoleBootstrapper, WorkspaceRoleBootstrapper>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<Tickflo.Core.Services.Notifications.INotificationService, Tickflo.Core.Services.Notifications.NotificationService>();
 var useSmtp = !string.IsNullOrWhiteSpace(appConfig.EMAIL.SMTP_HOST);
 if (useSmtp)
 {
