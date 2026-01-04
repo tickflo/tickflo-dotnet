@@ -37,8 +37,8 @@
                                         <td>
                                             @if (string.Equals(rr.Status, "Succeeded", StringComparison.OrdinalIgnoreCase))
                                             {
-                                                <a class="btn btn-soft btn-xs btn-secondary" asp-page="/Workspaces/ReportRunView" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@Model.ReportId" asp-route-runId="@rr.Id">View</a>
-                                                <a class="btn btn-soft btn-xs btn-primary" asp-page="/Workspaces/ReportRunDownload" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@Model.ReportId" asp-route-runId="@rr.Id">Download CSV</a>
+                                                <a class="btn btn-ghost btn-xs" asp-page="/Workspaces/ReportRunView" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@Model.ReportId" asp-route-runId="@rr.Id">View</a>
+                                                <a class="btn btn-primary btn-xs" asp-page="/Workspaces/ReportRunDownload" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@Model.ReportId" asp-route-runId="@rr.Id">Download CSV</a>
                                             }
                                         </td>
                                     </tr>

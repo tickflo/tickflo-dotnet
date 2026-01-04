@@ -52,15 +52,15 @@
                                         <td>
                                             <div class="flex flex-wrap gap-2 md:join">
                                                 @if (Model.CanEditLocations) {
-                                                    <a class="btn btn-soft btn-xs btn-ghost md:join-item" asp-page="/Workspaces/LocationsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-locationId="@loc.Id">Edit</a>
-                                                    <a class="btn btn-soft btn-xs btn-primary md:join-item" asp-page="/Workspaces/TicketsDetails" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="0" asp-route-locationId="@loc.Id">New Ticket</a>
+                                                    <a class="btn btn-ghost btn-xs md:join-item" asp-page="/Workspaces/LocationsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-locationId="@loc.Id">Edit</a>
+                                                    <a class="btn btn-primary btn-xs md:join-item" asp-page="/Workspaces/TicketsDetails" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="0" asp-route-locationId="@loc.Id">New Ticket</a>
                                                     <form method="post" asp-page-handler="Delete" asp-route-slug="@Model.WorkspaceSlug" asp-route-locationId="@loc.Id">
-                                                        <button class="btn btn-soft btn-xs btn-error md:join-item" type="submit">Delete</button>
+                                                        <button class="btn btn-error btn-xs md:join-item" type="submit">Delete</button>
                                                     </form>
                                                 } else {
-                                                    <button class="btn btn-soft btn-xs btn-ghost md:join-item" disabled>Edit</button>
-                                                    <button class="btn btn-soft btn-xs btn-primary md:join-item" disabled>New Ticket</button>
-                                                    <button class="btn btn-soft btn-xs btn-error md:join-item" disabled>Delete</button>
+                                                    <button class="btn btn-ghost btn-xs md:join-item" disabled>Edit</button>
+                                                    <button class="btn btn-primary btn-xs md:join-item" disabled>New Ticket</button>
+                                                    <button class="btn btn-error btn-xs md:join-item" disabled>Delete</button>
                                                 }
                                             </div>
                                         </td>

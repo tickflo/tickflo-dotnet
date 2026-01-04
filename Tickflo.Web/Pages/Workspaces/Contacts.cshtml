@@ -87,11 +87,11 @@
                                         <td>
                                             <div class="flex flex-wrap gap-2 md:join">
                                                 @if (Model.CanEditContacts) {
-                                                    <a class="btn btn-soft btn-xs btn-ghost md:join-item" asp-page="/Workspaces/ContactsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@c.Id">Edit</a>
+                                                    <a class="btn btn-ghost btn-xs md:join-item" asp-page="/Workspaces/ContactsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@c.Id">Edit</a>
                                                 } else {
-                                                    <button class="btn btn-soft btn-xs btn-ghost md:join-item" disabled>Edit</button>
+                                                    <button class="btn btn-ghost btn-xs md:join-item" disabled>Edit</button>
                                                 }
-                                                <a class="btn btn-soft btn-xs btn-primary md:join-item" href="/workspaces/@Model.WorkspaceSlug/tickets/0?contactId=@c.Id">New Ticket</a>
+                                                <a class="btn btn-primary btn-xs md:join-item" href="/workspaces/@Model.WorkspaceSlug/tickets/0?contactId=@c.Id">New Ticket</a>
                                             </div>
                                         </td>
                                     </tr>

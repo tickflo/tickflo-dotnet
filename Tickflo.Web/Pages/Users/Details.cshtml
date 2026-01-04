@@ -12,7 +12,7 @@
             @if (Model.User != null)
             {
                 <div class="join">
-                    <a class="btn btn-soft join-item" asp-page="/Users/Index" asp-preserve-query>Back</a>
+                    <a class="btn btn-ghost join-item" asp-page="/Users/Index" asp-preserve-query>Back</a>
                     <a class="btn btn-primary join-item" asp-page="/Users/Edit" asp-route-id="@Model.User.Id">Edit</a>
                 </div>
             }

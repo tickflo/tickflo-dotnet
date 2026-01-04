@@ -43,10 +43,10 @@
                             <td>
                                 <div class="flex flex-wrap gap-2 md:join">
                                 <form method="post" asp-page-handler="Accept" asp-route-slug="@Model.WorkspaceSlug" asp-route-userId="@inv.UserId">
-                                    <button class="btn btn-soft btn-xs btn-primary md:join-item" type="submit" @(Model.CanEditUsers ? "" : "disabled")>Accept</button>
+                                    <button class="btn btn-primary btn-xs md:join-item" type="submit" @(Model.CanEditUsers ? "" : "disabled")>Accept</button>
                                 </form>
                                 <form method="post" asp-page-handler="Resend" asp-route-slug="@Model.WorkspaceSlug" asp-route-userId="@inv.UserId">
-                                    <button class="btn btn-soft btn-xs btn-ghost md:join-item" type="submit" @(Model.CanEditUsers ? "" : "disabled")>Resend</button>
+                                    <button class="btn btn-ghost btn-xs md:join-item" type="submit" @(Model.CanEditUsers ? "" : "disabled")>Resend</button>
                                 </form>
                                 </div>
                             </td>

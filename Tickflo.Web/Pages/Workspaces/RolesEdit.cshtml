@@ -60,13 +60,13 @@
                                         {
                                             var scope = string.IsNullOrWhiteSpace(p.TicketViewScope) ? "all" : p.TicketViewScope;
                                             <div class="join">
-                                                <label class="btn btn-outline btn-soft btn-xs join-item">
+                                                <label class="btn btn-soft btn-xs join-item">
                                                     <input type="radio" name="Permissions[@i].TicketViewScope" value="all" checked="@(scope == "all" ? "checked" : null)" class="radio" /> All
                                                 </label>
-                                                <label class="btn btn-outline btn-soft btn-xs join-item">
+                                                <label class="btn btn-soft btn-xs join-item">
                                                     <input type="radio" name="Permissions[@i].TicketViewScope" value="mine" checked="@(scope == "mine" ? "checked" : null)" class="radio" /> Only Mine
                                                 </label>
-                                                <label class="btn btn-outline btn-soft btn-xs join-item">
+                                                <label class="btn btn-soft btn-xs join-item">
                                                     <input type="radio" name="Permissions[@i].TicketViewScope" value="team" checked="@(scope == "team" ? "checked" : null)" class="radio" /> My Team
                                                 </label>
                                             </div>

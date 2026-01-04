@@ -11,7 +11,7 @@
 @if (user?.Identity?.IsAuthenticated == true)
 {
     <div class="dropdown dropdown-end">
-        <div tabindex="0" role="button" class="btn btn-soft btn-ghost">
+        <div tabindex="0" role="button" class="btn btn-ghost">
             <div class="avatar mr-2">
                 <div class="w-8 rounded-full ring ring-offset-2 ring-offset-base-100">
                     <img src="/users/@userId/avatar" alt="Avatar Preview" onerror="this.onerror=null;this.src='/images/default-avatar.png';" />
@@ -33,7 +33,7 @@
             </li>
             <li>
                 <form method="post" action="/logout">
-                    <button type="submit" class="btn btn-soft btn-ghost">
+                    <button type="submit" class="btn btn-ghost">
                         <i class="fa fa-sign-out-alt mr-2 inline"></i>
                         Logout
                     </button>

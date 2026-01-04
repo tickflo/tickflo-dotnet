@@ -30,7 +30,7 @@
 
     @await Html.PartialAsync("_ActionRow", new Tickflo.Web.Pages.Shared.ActionRowView {
       Actions = new List<Tickflo.Web.Pages.Shared.ActionItem> {
-        new Tickflo.Web.Pages.Shared.ActionItem { Label = "New Item", Href = Model.CanCreateInventory ? $"/workspaces/{Model.Workspace?.Slug}/inventory/0/edit" : null, Disabled = !Model.CanCreateInventory, ButtonClass = "btn btn-soft" }
+        new Tickflo.Web.Pages.Shared.ActionItem { Label = "New Item", Href = Model.CanCreateInventory ? $"/workspaces/{Model.Workspace?.Slug}/inventory/0/edit" : null, Disabled = !Model.CanCreateInventory, ButtonClass = "btn btn-primary" }
       }
     })
   </div>
