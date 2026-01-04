@@ -23,10 +23,14 @@ builder.Configuration
 var appConfig = new TickfloConfig();
 builder.Configuration.Bind(appConfig);
 
+var settingsConfig = new SettingsConfig();
+builder.Configuration.GetSection("SETTINGS").Bind(settingsConfig);
+
 var connectionString = $"Host={appConfig.POSTGRES_HOST};Port=5432;Database={appConfig.POSTGRES_DB};Username={appConfig.POSTGRES_USER};Password={appConfig.POSTGRES_PASSWORD}";
 
 // Add services to the container.
 builder.Services.AddSingleton(appConfig);
+builder.Services.AddSingleton(settingsConfig);
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ITokenRepository, TokenRepository>();
 builder.Services.AddScoped<IPasswordHasher, Argon2idPasswordHasher>();
