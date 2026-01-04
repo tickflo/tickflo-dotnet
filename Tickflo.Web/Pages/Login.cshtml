@@ -8,19 +8,18 @@
     <div class="card w-full max-w-sm flex-shrink-0 bg-base-100 shadow-2xl">
         <div class="card-body">
             <h2 class="card-title">Login</h2>
-            <form method="post">
+            <form method="post" novalidate>
                 <fieldset class="fieldset">
                     <label class="label" for="email">
                         <span class="label-text">Email</span>
                     </label>
-                    <input id="email" asp-for="Input.Email" type="email" class="input validator" placeholder="Email" value="test@test.com" />
+                    <input id="email" asp-for="Input.Email" type="email" class="input validator" placeholder="Email" value="" />
                     <span asp-validation-for="Input.Email" class="validator-hint"></span>
                     <label class="label" for="password">
                         <span class="label-text">Password</span>
                     </label>
-                    <input id="password" asp-for="Input.Password" type="password" class="input validator"
-                        placeholder="Password" value="thisisatest"/>
-                    <span asp-validation-for="Input.Password" class="validator-hint"></span>
+                    <input id="password" asp-for="Input.Password" type="password" class="input"
+                        placeholder="Password" value=""/>
                     <div>
                         <a class="link link-primary link-hover text-sm" href="#forgot-password">
                             Forgot password?
@@ -44,7 +43,3 @@
         </div>
     </div>
 </div>
-
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}

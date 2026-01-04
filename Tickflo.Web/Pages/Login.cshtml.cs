@@ -22,12 +22,16 @@ public class LoginModel(ILogger<LoginModel> logger, IAuthenticationService authS
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (!ModelState.IsValid)
+        // Ensure password is never null, use empty string
+        var password = Input.Password ?? "";
+        var result = await _authService.AuthenticateAsync(Input.Email, password);
+        
+        // Check if user needs to set password first
+        if (result.RequiresPasswordSetup && result.UserId.HasValue)
         {
-            return Page();
+            return Redirect($"/setpassword?userId={result.UserId}");
         }
-
-        var result = await _authService.AuthenticateAsync(Input.Email, Input.Password);
+        
         if (!result.Success)
         {
             ErrorMessage = result.ErrorMessage;
@@ -52,7 +56,7 @@ public class LoginModel(ILogger<LoginModel> logger, IAuthenticationService authS
             return Redirect($"/workspaces/{result.WorkspaceSlug}");
         }
 
-        return Redirect("/workspaces");
+        return Redirect("/workspace");
     }
 }
 
@@ -62,7 +66,6 @@ public class LoginInput
     [EmailAddress]
     public string Email { get; set; } = "";
 
-    [Required]
     public string Password { get; set; } = "";
 }
 

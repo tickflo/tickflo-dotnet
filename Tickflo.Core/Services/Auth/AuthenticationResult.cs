@@ -7,4 +7,5 @@ public class AuthenticationResult
     public string? ErrorMessage { get; set; }
     public string? Token { get; set; }
     public string? WorkspaceSlug { get; set; }
+    public bool RequiresPasswordSetup { get; set; }
 }
