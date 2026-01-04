@@ -22,6 +22,7 @@ public class TicketsModel : PageModel
     private readonly IRolePermissionRepository _rolePerms;
     private readonly ITeamMemberRepository _teamMembers;
     private readonly IUserWorkspaceRoleRepository _uwr;
+    private readonly ILocationRepository _locations;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
     public IReadOnlyList<Ticket> Tickets { get; private set; } = Array.Empty<Ticket>();
@@ -53,7 +54,7 @@ public class TicketsModel : PageModel
     public bool CanCreateTickets { get; private set; }
     public bool CanEditTickets { get; private set; }
 
-    public TicketsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserWorkspaceRepository userWorkspaces, IUserRepository users, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITeamRepository teamRepo, IRolePermissionRepository rolePerms, ITeamMemberRepository teamMembers, IUserWorkspaceRoleRepository uwr)
+    public TicketsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserWorkspaceRepository userWorkspaces, IUserRepository users, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITeamRepository teamRepo, IRolePermissionRepository rolePerms, ITeamMemberRepository teamMembers, IUserWorkspaceRoleRepository uwr, ILocationRepository locations)
     {
         _workspaceRepo = workspaceRepo;
         _ticketRepo = ticketRepo;
@@ -68,6 +69,7 @@ public class TicketsModel : PageModel
         _rolePerms = rolePerms;
         _teamMembers = teamMembers;
         _uwr = uwr;
+        _locations = locations;
     }
     public IReadOnlyList<Tickflo.Core.Entities.TicketType> TypesList { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketType>();
     public Dictionary<string, string> TypeColorByName { get; private set; } = new();
@@ -76,6 +78,10 @@ public class TicketsModel : PageModel
     public Dictionary<int, Team> TeamsById { get; private set; } = new();
     [BindProperty(SupportsGet = true)]
     public string? AssigneeTeamName { get; set; }
+    [BindProperty(SupportsGet = true)]
+    public int? LocationId { get; set; }
+    public List<Location> LocationOptions { get; private set; } = new();
+    public Dictionary<int, Location> LocationsById { get; private set; } = new();
 
     public async Task OnGetAsync(string slug)
     {
@@ -200,6 +206,10 @@ public class TicketsModel : PageModel
                 filtered = filtered.Where(t => (t.Subject?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
                                             || (t.Description?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false));
             }
+            if (LocationId.HasValue)
+            {
+                filtered = filtered.Where(t => t.LocationId == LocationId.Value);
+            }
             var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             int currentUid = 0;
             if (int.TryParse(uidStr, out var uidTmp)) currentUid = uidTmp;
@@ -254,6 +264,8 @@ public class TicketsModel : PageModel
             UsersById = users.ToDictionary(u => u.Id, u => u);
 
             // TeamsById already set above
+            LocationOptions = (await _locations.ListAsync(Workspace.Id)).ToList();
+            LocationsById = LocationOptions.ToDictionary(l => l.Id, l => l);
         }
     }
 }

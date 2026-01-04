@@ -35,8 +35,9 @@ public class TicketsDetailsModel : PageModel
     private readonly IInventoryRepository _inventoryRepo;
     private readonly IRolePermissionRepository _rolePerms;
     private readonly ITeamMemberRepository _teamMembers;
+    private readonly ILocationRepository _locationRepo;
 
-    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITicketHistoryRepository historyRepo, ITeamRepository teamRepo, IInventoryRepository inventoryRepo, IRolePermissionRepository rolePerms, ITeamMemberRepository teamMembers)
+    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITicketHistoryRepository historyRepo, ITeamRepository teamRepo, IInventoryRepository inventoryRepo, IRolePermissionRepository rolePerms, ITeamMemberRepository teamMembers, ILocationRepository locationRepo)
     {
         _workspaceRepo = workspaceRepo;
         _ticketRepo = ticketRepo;
@@ -53,6 +54,7 @@ public class TicketsDetailsModel : PageModel
         _inventoryRepo = inventoryRepo;
         _rolePerms = rolePerms;
         _teamMembers = teamMembers;
+        _locationRepo = locationRepo;
     }
     public List<Inventory> InventoryItems { get; private set; } = new();
 
@@ -75,6 +77,9 @@ public class TicketsDetailsModel : PageModel
     public Dictionary<string,string> TypeColorByName { get; private set; } = new();
     public IReadOnlyList<TicketHistory> History { get; private set; } = Array.Empty<TicketHistory>();
     public List<Team> Teams { get; private set; } = new();
+    [BindProperty(SupportsGet = true)]
+    public int? LocationId { get; set; }
+    public List<Location> LocationOptions { get; private set; } = new();
 
     [BindProperty(SupportsGet = true)]
     public string? Query { get; set; }
@@ -179,7 +184,8 @@ public class TicketsDetailsModel : PageModel
                 WorkspaceId = Workspace.Id,
                 Type = "Standard",
                 Priority = "Normal",
-                Status = "New"
+                Status = "New",
+                LocationId = LocationId
             };
         }
         Contact = Ticket.ContactId.HasValue ? await _contactRepo.FindAsync(Workspace.Id, Ticket.ContactId.Value) : null;
@@ -234,11 +240,16 @@ public class TicketsDetailsModel : PageModel
             if (u != null) Members.Add(u);
         }
         Teams = await _teamRepo.ListForWorkspaceAsync(Workspace.Id);
+        LocationOptions = (await _locationRepo.ListAsync(Workspace.Id)).ToList();
+        if (Ticket != null && Ticket.Id > 0 && Ticket.LocationId.HasValue)
+        {
+            LocationId = Ticket.LocationId;
+        }
         return Page();
     }
 
     // Consolidated save: updates subject, description, priority, status, and assignment
-        public async Task<IActionResult> OnPostSaveAsync(string slug, int id, int? assignedUserId, int? assignedTeamId, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub)
+        public async Task<IActionResult> OnPostSaveAsync(string slug, int id, int? assignedUserId, int? assignedTeamId, int? locationId, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub)
         {
             // Bind inventory products from JSON
             var inventories = new List<TicketInventory>();
@@ -319,7 +330,8 @@ public class TicketsDetailsModel : PageModel
                 Type = DefaultOrTrim(EditType, "Standard"),
                 Priority = DefaultOrTrim(EditPriority, "Normal"),
                 Status = DefaultOrTrim(EditStatus, "New"),
-                TicketInventories = inventories
+                TicketInventories = inventories,
+                LocationId = locationId
             };
             // Contact
             if (EditContactId.HasValue)
@@ -333,6 +345,18 @@ public class TicketsDetailsModel : PageModel
                 var memberships = await _userWorkspaces.FindForWorkspaceAsync(workspaceId);
                 if (!memberships.Any(m => m.UserId == assignedUserId.Value)) return BadRequest("User not in workspace");
                 t.AssignedUserId = assignedUserId.Value;
+            }
+            else if (locationId.HasValue)
+            {
+                var loc = await _locationRepo.FindAsync(workspaceId, locationId.Value);
+                if (loc?.DefaultAssigneeUserId.HasValue == true)
+                {
+                    var memberships = await _userWorkspaces.FindForWorkspaceAsync(workspaceId);
+                    if (memberships.Any(m => m.UserId == loc.DefaultAssigneeUserId.Value))
+                    {
+                        t.AssignedUserId = loc.DefaultAssigneeUserId.Value;
+                    }
+                }
             }
             if (assignedTeamId.HasValue)
             {
@@ -442,6 +466,13 @@ public class TicketsDetailsModel : PageModel
             // Removed InventoryRef change log
             await logIfChanged("ContactId", old.ContactId?.ToString(), t.ContactId?.ToString());
             await logIfChanged("AssignedUserId", old.AssignedUserId?.ToString(), t.AssignedUserId?.ToString());
+            // Update location on edit if provided
+            if (locationId.HasValue)
+            {
+                var oldLoc = t.LocationId;
+                t.LocationId = locationId;
+                await logIfChanged("LocationId", oldLoc?.ToString(), t.LocationId?.ToString());
+            }
             // Inventory summary diff
             string Summarize(List<TicketInventory> list)
             {

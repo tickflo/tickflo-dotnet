@@ -871,6 +871,28 @@ DO $$ BEGIN
         ADD CONSTRAINT locations_workspace_id_workspaces_id_fk FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- Locations: default assignee per location (idempotent)
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'locations' AND column_name = 'default_assignee_user_id'
+    ) THEN
+        ALTER TABLE public.locations
+            ADD COLUMN default_assignee_user_id integer NULL;
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'locations_default_assignee_user_id_users_id_fk'
+    ) THEN
+        ALTER TABLE ONLY public.locations
+            ADD CONSTRAINT locations_default_assignee_user_id_users_id_fk FOREIGN KEY (default_assignee_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+    END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS ix_locations_ws_default_assignee ON public.locations(workspace_id, default_assignee_user_id);
+
 DO $$ BEGIN
     ALTER TABLE ONLY public.reports
         ADD CONSTRAINT reports_workspace_id_workspaces_id_fk FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id);
@@ -944,11 +966,62 @@ DO $$ BEGIN
         ADD CONSTRAINT contacts_workspace_id_workspaces_id_fk FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- Contact to Location assignments (idempotent)
+CREATE TABLE IF NOT EXISTS public.contact_locations (
+    contact_id integer NOT NULL,
+    location_id integer NOT NULL,
+    workspace_id integer NOT NULL
+);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint con
+        JOIN pg_class rel ON rel.oid = con.conrelid
+        JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+        WHERE con.contype = 'p' AND rel.relname = 'contact_locations' AND nsp.nspname = 'public'
+    ) THEN
+        ALTER TABLE ONLY public.contact_locations
+            ADD CONSTRAINT contact_locations_pk PRIMARY KEY (contact_id, location_id);
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'contact_locations_contact_id_contacts_id_fk'
+    ) THEN
+        ALTER TABLE ONLY public.contact_locations
+            ADD CONSTRAINT contact_locations_contact_id_contacts_id_fk FOREIGN KEY (contact_id) REFERENCES public.contacts(id) ON DELETE CASCADE;
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'contact_locations_location_id_locations_id_fk'
+    ) THEN
+        ALTER TABLE ONLY public.contact_locations
+            ADD CONSTRAINT contact_locations_location_id_locations_id_fk FOREIGN KEY (location_id) REFERENCES public.locations(id) ON DELETE CASCADE;
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'contact_locations_workspace_id_workspaces_id_fk'
+    ) THEN
+        ALTER TABLE ONLY public.contact_locations
+            ADD CONSTRAINT contact_locations_workspace_id_workspaces_id_fk FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+    END IF;
+END $$;
+
+-- Helpful index for lookups by workspace/contact
+CREATE INDEX IF NOT EXISTS ix_contact_locations_workspace_contact ON public.contact_locations(workspace_id, contact_id);
+
 -- Tickets: table, identity, PK, and FKs (idempotent)
 CREATE TABLE IF NOT EXISTS public.tickets (
     id integer NOT NULL,
     workspace_id integer NOT NULL,
     contact_id integer NULL,
+    location_id integer NULL,
     subject text NOT NULL,
     description text NOT NULL,
     type text DEFAULT 'Standard' NOT NULL,
@@ -994,6 +1067,24 @@ DO $$ BEGIN
     ALTER TABLE ONLY public.tickets
         ADD CONSTRAINT tickets_workspace_id_workspaces_id_fk FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Tickets: add location FK and index (idempotent)
+-- Ensure tickets.location_id exists for existing schemas
+DO $$ BEGIN
+    ALTER TABLE IF EXISTS public.tickets
+        ADD COLUMN IF NOT EXISTS location_id integer NULL;
+EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'tickets_location_id_locations_id_fk'
+    ) THEN
+        ALTER TABLE ONLY public.tickets
+            ADD CONSTRAINT tickets_location_id_locations_id_fk FOREIGN KEY (location_id) REFERENCES public.locations(id);
+    END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS ix_tickets_workspace_location ON public.tickets(workspace_id, location_id, id);
 
 DO $$ BEGIN
     -- Drop existing FK if present to replace with ON DELETE SET NULL
@@ -1060,9 +1151,15 @@ DO $$ BEGIN
         ADD CONSTRAINT inventory_workspace_id_workspaces_id_fk FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- Ensure inventory.location_id exists for existing schemas
+DO $$ BEGIN
+    ALTER TABLE IF EXISTS public.inventory
+        ADD COLUMN IF NOT EXISTS location_id integer NULL;
+EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+
 DO $$ BEGIN
     ALTER TABLE ONLY public.inventory
-        ADD CONSTRAINT inventory_location_id_locations_id_fk FOREIGN KEY (location_id) REFERENCES public.locations(id);
+    ADD CONSTRAINT inventory_location_id_locations_id_fk FOREIGN KEY (location_id) REFERENCES public.locations(id);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 

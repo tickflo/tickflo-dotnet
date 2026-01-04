@@ -69,6 +69,20 @@
                     }
                 }
             </select>
+            <select name="LocationId" class="select select-bordered join-item select-sm md:select-md">
+                <option value="">Any Location</option>
+                @foreach (var l in Model.LocationOptions)
+                {
+                    if (Model.LocationId.HasValue && Model.LocationId.Value == l.Id)
+                    {
+                        <option value="@l.Id" selected>@l.Name</option>
+                    }
+                    else
+                    {
+                        <option value="@l.Id">@l.Name</option>
+                    }
+                }
+            </select>
             <input id="contact-query" name="ContactQuery" value="@Model.ContactQuery" placeholder="Contact name or email" class="input input-bordered join-item input-sm md:input-md" list="contacts-list" />
             <datalist id="contacts-list">
                 @foreach (var kv in Model.ContactsById)
@@ -114,6 +128,7 @@
                     <th class="hidden sm:table-cell">Assignee</th>
                     <th class="hidden sm:table-cell">Inventory</th>
                     <th class="hidden md:table-cell">Created</th>
+                    <th class="hidden md:table-cell">Location</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -122,7 +137,7 @@
             {
                 <tr>
                                         @{
-                                            var rowQs = $"Query={Model.Query}&Type={Model.Type}&Status={Model.Status}&Priority={Model.Priority}&ContactQuery={Model.ContactQuery}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&PageNumber={Model.PageNumber}&PageSize={Model.PageSize}";
+                                            var rowQs = $"Query={Model.Query}&Type={Model.Type}&Status={Model.Status}&Priority={Model.Priority}&ContactQuery={Model.ContactQuery}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&LocationId={Model.LocationId}&PageNumber={Model.PageNumber}&PageSize={Model.PageSize}";
                                         }
                                         <td><a class="link link-hover" href="/workspaces/@Model.WorkspaceSlug/tickets/@t.Id?@rowQs">@t.Subject</a></td>
                     @{
@@ -190,6 +205,16 @@
                         }
                     </td>
                         <td class="hidden md:table-cell">@t.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                        <td class="hidden md:table-cell">
+                            @if (t.LocationId.HasValue && Model.LocationsById.TryGetValue(t.LocationId.Value, out var loc))
+                            {
+                                <span>@loc.Name</span>
+                            }
+                            else
+                            {
+                                <span class="opacity-60">—</span>
+                            }
+                        </td>
                     <td>
                         <div class="flex flex-wrap gap-2 items-center">
                             @if (Model.CanCreateTickets)
@@ -480,7 +505,7 @@
             @{
                 var prev = Model.PageNumber > 1 ? Model.PageNumber - 1 : 1;
                 var next = (Model.PageNumber * Model.PageSize) < Model.Total ? Model.PageNumber + 1 : Model.PageNumber;
-                var baseQs = $"Query={Model.Query}&Type={Model.Type}&Status={Model.Status}&Priority={Model.Priority}&ContactQuery={Model.ContactQuery}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&PageSize={Model.PageSize}";
+                var baseQs = $"Query={Model.Query}&Type={Model.Type}&Status={Model.Status}&Priority={Model.Priority}&ContactQuery={Model.ContactQuery}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&LocationId={Model.LocationId}&PageSize={Model.PageSize}";
             }
             <a class="btn btn-soft join-item btn-sm @(Model.PageNumber <= 1 ? "btn-disabled" : "")" href="?@baseQs&PageNumber=@prev">Prev</a>
             <a class="btn btn-soft join-item btn-sm @(((Model.PageNumber * Model.PageSize) >= Model.Total) ? "btn-disabled" : "")" href="?@baseQs&PageNumber=@next">Next</a>

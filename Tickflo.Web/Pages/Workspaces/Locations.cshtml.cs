@@ -37,9 +37,17 @@ public class LocationsModel : PageModel
                 CanEditLocations = lp.CanEdit;
             }
         }
-        Locations = (await _locationRepo.ListAsync(Workspace!.Id))
-            .Select(l => new LocationItem { Id = l.Id, Name = l.Name, Address = l.Address, Active = l.Active })
-            .ToList();
+        var list = await _locationRepo.ListAsync(Workspace!.Id);
+        var items = new List<LocationItem>();
+        foreach (var l in list)
+        {
+            var ids = await _locationRepo.ListContactIdsAsync(Workspace.Id, l.Id);
+            var count = ids.Count;
+            var previewNames = await _locationRepo.ListContactNamesAsync(Workspace.Id, l.Id, 3);
+            var preview = string.Join(", ", previewNames);
+            items.Add(new LocationItem { Id = l.Id, Name = l.Name, Address = l.Address, Active = l.Active, ContactCount = count, ContactPreview = preview });
+        }
+        Locations = items;
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(string slug, int locationId)
@@ -64,5 +72,7 @@ public class LocationsModel : PageModel
         public string Name { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
         public bool Active { get; set; }
+        public int ContactCount { get; set; }
+        public string ContactPreview { get; set; } = string.Empty;
     }
 }

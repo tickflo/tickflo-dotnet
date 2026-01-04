@@ -15,6 +15,7 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<ReportRun> ReportRuns => Set<ReportRun>();
     public DbSet<Contact> Contacts => Set<Contact>();
+    public DbSet<ContactLocation> ContactLocations => Set<ContactLocation>();
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<Inventory> Inventory => Set<Inventory>();
     public DbSet<TicketInventory> TicketInventories => Set<TicketInventory>();
@@ -60,6 +61,11 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
         modelBuilder.Entity<Contact>()
             .HasIndex(c => new { c.WorkspaceId, c.Email })
             .IsUnique();
+
+        modelBuilder.Entity<ContactLocation>()
+            .HasKey(cl => new { cl.ContactId, cl.LocationId });
+        modelBuilder.Entity<ContactLocation>()
+            .HasIndex(cl => new { cl.WorkspaceId, cl.ContactId });
 
         modelBuilder.Entity<Ticket>()
             .HasIndex(t => new { t.WorkspaceId, t.Id });

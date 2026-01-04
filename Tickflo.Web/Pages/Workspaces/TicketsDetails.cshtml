@@ -54,6 +54,17 @@
       {
         <div>Contact: <span class="font-medium">@Model.Contact.Name</span> <span class="opacity-70">(@Model.Contact.Email)</span></div>
       }
+      @if(Model.LocationId.HasValue)
+      {
+        var loc = Model.LocationOptions.FirstOrDefault(l => l.Id == Model.LocationId.Value);
+        if (loc != null)
+        {
+          <div>
+            Location: <span class="font-medium">@loc.Name</span>
+            <a class="link ml-2" href="/workspaces/@Model.WorkspaceSlug/tickets?LocationId=@loc.Id" asp-preserve-query>View all for location</a>
+          </div>
+        }
+      }
       @if(Model.Ticket?.AssignedUserId != null)
       {
         <div>
@@ -83,9 +94,10 @@
   {
     <div class="card bg-base-100">
       <div class="card-body">
-        <form method="post" asp-page-handler="Save" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@(@Model.Ticket?.Id ?? 0)" class="grid gap-3" id="ticket-save-form" data-can-submit="@canSubmit.ToString().ToLower()">
+        <form method="post" asp-page-handler="Save" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@(@Model.Ticket?.Id ?? 0)" asp-route-locationId="@Model.LocationId" class="grid gap-3" id="ticket-save-form" data-can-submit="@canSubmit.ToString().ToLower()">
           <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
              <input type="hidden" name="id" value="@Model.Ticket?.Id ?? 0" />
+          <input type="hidden" name="locationId" value="@Model.LocationId" />
           <!-- Subject first -->
           <div>
             <label class="label">Subject</label>
@@ -164,6 +176,18 @@
                 <option value="@c.Name (@c.Email)" data-id="@c.Id"></option>
               }
             </datalist>
+          </div>
+          <!-- Location -->
+          <div>
+            <label class="label">Location</label>
+            <select name="locationId" class="select select-bordered w-full">
+              <option value="">None</option>
+              @foreach (var l in Model.LocationOptions)
+              {
+                  var selected = Model.LocationId.HasValue && Model.LocationId.Value == l.Id ? "selected" : null;
+                  <option value="@l.Id" selected="@selected">@l.Name</option>
+              }
+            </select>
           </div>
           <!-- Parts / Inventory at the end -->
           <div>

@@ -7,4 +7,5 @@ public class Location
     public string Name { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
     public bool Active { get; set; } = true;
+    public int? DefaultAssigneeUserId { get; set; }
 }

@@ -21,6 +21,27 @@
                         <span asp-validation-for="Address" class="validator-hint"></span>
                     </div>
                     <div class="fieldset">
+                        <label class="label" for="SelectedContactIds"><span class="label-text">Contacts at this Location</span></label>
+                        <select asp-for="SelectedContactIds" class="select w-full" multiple size="8">
+                            @foreach (var c in Model.ContactOptions)
+                            {
+                                var isSelected = Model.SelectedContactIds != null && Model.SelectedContactIds.Contains(c.Id);
+                                <option value="@c.Id" selected="@(isSelected ? "selected" : null)">@((c.Name ?? string.Empty).Trim()) @((string.IsNullOrWhiteSpace(c.Email) ? string.Empty : $"({c.Email})"))</option>
+                            }
+                        </select>
+                        <div class="text-xs opacity-70 mt-1">Hold Ctrl/Command to select multiple.</div>
+                    </div>
+                    <div class="fieldset">
+                        <label class="label" for="DefaultAssigneeUserId"><span class="label-text">Default Assignee (auto-assign new tickets)</span></label>
+                        <select class="select w-full" asp-for="DefaultAssigneeUserId">
+                            <option value="">-- None --</option>
+                            @foreach (var u in Model.MemberOptions)
+                            {
+                                <option value="@u.Id" selected="@(Model.DefaultAssigneeUserId == u.Id ? "selected" : null)">@((u.Name ?? "").Trim()) @((string.IsNullOrWhiteSpace(u.Email) ? string.Empty : $"({u.Email})"))</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="fieldset">
                         <label class="label cursor-pointer">
                             <span class="label-text">Active</span>
                             <input type="checkbox" class="toggle" asp-for="Active" />
