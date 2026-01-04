@@ -6,50 +6,70 @@
 
 <div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
-    <section class="p-6 flex-1">
+    <section class="p-6 flex-1 space-y-6 bg-base-200/40 rounded-2xl">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Settings" })
-        <div class="card bg-base-100 shadow-sm">
-            <div class="card-body">
-                <h2 class="card-title">Settings</h2>
-                <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
+
+        <div class="card bg-gradient-to-r from-primary/10 via-base-100 to-base-100 shadow-lg border border-base-200">
+            <div class="card-body flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h2 class="card-title text-2xl">Settings</h2>
+                    <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
+                </div>
+                <div class="flex flex-wrap gap-2 text-xs">
+                    <span class="badge badge-soft badge-primary">Live</span>
+                    <span class="badge badge-soft badge-ghost">All changes visible immediately</span>
+                </div>
             </div>
         </div>
-        <div class="card bg-base-100 shadow-sm mt-4 max-w-xl">
-            <div class="card-body">
-                <form method="post">
-                    <div class="fieldset">
-                        <label class="label" for="Name"><span class="label-text">Workspace Name</span></label>
-                        <input class="input validator w-full" asp-for="Workspace.Name" />
-                        <span asp-validation-for="Workspace.Name" class="validator-hint"></span>
+
+        <div class="card bg-base-100/90 shadow-lg border border-base-200">
+            <div class="card-body space-y-6">
+                <div class="flex flex-col gap-1">
+                    <p class="text-xs uppercase tracking-wide text-base-content/60">Workspace identity</p>
+                    <h3 class="font-semibold text-lg">Name and URL</h3>
+                    <p class="text-sm text-base-content/70">Give your workspace a friendly name and keep the slug short so teammates can find it.</p>
+                </div>
+                <form method="post" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label" for="Name"><span class="label-text font-semibold">Workspace Name</span></label>
+                            <input class="input input-bordered w-full" asp-for="Workspace.Name" />
+                            <span asp-validation-for="Workspace.Name" class="validator-hint"></span>
+                        </div>
+                        <div class="form-control">
+                            <label class="label" for="Slug"><span class="label-text font-semibold">Slug</span></label>
+                            <input class="input input-bordered w-full" asp-for="Workspace.Slug" />
+                            <span asp-validation-for="Workspace.Slug" class="validator-hint"></span>
+                        </div>
                     </div>
-                    <div class="fieldset">
-                        <label class="label" for="Slug"><span class="label-text">Slug</span></label>
-                        <input class="input validator w-full" asp-for="Workspace.Slug" />
-                        <span asp-validation-for="Workspace.Slug" class="validator-hint"></span>
-                    </div>
-                    <div class="card-actions flex flex-wrap gap-2 md:join">
-                        <button type="submit" class="btn btn-soft btn-primary md:join-item w-full md:w-auto" @(Model.CanEditSettings ? "" : "disabled")>Save</button>
-                        <a class="btn btn-ghost md:join-item" asp-page="/Workspace" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Cancel</a>
+                    <div class="card-actions flex flex-col md:flex-row gap-2 md:join">
+                        <button type="submit" class="btn btn-primary md:join-item w-full md:w-auto" @(Model.CanEditSettings ? "" : "disabled")>Save changes</button>
+                        <a class="btn btn-ghost md:join-item w-full md:w-auto" asp-page="/Workspace" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Cancel</a>
                     </div>
                 </form>
             </div>
         </div>
 
-        <div class="card bg-base-100 shadow-sm mt-6">
+        <div class="card bg-base-100/90 shadow-lg border border-base-200">
             <div class="card-body">
-                <div class="flex items-center justify-between">
-                    <h3 class="card-title">Ticket Statuses</h3>
-                    <span class="text-sm opacity-70">Customize names and colors</span>
+                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <h3 class="card-title">Ticket Statuses</h3>
+                        <p class="text-sm opacity-70">Rename, recolor, and reorder how tickets progress.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 text-xs">
+                        <span class="badge badge-soft badge-info">Visible in filters</span>
+                        <span class="badge badge-soft badge-neutral">Applies to all tickets</span>
+                    </div>
                 </div>
-                <div class="overflow-x-auto rounded-box">
-                    <p class="text-sm opacity-70 mb-3">Priorities apply to both Tickets and Contacts. You can rename and recolor them; changes update filters and badges across the workspace.</p>
-                    <table class="table table-zebra table-md">
-                        <thead>
+                <div class="overflow-x-auto rounded-box border border-base-200">
+                    <table class="table table-md align-middle">
+                        <thead class="bg-base-200/70">
                             <tr>
-                                <th>Name</th>
-                                <th>Color</th>
+                                <th class="w-full">Name & Color</th>
+                                <th>Preview</th>
                                 <th>Order</th>
-                                <th></th>
+                                <th class="text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -59,25 +79,25 @@
                                 var isHex = displayColor.StartsWith("#");
                                 var badgeCls = isHex ? "badge badge-soft" : $"badge badge-soft badge-{displayColor}";
                                 var badgeStyle = isHex ? $"background-color: {displayColor}; color: #fff;" : null;
-                                <tr>
+                                <tr class="hover">
                                     <td>
-                                        <form method="post" asp-page-handler="UpdateStatus" class="join">
+                                        <form method="post" asp-page-handler="UpdateStatus" class="join flex flex-wrap items-center gap-2">
                                             <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
                                             <input type="hidden" name="id" value="@s.Id" />
-                                            <input name="name" value="@s.Name" class="input input-bordered join-item input-sm w-40" />
-                                            <input type="color" name="color" value="@(isHex ? displayColor : "#3b82f6")" class="join-item w-12 h-8 p-0 border rounded" />
+                                            <input name="name" value="@s.Name" class="input input-bordered join-item input-sm w-48" />
+                                            <input type="color" name="color" value="@(isHex ? displayColor : "#3b82f6")" class="join-item w-12 h-9 p-0 border rounded" />
                                             <input type="number" name="sortOrder" value="@s.SortOrder" class="input input-bordered join-item input-sm w-20" />
-                                            <label class="label cursor-pointer join-item ml-2">
+                                            <label class="label cursor-pointer join-item ml-2 gap-2">
                                                 <input type="checkbox" name="isClosedState" value="true" @(s.IsClosedState ? "checked" : null) class="checkbox checkbox-xs" />
-                                                <span class="label-text ml-1">Closed</span>
+                                                <span class="label-text text-xs">Closed state</span>
                                             </label>
                                             <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Save</button>
                                         </form>
                                     </td>
                                     <td><span class="@badgeCls" style="@badgeStyle">@s.Color</span></td>
-                                    <td>@s.SortOrder</td>
-                                    <td>
-                                        <form method="post" asp-page-handler="DeleteStatus" onsubmit="return confirm('Delete status @s.Name?');">
+                                    <td class="font-semibold">@s.SortOrder</td>
+                                    <td class="text-right">
+                                        <form method="post" asp-page-handler="DeleteStatus" onsubmit="return confirm('Delete status @s.Name?');" class="inline-flex">
                                             <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
                                             <input type="hidden" name="id" value="@s.Id" />
                                             <button class="btn btn-soft btn-error btn-xs" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Delete</button>
@@ -86,12 +106,12 @@
                                 </tr>
                             }
                             <tr>
-                                <td colspan="5">
-                                    <form method="post" asp-page-handler="AddStatus" class="join">
+                                <td colspan="4">
+                                    <form method="post" asp-page-handler="AddStatus" class="join flex flex-wrap items-center gap-2">
                                         <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
-                                        <input name="NewStatusName" placeholder="New status name" class="input input-bordered join-item input-sm w-40" />
-                                        <input type="color" name="NewStatusColor" value="#3b82f6" class="join-item w-12 h-8 p-0 border rounded" />
-                                        <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanCreateSettings ? "" : "disabled")>Add</button>
+                                        <input name="NewStatusName" placeholder="New status name" class="input input-bordered join-item input-sm w-48" />
+                                        <input type="color" name="NewStatusColor" value="#3b82f6" class="join-item w-12 h-9 p-0 border rounded" />
+                                        <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanCreateSettings ? "" : "disabled")>Add status</button>
                                     </form>
                                 </td>
                             </tr>
@@ -101,20 +121,26 @@
             </div>
         </div>
 
-        <div class="card bg-base-100 shadow-sm mt-6">
+        <div class="card bg-base-100/90 shadow-lg border border-base-200">
             <div class="card-body">
-                <div class="flex items-center justify-between">
-                    <h3 class="card-title">Priorities</h3>
-                    <span class="text-sm opacity-70">Used for tickets and contacts</span>
+                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <h3 class="card-title">Priorities</h3>
+                        <p class="text-sm opacity-70">Keep urgency clear for tickets and contacts.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 text-xs">
+                        <span class="badge badge-soft badge-warning">Impacts alerts</span>
+                        <span class="badge badge-soft badge-info">Shows on kanban</span>
+                    </div>
                 </div>
-                <div class="overflow-x-auto rounded-box">
-                    <table class="table table-zebra table-md">
-                        <thead>
+                <div class="overflow-x-auto rounded-box border border-base-200">
+                    <table class="table table-md align-middle">
+                        <thead class="bg-base-200/70">
                             <tr>
-                                <th>Name</th>
-                                <th>Color</th>
+                                <th class="w-full">Name & Color</th>
+                                <th>Preview</th>
                                 <th>Order</th>
-                                <th></th>
+                                <th class="text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -124,21 +150,21 @@
                                 var isHex = displayColor.StartsWith("#");
                                 var badgeCls = isHex ? "badge badge-soft" : $"badge badge-soft badge-{displayColor}";
                                 var badgeStyle = isHex ? $"background-color: {displayColor}; color: #fff;" : null;
-                                <tr>
+                                <tr class="hover">
                                     <td>
-                                        <form method="post" asp-page-handler="UpdatePriority" class="join">
+                                        <form method="post" asp-page-handler="UpdatePriority" class="join flex flex-wrap items-center gap-2">
                                             <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
                                             <input type="hidden" name="id" value="@p.Id" />
-                                            <input name="name" value="@p.Name" class="input input-bordered join-item input-sm w-40" />
-                                            <input type="color" name="color" value="@(isHex ? displayColor : "#3b82f6")" class="join-item w-12 h-8 p-0 border rounded" />
+                                            <input name="name" value="@p.Name" class="input input-bordered join-item input-sm w-48" />
+                                            <input type="color" name="color" value="@(isHex ? displayColor : "#3b82f6")" class="join-item w-12 h-9 p-0 border rounded" />
                                             <input type="number" name="sortOrder" value="@p.SortOrder" class="input input-bordered join-item input-sm w-20" />
                                             <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Save</button>
                                         </form>
                                     </td>
                                     <td><span class="@badgeCls" style="@badgeStyle">@p.Color</span></td>
-                                    <td>@p.SortOrder</td>
-                                    <td>
-                                        <form method="post" asp-page-handler="DeletePriority" onsubmit="return confirm('Delete priority @p.Name?');">
+                                    <td class="font-semibold">@p.SortOrder</td>
+                                    <td class="text-right">
+                                        <form method="post" asp-page-handler="DeletePriority" onsubmit="return confirm('Delete priority @p.Name?');" class="inline-flex">
                                             <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
                                             <input type="hidden" name="id" value="@p.Id" />
                                             <button class="btn btn-soft btn-error btn-xs" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Delete</button>
@@ -147,12 +173,12 @@
                                 </tr>
                             }
                             <tr>
-                                <td colspan="5">
-                                    <form method="post" asp-page-handler="AddPriority" class="join">
+                                <td colspan="4">
+                                    <form method="post" asp-page-handler="AddPriority" class="join flex flex-wrap items-center gap-2">
                                         <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
-                                        <input name="NewPriorityName" placeholder="New priority name" class="input input-bordered join-item input-sm w-40" />
-                                        <input type="color" name="NewPriorityColor" value="#f59e0b" class="join-item w-12 h-8 p-0 border rounded" />
-                                        <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanCreateSettings ? "" : "disabled")>Add</button>
+                                        <input name="NewPriorityName" placeholder="New priority name" class="input input-bordered join-item input-sm w-48" />
+                                        <input type="color" name="NewPriorityColor" value="#f59e0b" class="join-item w-12 h-9 p-0 border rounded" />
+                                        <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanCreateSettings ? "" : "disabled")>Add priority</button>
                                     </form>
                                 </td>
                             </tr>
@@ -162,20 +188,26 @@
             </div>
         </div>
 
-        <div class="card bg-base-100 shadow-sm mt-6">
+        <div class="card bg-base-100/90 shadow-lg border border-base-200">
             <div class="card-body">
-                <div class="flex items-center justify-between">
-                    <h3 class="card-title">Ticket Types</h3>
-                    <span class="text-sm opacity-70">Categorize tickets with types</span>
+                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <h3 class="card-title">Ticket Types</h3>
+                        <p class="text-sm opacity-70">Keep work organized with clear categories.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 text-xs">
+                        <span class="badge badge-soft badge-success">Helps routing</span>
+                        <span class="badge badge-soft badge-info">Filters & search</span>
+                    </div>
                 </div>
-                <div class="overflow-x-auto rounded-box">
-                    <table class="table table-zebra table-md">
-                        <thead>
+                <div class="overflow-x-auto rounded-box border border-base-200">
+                    <table class="table table-md align-middle">
+                        <thead class="bg-base-200/70">
                             <tr>
-                                <th>Name</th>
-                                <th>Color</th>
+                                <th class="w-full">Name & Color</th>
+                                <th>Preview</th>
                                 <th>Order</th>
-                                <th></th>
+                                <th class="text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -185,21 +217,21 @@
                                 var isHex = displayColor.StartsWith("#");
                                 var badgeCls = isHex ? "badge badge-soft" : $"badge badge-soft badge-{displayColor}";
                                 var badgeStyle = isHex ? $"background-color: {displayColor}; color: #fff;" : null;
-                                <tr>
+                                <tr class="hover">
                                     <td>
-                                        <form method="post" asp-page-handler="UpdateType" class="join">
+                                        <form method="post" asp-page-handler="UpdateType" class="join flex flex-wrap items-center gap-2">
                                             <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
                                             <input type="hidden" name="id" value="@t.Id" />
-                                            <input name="name" value="@t.Name" class="input input-bordered join-item input-sm w-40" />
-                                            <input type="color" name="color" value="@(isHex ? displayColor : "#14b8a6")" class="join-item w-12 h-8 p-0 border rounded" />
+                                            <input name="name" value="@t.Name" class="input input-bordered join-item input-sm w-48" />
+                                            <input type="color" name="color" value="@(isHex ? displayColor : "#14b8a6")" class="join-item w-12 h-9 p-0 border rounded" />
                                             <input type="number" name="sortOrder" value="@t.SortOrder" class="input input-bordered join-item input-sm w-20" />
                                             <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Save</button>
                                         </form>
                                     </td>
                                     <td><span class="@badgeCls" style="@badgeStyle">@t.Color</span></td>
-                                    <td>@t.SortOrder</td>
-                                    <td>
-                                        <form method="post" asp-page-handler="DeleteType" onsubmit="return confirm('Delete type @t.Name?');">
+                                    <td class="font-semibold">@t.SortOrder</td>
+                                    <td class="text-right">
+                                        <form method="post" asp-page-handler="DeleteType" onsubmit="return confirm('Delete type @t.Name?');" class="inline-flex">
                                             <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
                                             <input type="hidden" name="id" value="@t.Id" />
                                             <button class="btn btn-soft btn-error btn-xs" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Delete</button>
@@ -208,12 +240,12 @@
                                 </tr>
                             }
                             <tr>
-                                <td colspan="5">
-                                    <form method="post" asp-page-handler="AddType" class="join">
+                                <td colspan="4">
+                                    <form method="post" asp-page-handler="AddType" class="join flex flex-wrap items-center gap-2">
                                         <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
-                                        <input name="NewTypeName" placeholder="New type name" class="input input-bordered join-item input-sm w-40" />
-                                        <input type="color" name="NewTypeColor" value="#14b8a6" class="join-item w-12 h-8 p-0 border rounded" />
-                                        <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanCreateSettings ? "" : "disabled")>Add</button>
+                                        <input name="NewTypeName" placeholder="New type name" class="input input-bordered join-item input-sm w-48" />
+                                        <input type="color" name="NewTypeColor" value="#14b8a6" class="join-item w-12 h-9 p-0 border rounded" />
+                                        <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanCreateSettings ? "" : "disabled")>Add type</button>
                                     </form>
                                 </td>
                             </tr>
@@ -223,28 +255,31 @@
             </div>
         </div>
 
-        <div class="card bg-base-100 shadow-sm mt-6">
-            <div class="card-body">
-                <div class="flex items-center justify-between">
-                    <h3 class="card-title">Notification Integrations</h3>
-                    <span class="text-sm opacity-70">Configure delivery methods</span>
+        <div class="card bg-base-100/90 shadow-lg border border-base-200">
+            <div class="card-body space-y-6">
+                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <h3 class="card-title">Notification Integrations</h3>
+                        <p class="text-sm opacity-70">Configure how alerts reach your team.</p>
+                    </div>
+                    <span class="badge badge-soft badge-primary">Always visible</span>
                 </div>
                 
                 @if (TempData["NotificationSettingsSaved"] != null)
                 {
-                    <div class="alert alert-success mb-4">
+                    <div class="alert alert-success mb-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         <span>Notification settings saved successfully!</span>
                     </div>
                 }
                 
-                <div class="alert alert-info mb-4">
+                <div class="alert alert-info">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                     <div class="text-sm">
                         <p class="font-semibold">Pluggable Integrations</p>
-                        <p>Notification delivery methods are optional integrations. Enable only what you need and configure your preferred providers.</p>
+                        <p>Enable only the channels you need; everything stays visible and editable here.</p>
                     </div>
                 </div>
                 
@@ -253,7 +288,7 @@
                     
                     <div class="divider">General Settings</div>
                     
-                    <div class="form-control">
+                    <div class="form-control bg-base-200/60 rounded-box px-4 py-3">
                         <label class="label cursor-pointer justify-start gap-4">
                             <input type="checkbox" asp-for="NotificationsEnabled" class="toggle toggle-primary" />
                             <div>
@@ -264,100 +299,102 @@
                     </div>
                     
                     <div class="divider">Delivery Integrations</div>
-                    
-                    <!-- Email Integration -->
-                    <div class="card bg-base-200 shadow-sm">
-                        <div class="card-body">
-                            <div class="flex items-start justify-between">
-                                <div class="flex-1">
-                                    <h4 class="font-semibold flex items-center gap-2">
-                                        <span>📧 Email Integration</span>
-                                        <span class="badge badge-success badge-sm">Built-in</span>
-                                    </h4>
-                                    <p class="text-xs opacity-70 mt-1">Send notifications via email using SMTP</p>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <!-- Email Integration -->
+                        <div class="card bg-base-200/80 shadow-sm border border-base-300">
+                            <div class="card-body space-y-3">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold flex items-center gap-2">
+                                            <span>📧 Email Integration</span>
+                                            <span class="badge badge-success badge-sm">Built-in</span>
+                                        </h4>
+                                        <p class="text-xs opacity-70 mt-1">Send notifications via email using SMTP</p>
+                                    </div>
+                                    <input type="checkbox" asp-for="EmailIntegrationEnabled" class="toggle toggle-primary" />
                                 </div>
-                                <input type="checkbox" asp-for="EmailIntegrationEnabled" class="toggle toggle-primary" />
-                            </div>
-                            <div class="form-control mt-2">
-                                <label class="label"><span class="label-text text-xs">Provider</span></label>
-                                <select asp-for="EmailProvider" class="select select-bordered select-sm">
-                                    <option value="smtp">SMTP (Built-in)</option>
-                                    <option value="sendgrid">SendGrid (Plugin)</option>
-                                    <option value="mailgun">Mailgun (Plugin)</option>
-                                    <option value="ses">AWS SES (Plugin)</option>
-                                </select>
-                                <label class="label"><span class="label-text-alt opacity-70">Configure provider in appsettings.json</span></label>
+                                <div class="form-control">
+                                    <label class="label"><span class="label-text text-xs">Provider</span></label>
+                                    <select asp-for="EmailProvider" class="select select-bordered select-sm">
+                                        <option value="smtp">SMTP (Built-in)</option>
+                                        <option value="sendgrid">SendGrid (Plugin)</option>
+                                        <option value="mailgun">Mailgun (Plugin)</option>
+                                        <option value="ses">AWS SES (Plugin)</option>
+                                    </select>
+                                    <label class="label"><span class="label-text-alt opacity-70">Configure provider in appsettings.json</span></label>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- In-App Integration -->
-                    <div class="card bg-base-200 shadow-sm">
-                        <div class="card-body">
-                            <div class="flex items-start justify-between">
-                                <div class="flex-1">
-                                    <h4 class="font-semibold flex items-center gap-2">
-                                        <span>🔔 In-App Notifications</span>
-                                        <span class="badge badge-success badge-sm">Built-in</span>
-                                    </h4>
-                                    <p class="text-xs opacity-70 mt-1">Show notifications within the application interface</p>
+                        
+                        <!-- In-App Integration -->
+                        <div class="card bg-base-200/80 shadow-sm border border-base-300">
+                            <div class="card-body space-y-3">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold flex items-center gap-2">
+                                            <span>🔔 In-App Notifications</span>
+                                            <span class="badge badge-success badge-sm">Built-in</span>
+                                        </h4>
+                                        <p class="text-xs opacity-70 mt-1">Show notifications within the application interface</p>
+                                    </div>
+                                    <input type="checkbox" asp-for="InAppNotificationsEnabled" class="toggle toggle-primary" />
                                 </div>
-                                <input type="checkbox" asp-for="InAppNotificationsEnabled" class="toggle toggle-primary" />
-                            </div>
-                            <p class="text-xs opacity-60 mt-2">No external provider needed - uses internal database storage</p>
-                        </div>
-                    </div>
-                    
-                    <!-- SMS Integration -->
-                    <div class="card bg-base-200 shadow-sm">
-                        <div class="card-body">
-                            <div class="flex items-start justify-between">
-                                <div class="flex-1">
-                                    <h4 class="font-semibold flex items-center gap-2">
-                                        <span>💬 SMS Integration</span>
-                                        <span class="badge badge-warning badge-sm">Plugin Required</span>
-                                    </h4>
-                                    <p class="text-xs opacity-70 mt-1">Send urgent notifications via SMS text messages</p>
-                                </div>
-                                <input type="checkbox" asp-for="SmsIntegrationEnabled" class="toggle toggle-primary" />
-                            </div>
-                            <div class="form-control mt-2">
-                                <label class="label"><span class="label-text text-xs">Provider</span></label>
-                                <select asp-for="SmsProvider" class="select select-bordered select-sm">
-                                    <option value="none">Not Configured</option>
-                                    <option value="twilio">Twilio (Plugin)</option>
-                                    <option value="sns">AWS SNS (Plugin)</option>
-                                    <option value="messagebird">MessageBird (Plugin)</option>
-                                    <option value="vonage">Vonage/Nexmo (Plugin)</option>
-                                </select>
-                                <label class="label"><span class="label-text-alt opacity-70">Install plugin package and configure credentials</span></label>
+                                <p class="text-xs opacity-60">No external provider needed - uses internal database storage</p>
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- Push Integration -->
-                    <div class="card bg-base-200 shadow-sm">
-                        <div class="card-body">
-                            <div class="flex items-start justify-between">
-                                <div class="flex-1">
-                                    <h4 class="font-semibold flex items-center gap-2">
-                                        <span>📱 Push Notifications</span>
-                                        <span class="badge badge-warning badge-sm">Plugin Required</span>
-                                    </h4>
-                                    <p class="text-xs opacity-70 mt-1">Send push notifications to mobile devices and browsers</p>
+                        
+                        <!-- SMS Integration -->
+                        <div class="card bg-base-200/80 shadow-sm border border-base-300">
+                            <div class="card-body space-y-3">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold flex items-center gap-2">
+                                            <span>💬 SMS Integration</span>
+                                            <span class="badge badge-warning badge-sm">Plugin Required</span>
+                                        </h4>
+                                        <p class="text-xs opacity-70 mt-1">Send urgent notifications via SMS text messages</p>
+                                    </div>
+                                    <input type="checkbox" asp-for="SmsIntegrationEnabled" class="toggle toggle-primary" />
                                 </div>
-                                <input type="checkbox" asp-for="PushIntegrationEnabled" class="toggle toggle-primary" />
+                                <div class="form-control">
+                                    <label class="label"><span class="label-text text-xs">Provider</span></label>
+                                    <select asp-for="SmsProvider" class="select select-bordered select-sm">
+                                        <option value="none">Not Configured</option>
+                                        <option value="twilio">Twilio (Plugin)</option>
+                                        <option value="sns">AWS SNS (Plugin)</option>
+                                        <option value="messagebird">MessageBird (Plugin)</option>
+                                        <option value="vonage">Vonage/Nexmo (Plugin)</option>
+                                    </select>
+                                    <label class="label"><span class="label-text-alt opacity-70">Install plugin package and configure credentials</span></label>
+                                </div>
                             </div>
-                            <div class="form-control mt-2">
-                                <label class="label"><span class="label-text text-xs">Provider</span></label>
-                                <select asp-for="PushProvider" class="select select-bordered select-sm">
-                                    <option value="none">Not Configured</option>
-                                    <option value="fcm">Firebase Cloud Messaging (Plugin)</option>
-                                    <option value="apns">Apple Push Notification Service (Plugin)</option>
-                                    <option value="onesignal">OneSignal (Plugin)</option>
-                                    <option value="pusher">Pusher Beams (Plugin)</option>
-                                </select>
-                                <label class="label"><span class="label-text-alt opacity-70">Install plugin package and configure API keys</span></label>
+                        </div>
+                        
+                        <!-- Push Integration -->
+                        <div class="card bg-base-200/80 shadow-sm border border-base-300">
+                            <div class="card-body space-y-3">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold flex items-center gap-2">
+                                            <span>📱 Push Notifications</span>
+                                            <span class="badge badge-warning badge-sm">Plugin Required</span>
+                                        </h4>
+                                        <p class="text-xs opacity-70 mt-1">Send push notifications to mobile devices and browsers</p>
+                                    </div>
+                                    <input type="checkbox" asp-for="PushIntegrationEnabled" class="toggle toggle-primary" />
+                                </div>
+                                <div class="form-control">
+                                    <label class="label"><span class="label-text text-xs">Provider</span></label>
+                                    <select asp-for="PushProvider" class="select select-bordered select-sm">
+                                        <option value="none">Not Configured</option>
+                                        <option value="fcm">Firebase Cloud Messaging (Plugin)</option>
+                                        <option value="apns">Apple Push Notification Service (Plugin)</option>
+                                        <option value="onesignal">OneSignal (Plugin)</option>
+                                        <option value="pusher">Pusher Beams (Plugin)</option>
+                                    </select>
+                                    <label class="label"><span class="label-text-alt opacity-70">Install plugin package and configure API keys</span></label>
+                                </div>
                             </div>
                         </div>
                     </div>

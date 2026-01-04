@@ -80,6 +80,11 @@ public class ReportRunViewModel : PageModel
             return Page();
         }
 
+        if (run.FileBytes == null)
+        {
+            return Page();
+        }
+
         await using var fs = new MemoryStream(run.FileBytes);
         using var sr = new StreamReader(fs, System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
 
