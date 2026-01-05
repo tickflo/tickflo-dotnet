@@ -6,14 +6,14 @@
 
 <div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
-    <section class="p-6 flex-1">
+    <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Teams", NewActionLabel = "New Team", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/users/teams/0/edit", AllowNewAction = Model.CanCreateTeams })
 
-        <div class="card bg-base-100 mt-4 rounded-3xl">
-            <div class="card-body p-0">
-                <div class="overflow-x-auto rounded-box bg-base-100">
-                    <table class="table table-zebra table-md">
-                        <thead>
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+            <div class="card-body">
+                <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
+                    <table class="table table-sm table-zebra">
+                        <thead class="bg-white/5">
                             <tr>
                                 <th>Name</th>
                                 <th class="hidden sm:table-cell">Description</th>

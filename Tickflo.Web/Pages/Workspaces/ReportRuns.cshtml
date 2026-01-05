@@ -5,12 +5,12 @@
 }
 <div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
-    <section class="p-6 flex-1">
+    <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = $"Runs: {Model.Report?.Name ?? "Report"}", AllowNewAction = false })
-        <div class="card bg-base-100 shadow-sm rounded-3xl">
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
             <div class="card-body">
-                <div class="overflow-x-auto rounded-box bg-base-100">
-                    <table class="table table-zebra table-md">
+                <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
+                    <table class="table table-sm table-zebra">
                         <thead>
                             <tr>
                                 <th>Started</th>
@@ -37,8 +37,8 @@
                                         <td>
                                             @if (string.Equals(rr.Status, "Succeeded", StringComparison.OrdinalIgnoreCase))
                                             {
-                                                <a class="btn btn-ghost btn-xs" asp-page="/Workspaces/ReportRunView" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@Model.ReportId" asp-route-runId="@rr.Id">View</a>
-                                                <a class="btn btn-primary btn-xs" asp-page="/Workspaces/ReportRunDownload" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@Model.ReportId" asp-route-runId="@rr.Id">Download CSV</a>
+                                                <a class="btn btn-ghost btn-sm" asp-page="/Workspaces/ReportRunView" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@Model.ReportId" asp-route-runId="@rr.Id">View</a>
+                                                <a class="btn btn-primary btn-sm" asp-page="/Workspaces/ReportRunDownload" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@Model.ReportId" asp-route-runId="@rr.Id">Download CSV</a>
                                             }
                                         </td>
                                     </tr>

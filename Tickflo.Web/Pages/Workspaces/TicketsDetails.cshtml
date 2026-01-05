@@ -17,7 +17,7 @@
     <div class="join">
       @{
       }
-      <a class="btn btn-soft join-item btn-sm md:btn-md" asp-page="/Workspaces/Tickets" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Back to list</a>
+      <a class="btn btn-soft join-item btn-sm" asp-page="/Workspaces/Tickets" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Back to list</a>
     </div>
   </div>
 
@@ -208,7 +208,7 @@
                   <option value="@i.Name (@i.Sku)" data-id="@i.Id" data-sku="@i.Sku" data-name="@i.Name" data-price="@((i.Price ?? i.Cost).ToString(System.Globalization.CultureInfo.InvariantCulture))" />
                 }
               </datalist>
-              <table class="table table-zebra table-md w-full" id="invoice-table">
+              <table class="table table-sm table-zebra w-full" id="invoice-table">
                 <thead>
                   <tr>
                     <th>SKU</th>
@@ -235,8 +235,8 @@
           </div>
           <div class="flex gap-2">
             @{ var saveLabel = (Model.Ticket != null && Model.Ticket.Id > 0) ? "Update" : "Save"; }
-            <button class="btn btn-primary" type="submit" id="ticket-save-btn" @(canSubmit ? "" : "disabled")>@saveLabel</button>
-            <a class="btn btn-soft" asp-page="/Workspaces/Tickets" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Cancel</a>
+            <button class="btn btn-primary btn-sm" type="submit" id="ticket-save-btn" @(canSubmit ? "" : "disabled")>@saveLabel</button>
+            <a class="btn btn-soft btn-sm" asp-page="/Workspaces/Tickets" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Cancel</a>
           </div>
         </form>
         <div class="toast" id="save-toast" style="display:none;">
@@ -310,7 +310,7 @@
                                    </div>
                                  </td>
                                  <td>$${(item.unitPrice * item.quantity).toFixed(2)}</td>
-                                 <td><button type='button' class='btn btn-error btn-xs remove-btn' data-idx='${idx}'>Remove</button></td>`;
+                                 <td><button type='button' class='btn btn-error btn-sm remove-btn' data-idx='${idx}'>Remove</button></td>`;
                 invoiceBody.appendChild(row);
                 total += item.unitPrice * item.quantity;
               });

@@ -6,10 +6,10 @@
 
 <div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
-    <section class="p-6 flex-1 space-y-6 bg-base-200/30 rounded-3xl">
+    <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Settings" })
 
-        <div class="card bg-gradient-to-r from-primary/10 via-base-100 to-base-100 shadow-lg border border-base-200 rounded-3xl">
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
             <div class="card-body flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <div>
                     <h2 class="card-title text-2xl">Settings</h2>
@@ -22,7 +22,7 @@
             </div>
         </div>
 
-        <div class="card bg-base-100/90 shadow-lg border border-base-200 rounded-3xl">
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
             <div class="card-body space-y-6">
                 <div class="flex flex-col gap-1">
                     <p class="text-xs uppercase tracking-wide text-base-content/60">Workspace identity</p>
@@ -33,24 +33,24 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="form-control">
                             <label class="label" for="Name"><span class="label-text font-semibold">Workspace Name</span></label>
-                            <input class="input input-bordered w-full rounded-2xl" asp-for="Workspace.Name" />
+                            <input class="input w-full rounded-2xl bg-neutral-900/85 border border-white/10 text-slate-100" asp-for="Workspace.Name" />
                             <span asp-validation-for="Workspace.Name" class="validator-hint"></span>
                         </div>
                         <div class="form-control">
                             <label class="label" for="Slug"><span class="label-text font-semibold">Slug</span></label>
-                            <input class="input input-bordered w-full rounded-2xl" asp-for="Workspace.Slug" />
+                            <input class="input w-full rounded-2xl bg-neutral-900/85 border border-white/10 text-slate-100" asp-for="Workspace.Slug" />
                             <span asp-validation-for="Workspace.Slug" class="validator-hint"></span>
                         </div>
                     </div>
                     <div class="card-actions flex flex-col md:flex-row gap-2 md:join">
-                        <button type="submit" class="btn btn-primary md:join-item w-full md:w-auto rounded-2xl" @(Model.CanEditSettings ? "" : "disabled")>Save changes</button>
-                        <a class="btn btn-ghost md:join-item w-full md:w-auto rounded-2xl" asp-page="/Workspace" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Cancel</a>
+                        <button type="submit" class="btn btn-primary join-item btn-sm w-full md:w-auto rounded-2xl" @(Model.CanEditSettings ? "" : "disabled")>Save changes</button>
+                        <a class="btn btn-soft join-item btn-sm w-full md:w-auto rounded-2xl" asp-page="/Workspace" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Cancel</a>
                     </div>
                 </form>
             </div>
         </div>
 
-        <div class="card bg-base-100/90 shadow-lg border border-base-200 rounded-3xl">
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
             <div class="card-body">
                 <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
@@ -62,9 +62,9 @@
                         <span class="badge badge-soft badge-neutral rounded-full">Applies to all tickets</span>
                     </div>
                 </div>
-                <div class="overflow-x-auto rounded-2xl border border-base-200">
+                <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
                     <table class="table table-md align-middle">
-                        <thead class="bg-base-200/70">
+                        <thead class="bg-white/5">
                             <tr>
                                 <th class="w-full">Name & Color</th>
                                 <th>Preview</th>
@@ -84,9 +84,9 @@
                                         <form method="post" asp-page-handler="UpdateStatus" class="join flex flex-wrap items-center gap-2">
                                             <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
                                             <input type="hidden" name="id" value="@s.Id" />
-                                            <input name="name" value="@s.Name" class="input input-bordered join-item input-sm w-48" />
-                                            <input type="color" name="color" value="@(isHex ? displayColor : "#3b82f6")" class="join-item w-12 h-9 p-0 border rounded" />
-                                            <input type="number" name="sortOrder" value="@s.SortOrder" class="input input-bordered join-item input-sm w-20" />
+                                            <input name="name" value="@s.Name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" />
+                                            <input type="color" name="color" value="@(isHex ? displayColor : "#3b82f6")" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70" />
+                                            <input type="number" name="sortOrder" value="@s.SortOrder" class="input join-item input-sm w-20 bg-neutral-900/80 border border-white/10 text-slate-100" />
                                             <label class="label cursor-pointer join-item ml-2 gap-2">
                                                 <input type="checkbox" name="isClosedState" value="true" @(s.IsClosedState ? "checked" : null) class="checkbox checkbox-xs" />
                                                 <span class="label-text text-xs">Closed state</span>
@@ -100,7 +100,7 @@
                                         <form method="post" asp-page-handler="DeleteStatus" onsubmit="return confirm('Delete status @s.Name?');" class="inline-flex">
                                             <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
                                             <input type="hidden" name="id" value="@s.Id" />
-                                            <button class="btn btn-soft btn-error btn-xs" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Delete</button>
+                                            <button class="btn btn-soft btn-error btn-sm" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Delete</button>
                                         </form>
                                     </td>
                                 </tr>
@@ -109,8 +109,8 @@
                                 <td colspan="4">
                                     <form method="post" asp-page-handler="AddStatus" class="join flex flex-wrap items-center gap-2">
                                         <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
-                                        <input name="NewStatusName" placeholder="New status name" class="input input-bordered join-item input-sm w-48" />
-                                        <input type="color" name="NewStatusColor" value="#3b82f6" class="join-item w-12 h-9 p-0 border rounded" />
+                                        <input name="NewStatusName" placeholder="New status name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" />
+                                        <input type="color" name="NewStatusColor" value="#3b82f6" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70" />
                                         <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanCreateSettings ? "" : "disabled")>Add status</button>
                                     </form>
                                 </td>
@@ -121,7 +121,7 @@
             </div>
         </div>
 
-        <div class="card bg-base-100/90 shadow-lg border border-base-200 rounded-3xl">
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
             <div class="card-body">
                 <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
@@ -133,9 +133,9 @@
                         <span class="badge badge-soft badge-info rounded-full">Shows on kanban</span>
                     </div>
                 </div>
-                <div class="overflow-x-auto rounded-2xl border border-base-200">
-                    <table class="table table-md align-middle">
-                        <thead class="bg-base-200/70">
+                <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
+                    <table class="table table-sm align-middle">
+                        <thead class="bg-white/5">
                             <tr>
                                 <th class="w-full">Name & Color</th>
                                 <th>Preview</th>
@@ -155,9 +155,9 @@
                                         <form method="post" asp-page-handler="UpdatePriority" class="join flex flex-wrap items-center gap-2">
                                             <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
                                             <input type="hidden" name="id" value="@p.Id" />
-                                            <input name="name" value="@p.Name" class="input input-bordered join-item input-sm w-48" />
-                                            <input type="color" name="color" value="@(isHex ? displayColor : "#3b82f6")" class="join-item w-12 h-9 p-0 border rounded" />
-                                            <input type="number" name="sortOrder" value="@p.SortOrder" class="input input-bordered join-item input-sm w-20" />
+                                            <input name="name" value="@p.Name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" />
+                                            <input type="color" name="color" value="@(isHex ? displayColor : "#3b82f6")" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70" />
+                                            <input type="number" name="sortOrder" value="@p.SortOrder" class="input join-item input-sm w-20 bg-neutral-900/80 border border-white/10 text-slate-100" />
                                             <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Save</button>
                                         </form>
                                     </td>
@@ -167,7 +167,7 @@
                                         <form method="post" asp-page-handler="DeletePriority" onsubmit="return confirm('Delete priority @p.Name?');" class="inline-flex">
                                             <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
                                             <input type="hidden" name="id" value="@p.Id" />
-                                            <button class="btn btn-soft btn-error btn-xs" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Delete</button>
+                                            <button class="btn btn-soft btn-error btn-sm" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Delete</button>
                                         </form>
                                     </td>
                                 </tr>
@@ -176,8 +176,8 @@
                                 <td colspan="4">
                                     <form method="post" asp-page-handler="AddPriority" class="join flex flex-wrap items-center gap-2">
                                         <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
-                                        <input name="NewPriorityName" placeholder="New priority name" class="input input-bordered join-item input-sm w-48" />
-                                        <input type="color" name="NewPriorityColor" value="#f59e0b" class="join-item w-12 h-9 p-0 border rounded" />
+                                        <input name="NewPriorityName" placeholder="New priority name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" />
+                                        <input type="color" name="NewPriorityColor" value="#f59e0b" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70" />
                                         <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanCreateSettings ? "" : "disabled")>Add priority</button>
                                     </form>
                                 </td>
@@ -188,7 +188,7 @@
             </div>
         </div>
 
-        <div class="card bg-base-100/90 shadow-lg border border-base-200 rounded-3xl">
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
             <div class="card-body">
                 <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
@@ -200,9 +200,9 @@
                         <span class="badge badge-soft badge-info rounded-full">Filters & search</span>
                     </div>
                 </div>
-                <div class="overflow-x-auto rounded-2xl border border-base-200">
-                    <table class="table table-md align-middle">
-                        <thead class="bg-base-200/70">
+                <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
+                    <table class="table table-sm align-middle">
+                        <thead class="bg-white/5">
                             <tr>
                                 <th class="w-full">Name & Color</th>
                                 <th>Preview</th>
@@ -222,9 +222,9 @@
                                         <form method="post" asp-page-handler="UpdateType" class="join flex flex-wrap items-center gap-2">
                                             <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
                                             <input type="hidden" name="id" value="@t.Id" />
-                                            <input name="name" value="@t.Name" class="input input-bordered join-item input-sm w-48" />
-                                            <input type="color" name="color" value="@(isHex ? displayColor : "#14b8a6")" class="join-item w-12 h-9 p-0 border rounded" />
-                                            <input type="number" name="sortOrder" value="@t.SortOrder" class="input input-bordered join-item input-sm w-20" />
+                                            <input name="name" value="@t.Name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" />
+                                            <input type="color" name="color" value="@(isHex ? displayColor : "#14b8a6")" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70" />
+                                            <input type="number" name="sortOrder" value="@t.SortOrder" class="input join-item input-sm w-20 bg-neutral-900/80 border border-white/10 text-slate-100" />
                                             <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Save</button>
                                         </form>
                                     </td>
@@ -234,7 +234,7 @@
                                         <form method="post" asp-page-handler="DeleteType" onsubmit="return confirm('Delete type @t.Name?');" class="inline-flex">
                                             <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
                                             <input type="hidden" name="id" value="@t.Id" />
-                                            <button class="btn btn-soft btn-error btn-xs" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Delete</button>
+                                            <button class="btn btn-soft btn-error btn-sm" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Delete</button>
                                         </form>
                                     </td>
                                 </tr>
@@ -243,8 +243,8 @@
                                 <td colspan="4">
                                     <form method="post" asp-page-handler="AddType" class="join flex flex-wrap items-center gap-2">
                                         <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
-                                        <input name="NewTypeName" placeholder="New type name" class="input input-bordered join-item input-sm w-48" />
-                                        <input type="color" name="NewTypeColor" value="#14b8a6" class="join-item w-12 h-9 p-0 border rounded" />
+                                        <input name="NewTypeName" placeholder="New type name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" />
+                                        <input type="color" name="NewTypeColor" value="#14b8a6" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70" />
                                         <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanCreateSettings ? "" : "disabled")>Add type</button>
                                     </form>
                                 </td>
@@ -255,7 +255,7 @@
             </div>
         </div>
 
-        <div class="card bg-base-100/90 shadow-lg border border-base-200 rounded-3xl">
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
             <div class="card-body space-y-6">
                 <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>

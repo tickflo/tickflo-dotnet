@@ -6,24 +6,24 @@
 
 <div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
-    <section class="p-6 flex-1">
+    <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Reports", NewActionLabel = "New Report", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/reports/0/edit", AllowNewAction = Model.CanCreateReports })
         @if (TempData["Success"] is string s2 && !string.IsNullOrWhiteSpace(s2))
         {
-            <div class="alert alert-success my-4">@s2</div>
+            <div class="alert alert-success rounded-2xl border border-white/10">@s2</div>
         }
-        <div class="card bg-base-100 shadow-sm rounded-3xl">
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
             <div class="card-body">
                 <h2 class="card-title">Reports</h2>
                 <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
                 
             </div>
         </div>
-        <div class="card bg-base-100 shadow-sm rounded-3xl mt-4 rounded-3xl">
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
             <div class="card-body">
-                <div class="overflow-x-auto rounded-box bg-base-100">
-                    <table class="table table-zebra table-md">
-                        <thead>
+                <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
+                    <table class="table table-sm table-zebra">
+                        <thead class="bg-white/5">
                             <tr>
                                 <th>Name</th>
                                 <th>Status</th>
@@ -51,17 +51,17 @@
                                         <td>
                                             <div class="flex flex-wrap gap-2 md:join">
                                                 @if (Model.CanEditReports) {
-                                                    <a class="btn btn-ghost btn-xs md:join-item" asp-page="/Workspaces/ReportsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@rep.Id">Edit</a>
+                                                    <a class="btn btn-ghost btn-sm md:join-item" asp-page="/Workspaces/ReportsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@rep.Id">Edit</a>
                                                 } else {
-                                                    <button class="btn btn-ghost btn-xs md:join-item" disabled>Edit</button>
+                                                    <button class="btn btn-ghost btn-sm md:join-item" disabled>Edit</button>
                                                 }
                                                 <form method="post" asp-page="/Workspaces/ReportRun" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@rep.Id" class="inline">
-                                                    <button class="btn btn-primary btn-xs md:join-item" type="submit">Run</button>
+                                                    <button class="btn btn-primary btn-sm md:join-item" type="submit">Run</button>
                                                 </form>
-                                                <a class="btn btn-soft btn-xs md:join-item" asp-page="/Workspaces/ReportRuns" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@rep.Id">Runs</a>
+                                                <a class="btn btn-soft btn-sm md:join-item" asp-page="/Workspaces/ReportRuns" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@rep.Id">Runs</a>
                                                 @if (Model.CanEditReports) {
                                                     <form method="post" asp-page="/Workspaces/ReportDelete" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@rep.Id" class="inline" onsubmit="return confirm('Delete this report and all its runs? This cannot be undone.');">
-                                                        <button class="btn btn-error btn-xs md:join-item" type="submit">Delete</button>
+                                                        <button class="btn btn-error btn-sm md:join-item" type="submit">Delete</button>
                                                     </form>
                                                 }
                                             </div>

@@ -11,29 +11,29 @@
 @if (user?.Identity?.IsAuthenticated == true)
 {
     <div class="dropdown dropdown-end">
-        <div tabindex="0" role="button" class="btn btn-ghost">
+        <div tabindex="0" role="button" class="btn btn-soft rounded-full">
             <div class="avatar mr-2">
-                <div class="w-8 rounded-full ring ring-offset-2 ring-offset-base-100">
+                <div class="w-8 rounded-full ring ring-white/15 ring-offset-2 ring-offset-transparent">
                     <img src="/users/@userId/avatar" alt="Avatar Preview" onerror="this.onerror=null;this.src='/images/default-avatar.png';" />
                 </div>
             </div>
-            <span class="max-w-40 truncate">@userName</span>
+            <span class="max-w-40 truncate text-slate-100">@userName</span>
         </div>
-        <ul class="dropdown-content menu z-10 w-52 rounded-box bg-base-100 p-2 shadow">
+        <ul class="dropdown-content menu z-10 w-56 rounded-2xl bg-neutral-900/90 backdrop-blur border border-white/10 p-2 shadow-2xl text-slate-100">
             <li>
-                <a href="/profile" onclick="(e) => e.currentTarget.blur()">
+                <a href="/profile" class="rounded-xl hover:bg-white/5" onclick="(e) => e.currentTarget.blur()">
                     <i class="fa fa-user"></i> Profile
                 </a>
             </li>
             <li>
-                <a href="/workspaces" onclick="(e) => e.currentTarget.blur()">
+                <a href="/workspaces" class="rounded-xl hover:bg-white/5" onclick="(e) => e.currentTarget.blur()">
                     <i class="fa fa-people-group"></i>
                     Workspaces
                 </a>
             </li>
             <li>
                 <form method="post" action="/logout">
-                    <button type="submit" class="btn btn-ghost">
+                    <button type="submit" class="btn btn-ghost rounded-xl">
                         <i class="fa fa-sign-out-alt mr-2 inline"></i>
                         Logout
                     </button>

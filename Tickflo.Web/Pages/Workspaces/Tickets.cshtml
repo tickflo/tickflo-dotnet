@@ -4,16 +4,16 @@
     ViewData["Title"] = "Tickets";
 }
 
-<div class="flex flex-row gap-10">
+<div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
-    <section class="p-8 lg:p-10 flex-1 ml-6">
+    <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
 @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Tickets", NewActionLabel = "New Ticket", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/tickets/0", AllowNewAction = Model.CanCreateTickets })
 
 <div class="grid gap-4">
     <div class="flex items-center justify-between">
         <form method="get" class="join md:join">
-            <input name="Query" value="@Model.Query" placeholder="Search subject or description" class="input input-bordered join-item input-sm md:input-md" />
-            <select name="Type" class="select select-bordered join-item select-sm md:select-md">
+            <input name="Query" value="@Model.Query" placeholder="Search subject or description" class="input join-item input-sm md:input-md bg-neutral-900/80 border border-white/10 text-slate-100" />
+            <select name="Type" class="select join-item select-sm md:select-md bg-neutral-900/80 border border-white/10 text-slate-100">
                 <option value="">All Types</option>
                 @foreach (var t in Model.TypesList)
                 {
@@ -27,7 +27,7 @@
                     }
                 }
             </select>
-            <select name="Status" class="select select-bordered join-item select-sm md:select-md">
+            <select name="Status" class="select join-item select-sm md:select-md bg-neutral-900/80 border border-white/10 text-slate-100">
                 <option value="">All Statuses</option>
                 @foreach (var s in Model.Statuses)
                 {
@@ -41,7 +41,7 @@
                     }
                 }
             </select>
-            <select name="Priority" class="select select-bordered join-item select-sm md:select-md">
+            <select name="Priority" class="select join-item select-sm md:select-md bg-neutral-900/80 border border-white/10 text-slate-100">
                 <option value="">All Priorities</option>
                 @foreach (var p in Model.PrioritiesList)
                 {
@@ -55,7 +55,7 @@
                     }
                 }
             </select>
-            <select name="AssigneeTeamName" class="select select-bordered join-item select-sm md:select-md">
+            <select name="AssigneeTeamName" class="select join-item select-sm md:select-md bg-neutral-900/80 border border-white/10 text-slate-100">
                 <option value="">Any Team</option>
                 @foreach (var kv in Model.TeamsById)
                 {
@@ -69,7 +69,7 @@
                     }
                 }
             </select>
-            <select name="LocationId" class="select select-bordered join-item select-sm md:select-md">
+            <select name="LocationId" class="select join-item select-sm md:select-md bg-neutral-900/80 border border-white/10 text-slate-100">
                 <option value="">Any Location</option>
                 @foreach (var l in Model.LocationOptions)
                 {
@@ -83,7 +83,7 @@
                     }
                 }
             </select>
-            <input id="contact-query" name="ContactQuery" value="@Model.ContactQuery" placeholder="Contact name or email" class="input input-bordered join-item input-sm md:input-md" list="contacts-list" />
+            <input id="contact-query" name="ContactQuery" value="@Model.ContactQuery" placeholder="Contact name or email" class="input join-item input-sm md:input-md bg-neutral-900/80 border border-white/10 text-slate-100" list="contacts-list" />
             <datalist id="contacts-list">
                 @foreach (var kv in Model.ContactsById)
                 {
@@ -92,7 +92,7 @@
                     <option value="@label"></option>
                 }
             </datalist>
-            <select name="AssigneeUserId" class="select select-bordered join-item select-sm md:select-md">
+            <select name="AssigneeUserId" class="select join-item select-sm md:select-md bg-neutral-900/80 border border-white/10 text-slate-100">
                 <option value="">Anyone</option>
                 @if (Model.AssigneeUserId == -1) {<option value="-1" selected>Unassigned</option>} else {<option value="-1">Unassigned</option>}
                 @foreach (var kv in Model.UsersById)
@@ -112,13 +112,15 @@
                 <input type="checkbox" name="Mine" value="true" class="checkbox checkbox-sm" @(Model.Mine ? "checked" : "") />
                 <span class="badge badge-soft ml-2 rounded-full">@Model.MyCount</span>
             </label>
-            <button class="btn btn-soft join-item btn-sm md:btn-md">Filter</button>
+            <button class="btn btn-soft join-item btn-sm">Filter</button>
         </form>
     </div>
 
-    <div class="overflow-x-auto pl-6 rounded-box">
-        <table class="table table-zebra table-md">
-            <thead>
+    <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+      <div class="card-body">
+        <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
+          <table class="table table-sm table-zebra">
+            <thead class="bg-white/5">
                 <tr>
                     <th>Subject</th>
                     <th>Type</th>
@@ -238,7 +240,7 @@
                                         <option value="@kv.Value.Name (@kv.Value.Email)" data-id="@kv.Key"></option>
                                     }
                                 </datalist>
-                                                            <button class="btn btn-soft join-item btn-xs md:btn-sm" type="submit" @(Model.CanEditTickets ? "" : "disabled")>Assign</button>
+                                                            <button class="btn btn-soft join-item btn-sm" type="submit" @(Model.CanEditTickets ? "" : "disabled")>Assign</button>
                             </form>
                             <script>
                                 (function(){
@@ -283,7 +285,9 @@
                 </tr>
             }
             </tbody>
-        </table>
+          </table>
+        </div>
+      </div>
     </div>
 
     <div class="toast" id="assign-toast" style="display:none;">

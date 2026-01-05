@@ -35,18 +35,24 @@
     @apply bg-base-300/50;
 }
 
-/* Global Nexus-inspired surface styling */
+/* Global Nexus-inspired surface styling (brand accent pulls from --p / New Ticket btn) */
 .shell-outer {
-    @apply bg-gradient-to-br from-base-200 via-base-100 to-base-200 min-h-screen text-base-content;
+    @apply min-h-screen text-slate-100;
+    background: radial-gradient(circle at 15% 20%, rgba(255,255,255,0.04), transparent 35%),
+                radial-gradient(circle at 80% 10%, rgba(255,255,255,0.03), transparent 32%),
+                linear-gradient(135deg, #0c1220, #0b101b 40%, #0a0f18);
 }
 
 .glass-panel {
-    @apply bg-base-100/85 border border-base-200/80 shadow-xl backdrop-blur rounded-3xl;
+    @apply rounded-3xl backdrop-blur shadow-2xl;
+    background: rgba(12, 16, 26, 0.9);
+    border: 1px solid rgba(255,255,255,0.05);
 }
 
 /* App-wide shell and spacing */
 .app-shell {
-    @apply bg-base-200/40 min-h-screen;
+    @apply min-h-screen;
+    background: linear-gradient(145deg, #0c1220, #0b101b);
 }
 
 .app-main {
@@ -55,7 +61,9 @@
 
 /* Card and table polish for consistent look */
 .card {
-    @apply bg-base-100/90 border border-base-200 shadow-lg rounded-3xl backdrop-blur;
+    @apply rounded-3xl backdrop-blur shadow-2xl border;
+    background: rgba(12, 16, 26, 0.9);
+    border-color: rgba(255,255,255,0.05);
 }
 
 .card .card-body {
@@ -63,27 +71,32 @@
 }
 
 .table {
-    @apply rounded-2xl overflow-hidden border border-base-200 bg-base-100/90 shadow-sm backdrop-blur;
+    @apply rounded-2xl overflow-hidden border shadow-lg backdrop-blur;
+    background: rgba(10, 14, 25, 0.92);
+    border-color: rgba(255,255,255,0.05);
 }
 
 .table thead {
-    @apply bg-base-200/70 text-[11px] uppercase tracking-wide text-base-content/60;
+    @apply text-[11px] uppercase tracking-wide;
+    background: rgba(255,255,255,0.02);
+    color: rgba(255,255,255,0.65);
 }
 
 .table :where(th, td) {
     @apply align-middle px-4 py-3;
+    color: #e2e8f0;
 }
 
 .table tbody tr {
-    @apply border-base-200/80;
+    border-color: rgba(255,255,255,0.08);
 }
 
 .table tbody tr:hover {
-    @apply bg-base-200/70;
+    background: rgba(255,255,255,0.03);
 }
 
 .table :where(tbody td) {
-    @apply text-sm text-base-content;
+    @apply text-sm;
 }
 
 .table :where(thead th:first-child) {
@@ -95,7 +108,7 @@
 }
 
 .table-zebra tbody tr:nth-child(even) {
-    @apply bg-base-100/70;
+    background: rgba(255,255,255,0.02);
 }
 
 /* Section title helpers */
@@ -129,11 +142,14 @@
 }
 
 .btn-ghost {
-    @apply text-base-content/80 hover:text-base-content hover:bg-base-200/60;
+    @apply text-slate-200/80 hover:text-slate-100;
+    background: transparent;
 }
 
 .btn-soft {
-    @apply shadow-sm bg-base-200/60 border border-base-200 text-base-content hover:bg-base-200;
+    @apply shadow-sm text-slate-100;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
 }
 
 .input,
@@ -148,11 +164,17 @@
 }
 
 .badge {
-    @apply rounded-2xl border-base-200/70 bg-base-200/50 text-base-content;
+    @apply rounded-2xl;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #e2e8f0;
 }
 
 .alert {
-    @apply rounded-2xl border border-base-200 bg-base-100/90 backdrop-blur;
+    @apply rounded-2xl backdrop-blur;
+    background: rgba(12,16,26,0.92);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #e2e8f0;
 }
 
 .modal-box {
@@ -164,15 +186,21 @@
 }
 
 .menu {
-    @apply rounded-2xl border border-base-200/80 bg-base-100/90 backdrop-blur;
+    @apply rounded-2xl backdrop-blur;
+    background: rgba(12,16,26,0.9);
+    border: 1px solid rgba(255,255,255,0.05);
+    color: #e2e8f0;
 }
 
 .navbar {
-    @apply rounded-2xl bg-base-100/85 border border-base-200/80 shadow-lg backdrop-blur;
+    @apply rounded-2xl shadow-xl backdrop-blur;
+    background: rgba(12,16,26,0.9);
+    border: 1px solid rgba(255,255,255,0.05);
 }
 
 .progress {
     @apply rounded-full;
+    background: rgba(255,255,255,0.08);
 }
 
 .avatar {
@@ -187,7 +215,10 @@
 .form-control .input,
 .form-control .select,
 .form-control .textarea {
-    @apply bg-base-100/80 border border-base-200 rounded-2xl shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/30;
+    @apply rounded-2xl shadow-sm;
+    background: rgba(12,16,26,0.9);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #e2e8f0;
 }
 
 .divider {
@@ -195,7 +226,10 @@
 }
 
 .stat {
-    @apply bg-base-100/80 border border-base-200 rounded-3xl shadow-md;
+    @apply rounded-3xl shadow-lg;
+    background: rgba(12,16,26,0.9);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #e2e8f0;
 }
 
 .stat .stat-value {

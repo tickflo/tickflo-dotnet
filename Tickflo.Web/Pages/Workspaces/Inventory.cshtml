@@ -6,10 +6,10 @@
 
 <div class="flex flex-row gap-4">
   @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
-  <section class="p-6 flex-1">
+  <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
 @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Inventory", NewActionLabel = "New Item", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/inventory/0/edit", AllowNewAction = Model.CanCreateInventory })
 
-<div class="grid gap-4">
+<div class="space-y-8">
   <div class="flex items-center justify-between">
     @await Html.PartialAsync("_FilterBar", new Tickflo.Web.Pages.Shared.FilterBarView {
       QueryParamName = "Query",
@@ -35,8 +35,10 @@
     })
   </div>
 
-  <div class="overflow-x-auto rounded-box bg-base-100">
-    <table class="table table-zebra table-md">
+  <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+    <div class="card-body">
+      <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
+        <table class="table table-sm table-zebra">
       <thead>
         <tr>
           <th>SKU</th>
@@ -96,7 +98,9 @@
         </tr>
       }
       </tbody>
-    </table>
+        </table>
+      </div>
+    </div>
   </div>
   </div>
   </section>

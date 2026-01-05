@@ -5,7 +5,7 @@
 }
 <div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
-    <section class="p-6 flex-1">
+    <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = $"Report: {Model.Report?.Name ?? "Report"}", AllowNewAction = false })
         <div class="mb-4 flex flex-wrap items-center gap-2">
             <a class="btn btn-soft" asp-page="/Workspaces/ReportRuns" asp-route-slug="@Model.WorkspaceSlug" asp-route-reportId="@Model.ReportId">Back to Runs</a>
@@ -51,7 +51,7 @@
                 }
             </div>
         </div>
-        <div class="card bg-base-100 shadow-sm rounded-3xl">
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
             <div class="card-body">
                 @if (!Model.HasContent)
                 {
@@ -65,9 +65,9 @@
                 }
                 else
                 {
-                    <div class="overflow-x-auto rounded-box bg-base-100">
-                        <table id="reportTable" class="table table-zebra table-md">
-                            <thead class="bg-base-200 sticky top-0">
+                    <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
+                        <table id="reportTable" class="table table-sm table-zebra">
+                            <thead class="bg-white/5 sticky top-0">
                                 <tr>
                                     @for (int i = 0; i < Model.Headers.Count; i++)
                                     {

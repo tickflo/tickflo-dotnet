@@ -6,17 +6,17 @@
 
 <div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
-    <section class="p-6 flex-1">
+    <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = $"Team: {Model.Team?.Name}" })
 
-        <div class="card bg-base-100 shadow-sm rounded-3xl mt-4 max-w-3xl rounded-3xl">
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100 max-w-3xl">
             <div class="card-body">
                 <h2 class="card-title">Members</h2>
-                <form method="post" asp-page-handler="Add" class="grid gap-4 md:grid-cols-3 items-end">
+                <form method="post" asp-page-handler="Add" class="space-y-4">
                     <input type="hidden" asp-for="TeamId" />
-                    <div class="form-control md:col-span-2">
+                    <div class="form-control">
                         <label class="label"><span class="label-text">User</span></label>
-                        <select asp-for="SelectedUserId" class="select select-bordered w-full">
+                        <select asp-for="SelectedUserId" class="select select-bordered w-full bg-neutral-900/80 border border-white/10 text-slate-100">
                             <option value="">Select a user</option>
                             @foreach (var u in Model.WorkspaceUsers)
                             {
@@ -24,9 +24,9 @@
                             }
                         </select>
                     </div>
-                    <div class="join md:join">
-                        <button type="submit" class="btn btn-primary join-item w-full md:w-auto" @(Model.CanEditTeams ? "" : "disabled")>Add</button>
-                        <a class="btn btn-ghost join-item" asp-page="/Workspaces/Teams" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Back</a>
+                    <div class="flex gap-2 justify-end">
+                        <button type="submit" class="btn btn-primary rounded-2xl" @(Model.CanEditTeams ? "" : "disabled")>Add</button>
+                        <a class="btn btn-ghost rounded-2xl" asp-page="/Workspaces/Teams" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Back</a>
                     </div>
                 </form>
             </div>
@@ -35,7 +35,7 @@
         <div class="card bg-base-100 shadow-sm rounded-3xl mt-8 rounded-3xl">
             <div class="card-body p-0">
                 <div class="overflow-x-auto">
-                    <table class="table table-md">
+                    <table class="table table-sm table-zebra">
                         <thead>
                             <tr>
                                 <th>User</th>
@@ -51,7 +51,7 @@
                                         <form method="post" asp-page-handler="Remove" class="inline">
                                             <input type="hidden" name="teamId" value="@Model.TeamId" />
                                             <input type="hidden" name="userId" value="@m.Id" />
-                                            <button type="submit" class="btn btn-error btn-xs" @(Model.CanEditTeams ? "" : "disabled")>Remove</button>
+                                            <button type="submit" class="btn btn-error btn-sm" @(Model.CanEditTeams ? "" : "disabled")>Remove</button>
                                         </form>
                                     </td>
                                 </tr>

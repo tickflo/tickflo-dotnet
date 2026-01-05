@@ -4,11 +4,11 @@
   {
     if (!string.IsNullOrWhiteSpace(a.Href) && !a.Disabled)
     {
-      <a class="@a.ButtonClass join-item btn-sm md:btn-md" href="@a.Href">@a.Label</a>
+      <a class="@a.ButtonClass join-item btn-sm" href="@a.Href">@a.Label</a>
     }
     else
     {
-      <button class="@a.ButtonClass join-item btn-sm md:btn-md" disabled>@a.Label</button>
+      <button class="@a.ButtonClass join-item btn-sm" disabled>@a.Label</button>
     }
   }
 </div>
