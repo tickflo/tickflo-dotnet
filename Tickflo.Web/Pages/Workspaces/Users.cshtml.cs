@@ -5,9 +5,11 @@ using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Services.Email;
 using Tickflo.Core.Utils;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
+[Authorize]
 public class UsersModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
@@ -15,19 +17,17 @@ public class UsersModel : PageModel
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
     private readonly IEmailSender _emailSender;
-    private readonly Microsoft.AspNetCore.Http.IHttpContextAccessor _httpContextAccessor;
     private readonly IRolePermissionRepository _rolePerms;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
-    public UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IEmailSender emailSender, Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor, IRolePermissionRepository rolePerms)
+    public UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IEmailSender emailSender, IRolePermissionRepository rolePerms)
     {
         _workspaceRepo = workspaceRepo;
         _userRepo = userRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
         _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
         _emailSender = emailSender;
-        _httpContextAccessor = httpContextAccessor;
         _rolePerms = rolePerms;
     }
 
@@ -39,8 +39,7 @@ public class UsersModel : PageModel
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace != null)
         {
-            var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (int.TryParse(uidStr, out var uid))
+            if (TryGetUserId(out var uid))
             {
                 IsWorkspaceAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
                 var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
@@ -84,8 +83,7 @@ public class UsersModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var currentUserId)) return Forbid();
+        if (!TryGetUserId(out var currentUserId)) return Forbid();
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(currentUserId, Workspace.Id);
         if (!isAdmin)
         {
@@ -107,8 +105,7 @@ public class UsersModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var currentUserId)) return Forbid();
+        if (!TryGetUserId(out var currentUserId)) return Forbid();
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(currentUserId, Workspace.Id);
         if (!isAdmin)
         {
@@ -129,5 +126,17 @@ public class UsersModel : PageModel
         await _emailSender.SendAsync(user.Email, subject, body);
         TempData["Success"] = "Invite email resent.";
         return RedirectToPage("/Workspaces/Users", new { slug });
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+
+        userId = default;
+        return false;
     }
 }

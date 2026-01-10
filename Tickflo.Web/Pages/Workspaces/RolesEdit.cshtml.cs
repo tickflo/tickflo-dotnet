@@ -1,18 +1,19 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Microsoft.AspNetCore.Http;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
+[Authorize]
 public class RolesEditModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaces;
     private readonly IUserWorkspaceRoleRepository _uwr;
     private readonly IRoleRepository _roles;
     private readonly IRolePermissionRepository _rolePerms;
-    private readonly IHttpContextAccessor _http;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Role? Role { get; private set; }
@@ -23,13 +24,12 @@ public class RolesEditModel : PageModel
     [BindProperty]
     public bool Admin { get; set; }
 
-    public RolesEditModel(IWorkspaceRepository workspaces, IUserWorkspaceRoleRepository uwr, IRoleRepository roles, IRolePermissionRepository rolePerms, IHttpContextAccessor http)
+    public RolesEditModel(IWorkspaceRepository workspaces, IUserWorkspaceRoleRepository uwr, IRoleRepository roles, IRolePermissionRepository rolePerms)
     {
         _workspaces = workspaces;
         _uwr = uwr;
         _roles = roles;
         _rolePerms = rolePerms;
-        _http = http;
     }
 
     // Security item bindings
@@ -50,8 +50,7 @@ public class RolesEditModel : PageModel
         WorkspaceSlug = slug;
         var ws = await _workspaces.FindBySlugAsync(slug);
         if (ws == null) return NotFound();
-        var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
+        if (!TryGetUserId(out var uid)) return Forbid();
         var workspaceId = ws.Id;
         var isAdmin = await _uwr.IsAdminAsync(uid, workspaceId);
         if (!isAdmin) return Forbid();
@@ -93,8 +92,7 @@ public class RolesEditModel : PageModel
         WorkspaceSlug = slug;
         var ws = await _workspaces.FindBySlugAsync(slug);
         if (ws == null) return NotFound();
-        var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
+        if (!TryGetUserId(out var uid)) return Forbid();
         var workspaceId = ws.Id;
         var isAdmin = await _uwr.IsAdminAsync(uid, workspaceId);
         if (!isAdmin) return Forbid();
@@ -165,5 +163,16 @@ public class RolesEditModel : PageModel
             CanCreate = p.CanCreate,
             TicketViewScope = p.Section.Equals("tickets", StringComparison.OrdinalIgnoreCase) ? (p.TicketViewScope ?? "all").ToLowerInvariant() : null
         });
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+        userId = default;
+        return false;
     }
 }

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using Tickflo.Core.Config;
 using Amazon.S3;
 using Amazon.S3.Model;
@@ -25,19 +24,27 @@ namespace Tickflo.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAvatar(string id)
         {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return NotFound();
+            }
+
             var bucket = _config.S3_BUCKET;
+            if (string.IsNullOrWhiteSpace(bucket))
+            {
+                return NotFound();
+            }
+
             var key = $"user-data/{id}/avatar.jpg";
             try
             {
-                var response = await _s3Client.GetObjectAsync(bucket, key);
-                using var stream = new MemoryStream();
+                using var response = await _s3Client.GetObjectAsync(bucket, key);
+                await using var stream = new MemoryStream();
                 await response.ResponseStream.CopyToAsync(stream);
                 stream.Position = 0;
-                return File(stream.ToArray(), response.Headers["Content-Type"] ?? "image/jpeg");
-            }
-            catch (AmazonS3Exception e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                return NotFound();
+
+                var contentType = response.Headers.ContentType ?? "image/jpeg";
+                return File(stream.ToArray(), contentType);
             }
             catch (AmazonS3Exception)
             {

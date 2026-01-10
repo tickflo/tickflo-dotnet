@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
+[Authorize]
 public class ReportRunsBackfillModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;

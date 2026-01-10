@@ -54,8 +54,7 @@ public class FilesController : ControllerBase
     {
         try
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            if (userId == 0) return Unauthorized();
+            if (!TryGetUserId(out var userId)) return Unauthorized();
 
             // Verify workspace access
             var workspace = await _workspaceRepository.FindByIdAsync(workspaceId);
@@ -109,8 +108,7 @@ public class FilesController : ControllerBase
     {
         try
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            if (userId == 0) return Unauthorized();
+            if (!TryGetUserId(out var userId)) return Unauthorized();
 
             // Verify workspace access
             var workspace = await _workspaceRepository.FindByIdAsync(workspaceId);
@@ -172,8 +170,7 @@ public class FilesController : ControllerBase
     {
         try
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            if (userId == 0) return Unauthorized();
+            if (!TryGetUserId(out var userId)) return Unauthorized();
 
             var file = await _fileRepository.FindByIdAsync(fileId);
             if (file == null) return NotFound();
@@ -224,8 +221,7 @@ public class FilesController : ControllerBase
     {
         try
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            if (userId == 0) return Unauthorized();
+            if (!TryGetUserId(out var userId)) return Unauthorized();
 
             var files = await _fileRepository.ListAsync(workspaceId, take, skip, category);
             var total = await _fileRepository.GetWorkspaceFileCountAsync(workspaceId);
@@ -263,8 +259,7 @@ public class FilesController : ControllerBase
     {
         try
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            if (userId == 0) return Unauthorized();
+            if (!TryGetUserId(out var userId)) return Unauthorized();
 
             var usedBytes = await _fileRepository.GetWorkspaceStorageUsedAsync(workspaceId);
             var fileCount = await _fileRepository.GetWorkspaceFileCountAsync(workspaceId);
@@ -283,5 +278,17 @@ public class FilesController : ControllerBase
             _logger.LogError(ex, $"Error getting storage info for workspace {workspaceId}");
             return StatusCode(500, "Error getting storage info");
         }
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(id, out userId))
+        {
+            return true;
+        }
+
+        userId = default;
+        return false;
     }
 }

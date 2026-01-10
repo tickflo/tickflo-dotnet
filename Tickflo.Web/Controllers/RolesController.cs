@@ -1,23 +1,23 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using Tickflo.Core.Data;
-using Microsoft.AspNetCore.Http;
 
 namespace Tickflo.Web.Controllers;
 
+[Authorize]
 [Route("workspaces/{slug}/users/roles/{id:int}")]
 public class RolesController : Controller
 {
     private readonly IWorkspaceRepository _workspaces;
     private readonly IUserWorkspaceRoleRepository _uwr;
     private readonly IRoleRepository _roles;
-    private readonly IHttpContextAccessor _http;
 
-    public RolesController(IWorkspaceRepository workspaces, IUserWorkspaceRoleRepository uwr, IRoleRepository roles, IHttpContextAccessor http)
+    public RolesController(IWorkspaceRepository workspaces, IUserWorkspaceRoleRepository uwr, IRoleRepository roles)
     {
         _workspaces = workspaces;
         _uwr = uwr;
         _roles = roles;
-        _http = http;
     }
 
     [HttpPost("delete")]
@@ -25,8 +25,9 @@ public class RolesController : Controller
     {
         var ws = await _workspaces.FindBySlugAsync(slug);
         if (ws == null) return NotFound();
-        var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
+
+        if (!TryGetUserId(out var uid)) return Unauthorized();
+
         var isAdmin = await _uwr.IsAdminAsync(uid, ws.Id);
         if (!isAdmin) return Forbid();
 
@@ -43,5 +44,17 @@ public class RolesController : Controller
 
         await _roles.DeleteAsync(id);
         return Redirect($"/workspaces/{slug}/roles");
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+
+        userId = default;
+        return false;
     }
 }

@@ -1,9 +1,12 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
+[Authorize]
 public class ReportsModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
@@ -27,8 +30,7 @@ public class ReportsModel : PageModel
     {
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        var uidStr = HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (Workspace != null && int.TryParse(uidStr, out var uid))
+        if (Workspace != null && TryGetUserId(out var uid))
         {
             var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
             if (eff.TryGetValue("reports", out var rp))
@@ -37,9 +39,20 @@ public class ReportsModel : PageModel
                 CanEditReports = rp.CanEdit;
             }
         }
-        Reports = (await _reportRepo.ListAsync(Workspace!.Id))
-            .Select(r => new ReportItem { Id = r.Id, Name = r.Name, Ready = r.Ready, LastRun = r.LastRun })
-            .ToList();
+        Reports = Workspace != null
+            ? (await _reportRepo.ListAsync(Workspace.Id)).Select(r => new ReportItem { Id = r.Id, Name = r.Name, Ready = r.Ready, LastRun = r.LastRun }).ToList()
+            : new List<ReportItem>();
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+        userId = default;
+        return false;
     }
 
     public record ReportItem

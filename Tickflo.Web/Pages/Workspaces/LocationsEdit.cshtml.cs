@@ -1,16 +1,21 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
+ [Authorize]
 public class LocationsEditModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly ILocationRepository _locationRepo;
     private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IUserWorkspaceRepository _userWorkspaces;
+    private readonly IUserRepository _users;
+    private readonly IContactRepository _contacts;
     private readonly IRolePermissionRepository _rolePerms;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -30,12 +35,14 @@ public class LocationsEditModel : PageModel
     public List<int> SelectedContactIds { get; set; } = new();
     public List<Contact> ContactOptions { get; private set; } = new();
 
-    public LocationsEditModel(IWorkspaceRepository workspaceRepo, ILocationRepository locationRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IHttpContextAccessor httpContextAccessor, IRolePermissionRepository rolePerms)
+    public LocationsEditModel(IWorkspaceRepository workspaceRepo, ILocationRepository locationRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IUserWorkspaceRepository userWorkspaces, IUserRepository users, IContactRepository contacts, IRolePermissionRepository rolePerms)
     {
         _workspaceRepo = workspaceRepo;
         _locationRepo = locationRepo;
         _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-        _httpContextAccessor = httpContextAccessor;
+        _userWorkspaces = userWorkspaces;
+        _users = users;
+        _contacts = contacts;
         _rolePerms = rolePerms;
     }
     public bool CanViewLocations { get; private set; }
@@ -47,8 +54,7 @@ public class LocationsEditModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
+        if (!TryGetUserId(out var uid)) return Forbid();
         var workspaceId = Workspace.Id;
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
         var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, uid);
@@ -66,17 +72,15 @@ public class LocationsEditModel : PageModel
 
         // Load members for default assignee selection
         MemberOptions = new();
-        var memberships = await HttpContext.RequestServices.GetRequiredService<IUserWorkspaceRepository>().FindForWorkspaceAsync(Workspace.Id);
-        var usersSvc = HttpContext.RequestServices.GetRequiredService<IUserRepository>();
+        var memberships = await _userWorkspaces.FindForWorkspaceAsync(Workspace.Id);
         foreach (var m in memberships.Select(m => m.UserId).Distinct())
         {
-            var u = await usersSvc.FindByIdAsync(m);
+            var u = await _users.FindByIdAsync(m);
             if (u != null) MemberOptions.Add(u);
         }
 
         // Load contacts and preselect those linked to this location
-        var contactsSvc = HttpContext.RequestServices.GetRequiredService<IContactRepository>();
-        ContactOptions = (await contactsSvc.ListAsync(Workspace.Id)).ToList();
+        ContactOptions = (await _contacts.ListAsync(Workspace.Id)).ToList();
         SelectedContactIds = new();
 
         if (locationId > 0)
@@ -108,8 +112,7 @@ public class LocationsEditModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
+        if (!TryGetUserId(out var uid)) return Forbid();
         var workspaceId = Workspace.Id;
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
         var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, uid);
@@ -141,5 +144,17 @@ public class LocationsEditModel : PageModel
         var queryQ = Request.Query["Query"].ToString();
         var pageQ = Request.Query["PageNumber"].ToString();
         return RedirectToPage("/Workspaces/Locations", new { slug, Query = queryQ, PageNumber = pageQ });
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+
+        userId = default;
+        return false;
     }
 }

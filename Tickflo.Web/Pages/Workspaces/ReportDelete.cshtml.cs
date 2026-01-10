@@ -1,9 +1,12 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 using Tickflo.Core.Data;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
+[Authorize]
 public class ReportDeleteModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
@@ -27,8 +30,7 @@ public class ReportDeleteModel : PageModel
     {
         var ws = await _workspaceRepo.FindBySlugAsync(slug);
         if (ws == null) return NotFound();
-        var uidStr = HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
+        if (!TryGetUserId(out var uid)) return Forbid();
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, ws.Id);
         var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(ws.Id, uid);
         var allowed = isAdmin || (eff.TryGetValue("reports", out var rp) && rp.CanEdit);
@@ -64,5 +66,16 @@ public class ReportDeleteModel : PageModel
             TempData["Success"] = "Report not found.";
         }
         return RedirectToPage("/Workspaces/Reports", new { slug });
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+        userId = default;
+        return false;
     }
 }

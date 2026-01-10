@@ -1,27 +1,28 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using System.Security.Claims;
 
 namespace Tickflo.Web.Pages.Workspaces
 {
+    [Authorize]
     public class InventoryModel : PageModel
     {
         private readonly IInventoryRepository _inventory;
         private readonly IWorkspaceRepository _workspaces;
         private readonly IUserWorkspaceRoleRepository _roles;
         private readonly IRolePermissionRepository _rolePerms;
-        private readonly IHttpContextAccessor _http;
 
-        public InventoryModel(IInventoryRepository inventory, IWorkspaceRepository workspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, IRolePermissionRepository rolePerms)
+        public InventoryModel(IInventoryRepository inventory, IWorkspaceRepository workspaces, IUserWorkspaceRoleRepository roles, IRolePermissionRepository rolePerms)
         {
             _inventory = inventory;
             _workspaces = workspaces;
             _roles = roles;
-            _http = http;
             _rolePerms = rolePerms;
         }
 
@@ -46,9 +47,8 @@ namespace Tickflo.Web.Pages.Workspaces
             {
                 return NotFound();
             }
-            var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            IsWorkspaceAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
-            if (int.TryParse(uidStr, out var currentUserId))
+            IsWorkspaceAdmin = TryGetUserId(out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
+            if (TryGetUserId(out var currentUserId))
             {
                 var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, currentUserId);
                 if (eff.TryGetValue("inventory", out var ip))
@@ -74,10 +74,9 @@ namespace Tickflo.Web.Pages.Workspaces
             {
                 return NotFound();
             }
-            var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            var isAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
+            var isAdmin = TryGetUserId(out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
             bool allowed = isAdmin;
-            if (!allowed && int.TryParse(uidStr, out var currentUserId))
+            if (!allowed && TryGetUserId(out var currentUserId))
             {
                 var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, currentUserId);
                 if (eff.TryGetValue("inventory", out var ip)) allowed = ip.CanEdit;
@@ -104,10 +103,9 @@ namespace Tickflo.Web.Pages.Workspaces
             {
                 return NotFound();
             }
-            var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            var isAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
+            var isAdmin = TryGetUserId(out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
             bool allowed = isAdmin;
-            if (!allowed && int.TryParse(uidStr, out var currentUserId))
+            if (!allowed && TryGetUserId(out var currentUserId))
             {
                 var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, currentUserId);
                 if (eff.TryGetValue("inventory", out var ip)) allowed = ip.CanEdit;
@@ -124,6 +122,18 @@ namespace Tickflo.Web.Pages.Workspaces
             item.Status = "active";
             await _inventory.UpdateAsync(item);
             return Redirect($"/workspaces/{Workspace.Slug}/inventory");
+        }
+
+        private bool TryGetUserId(out int userId)
+        {
+            var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(idValue, out userId))
+            {
+                return true;
+            }
+
+            userId = default;
+            return false;
         }
     }
 }

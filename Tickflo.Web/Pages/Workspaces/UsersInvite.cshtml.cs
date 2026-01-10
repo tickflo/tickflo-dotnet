@@ -10,15 +10,16 @@ using Tickflo.Core.Services.Email;
 using Tickflo.Core.Utils;
 using System.Security.Cryptography;
 using Tickflo.Core.Data;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
+[Authorize]
 public class UsersInviteModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IUserRepository _userRepo;
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IEmailSender _emailSender;
     private readonly ITokenRepository _tokenRepo;
@@ -34,13 +35,12 @@ public class UsersInviteModel : PageModel
     [BindProperty]
     public string Role { get; set; } = "Member";
 
-    public UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IHttpContextAccessor httpContextAccessor, IPasswordHasher passwordHasher, IEmailSender emailSender, ITokenRepository tokenRepo, IRoleRepository roleRepo, IRolePermissionRepository rolePerms)
+    public UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IPasswordHasher passwordHasher, IEmailSender emailSender, ITokenRepository tokenRepo, IRoleRepository roleRepo, IRolePermissionRepository rolePerms)
     {
         _workspaceRepo = workspaceRepo;
         _userRepo = userRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
         _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-        _httpContextAccessor = httpContextAccessor;
         _passwordHasher = passwordHasher;
         _emailSender = emailSender;
         _tokenRepo = tokenRepo;
@@ -52,47 +52,34 @@ public class UsersInviteModel : PageModel
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null)
-            return NotFound();
-        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid))
-            return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
-        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
-        CanViewUsers = isAdmin || (eff.TryGetValue("users", out var up) && up.CanView);
-        CanCreateUsers = isAdmin || (eff.TryGetValue("users", out var up2) && up2.CanCreate);
-        if (!CanViewUsers) return Forbid();
-        if (!CanCreateUsers) return Forbid();
+        var access = await EnsureAccessAsync(slug);
+        if (access.failure != null) return access.failure;
+
+        Workspace = access.workspace;
+        CanViewUsers = access.canView;
+        CanCreateUsers = access.canCreate;
         return Page();
     }
 
     public async Task<IActionResult> OnPostAsync(string slug)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (!ModelState.IsValid)
-        {
-            return Page();
-        }
-        if (Workspace == null)
-        {
-            return NotFound();
-        }
+        var access = await EnsureAccessAsync(slug);
+        if (access.failure != null) return access.failure;
 
-        var uid = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uid, out var currentUserId))
+        Workspace = access.workspace;
+        var currentUserId = access.userId;
+        CanViewUsers = access.canView;
+        CanCreateUsers = access.canCreate;
+
+        var ws = Workspace;
+        if (ws == null)
         {
             return Forbid();
         }
 
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(currentUserId, Workspace.Id);
-        if (!isAdmin)
+        if (!ModelState.IsValid)
         {
-            var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, currentUserId);
-            var allowed = eff.TryGetValue("users", out var up) && up.CanCreate;
-            if (!allowed) return Forbid();
+            return Page();
         }
 
         var emailNorm = Email.Trim().ToLowerInvariant();
@@ -119,12 +106,12 @@ public class UsersInviteModel : PageModel
             var confirmationLink = $"{baseUrl}/email-confirmation/confirm?email={Uri.EscapeDataString(emailNorm)}&code={Uri.EscapeDataString(confirmCode)}";
             var acceptToken = await _tokenRepo.CreateForUserIdAsync(user.Id);
             var resetToken = await _tokenRepo.CreatePasswordResetForUserIdAsync(user.Id);
-            var acceptLink = $"{baseUrl}/workspaces/{Uri.EscapeDataString(Workspace.Slug)}/accept?token={Uri.EscapeDataString(acceptToken.Value)}";
+            var acceptLink = $"{baseUrl}/workspaces/{Uri.EscapeDataString(ws.Slug)}/accept?token={Uri.EscapeDataString(acceptToken.Value)}";
             var setPasswordLink = $"{baseUrl}/account/set-password?token={Uri.EscapeDataString(resetToken.Value)}";
-            var subject = $"You're invited to {Workspace.Name}";
+            var subject = $"You're invited to {ws.Name}";
             var body = $"<div style='font-family:Arial,sans-serif'>"+
                         $"<h2 style='color:#333'>Workspace Invitation</h2>"+
-                        $"<p>You have been invited to the workspace '<b>{Workspace.Name}</b>'.</p>"+
+                        $"<p>You have been invited to the workspace '<b>{ws.Name}</b>'.</p>"+
                         $"<p>Temporary password: <code style='font-size:1.1em'>{tempPassword}</code></p>"+
                         $"<p>Please confirm your email: <a href=\"{confirmationLink}\">Confirm Email</a></p>"+
                         $"<p>Then accept the invite: <a href=\"{acceptLink}\">Accept Invite</a></p>"+
@@ -134,10 +121,15 @@ public class UsersInviteModel : PageModel
             await _emailSender.SendAsync(emailNorm, subject, body);
         }
 
+        if (user == null)
+        {
+            throw new InvalidOperationException("User creation failed.");
+        }
+
         var invite = new UserWorkspace
         {
             UserId = user.Id,
-            WorkspaceId = Workspace.Id,
+            WorkspaceId = ws.Id,
             Accepted = false,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = currentUserId
@@ -148,19 +140,49 @@ public class UsersInviteModel : PageModel
         var selectedRoleName = Role?.Trim();
         if (!string.IsNullOrWhiteSpace(selectedRoleName))
         {
-            var role = await _roleRepo.FindByNameAsync(Workspace.Id, selectedRoleName);
+            var role = await _roleRepo.FindByNameAsync(ws.Id, selectedRoleName);
             if (role == null)
             {
                 var adminFlag = string.Equals(selectedRoleName, "Admin", StringComparison.OrdinalIgnoreCase);
-                role = await _roleRepo.AddAsync(Workspace.Id, selectedRoleName, adminFlag, currentUserId);
+                role = await _roleRepo.AddAsync(ws.Id, selectedRoleName, adminFlag, currentUserId);
             }
-            await _userWorkspaceRoleRepo.AddAsync(user.Id, Workspace.Id, role.Id, currentUserId);
+            await _userWorkspaceRoleRepo.AddAsync(user.Id, ws.Id, role.Id, currentUserId);
         }
 
         // role assignment handled above
 
         TempData["Success"] = $"Invite created for '{Email}'" + (!string.IsNullOrWhiteSpace(Role) ? $" as {Role}" : "") + ".";
         return RedirectToPage("/Workspaces/Users", new { slug });
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+
+        userId = default;
+        return false;
+    }
+
+    private async Task<(Workspace? workspace, int userId, bool canView, bool canCreate, IActionResult? failure)> EnsureAccessAsync(string slug)
+    {
+        WorkspaceSlug = slug;
+        var ws = await _workspaceRepo.FindBySlugAsync(slug);
+        if (ws == null) return (null, 0, false, false, NotFound());
+
+        if (!TryGetUserId(out var userId)) return (ws, 0, false, false, Forbid());
+
+        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(userId, ws.Id);
+        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(ws.Id, userId);
+        var canView = isAdmin || (eff.TryGetValue("users", out var up) && up.CanView);
+        var canCreate = isAdmin || (eff.TryGetValue("users", out var up2) && up2.CanCreate);
+
+        if (!canView || !canCreate) return (ws, userId, canView, canCreate, Forbid());
+
+        return (ws, userId, canView, canCreate, null);
     }
 
     private static string GenerateStrongPassword(int length = 16)

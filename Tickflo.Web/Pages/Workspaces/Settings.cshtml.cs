@@ -1,30 +1,30 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Microsoft.AspNetCore.Http;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
+[Authorize]
 public class SettingsModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
     private readonly IRolePermissionRepository _rolePermRepo;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ITicketStatusRepository _statusRepo;
     private readonly ITicketPriorityRepository _priorityRepo;
     private readonly ITicketTypeRepository _typeRepo;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
-    public SettingsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IHttpContextAccessor httpContextAccessor, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, IRolePermissionRepository rolePermRepo)
+    public SettingsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, IRolePermissionRepository rolePermRepo)
     {
         _workspaceRepo = workspaceRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
         _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-        _httpContextAccessor = httpContextAccessor;
         _statusRepo = statusRepo;
         _priorityRepo = priorityRepo;
         _typeRepo = typeRepo;
@@ -42,10 +42,20 @@ public class SettingsModel : PageModel
 
     private async Task<(int userId, bool isAdmin)> ResolveUserAsync()
     {
-        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return (0, false);
+        if (!TryGetUserId(out var uid)) return (0, false);
         var isAdmin = Workspace != null && await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
         return (uid, isAdmin);
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+        userId = default;
+        return false;
     }
 
     private async Task<bool> EnsurePermissionsAsync(int userId, bool isAdmin)

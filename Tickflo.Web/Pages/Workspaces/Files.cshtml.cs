@@ -24,8 +24,7 @@ public class FilesModel : PageModel
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {
-        var uidStr = HttpContext.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
+        if (!TryGetUserId(out var uid)) return Forbid();
 
         var ws = await _workspaceRepository.FindBySlugAsync(slug);
         if (ws == null) return NotFound();
@@ -37,5 +36,17 @@ public class FilesModel : PageModel
         Workspace = ws;
         WorkspaceId = ws.Id;
         return Page();
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(id, out userId))
+        {
+            return true;
+        }
+
+        userId = default;
+        return false;
     }
 }

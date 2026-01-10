@@ -1,10 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
+[Authorize]
 public class TeamsModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaces;
@@ -34,8 +37,9 @@ public class TeamsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaces.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
+
+        if (!TryGetUserId(out var uid)) return Forbid();
+
         var isAdmin = await _uwr.IsAdminAsync(uid, Workspace.Id);
         var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
         bool canView = isAdmin;
@@ -59,5 +63,17 @@ public class TeamsModel : PageModel
             MemberCounts[t.Id] = ms.Count;
         }
         return Page();
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+
+        userId = default;
+        return false;
     }
 }

@@ -1,10 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
+[Authorize]
 public class ContactsEditModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
@@ -45,8 +48,7 @@ public class ContactsEditModel : PageModel
         Id = id;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
+        if (!TryGetUserId(out var uid)) return Forbid();
         var workspaceId = Workspace.Id;
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
         // Compute effective permissions for contacts
@@ -100,8 +102,7 @@ public class ContactsEditModel : PageModel
         Id = id;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
+        if (!TryGetUserId(out var uid)) return Forbid();
         var workspaceId = Workspace.Id;
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
         var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, uid);
@@ -162,5 +163,17 @@ public class ContactsEditModel : PageModel
         var queryQ = Request.Query["Query"].ToString();
         var pageQ = Request.Query["PageNumber"].ToString();
         return RedirectToPage("/Workspaces/Contacts", new { slug, Priority = priorityQ, Query = queryQ, PageNumber = pageQ });
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+
+        userId = default;
+        return false;
     }
 }

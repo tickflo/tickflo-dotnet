@@ -1,12 +1,14 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Http;
+using System.Linq;
+using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using System.Linq;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
+[Authorize]
 public class TicketsModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
@@ -15,7 +17,6 @@ public class TicketsModel : PageModel
     private readonly IUserWorkspaceRepository _userWorkspaces;
     private readonly IUserRepository _users;
     private readonly ITicketStatusRepository _statusRepo;
-    private readonly IHttpContextAccessor _http;
     private readonly ITicketPriorityRepository _priorityRepo;
     private readonly ITicketTypeRepository _typeRepo;
     private readonly ITeamRepository _teamRepo;
@@ -54,14 +55,13 @@ public class TicketsModel : PageModel
     public bool CanCreateTickets { get; private set; }
     public bool CanEditTickets { get; private set; }
 
-    public TicketsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserWorkspaceRepository userWorkspaces, IUserRepository users, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITeamRepository teamRepo, IRolePermissionRepository rolePerms, ITeamMemberRepository teamMembers, IUserWorkspaceRoleRepository uwr, ILocationRepository locations)
+    public TicketsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserWorkspaceRepository userWorkspaces, IUserRepository users, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITeamRepository teamRepo, IRolePermissionRepository rolePerms, ITeamMemberRepository teamMembers, IUserWorkspaceRoleRepository uwr, ILocationRepository locations)
     {
         _workspaceRepo = workspaceRepo;
         _ticketRepo = ticketRepo;
         _contactRepo = contactRepo;
         _userWorkspaces = userWorkspaces;
         _users = users;
-        _http = http;
         _statusRepo = statusRepo;
         _priorityRepo = priorityRepo;
         _typeRepo = typeRepo;
@@ -139,14 +139,8 @@ public class TicketsModel : PageModel
 
             var all = await _ticketRepo.ListAsync(Workspace.Id);
             // Apply role-based ticket scope (mine or my team)
-            var uidStr2 = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            int currentUserId = 0;
-            bool isAdmin = false;
-            if (int.TryParse(uidStr2, out var uid2))
-            {
-                currentUserId = uid2;
-                isAdmin = await _uwr.IsAdminAsync(currentUserId, Workspace.Id);
-            }
+            var currentUserId = TryGetUserId(out var parsedId) ? parsedId : 0;
+            var isAdmin = currentUserId > 0 && await _uwr.IsAdminAsync(currentUserId, Workspace.Id);
             // Compute edit/create permissions for UI actions
             if (currentUserId > 0)
             {
@@ -210,9 +204,7 @@ public class TicketsModel : PageModel
             {
                 filtered = filtered.Where(t => t.LocationId == LocationId.Value);
             }
-            var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            int currentUid = 0;
-            if (int.TryParse(uidStr, out var uidTmp)) currentUid = uidTmp;
+            var currentUid = TryGetUserId(out var uidTmp) ? uidTmp : 0;
             MyCount = currentUid > 0 ? all.Count(t => t.AssignedUserId == currentUid) : 0;
 
             if (Mine && currentUid > 0)
@@ -267,5 +259,17 @@ public class TicketsModel : PageModel
             LocationOptions = (await _locations.ListAsync(Workspace.Id)).ToList();
             LocationsById = LocationOptions.ToDictionary(l => l.Id, l => l);
         }
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+
+        userId = default;
+        return false;
     }
 }

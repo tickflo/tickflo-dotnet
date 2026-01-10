@@ -1,10 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
+[Authorize]
 public class LocationsModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
@@ -23,21 +26,22 @@ public class LocationsModel : PageModel
     public bool CanCreateLocations { get; private set; }
     public bool CanEditLocations { get; private set; }
 
-    public async Task OnGetAsync(string slug)
+    public async Task<IActionResult> OnGetAsync(string slug)
     {
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        var uidStr = HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (Workspace != null && int.TryParse(uidStr, out var uid))
+        if (Workspace == null) return NotFound();
+
+        if (!TryGetUserId(out var uid)) return Forbid();
+
+        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
+        if (eff.TryGetValue("locations", out var lp))
         {
-            var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
-            if (eff.TryGetValue("locations", out var lp))
-            {
-                CanCreateLocations = lp.CanCreate;
-                CanEditLocations = lp.CanEdit;
-            }
+            CanCreateLocations = lp.CanCreate;
+            CanEditLocations = lp.CanEdit;
         }
-        var list = await _locationRepo.ListAsync(Workspace!.Id);
+
+        var list = await _locationRepo.ListAsync(Workspace.Id);
         var items = new List<LocationItem>();
         foreach (var l in list)
         {
@@ -48,6 +52,7 @@ public class LocationsModel : PageModel
             items.Add(new LocationItem { Id = l.Id, Name = l.Name, Address = l.Address, Active = l.Active, ContactCount = count, ContactPreview = preview });
         }
         Locations = items;
+        return Page();
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(string slug, int locationId)
@@ -56,8 +61,7 @@ public class LocationsModel : PageModel
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
         // Enforce edit permission for deletes
-        var uidStr = HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
+        if (!TryGetUserId(out var uid)) return Forbid();
         var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
         bool allowed = eff.TryGetValue("locations", out var lp) && lp.CanEdit;
         if (!allowed) return Forbid();
@@ -74,5 +78,17 @@ public class LocationsModel : PageModel
         public bool Active { get; set; }
         public int ContactCount { get; set; }
         public string ContactPreview { get; set; } = string.Empty;
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+
+        userId = default;
+        return false;
     }
 }

@@ -1,17 +1,19 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Web.Services;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
+[Authorize]
 public class ReportsEditModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IReportRepository _reportRepo;
     private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IRolePermissionRepository _rolePerms;
     private readonly IReportingService _reportingService;
     public string WorkspaceSlug { get; private set; } = string.Empty;
@@ -24,12 +26,11 @@ public class ReportsEditModel : PageModel
     [BindProperty]
     public bool Ready { get; set; }
 
-    public ReportsEditModel(IWorkspaceRepository workspaceRepo, IReportRepository reportRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IHttpContextAccessor httpContextAccessor, IRolePermissionRepository rolePerms, IReportingService reportingService)
+    public ReportsEditModel(IWorkspaceRepository workspaceRepo, IReportRepository reportRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IRolePermissionRepository rolePerms, IReportingService reportingService)
     {
         _workspaceRepo = workspaceRepo;
         _reportRepo = reportRepo;
         _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-        _httpContextAccessor = httpContextAccessor;
         _rolePerms = rolePerms;
         _reportingService = reportingService;
     }
@@ -64,8 +65,7 @@ public class ReportsEditModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
+        if (!TryGetUserId(out var uid)) return Forbid();
         var workspaceId = Workspace.Id;
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
         var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, uid);
@@ -121,8 +121,7 @@ public class ReportsEditModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
+        if (!TryGetUserId(out var uid)) return Forbid();
         var workspaceId = Workspace.Id;
         var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
         var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, uid);
@@ -190,5 +189,16 @@ public class ReportsEditModel : PageModel
         var filtersPart = string.IsNullOrWhiteSpace(filtersJson) ? "\"filters\":[]" : $"\"filters\":{filtersJson}";
         var json = $"{{\"source\":\"{(source ?? "tickets").ToLowerInvariant()}\",\"fields\":[{string.Join(',', fields.Select(f => $"\"{f}\""))}],{filtersPart}}}";
         return json;
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+        userId = default;
+        return false;
     }
 }

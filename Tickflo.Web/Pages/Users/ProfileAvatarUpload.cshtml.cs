@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
@@ -8,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace Tickflo.Web.Pages.Users;
 
+[Authorize]
 public class ProfileAvatarUploadModel : PageModel
 {
     private readonly IUserRepository _userRepo;
@@ -23,17 +25,17 @@ public class ProfileAvatarUploadModel : PageModel
 
     public void OnGet()
     {
-        var user = HttpContext.User;
-        UserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+        UserId = TryGetUserId(out var uid) ? uid.ToString() : "";
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
-        var user = HttpContext.User;
-        UserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+        if (!TryGetUserId(out var uid))
+            return Challenge();
+        UserId = uid.ToString();
         var file = Request.Form.Files["AvatarImage"];
         
-        if (file != null && file.Length > 0 && int.TryParse(UserId, out var uid))
+        if (file != null && file.Length > 0)
         {
             var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
             if (ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".gif")
@@ -63,5 +65,16 @@ public class ProfileAvatarUploadModel : PageModel
             Message = "No file selected.";
         }
         return Page();
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+        userId = default;
+        return false;
     }
 }

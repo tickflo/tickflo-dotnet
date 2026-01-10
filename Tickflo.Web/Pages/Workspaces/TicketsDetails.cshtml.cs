@@ -1,12 +1,14 @@
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Tickflo.Core.Data;
 using System.Linq;
+using System.Security.Claims;
+using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
+[Authorize]
 public class TicketsDetailsModel : PageModel
 {
     [BindProperty]
@@ -26,7 +28,6 @@ public class TicketsDetailsModel : PageModel
     private readonly IUserRepository _users;
     private readonly IUserWorkspaceRepository _userWorkspaces;
     private readonly IUserWorkspaceRoleRepository _roles;
-    private readonly IHttpContextAccessor _http;
     private readonly ITicketStatusRepository _statusRepo;
     private readonly ITicketPriorityRepository _priorityRepo;
     private readonly ITicketTypeRepository _typeRepo;
@@ -37,7 +38,7 @@ public class TicketsDetailsModel : PageModel
     private readonly ITeamMemberRepository _teamMembers;
     private readonly ILocationRepository _locationRepo;
 
-    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, IHttpContextAccessor http, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITicketHistoryRepository historyRepo, ITeamRepository teamRepo, IInventoryRepository inventoryRepo, IRolePermissionRepository rolePerms, ITeamMemberRepository teamMembers, ILocationRepository locationRepo)
+    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITicketHistoryRepository historyRepo, ITeamRepository teamRepo, IInventoryRepository inventoryRepo, IRolePermissionRepository rolePerms, ITeamMemberRepository teamMembers, ILocationRepository locationRepo)
     {
         _workspaceRepo = workspaceRepo;
         _ticketRepo = ticketRepo;
@@ -45,7 +46,6 @@ public class TicketsDetailsModel : PageModel
         _users = users;
         _userWorkspaces = userWorkspaces;
         _roles = roles;
-        _http = http;
         _statusRepo = statusRepo;
         _priorityRepo = priorityRepo;
         _typeRepo = typeRepo;
@@ -118,9 +118,7 @@ public class TicketsDetailsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        int currentUserId = 0;
-        if (int.TryParse(uidStr, out var uidParsed)) currentUserId = uidParsed;
+        var currentUserId = TryGetUserId(out var uid) ? uid : 0;
         // Load effective permissions for tickets section
         if (currentUserId > 0)
         {
@@ -134,7 +132,7 @@ public class TicketsDetailsModel : PageModel
             }
         }
         // Admin override
-        IsWorkspaceAdmin = int.TryParse(uidStr, out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
+        IsWorkspaceAdmin = currentUserId > 0 && await _roles.IsAdminAsync(currentUserId, Workspace.Id);
         if (IsWorkspaceAdmin)
         {
             CanViewTickets = true;
@@ -277,10 +275,8 @@ public class TicketsDetailsModel : PageModel
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
         var workspaceId = Workspace.Id;
-        var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        int uid = 0;
-        bool isAdmin = int.TryParse(uidStr, out var uidParsedPost) && await _roles.IsAdminAsync(uidParsedPost, workspaceId);
-        if (uidParsedPost > 0) uid = uidParsedPost;
+        int uid = TryGetUserId(out var currentUid) ? currentUid : 0;
+        bool isAdmin = uid > 0 && await _roles.IsAdminAsync(uid, workspaceId);
         // Robustly resolve ticket id: route -> form -> query
         int resolvedId = id;
         if (resolvedId <= 0)
@@ -602,5 +598,16 @@ public class TicketsDetailsModel : PageModel
     private static string DefaultOrTrim(string? value, string defaultValue)
     {
         return string.IsNullOrWhiteSpace(value) ? defaultValue : value!.Trim();
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+        userId = default;
+        return false;
     }
 }

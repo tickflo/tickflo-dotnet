@@ -1,21 +1,20 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Config;
-using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Tickflo.Web.Pages;
 
-
+[Authorize]
 public class WorkspaceModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ITicketRepository _ticketRepo;
     private readonly ITicketStatusRepository _statusRepo;
     private readonly ITicketTypeRepository _typeRepo;
@@ -69,7 +68,6 @@ public class WorkspaceModel : PageModel
     public WorkspaceModel(
         IWorkspaceRepository workspaceRepo,
         IUserWorkspaceRepository userWorkspaceRepo,
-        IHttpContextAccessor httpContextAccessor,
         ITicketRepository ticketRepo,
         ITicketStatusRepository statusRepo,
         ITicketTypeRepository typeRepo,
@@ -83,7 +81,6 @@ public class WorkspaceModel : PageModel
     {
         _workspaceRepo = workspaceRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
-        _httpContextAccessor = httpContextAccessor;
         _ticketRepo = ticketRepo;
         _statusRepo = statusRepo;
         _typeRepo = typeRepo;
@@ -113,16 +110,12 @@ public class WorkspaceModel : PageModel
     {
         RangeDays = NormalizeRange(range);
         AssignmentFilter = string.IsNullOrEmpty(assignment) ? "all" : assignment.ToLowerInvariant();
+        
+        if (!TryGetUserId(out var userId))
+            return Challenge();
+
         if (string.IsNullOrEmpty(slug))
         {
-            var user = _httpContextAccessor.HttpContext?.User;
-            if (user?.Identity?.IsAuthenticated != true)
-                return Challenge();
-
-            var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(userIdClaim, out var userId))
-                return Challenge();
-
             var memberships = await _userWorkspaceRepo.FindForUserAsync(userId);
 
             foreach (var m in memberships)
@@ -147,58 +140,39 @@ public class WorkspaceModel : PageModel
 
         Workspace = found;
 
-        var curUser = _httpContextAccessor.HttpContext?.User;
-        if (curUser?.Identity?.IsAuthenticated == true)
+        var userMemberships = await _userWorkspaceRepo.FindForUserAsync(userId);
+        foreach (var m in userMemberships)
         {
-            var idClaim = curUser.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (int.TryParse(idClaim, out var userId))
+            var w = await _workspaceRepo.FindByIdAsync(m.WorkspaceId);
+            if (w == null) continue;
+            Workspaces.Add(new WorkspaceView
             {
-                var memberships = await _userWorkspaceRepo.FindForUserAsync(userId);
-                foreach (var m in memberships)
-                {
-                    var w = await _workspaceRepo.FindByIdAsync(m.WorkspaceId);
-                    if (w == null) continue;
-                    Workspaces.Add(new WorkspaceView
-                    {
-                        Id = w.Id,
-                        Name = w.Name,
-                        Slug = w.Slug,
-                        Accepted = m.Accepted
-                    });
-                }
-
-                IsMember = memberships.Any(m => m.WorkspaceId == found.Id && m.Accepted);
-            }
+                Id = w.Id,
+                Name = w.Name,
+                Slug = w.Slug,
+                Accepted = m.Accepted
+            });
         }
+
+        IsMember = userMemberships.Any(m => m.WorkspaceId == found.Id && m.Accepted);
 
         if (Workspace != null && IsMember)
         {
-            int? userId = null;
-            var dashboardUser = _httpContextAccessor.HttpContext?.User;
-            if (dashboardUser?.Identity?.IsAuthenticated == true)
-            {
-                var idClaim = dashboardUser.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (int.TryParse(idClaim, out var uid))
-                    userId = uid;
-            }
             // Permission gating: require dashboard view permission for workspace
-            if (userId.HasValue)
+            var isAdmin = await _uwr.IsAdminAsync(userId, Workspace.Id);
+            if (isAdmin)
             {
-                var isAdmin = await _uwr.IsAdminAsync(userId.Value, Workspace.Id);
-                if (isAdmin)
-                {
-                    CanViewDashboard = true;
-                    CanViewTickets = true;
-                    TicketViewScope = "all";
-                }
-                else
-                {
-                    var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, userId.Value);
-                    if (eff.TryGetValue("dashboard", out var dp)) CanViewDashboard = dp.CanView;
-                    if (eff.TryGetValue("tickets", out var tp)) CanViewTickets = tp.CanView;
-                    // Derive ticket scope label
-                    TicketViewScope = await _rolePerms.GetTicketViewScopeForUserAsync(Workspace.Id, userId.Value, isAdmin);
-                }
+                CanViewDashboard = true;
+                CanViewTickets = true;
+                TicketViewScope = "all";
+            }
+            else
+            {
+                var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, userId);
+                if (eff.TryGetValue("dashboard", out var dp)) CanViewDashboard = dp.CanView;
+                if (eff.TryGetValue("tickets", out var tp)) CanViewTickets = tp.CanView;
+                // Derive ticket scope label
+                TicketViewScope = await _rolePerms.GetTicketViewScopeForUserAsync(Workspace.Id, userId, isAdmin);
             }
             if (!CanViewDashboard)
             {
@@ -216,7 +190,7 @@ public class WorkspaceModel : PageModel
     }
 
 
-    private async Task LoadDashboardDataAsync(int workspaceId, int rangeDays, string assignmentFilter, int? userId)
+    private async Task LoadDashboardDataAsync(int workspaceId, int rangeDays, string assignmentFilter, int userId)
     {
         // Load all members and teams for assignment filter
         var acceptedUserIds = (await _userWorkspaceRepo.FindForWorkspaceAsync(workspaceId))
@@ -236,20 +210,17 @@ public class WorkspaceModel : PageModel
         var tickets = await _ticketRepo.ListAsync(workspaceId);
         // Apply role-based ticket scope filtering
         IEnumerable<Tickflo.Core.Entities.Ticket> visibleTickets = tickets;
-        if (userId.HasValue)
+        var isAdmin = await _uwr.IsAdminAsync(userId, workspaceId);
+        var scope = await _rolePerms.GetTicketViewScopeForUserAsync(workspaceId, userId, isAdmin);
+        if (scope == "mine")
         {
-            var isAdmin = await _uwr.IsAdminAsync(userId.Value, workspaceId);
-            var scope = await _rolePerms.GetTicketViewScopeForUserAsync(workspaceId, userId.Value, isAdmin);
-            if (scope == "mine")
-            {
-                visibleTickets = visibleTickets.Where(t => t.AssignedUserId == userId.Value);
-            }
-            else if (scope == "team")
-            {
-                var myTeams = await _teamMembers.ListTeamsForUserAsync(workspaceId, userId.Value);
-                var teamIds = myTeams.Select(t => t.Id).ToHashSet();
-                visibleTickets = visibleTickets.Where(t => t.AssignedTeamId.HasValue && teamIds.Contains(t.AssignedTeamId.Value));
-            }
+            visibleTickets = visibleTickets.Where(t => t.AssignedUserId == userId);
+        }
+        else if (scope == "team")
+        {
+            var myTeams = await _teamMembers.ListTeamsForUserAsync(workspaceId, userId);
+            var teamIds = myTeams.Select(t => t.Id).ToHashSet();
+            visibleTickets = visibleTickets.Where(t => t.AssignedTeamId.HasValue && teamIds.Contains(t.AssignedTeamId.Value));
         }
         visibleTickets = visibleTickets.ToList();
         TotalTickets = visibleTickets.Count();
@@ -308,13 +279,13 @@ public class WorkspaceModel : PageModel
         {
             filtered = filtered.Where(t => !t.AssignedUserId.HasValue);
         }
-        else if (assignmentFilter == "me" && userId.HasValue)
+        else if (assignmentFilter == "me")
         {
-            filtered = filtered.Where(t => t.AssignedUserId == userId.Value);
+            filtered = filtered.Where(t => t.AssignedUserId == userId);
         }
-        else if (assignmentFilter == "others" && userId.HasValue)
+        else if (assignmentFilter == "others")
         {
-            filtered = filtered.Where(t => t.AssignedUserId.HasValue && t.AssignedUserId != userId.Value);
+            filtered = filtered.Where(t => t.AssignedUserId.HasValue && t.AssignedUserId != userId);
         }
         // else "all" (no filter)
 
@@ -393,6 +364,17 @@ public class WorkspaceModel : PageModel
         return $"{ts.Seconds}s";
 
     // Close LoadDashboardDataAsync method
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+        userId = default;
+        return false;
     }
 
     // Close LoadDashboardDataAsync method

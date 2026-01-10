@@ -31,7 +31,13 @@ public class SignupModel(ILogger<SignupModel> logger, IAuthenticationService aut
         {
             return Page();
         }
-        var result = await _authService.SignupAsync(Input.Name, Input.Email, Input.RecoveryEmail, Input.WorkspaceName, Input.Password);
+        var name = Input.Name?.Trim() ?? string.Empty;
+        var email = Input.Email?.Trim() ?? string.Empty;
+        var recoveryEmail = Input.RecoveryEmail?.Trim() ?? string.Empty;
+        var workspaceName = Input.WorkspaceName?.Trim() ?? string.Empty;
+        var password = Input.Password ?? string.Empty;
+
+        var result = await _authService.SignupAsync(name, email, recoveryEmail, workspaceName, password);
         if (!result.Success)
         {
             ErrorMessage = result.ErrorMessage;

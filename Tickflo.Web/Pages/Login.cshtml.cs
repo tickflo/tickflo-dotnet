@@ -22,9 +22,15 @@ public class LoginModel(ILogger<LoginModel> logger, IAuthenticationService authS
 
     public async Task<IActionResult> OnPostAsync()
     {
+        if (!ModelState.IsValid)
+        {
+            return Page();
+        }
+
+        var email = Input.Email?.Trim() ?? string.Empty;
         // Ensure password is never null, use empty string
-        var password = Input.Password ?? "";
-        var result = await _authService.AuthenticateAsync(Input.Email, password);
+        var password = Input.Password ?? string.Empty;
+        var result = await _authService.AuthenticateAsync(email, password);
         
         // Check if user needs to set password first
         if (result.RequiresPasswordSetup && result.UserId.HasValue)
@@ -46,7 +52,7 @@ public class LoginModel(ILogger<LoginModel> logger, IAuthenticationService authS
             Expires = DateTimeOffset.UtcNow.AddDays(30)
         });
 
-        if (ReturnUrl != null)
+        if (!string.IsNullOrWhiteSpace(ReturnUrl) && Url.IsLocalUrl(ReturnUrl))
         {
             return Redirect(ReturnUrl);
         }

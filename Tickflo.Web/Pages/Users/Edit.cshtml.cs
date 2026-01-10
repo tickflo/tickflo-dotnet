@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 using Tickflo.Core.Data;
 
 namespace Tickflo.Web.Pages.Users;
@@ -11,12 +11,10 @@ namespace Tickflo.Web.Pages.Users;
 public class EditModel : PageModel
 {
     private readonly IUserRepository _users;
-    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public EditModel(IUserRepository users, IHttpContextAccessor httpContextAccessor)
+    public EditModel(IUserRepository users)
     {
         _users = users;
-        _httpContextAccessor = httpContextAccessor;
     }
 
     [BindProperty]
@@ -45,8 +43,7 @@ public class EditModel : PageModel
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
-        var uid = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uid, out var userId))
+        if (!TryGetUserId(out var userId))
             return Forbid();
         var me = await _users.FindByIdAsync(userId);
         if (me?.SystemAdmin != true)
@@ -69,8 +66,7 @@ public class EditModel : PageModel
 
     public async Task<IActionResult> OnPostAsync(int id)
     {
-        var uid = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uid, out var userId))
+        if (!TryGetUserId(out var userId))
             return Forbid();
         var me = await _users.FindByIdAsync(userId);
         if (me?.SystemAdmin != true)
@@ -108,5 +104,16 @@ public class EditModel : PageModel
 
         TempData["Message"] = "User updated.";
         return RedirectToPage("/Users/Index");
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+        userId = default;
+        return false;
     }
 }

@@ -1,10 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
+[Authorize]
 public class ContactsModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
@@ -34,43 +37,55 @@ public class ContactsModel : PageModel
         _rolePerms = rolePerms;
     }
 
-    public async Task OnGetAsync(string slug)
+    public async Task<IActionResult> OnGetAsync(string slug)
     {
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace != null)
+        if (Workspace == null) return NotFound();
+
+        if (!TryGetUserId(out var uid)) return Forbid();
+
+        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
+        if (eff.TryGetValue("contacts", out var cp))
         {
-            // Compute permissions for UI actions (new, edit)
-            var uidStr = HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            int currentUserId = 0;
-            if (int.TryParse(uidStr, out var uid)) currentUserId = uid;
-            if (currentUserId > 0)
-            {
-                var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, currentUserId);
-                if (eff.TryGetValue("contacts", out var cp))
-                {
-                    CanCreateContacts = cp.CanCreate;
-                    CanEditContacts = cp.CanEdit;
-                }
-            }
-            var all = await _contactRepo.ListAsync(Workspace.Id);
-            IEnumerable<Contact> filtered = all;
-            if (!string.IsNullOrWhiteSpace(Priority))
-            {
-                filtered = filtered.Where(c => string.Equals(c.Priority, Priority, StringComparison.OrdinalIgnoreCase));
-            }
-            if (!string.IsNullOrWhiteSpace(Query))
-            {
-                var q = Query.Trim();
-                filtered = filtered.Where(c =>
-                    (!string.IsNullOrWhiteSpace(c.Name) && c.Name.Contains(q, StringComparison.OrdinalIgnoreCase)) ||
-                    (!string.IsNullOrWhiteSpace(c.Email) && c.Email.Contains(q, StringComparison.OrdinalIgnoreCase)) ||
-                    (!string.IsNullOrWhiteSpace(c.Company) && c.Company.Contains(q, StringComparison.OrdinalIgnoreCase))
-                );
-            }
-            Contacts = filtered.ToList();
-            Priorities = await _priorityRepo.ListAsync(Workspace.Id);
-            PriorityColorByName = Priorities.ToDictionary(p => p.Name, p => string.IsNullOrWhiteSpace(p.Color) ? "neutral" : p.Color);
+            CanCreateContacts = cp.CanCreate;
+            CanEditContacts = cp.CanEdit;
         }
+        else
+        {
+            return Forbid();
+        }
+
+        var all = await _contactRepo.ListAsync(Workspace.Id);
+        IEnumerable<Contact> filtered = all;
+        if (!string.IsNullOrWhiteSpace(Priority))
+        {
+            filtered = filtered.Where(c => string.Equals(c.Priority, Priority, StringComparison.OrdinalIgnoreCase));
+        }
+        if (!string.IsNullOrWhiteSpace(Query))
+        {
+            var q = Query.Trim();
+            filtered = filtered.Where(c =>
+                (!string.IsNullOrWhiteSpace(c.Name) && c.Name.Contains(q, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(c.Email) && c.Email.Contains(q, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(c.Company) && c.Company.Contains(q, StringComparison.OrdinalIgnoreCase))
+            );
+        }
+        Contacts = filtered.ToList();
+        Priorities = await _priorityRepo.ListAsync(Workspace.Id);
+        PriorityColorByName = Priorities.ToDictionary(p => p.Name, p => string.IsNullOrWhiteSpace(p.Color) ? "neutral" : p.Color);
+        return Page();
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+
+        userId = default;
+        return false;
     }
 }

@@ -18,11 +18,23 @@ public class EmailConfirmationController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> Confirm([FromQuery] string email, [FromQuery] string code)
     {
-        var user = await _users.FindByEmailAsync(email.Trim().ToLowerInvariant());
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(code))
+        {
+            return BadRequest("Invalid confirmation request.");
+        }
+
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var user = await _users.FindByEmailAsync(normalizedEmail);
         if (user == null)
+        {
             return NotFound();
+        }
+
         if (user.EmailConfirmationCode != code)
+        {
             return BadRequest("Invalid confirmation code.");
+        }
+
         user.EmailConfirmed = true;
         user.EmailConfirmationCode = null;
         await _users.UpdateAsync(user);

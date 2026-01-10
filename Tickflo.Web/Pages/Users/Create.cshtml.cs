@@ -1,24 +1,24 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Auth;
 
 namespace Tickflo.Web.Pages.Users;
 
+[Authorize]
 public class CreateModel : PageModel
 {
     private readonly IUserRepository _users;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public CreateModel(IUserRepository users, IPasswordHasher passwordHasher, IHttpContextAccessor httpContextAccessor)
+    public CreateModel(IUserRepository users, IPasswordHasher passwordHasher)
     {
         _users = users;
         _passwordHasher = passwordHasher;
-        _httpContextAccessor = httpContextAccessor;
     }
 
     [BindProperty]
@@ -56,8 +56,7 @@ public class CreateModel : PageModel
 
     public void OnGet()
     {
-        var uid = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uid, out var userId))
+        if (!TryGetUserId(out var userId))
         {
             Response.StatusCode = StatusCodes.Status403Forbidden;
             return;
@@ -74,8 +73,7 @@ public class CreateModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        var uid = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uid, out var userId))
+        if (!TryGetUserId(out var userId))
             return Forbid();
         var me = await _users.FindByIdAsync(userId);
         if (me?.SystemAdmin != true)
@@ -107,5 +105,16 @@ public class CreateModel : PageModel
 
         TempData["Message"] = "User created.";
         return RedirectToPage("/Workspace");
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+        userId = default;
+        return false;
     }
 }

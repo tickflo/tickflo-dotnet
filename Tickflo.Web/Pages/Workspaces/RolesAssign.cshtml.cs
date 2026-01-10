@@ -1,11 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Microsoft.AspNetCore.Http;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
+[Authorize]
 public class RolesAssignModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaces;
@@ -13,7 +15,6 @@ public class RolesAssignModel : PageModel
     private readonly IUserWorkspaceRepository _userWorkspaces;
     private readonly IUserWorkspaceRoleRepository _uwr;
     private readonly IRoleRepository _roles;
-    private readonly IHttpContextAccessor _http;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -26,26 +27,22 @@ public class RolesAssignModel : PageModel
     [BindProperty]
     public int SelectedRoleId { get; set; }
 
-    public RolesAssignModel(IWorkspaceRepository workspaces, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository uwr, IRoleRepository roles, IHttpContextAccessor http)
+    public RolesAssignModel(IWorkspaceRepository workspaces, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository uwr, IRoleRepository roles)
     {
         _workspaces = workspaces;
         _users = users;
         _userWorkspaces = userWorkspaces;
         _uwr = uwr;
         _roles = roles;
-        _http = http;
     }
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {
-        WorkspaceSlug = slug;
-        var ws = await _workspaces.FindBySlugAsync(slug);
-        if (ws == null) return NotFound();
-        Workspace = ws;
-        var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _uwr.IsAdminAsync(uid, ws.Id);
-        if (!isAdmin) return Forbid();
+        var access = await EnsureAdminAccessAsync(slug);
+        if (access.failure != null) return access.failure;
+
+        var ws = access.workspace!;
+        var uid = access.userId;
 
         var memberships = await _userWorkspaces.FindForWorkspaceAsync(ws.Id);
         var userIds = memberships.Select(m => m.UserId).Distinct().ToList();
@@ -66,13 +63,11 @@ public class RolesAssignModel : PageModel
 
     public async Task<IActionResult> OnPostAssignAsync(string slug)
     {
-        WorkspaceSlug = slug;
-        var ws = await _workspaces.FindBySlugAsync(slug);
-        if (ws == null) return NotFound();
-        var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _uwr.IsAdminAsync(uid, ws.Id);
-        if (!isAdmin) return Forbid();
+        var access = await EnsureAdminAccessAsync(slug);
+        if (access.failure != null) return access.failure;
+
+        var ws = access.workspace!;
+        var uid = access.userId;
 
         if (SelectedUserId <= 0 || SelectedRoleId <= 0)
         {
@@ -94,16 +89,43 @@ public class RolesAssignModel : PageModel
 
     public async Task<IActionResult> OnPostRemoveAsync(string slug, int userId, int roleId)
     {
-        WorkspaceSlug = slug;
-        var ws = await _workspaces.FindBySlugAsync(slug);
-        if (ws == null) return NotFound();
-        var uidStr = _http.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _uwr.IsAdminAsync(uid, ws.Id);
-        if (!isAdmin) return Forbid();
+        var access = await EnsureAdminAccessAsync(slug);
+        if (access.failure != null) return access.failure;
+
+        var ws = access.workspace!;
+        var uid = access.userId;
 
         await _uwr.RemoveAsync(userId, ws.Id, roleId);
         var queryQ = Request.Query["Query"].ToString();
         return Redirect($"/workspaces/{slug}/users/roles/assign?Query={Uri.EscapeDataString(queryQ ?? string.Empty)}");
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+
+        userId = default;
+        return false;
+    }
+
+    private async Task<(Workspace? workspace, int userId, IActionResult? failure)> EnsureAdminAccessAsync(string slug)
+    {
+        WorkspaceSlug = slug;
+
+        var ws = await _workspaces.FindBySlugAsync(slug);
+        if (ws == null) return (null, 0, NotFound());
+
+        Workspace = ws;
+
+        if (!TryGetUserId(out var uid)) return (ws, 0, Forbid());
+
+        var isAdmin = await _uwr.IsAdminAsync(uid, ws.Id);
+        if (!isAdmin) return (ws, uid, Forbid());
+
+        return (ws, uid, null);
     }
 }

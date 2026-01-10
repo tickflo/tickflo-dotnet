@@ -10,6 +10,18 @@ public class ProfileModel : PageModel
 {
     private readonly IUserRepository _userRepo;
     private readonly IUserNotificationPreferenceRepository _notificationPrefs;
+
+    private static readonly (string Type, string Label)[] NotificationTypes = new[]
+    {
+        ("workspace_invite", "Workspace Invitation"),
+        ("ticket_assigned", "Ticket Assigned to You"),
+        ("ticket_comment", "Comments on Your Tickets"),
+        ("ticket_status_change", "Ticket Status Changes"),
+        ("report_completed", "Report Completed"),
+        ("mention", "Mentions in Comments"),
+        ("ticket_summary", "Daily Ticket Summary"),
+        ("password_reset", "Password Reset Confirmation"),
+    };
     
     [BindProperty]
     public string UserId { get; set; } = "";
@@ -37,103 +49,89 @@ public class ProfileModel : PageModel
 
     public async Task OnGetAsync()
     {
-        var user = HttpContext.User;
-        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (userId != null && int.TryParse(userId, out var uid))
+        if (!TryGetUserId(out var uid)) return;
+
+        var user = await _userRepo.FindByIdAsync(uid);
+        if (user == null) return;
+
+        UserId = user.Id.ToString();
+        UserName = user.Name;
+        Email = user.Email;
+
+        var existingPrefs = await _notificationPrefs.GetPreferencesForUserAsync(uid);
+        var prefsByType = existingPrefs.ToDictionary(p => p.NotificationType, p => p);
+
+        NotificationPreferences = new List<NotificationPreferenceItem>(NotificationTypes.Length);
+        foreach (var (type, label) in NotificationTypes)
         {
-            var u = await _userRepo.FindByIdAsync(uid);
-            if (u != null)
-            {
-                UserId = u.Id.ToString();
-                UserName = u.Name;
-                Email = u.Email;
-            }
+            prefsByType.TryGetValue(type, out var pref);
 
-            // Load notification preferences
-            var existingPrefs = await _notificationPrefs.GetPreferencesForUserAsync(uid);
-            var prefsByType = existingPrefs.ToDictionary(p => p.NotificationType, p => p);
-
-            // Define all notification types with friendly labels
-            var notificationTypes = new Dictionary<string, string>
+            var item = new NotificationPreferenceItem
             {
-                { "workspace_invite", "Workspace Invitation" },
-                { "ticket_assigned", "Ticket Assigned to You" },
-                { "ticket_comment", "Comments on Your Tickets" },
-                { "ticket_status_change", "Ticket Status Changes" },
-                { "report_completed", "Report Completed" },
-                { "mention", "Mentions in Comments" },
-                { "ticket_summary", "Daily Ticket Summary" },
-                { "password_reset", "Password Reset Confirmation" }
+                Type = type,
+                Label = label,
+                EmailEnabled = pref?.EmailEnabled ?? true,
+                InAppEnabled = pref?.InAppEnabled ?? true,
+                SmsEnabled = pref?.SmsEnabled ?? false,
+                PushEnabled = pref?.PushEnabled ?? false
             };
 
-            // Build preference items with defaults
-            NotificationPreferences = new List<NotificationPreferenceItem>();
-            foreach (var (type, label) in notificationTypes)
-            {
-                UserNotificationPreference? pref = null;
-                prefsByType.TryGetValue(type, out pref);
+            NotificationPreferences.Add(item);
 
-                var item = new NotificationPreferenceItem
-                {
-                    Type = type,
-                    Label = label,
-                    EmailEnabled = pref?.EmailEnabled ?? true,
-                    InAppEnabled = pref?.InAppEnabled ?? true,
-                    SmsEnabled = pref?.SmsEnabled ?? false,
-                    PushEnabled = pref?.PushEnabled ?? false
-                };
-
-                NotificationPreferences.Add(item);
-
-                // Populate dictionaries for binding
-                EmailPrefs[type] = item.EmailEnabled;
-                InAppPrefs[type] = item.InAppEnabled;
-                SmsPrefs[type] = item.SmsEnabled;
-                PushPrefs[type] = item.PushEnabled;
-            }
+            EmailPrefs[type] = item.EmailEnabled;
+            InAppPrefs[type] = item.InAppEnabled;
+            SmsPrefs[type] = item.SmsEnabled;
+            PushPrefs[type] = item.PushEnabled;
         }
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
-        var user = HttpContext.User;
-        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (userId != null && int.TryParse(userId, out var uid))
+        if (!TryGetUserId(out var uid))
         {
-            // Update user profile
-            var u = await _userRepo.FindByIdAsync(uid);
-            if (u != null)
-            {
-                u.Name = UserName;
-                u.Email = Email;
-                await _userRepo.UpdateAsync(u);
-            }
-
-            // Update notification preferences
-            var preferences = new List<UserNotificationPreference>();
-            var allTypes = new[] { "workspace_invite", "ticket_assigned", "ticket_comment", 
-                                  "ticket_status_change", "report_completed", "mention", 
-                                  "ticket_summary", "password_reset" };
-
-            foreach (var type in allTypes)
-            {
-                var pref = new UserNotificationPreference
-                {
-                    UserId = uid,
-                    NotificationType = type,
-                    EmailEnabled = EmailPrefs.ContainsKey(type) && EmailPrefs[type],
-                    InAppEnabled = InAppPrefs.ContainsKey(type) && InAppPrefs[type],
-                    SmsEnabled = SmsPrefs.ContainsKey(type) && SmsPrefs[type],
-                    PushEnabled = PushPrefs.ContainsKey(type) && PushPrefs[type],
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                preferences.Add(pref);
-            }
-
-            await _notificationPrefs.SavePreferencesAsync(preferences);
+            return RedirectToPage();
         }
+
+        var user = await _userRepo.FindByIdAsync(uid);
+        if (user != null)
+        {
+            user.Name = UserName;
+            user.Email = Email;
+            await _userRepo.UpdateAsync(user);
+        }
+
+        var preferences = new List<UserNotificationPreference>(NotificationTypes.Length);
+        foreach (var (type, _) in NotificationTypes)
+        {
+            var pref = new UserNotificationPreference
+            {
+                UserId = uid,
+                NotificationType = type,
+                EmailEnabled = EmailPrefs.ContainsKey(type) && EmailPrefs[type],
+                InAppEnabled = InAppPrefs.ContainsKey(type) && InAppPrefs[type],
+                SmsEnabled = SmsPrefs.ContainsKey(type) && SmsPrefs[type],
+                PushEnabled = PushPrefs.ContainsKey(type) && PushPrefs[type],
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            preferences.Add(pref);
+        }
+
+        await _notificationPrefs.SavePreferencesAsync(preferences);
         return RedirectToPage();
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+
+        userId = default;
+        return false;
     }
 }
 

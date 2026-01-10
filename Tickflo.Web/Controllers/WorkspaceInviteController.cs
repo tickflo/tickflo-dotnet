@@ -24,14 +24,23 @@ public class WorkspaceInviteController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> Accept(string slug, [FromQuery] string token)
     {
+        if (string.IsNullOrWhiteSpace(slug) || string.IsNullOrWhiteSpace(token))
+        {
+            return BadRequest("Invalid or expired token.");
+        }
+
         var ws = await _workspaces.FindBySlugAsync(slug);
         if (ws == null) return NotFound();
+
         var tok = await _tokens.FindByValueAsync(token);
         if (tok == null) return BadRequest("Invalid or expired token.");
+
         var user = await _users.FindByIdAsync(tok.UserId);
         if (user == null) return NotFound();
+
         var uw = await _userWorkspaces.FindAsync(user.Id, ws.Id);
         if (uw == null) return NotFound();
+
         if (!uw.Accepted)
         {
             uw.Accepted = true;
@@ -39,14 +48,14 @@ public class WorkspaceInviteController : ControllerBase
             uw.UpdatedBy = user.Id;
             await _userWorkspaces.UpdateAsync(uw);
         }
-        // Optionally mark email confirmed if it was set
+
         if (!user.EmailConfirmed && !string.IsNullOrEmpty(user.EmailConfirmationCode))
         {
             user.EmailConfirmed = true;
             user.EmailConfirmationCode = null;
             await _users.UpdateAsync(user);
         }
-        // Create a dedicated password reset token and redirect to set-password with it
+
         var reset = await _tokens.CreatePasswordResetForUserIdAsync(user.Id);
         return Redirect($"/account/set-password?token={Uri.EscapeDataString(reset.Value)}");
     }

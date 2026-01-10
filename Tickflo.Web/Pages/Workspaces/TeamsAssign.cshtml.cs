@@ -1,10 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
+[Authorize]
 public class TeamsAssignModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaces;
@@ -41,68 +44,95 @@ public class TeamsAssignModel : PageModel
 
     public async Task<IActionResult> OnGetAsync(string slug, int teamId)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaces.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        var uidStr = HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _uwr.IsAdminAsync(uid, Workspace.Id);
-        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
-        CanViewTeams = isAdmin || (eff.TryGetValue("teams", out var tp) && tp.CanView);
-        CanEditTeams = isAdmin || (eff.TryGetValue("teams", out var tp2) && tp2.CanEdit);
-        if (!CanViewTeams) return Forbid();
+        var access = await EnsureAccessAsync(slug, teamId);
+        if (access.failure != null) return access.failure;
 
+        Workspace = access.workspace;
+        Team = access.team;
         TeamId = teamId;
-        Team = await _teams.FindByIdAsync(teamId);
-        if (Team == null || Team.WorkspaceId != Workspace.Id) return NotFound();
-        Members = await _members.ListMembersAsync(teamId);
-        var memberships = await _userWorkspaces.FindForWorkspaceAsync(Workspace.Id);
-        var userIds = memberships.Select(m => m.UserId).Distinct().ToList();
-        WorkspaceUsers = new List<User>();
-        foreach (var id in userIds)
-        {
-            var u = await _users.FindByIdAsync(id);
-            if (u != null) WorkspaceUsers.Add(u);
-        }
+        CanViewTeams = access.canView;
+        CanEditTeams = access.canEdit;
+        Members = access.members;
+        WorkspaceUsers = access.workspaceUsers;
         return Page();
     }
 
     public async Task<IActionResult> OnPostAddAsync(string slug)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaces.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        var uidStr = HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _uwr.IsAdminAsync(uid, Workspace.Id);
-        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
-        var allowed = isAdmin || (eff.TryGetValue("teams", out var tp) && tp.CanEdit);
-        if (!allowed) return Forbid();
+        var access = await EnsureAccessAsync(slug, TeamId);
+        if (access.failure != null) return access.failure;
+
+        Workspace = access.workspace;
+        Team = access.team;
+        CanEditTeams = access.canEdit;
+        if (!CanEditTeams) return Forbid();
 
         if (TeamId <= 0 || SelectedUserId <= 0)
         {
             ModelState.AddModelError(string.Empty, "Please select a user to add.");
             return await OnGetAsync(slug, TeamId);
         }
-        var team = await _teams.FindByIdAsync(TeamId);
-        if (team == null || team.WorkspaceId != Workspace.Id) return NotFound();
+        var team = Team;
+        if (team == null) return NotFound();
         await _members.AddAsync(TeamId, SelectedUserId);
         return RedirectToPage("/Workspaces/TeamsAssign", new { slug, teamId = TeamId });
     }
 
     public async Task<IActionResult> OnPostRemoveAsync(string slug, int userId)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaces.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        var uidStr = HttpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(uidStr, out var uid)) return Forbid();
-        var isAdmin = await _uwr.IsAdminAsync(uid, Workspace.Id);
-        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
-        var allowed = isAdmin || (eff.TryGetValue("teams", out var tp) && tp.CanEdit);
-        if (!allowed) return Forbid();
+        var access = await EnsureAccessAsync(slug, TeamId);
+        if (access.failure != null) return access.failure;
+
+        Workspace = access.workspace;
+        Team = access.team;
+        CanEditTeams = access.canEdit;
+        if (!CanEditTeams) return Forbid();
 
         await _members.RemoveAsync(TeamId, userId);
         return RedirectToPage("/Workspaces/TeamsAssign", new { slug, teamId = TeamId });
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+
+        userId = default;
+        return false;
+    }
+
+    private async Task<(Workspace? workspace, Team? team, List<User> workspaceUsers, List<User> members, bool canView, bool canEdit, IActionResult? failure)> EnsureAccessAsync(string slug, int teamId)
+    {
+        WorkspaceSlug = slug;
+
+        var ws = await _workspaces.FindBySlugAsync(slug);
+        if (ws == null) return (null, null, new(), new(), false, false, NotFound());
+
+        if (!TryGetUserId(out var uid)) return (ws, null, new(), new(), false, false, Forbid());
+
+        var isAdmin = await _uwr.IsAdminAsync(uid, ws.Id);
+        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(ws.Id, uid);
+        var canView = isAdmin || (eff.TryGetValue("teams", out var tp) && tp.CanView);
+        var canEdit = isAdmin || (eff.TryGetValue("teams", out var tp2) && tp2.CanEdit);
+
+        if (!canView) return (ws, null, new(), new(), false, false, Forbid());
+
+        var team = await _teams.FindByIdAsync(teamId);
+        if (team == null || team.WorkspaceId != ws.Id) return (ws, null, new(), new(), canView, canEdit, NotFound());
+
+        var members = await _members.ListMembersAsync(teamId);
+        var memberships = await _userWorkspaces.FindForWorkspaceAsync(ws.Id);
+        var userIds = memberships.Select(m => m.UserId).Distinct().ToList();
+        var workspaceUsers = new List<User>();
+        foreach (var id in userIds)
+        {
+            var u = await _users.FindByIdAsync(id);
+            if (u != null) workspaceUsers.Add(u);
+        }
+
+        return (ws, team, workspaceUsers, members, canView, canEdit, null);
     }
 }
