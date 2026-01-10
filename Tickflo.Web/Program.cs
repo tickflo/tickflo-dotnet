@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Config;
 using Tickflo.Core.Data;
+using Tickflo.Core.Services;
 using Tickflo.Core.Services.Auth;
 using Tickflo.Core.Services.Email;
 using Tickflo.Core.Services.Notifications;
@@ -55,9 +56,15 @@ builder.Services.AddScoped<IUserNotificationPreferenceRepository, UserNotificati
 // Realtime updates for tickets
 builder.Services.AddSignalR();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
+builder.Services.AddScoped<IFileStorageRepository, FileStorageRepository>();
 builder.Services.AddScoped<IWorkspaceRoleBootstrapper, WorkspaceRoleBootstrapper>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<Tickflo.Core.Services.Notifications.INotificationService, Tickflo.Core.Services.Notifications.NotificationService>();
+
+// RustFS file and image storage services (Web implementations)
+builder.Services.AddScoped<IFileStorageService, Tickflo.Web.Services.RustFSStorageService>();
+builder.Services.AddScoped<IImageStorageService, Tickflo.Web.Services.RustFSImageStorageService>();
+
 var useSmtp = !string.IsNullOrWhiteSpace(appConfig.EMAIL.SMTP_HOST);
 if (useSmtp)
 {

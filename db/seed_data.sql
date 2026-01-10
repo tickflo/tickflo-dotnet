@@ -25,6 +25,7 @@ DELETE FROM public.reports;
 DELETE FROM public.locations;
 DELETE FROM public.roles;
 DELETE FROM public.permissions;
+DELETE FROM public.file_storage;
 DELETE FROM public.tokens;
 DELETE FROM public.workspaces;
 DELETE FROM public.users;
@@ -45,6 +46,7 @@ ALTER SEQUENCE public.priorities_id_seq RESTART WITH 1;
 ALTER SEQUENCE public.ticket_types_id_seq RESTART WITH 1;
 ALTER SEQUENCE public.report_runs_id_seq RESTART WITH 1;
 ALTER SEQUENCE public.notifications_id_seq RESTART WITH 1;
+ALTER SEQUENCE public.file_storage_id_seq RESTART WITH 1;
 
 -- =============================================
 -- Users

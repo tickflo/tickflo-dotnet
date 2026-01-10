@@ -29,6 +29,7 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
     public DbSet<RolePermissionLink> RolePermissions => Set<RolePermissionLink>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<UserNotificationPreference> UserNotificationPreferences => Set<UserNotificationPreference>();
+    public DbSet<FileStorage> FileStorages => Set<FileStorage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -120,6 +121,16 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
         // User notification preferences
         modelBuilder.Entity<UserNotificationPreference>()
             .HasKey(unp => new { unp.UserId, unp.NotificationType });
+
+        // File storage
+        modelBuilder.Entity<FileStorage>()
+            .HasIndex(fs => new { fs.WorkspaceId, fs.CreatedAt });
+        modelBuilder.Entity<FileStorage>()
+            .HasIndex(fs => new { fs.WorkspaceId, fs.Category });
+        modelBuilder.Entity<FileStorage>()
+            .HasIndex(fs => new { fs.RelatedEntityType, fs.RelatedEntityId });
+        modelBuilder.Entity<FileStorage>()
+            .HasIndex(fs => fs.Path);
 
         base.OnModelCreating(modelBuilder);
     }
