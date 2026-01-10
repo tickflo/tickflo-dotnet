@@ -196,6 +196,7 @@
     @apply rounded-2xl shadow-xl backdrop-blur;
     background: rgba(12,16,26,0.9);
     border: 1px solid rgba(255,255,255,0.05);
+    z-index: 1000;
 }
 
 .progress {
@@ -304,4 +305,50 @@
 /* Collapses */
 .collapse {
     @apply rounded-2xl border border-base-200 bg-base-100/80 shadow-sm;
+}
+
+/* Header user menu styling for consistent glass look */
+.user-menu-panel {
+    @apply rounded-2xl shadow-2xl;
+    background: rgba(12, 16, 26, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 14px 48px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+    color: #e2e8f0;
+    z-index: 1200;
+    opacity: 1;
+    visibility: visible;
+}
+
+.user-menu-panel li > a {
+    @apply rounded-xl text-sm font-medium text-slate-100;
+    padding: 0.65rem 0.9rem;
+}
+
+.user-menu-panel li > a:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.user-menu-panel form .btn {
+    @apply w-full justify-start text-sm font-medium text-slate-100 rounded-xl;
+    background: transparent;
+}
+
+/* Light theme adjustments for header user menu */
+html[data-theme="light"] .user-menu-panel {
+    background: rgba(246, 248, 252, 0.98);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    color: #0f172a;
+    box-shadow: 0 14px 48px rgba(0, 0, 0, 0.18), 0 1px 0 rgba(0, 0, 0, 0.04) inset;
+}
+
+html[data-theme="light"] .user-menu-panel li > a {
+    @apply text-slate-800;
+}
+
+html[data-theme="light"] .user-menu-panel li > a:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+html[data-theme="light"] .user-menu-panel form .btn {
+    @apply text-slate-800;
 }
