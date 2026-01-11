@@ -9,6 +9,36 @@
     <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Settings" })
 
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success rounded-2xl shadow-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>@TempData["SuccessMessage"]</span>
+            </div>
+        }
+        
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-error rounded-2xl shadow-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>@TempData["ErrorMessage"]</span>
+            </div>
+        }
+        <form id="allSettingsForm" method="post" asp-page-handler="SaveAll" class="space-y-8">
+            <div class="sticky top-4 z-10">
+                <div class="flex items-center justify-between rounded-2xl bg-neutral-900/90 backdrop-blur px-4 py-3 shadow-lg border border-white/10">
+                    <div class="flex flex-col gap-0.5">
+                        <span class="text-sm font-semibold">Workspace Settings</span>
+                        <span class="text-xs text-base-content/70">Review changes across all sections, then save once.</span>
+                    </div>
+                    <button id="saveAllBtn" type="submit" form="allSettingsForm" class="btn btn-primary rounded-2xl" @(Model.CanEditSettings ? "" : "disabled")>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Save All Settings
+                    </button>
+                </div>
+            </div>
         <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
             <div class="card-body flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -29,24 +59,26 @@
                     <h3 class="font-semibold text-lg">Name and URL</h3>
                     <p class="text-sm text-base-content/70">Give your workspace a friendly name and keep the slug short so teammates can find it.</p>
                 </div>
-                <form method="post" class="space-y-4">
+                <div class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="form-control">
-                            <label class="label" for="Name"><span class="label-text font-semibold">Workspace Name</span></label>
-                            <input class="input w-full rounded-2xl bg-neutral-900/85 border border-white/10 text-slate-100" asp-for="Workspace.Name" />
-                            <span asp-validation-for="Workspace.Name" class="validator-hint"></span>
+                            <label class="label" for="Name"><span class="label-text font-semibold">Workspace Name <span class="text-error">*</span></span></label>
+                            <input class="input w-full rounded-2xl bg-neutral-900/85 border border-white/10 text-slate-100" asp-for="Workspace.Name" required />
+                            <label class="label"><span class="label-text-alt opacity-70">The display name for your workspace</span></label>
+                            <span asp-validation-for="Workspace.Name" class="validator-hint text-error"></span>
                         </div>
                         <div class="form-control">
-                            <label class="label" for="Slug"><span class="label-text font-semibold">Slug</span></label>
-                            <input class="input w-full rounded-2xl bg-neutral-900/85 border border-white/10 text-slate-100" asp-for="Workspace.Slug" />
-                            <span asp-validation-for="Workspace.Slug" class="validator-hint"></span>
+                            <label class="label" for="Slug"><span class="label-text font-semibold">Slug <span class="text-error">*</span></span></label>
+                            <input class="input w-full rounded-2xl bg-neutral-900/85 border border-white/10 text-slate-100" asp-for="Workspace.Slug" required pattern="[a-z0-9-]+" />
+                            <label class="label"><span class="label-text-alt opacity-70">URL-friendly identifier (lowercase, numbers, hyphens only)</span></label>
+                            <span asp-validation-for="Workspace.Slug" class="validator-hint text-error"></span>
                         </div>
                     </div>
                     <div class="card-actions flex flex-col md:flex-row gap-2 md:join">
-                        <button type="submit" class="btn btn-primary join-item btn-sm w-full md:w-auto rounded-2xl" @(Model.CanEditSettings ? "" : "disabled")>Save changes</button>
                         <a class="btn btn-soft join-item btn-sm w-full md:w-auto rounded-2xl" asp-page="/Workspace" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Cancel</a>
+                        <span class="text-xs opacity-70">Changes here save with the blue button above.</span>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
 
@@ -79,40 +111,46 @@
                                 var isHex = displayColor.StartsWith("#");
                                 var badgeCls = isHex ? "badge badge-soft" : $"badge badge-soft badge-{displayColor}";
                                 var badgeStyle = isHex ? $"background-color: {displayColor}; color: #fff;" : null;
+                                var colorMap = new Dictionary<string, string>
+                                {
+                                    { "primary", "#3b82f6" },
+                                    { "secondary", "#f97316" },
+                                    { "success", "#22c55e" },
+                                    { "warning", "#eab308" },
+                                    { "error", "#ef4444" },
+                                    { "info", "#06b6d4" },
+                                    { "neutral", "#737373" },
+                                    { "ghost", "#ffffff" }
+                                };
+                                var pickerColor = isHex ? displayColor : (colorMap.ContainsKey(displayColor) ? colorMap[displayColor] : "#737373");
                                 <tr class="hover">
-                                    <td>
-                                        <form method="post" asp-page-handler="UpdateStatus" class="join flex flex-wrap items-center gap-2">
-                                            <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
-                                            <input type="hidden" name="id" value="@s.Id" />
-                                            <input name="name" value="@s.Name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" />
-                                            <input type="color" name="color" value="@(isHex ? displayColor : "#3b82f6")" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70" />
-                                            <input type="number" name="sortOrder" value="@s.SortOrder" class="input join-item input-sm w-20 bg-neutral-900/80 border border-white/10 text-slate-100" />
-                                            <label class="label cursor-pointer join-item ml-2 gap-2">
-                                                <input type="checkbox" name="isClosedState" value="true" @(s.IsClosedState ? "checked" : null) class="checkbox checkbox-xs" />
-                                                <span class="label-text text-xs">Closed state</span>
-                                            </label>
-                                            <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Save</button>
-                                        </form>
+                                    <td class="flex flex-wrap items-center gap-2">
+                                        <input type="hidden" name="statuses[@s.Id].id" value="@s.Id" />
+                                        <input name="statuses[@s.Id].name" value="@s.Name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanEditSettings ? "" : "disabled") required />
+                                        <input type="color" name="statuses[@s.Id].color" value="@pickerColor" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70 cursor-pointer" @(Model.CanEditSettings ? "" : "disabled") />
+                                        <input type="number" name="statuses[@s.Id].sortOrder" value="@s.SortOrder" class="input join-item input-sm w-20 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanEditSettings ? "" : "disabled") />
+                                        <label class="label cursor-pointer join-item ml-2 gap-2">
+                                            <input type="checkbox" name="statuses[@s.Id].isClosedState" value="true" @(s.IsClosedState ? "checked" : null) class="checkbox checkbox-xs" @(Model.CanEditSettings ? "" : "disabled") />
+                                            <span class="label-text text-xs">Closed state</span>
+                                        </label>
                                     </td>
-                                    <td><span class="@badgeCls" style="@badgeStyle">@s.Color</span></td>
+                                    <td><span class="@badgeCls" style="@badgeStyle" title="@s.Name">@(isHex ? "Custom" : s.Color)</span></td>
                                     <td class="font-semibold">@s.SortOrder</td>
                                     <td class="text-right">
-                                        <form method="post" asp-page-handler="DeleteStatus" onsubmit="return confirm('Delete status @s.Name?');" class="inline-flex">
-                                            <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
-                                            <input type="hidden" name="id" value="@s.Id" />
-                                            <button class="btn btn-soft btn-error btn-sm" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Delete</button>
-                                        </form>
+                                        <label class="label cursor-pointer justify-end gap-2">
+                                            <input type="checkbox" name="statuses[@s.Id].delete" value="true" class="checkbox checkbox-error checkbox-sm" @(Model.CanEditSettings ? "" : "disabled") />
+                                            <span class="label-text text-xs">Remove</span>
+                                        </label>
                                     </td>
                                 </tr>
                             }
                             <tr>
                                 <td colspan="4">
-                                    <form method="post" asp-page-handler="AddStatus" class="join flex flex-wrap items-center gap-2">
-                                        <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
-                                        <input name="NewStatusName" placeholder="New status name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" />
-                                        <input type="color" name="NewStatusColor" value="#3b82f6" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70" />
-                                        <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanCreateSettings ? "" : "disabled")>Add status</button>
-                                    </form>
+                                    <div class="join flex flex-wrap items-center gap-2">
+                                        <input name="NewStatusName" placeholder="New status name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanCreateSettings ? "" : "disabled") />
+                                        <input type="color" name="NewStatusColor" value="#a78bfa" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70" @(Model.CanCreateSettings ? "" : "disabled") />
+                                        <span class="text-xs opacity-70">New status is added when you Save All.</span>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
@@ -150,36 +188,42 @@
                                 var isHex = displayColor.StartsWith("#");
                                 var badgeCls = isHex ? "badge badge-soft" : $"badge badge-soft badge-{displayColor}";
                                 var badgeStyle = isHex ? $"background-color: {displayColor}; color: #fff;" : null;
+                                var colorMap = new Dictionary<string, string>
+                                {
+                                    { "primary", "#3b82f6" },
+                                    { "secondary", "#f97316" },
+                                    { "success", "#22c55e" },
+                                    { "warning", "#eab308" },
+                                    { "error", "#ef4444" },
+                                    { "info", "#06b6d4" },
+                                    { "neutral", "#737373" },
+                                    { "ghost", "#ffffff" }
+                                };
+                                var pickerColor = isHex ? displayColor : (colorMap.ContainsKey(displayColor) ? colorMap[displayColor] : "#737373");
                                 <tr class="hover">
-                                    <td>
-                                        <form method="post" asp-page-handler="UpdatePriority" class="join flex flex-wrap items-center gap-2">
-                                            <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
-                                            <input type="hidden" name="id" value="@p.Id" />
-                                            <input name="name" value="@p.Name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" />
-                                            <input type="color" name="color" value="@(isHex ? displayColor : "#3b82f6")" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70" />
-                                            <input type="number" name="sortOrder" value="@p.SortOrder" class="input join-item input-sm w-20 bg-neutral-900/80 border border-white/10 text-slate-100" />
-                                            <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Save</button>
-                                        </form>
+                                    <td class="flex flex-wrap items-center gap-2">
+                                        <input type="hidden" name="priorities[@p.Id].id" value="@p.Id" />
+                                        <input name="priorities[@p.Id].name" value="@p.Name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanEditSettings ? "" : "disabled") required />
+                                        <input type="color" name="priorities[@p.Id].color" value="@pickerColor" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70 cursor-pointer" @(Model.CanEditSettings ? "" : "disabled") />
+                                        <input type="number" name="priorities[@p.Id].sortOrder" value="@p.SortOrder" class="input join-item input-sm w-20 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanEditSettings ? "" : "disabled") />
                                     </td>
-                                    <td><span class="@badgeCls" style="@badgeStyle">@p.Color</span></td>
+                                    <td><span class="@badgeCls" style="@badgeStyle" title="@p.Name">@(isHex ? "Custom" : p.Color)</span></td>
                                     <td class="font-semibold">@p.SortOrder</td>
                                     <td class="text-right">
-                                        <form method="post" asp-page-handler="DeletePriority" onsubmit="return confirm('Delete priority @p.Name?');" class="inline-flex">
-                                            <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
-                                            <input type="hidden" name="id" value="@p.Id" />
-                                            <button class="btn btn-soft btn-error btn-sm" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Delete</button>
-                                        </form>
+                                        <label class="label cursor-pointer justify-end gap-2">
+                                            <input type="checkbox" name="priorities[@p.Id].delete" value="true" class="checkbox checkbox-error checkbox-sm" @(Model.CanEditSettings ? "" : "disabled") />
+                                            <span class="label-text text-xs">Remove</span>
+                                        </label>
                                     </td>
                                 </tr>
                             }
                             <tr>
                                 <td colspan="4">
-                                    <form method="post" asp-page-handler="AddPriority" class="join flex flex-wrap items-center gap-2">
-                                        <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
-                                        <input name="NewPriorityName" placeholder="New priority name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" />
-                                        <input type="color" name="NewPriorityColor" value="#f59e0b" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70" />
-                                        <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanCreateSettings ? "" : "disabled")>Add priority</button>
-                                    </form>
+                                    <div class="join flex flex-wrap items-center gap-2">
+                                        <input name="NewPriorityName" placeholder="New priority name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanCreateSettings ? "" : "disabled") />
+                                        <input type="color" name="NewPriorityColor" value="#ec4899" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70" @(Model.CanCreateSettings ? "" : "disabled") />
+                                        <span class="text-xs opacity-70">New priority is added when you Save All.</span>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
@@ -217,36 +261,42 @@
                                 var isHex = displayColor.StartsWith("#");
                                 var badgeCls = isHex ? "badge badge-soft" : $"badge badge-soft badge-{displayColor}";
                                 var badgeStyle = isHex ? $"background-color: {displayColor}; color: #fff;" : null;
+                                var colorMap = new Dictionary<string, string>
+                                {
+                                    { "primary", "#3b82f6" },
+                                    { "secondary", "#f97316" },
+                                    { "success", "#22c55e" },
+                                    { "warning", "#eab308" },
+                                    { "error", "#ef4444" },
+                                    { "info", "#06b6d4" },
+                                    { "neutral", "#737373" },
+                                    { "ghost", "#ffffff" }
+                                };
+                                var pickerColor = isHex ? displayColor : (colorMap.ContainsKey(displayColor) ? colorMap[displayColor] : "#737373");
                                 <tr class="hover">
-                                    <td>
-                                        <form method="post" asp-page-handler="UpdateType" class="join flex flex-wrap items-center gap-2">
-                                            <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
-                                            <input type="hidden" name="id" value="@t.Id" />
-                                            <input name="name" value="@t.Name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" />
-                                            <input type="color" name="color" value="@(isHex ? displayColor : "#14b8a6")" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70" />
-                                            <input type="number" name="sortOrder" value="@t.SortOrder" class="input join-item input-sm w-20 bg-neutral-900/80 border border-white/10 text-slate-100" />
-                                            <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Save</button>
-                                        </form>
+                                    <td class="flex flex-wrap items-center gap-2">
+                                        <input type="hidden" name="types[@t.Id].id" value="@t.Id" />
+                                        <input name="types[@t.Id].name" value="@t.Name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanEditSettings ? "" : "disabled") required />
+                                        <input type="color" name="types[@t.Id].color" value="@pickerColor" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70 cursor-pointer" @(Model.CanEditSettings ? "" : "disabled") />
+                                        <input type="number" name="types[@t.Id].sortOrder" value="@t.SortOrder" class="input join-item input-sm w-20 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanEditSettings ? "" : "disabled") />
                                     </td>
-                                    <td><span class="@badgeCls" style="@badgeStyle">@t.Color</span></td>
+                                    <td><span class="@badgeCls" style="@badgeStyle" title="@t.Name">@(isHex ? "Custom" : t.Color)</span></td>
                                     <td class="font-semibold">@t.SortOrder</td>
                                     <td class="text-right">
-                                        <form method="post" asp-page-handler="DeleteType" onsubmit="return confirm('Delete type @t.Name?');" class="inline-flex">
-                                            <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
-                                            <input type="hidden" name="id" value="@t.Id" />
-                                            <button class="btn btn-soft btn-error btn-sm" type="submit" @(Model.CanEditSettings ? "" : "disabled")>Delete</button>
-                                        </form>
+                                        <label class="label cursor-pointer justify-end gap-2">
+                                            <input type="checkbox" name="types[@t.Id].delete" value="true" class="checkbox checkbox-error checkbox-sm" @(Model.CanEditSettings ? "" : "disabled") />
+                                            <span class="label-text text-xs">Remove</span>
+                                        </label>
                                     </td>
                                 </tr>
                             }
                             <tr>
                                 <td colspan="4">
-                                    <form method="post" asp-page-handler="AddType" class="join flex flex-wrap items-center gap-2">
-                                        <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
-                                        <input name="NewTypeName" placeholder="New type name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" />
-                                        <input type="color" name="NewTypeColor" value="#14b8a6" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70" />
-                                        <button class="btn btn-soft btn-primary join-item btn-sm" type="submit" @(Model.CanCreateSettings ? "" : "disabled")>Add type</button>
-                                    </form>
+                                    <div class="join flex flex-wrap items-center gap-2">
+                                        <input name="NewTypeName" placeholder="New type name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanCreateSettings ? "" : "disabled") />
+                                        <input type="color" name="NewTypeColor" value="#8b5cf6" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70" @(Model.CanCreateSettings ? "" : "disabled") />
+                                        <span class="text-xs opacity-70">New type is added when you Save All.</span>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
@@ -283,8 +333,7 @@
                     </div>
                 </div>
                 
-                <form method="post" asp-page-handler="SaveNotificationSettings" class="space-y-6">
-                    <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
+                <div class="space-y-6">
                     
                     <div class="divider">General Settings</div>
                     
@@ -462,11 +511,10 @@
                         </div>
                     </div>
                     
-                    <div class="card-actions">
-                        <button type="submit" class="btn btn-primary" @(Model.CanEditSettings ? "" : "disabled")>Save Notification Settings</button>
-                    </div>
-                </form>
+                    <div class="text-xs opacity-70">Notification changes are saved with the master button.</div>
+                </div>
             </div>
         </div>
+        </form>
     </section>
 </div>

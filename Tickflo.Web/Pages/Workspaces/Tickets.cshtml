@@ -10,237 +10,344 @@
 @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Tickets", NewActionLabel = "New Ticket", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/tickets/0", AllowNewAction = Model.CanCreateTickets })
 
 <div class="grid gap-4">
-    <div class="flex items-center justify-between">
-        <form method="get" class="join md:join">
-            <input name="Query" value="@Model.Query" placeholder="Search subject or description" class="input join-item input-sm md:input-md bg-neutral-900/80 border border-white/10 text-slate-100" />
-            <select name="Type" class="select join-item select-sm md:select-md bg-neutral-900/80 border border-white/10 text-slate-100">
-                <option value="">All Types</option>
-                @foreach (var t in Model.TypesList)
-                {
-                    if (string.Equals(Model.Type, t.Name, StringComparison.OrdinalIgnoreCase))
-                    {
-                        <option value="@t.Name" selected>@t.Name</option>
-                    }
-                    else
-                    {
-                        <option value="@t.Name">@t.Name</option>
-                    }
-                }
-            </select>
-            <select name="Status" class="select join-item select-sm md:select-md bg-neutral-900/80 border border-white/10 text-slate-100">
-                <option value="">All Statuses</option>
-                @foreach (var s in Model.Statuses)
-                {
-                    if (string.Equals(Model.Status, s.Name, StringComparison.OrdinalIgnoreCase))
-                    {
-                        <option value="@s.Name" selected>@s.Name</option>
-                    }
-                    else
-                    {
-                        <option value="@s.Name">@s.Name</option>
-                    }
-                }
-            </select>
-            <select name="Priority" class="select join-item select-sm md:select-md bg-neutral-900/80 border border-white/10 text-slate-100">
-                <option value="">All Priorities</option>
-                @foreach (var p in Model.PrioritiesList)
-                {
-                    if (string.Equals(Model.Priority, p.Name, StringComparison.OrdinalIgnoreCase))
-                    {
-                        <option value="@p.Name" selected>@p.Name</option>
-                    }
-                    else
-                    {
-                        <option value="@p.Name">@p.Name</option>
-                    }
-                }
-            </select>
-            <select name="AssigneeTeamName" class="select join-item select-sm md:select-md bg-neutral-900/80 border border-white/10 text-slate-100">
-                <option value="">Any Team</option>
-                @foreach (var kv in Model.TeamsById)
-                {
-                    if (string.Equals(Model.AssigneeTeamName, kv.Value.Name, StringComparison.OrdinalIgnoreCase))
-                    {
-                        <option value="@kv.Value.Name" selected>@kv.Value.Name</option>
-                    }
-                    else
-                    {
-                        <option value="@kv.Value.Name">@kv.Value.Name</option>
-                    }
-                }
-            </select>
-            <select name="LocationId" class="select join-item select-sm md:select-md bg-neutral-900/80 border border-white/10 text-slate-100">
-                <option value="">Any Location</option>
-                @foreach (var l in Model.LocationOptions)
-                {
-                    if (Model.LocationId.HasValue && Model.LocationId.Value == l.Id)
-                    {
-                        <option value="@l.Id" selected>@l.Name</option>
-                    }
-                    else
-                    {
-                        <option value="@l.Id">@l.Name</option>
-                    }
-                }
-            </select>
-            <input id="contact-query" name="ContactQuery" value="@Model.ContactQuery" placeholder="Contact name or email" class="input join-item input-sm md:input-md bg-neutral-900/80 border border-white/10 text-slate-100" list="contacts-list" />
-            <datalist id="contacts-list">
-                @foreach (var kv in Model.ContactsById)
-                {
-                    var c = kv.Value;
-                    var label = (c.Email?.Length ?? 0) > 0 ? $"{c.Name} ({c.Email})" : c.Name;
-                    <option value="@label"></option>
-                }
-            </datalist>
-            <select name="AssigneeUserId" class="select join-item select-sm md:select-md bg-neutral-900/80 border border-white/10 text-slate-100">
-                <option value="">Anyone</option>
-                @if (Model.AssigneeUserId == -1) {<option value="-1" selected>Unassigned</option>} else {<option value="-1">Unassigned</option>}
-                @foreach (var kv in Model.UsersById)
-                {
-                    if (Model.AssigneeUserId == kv.Key)
-                    {
-                        <option value="@kv.Key" selected>@kv.Value.Name (@kv.Value.Email)</option>
-                    }
-                    else
-                    {
-                        <option value="@kv.Key">@kv.Value.Name (@kv.Value.Email)</option>
-                    }
-                }
-            </select>
-            <label class="label cursor-pointer join-item px-3">
-                <span class="label-text mr-2">Mine</span>
-                <input type="checkbox" name="Mine" value="true" class="checkbox checkbox-sm" @(Model.Mine ? "checked" : "") />
-                <span class="badge badge-soft ml-2 rounded-full">@Model.MyCount</span>
-            </label>
-            <button class="btn btn-soft join-item btn-sm">Filter</button>
-        </form>
+    <div class="card bg-neutral-900/70 backdrop-blur rounded-2xl border border-white/5">
+        <div class="card-body p-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div class="space-y-1">
+                <div class="text-sm uppercase tracking-wide text-white/60">Tickets</div>
+                <div class="text-2xl font-semibold text-white">Keep work moving with clear tickets</div>
+                <p class="text-sm text-white/70 max-w-3xl">Search, filter, and assign tickets quickly. Use the quick filters below or open the filters panel for detailed criteria.</p>
+            </div>
+            @{
+                var chipBase = $"Query={Model.Query}&Type={Model.Type}&Priority={Model.Priority}&ContactQuery={Model.ContactQuery}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&AssigneeTeamName={Model.AssigneeTeamName}&LocationId={Model.LocationId}&PageNumber=1&PageSize={Model.PageSize}";
+                var openStatusName = "Open";
+                var closedStatusName = "Closed";
+            }
+            <div class="flex flex-wrap gap-2">
+                <a class="btn btn-sm btn-ghost border border-white/10 @(string.IsNullOrWhiteSpace(Model.Status) ? "btn-active" : string.Empty)" href="?@chipBase&Status=">All</a>
+                <a class="btn btn-sm btn-ghost border border-white/10 @(string.Equals(Model.Status, openStatusName, StringComparison.OrdinalIgnoreCase) ? "btn-active" : string.Empty)" href="?@chipBase&Status=@openStatusName">Open</a>
+                <a class="btn btn-sm btn-ghost border border-white/10 @(string.Equals(Model.Status, closedStatusName, StringComparison.OrdinalIgnoreCase) ? "btn-active" : string.Empty)" href="?@chipBase&Status=@closedStatusName">Closed</a>
+                <a class="btn btn-sm btn-ghost border border-white/10 @((Model.AssigneeUserId.HasValue && Model.AssigneeUserId.Value == -1) ? "btn-active" : string.Empty)" href="?@chipBase&AssigneeUserId=-1">Unassigned</a>
+                <a class="btn btn-sm btn-ghost border border-white/10 @(Model.Mine ? "btn-active" : string.Empty)" href="?@chipBase&Mine=true">Mine</a>
+            </div>
+        </div>
     </div>
 
+    <!-- Filter Section -->
+    <div class="card bg-neutral-900/60 backdrop-blur rounded-2xl border border-white/5">
+        <div class="card-body p-4">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-lg font-semibold flex items-center gap-2">
+                    <i class="fa fa-filter opacity-70"></i>
+                    <span>Filters</span>
+                    @{
+                        var activeFilters = new List<string>();
+                        if (!string.IsNullOrEmpty(Model.Query)) activeFilters.Add("Search");
+                        if (!string.IsNullOrEmpty(Model.Type)) activeFilters.Add("Type");
+                        if (!string.IsNullOrEmpty(Model.Status)) activeFilters.Add("Status");
+                        if (!string.IsNullOrEmpty(Model.Priority)) activeFilters.Add("Priority");
+                        if (!string.IsNullOrEmpty(Model.AssigneeTeamName)) activeFilters.Add("Team");
+                        if (Model.LocationId.HasValue) activeFilters.Add("Location");
+                        if (!string.IsNullOrEmpty(Model.ContactQuery)) activeFilters.Add("Contact");
+                        if (Model.AssigneeUserId.HasValue) activeFilters.Add("Assignee");
+                        if (Model.Mine) activeFilters.Add("Mine");
+                    }
+                    @if (activeFilters.Count > 0)
+                    {
+                        <span class="badge badge-primary badge-sm rounded-full">@activeFilters.Count active</span>
+                    }
+                </h3>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('filter-panel').classList.toggle('hidden')">
+                    <i class="fa fa-chevron-down" id="filter-chevron"></i>
+                </button>
+            </div>
+            
+            <div id="filter-panel" class="space-y-4">
+                <form method="get" class="space-y-4">
+                    <!-- Primary Filters -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div>
+                            <label class="label label-text text-xs opacity-70 mb-1">Search</label>
+                            <input name="Query" value="@Model.Query" placeholder="Search subject or description..." class="input input-sm w-full bg-neutral-900/80 border border-white/10 text-slate-100" />
+                        </div>
+                        <div>
+                            <label class="label label-text text-xs opacity-70 mb-1">Status</label>
+                            <select name="Status" class="select select-sm w-full bg-neutral-900/80 border border-white/10 text-slate-100">
+                                <option value="">All Statuses</option>
+                                @foreach (var s in Model.Statuses)
+                                {
+                                    @if (string.Equals(Model.Status, s.Name, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <option value="@s.Name" selected>@s.Name</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@s.Name">@s.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div>
+                            <label class="label label-text text-xs opacity-70 mb-1">Priority</label>
+                            <select name="Priority" class="select select-sm w-full bg-neutral-900/80 border border-white/10 text-slate-100">
+                                <option value="">All Priorities</option>
+                                @foreach (var p in Model.PrioritiesList)
+                                {
+                                    @if (string.Equals(Model.Priority, p.Name, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <option value="@p.Name" selected>@p.Name</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@p.Name">@p.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Secondary Filters -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div>
+                            <label class="label label-text text-xs opacity-70 mb-1">Type</label>
+                            <select name="Type" class="select select-sm w-full bg-neutral-900/80 border border-white/10 text-slate-100">
+                                <option value="">All Types</option>
+                                @foreach (var t in Model.TypesList)
+                                {
+                                    @if (string.Equals(Model.Type, t.Name, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <option value="@t.Name" selected>@t.Name</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@t.Name">@t.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div>
+                            <label class="label label-text text-xs opacity-70 mb-1">Assignee</label>
+                            <select name="AssigneeUserId" class="select select-sm w-full bg-neutral-900/80 border border-white/10 text-slate-100">
+                                <option value="">Anyone</option>
+                                @if (Model.AssigneeUserId == -1)
+                                {
+                                    <option value="-1" selected>Unassigned</option>
+                                }
+                                else
+                                {
+                                    <option value="-1">Unassigned</option>
+                                }
+                                @foreach (var kv in Model.UsersById)
+                                {
+                                    @if (Model.AssigneeUserId == kv.Key)
+                                    {
+                                        <option value="@kv.Key" selected>@kv.Value.Name</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@kv.Key">@kv.Value.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div>
+                            <label class="label label-text text-xs opacity-70 mb-1">Team</label>
+                            <select name="AssigneeTeamName" class="select select-sm w-full bg-neutral-900/80 border border-white/10 text-slate-100">
+                                <option value="">Any Team</option>
+                                @foreach (var kv in Model.TeamsById)
+                                {
+                                    @if (string.Equals(Model.AssigneeTeamName, kv.Value.Name, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <option value="@kv.Value.Name" selected>@kv.Value.Name</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@kv.Value.Name">@kv.Value.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Additional Filters -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="label label-text text-xs opacity-70 mb-1">Contact</label>
+                            <input id="contact-query" name="ContactQuery" value="@Model.ContactQuery" placeholder="Contact name or email..." class="input input-sm w-full bg-neutral-900/80 border border-white/10 text-slate-100" list="contacts-list" />
+                            <datalist id="contacts-list">
+                                @foreach (var kv in Model.ContactsById)
+                                {
+                                    var c = kv.Value;
+                                    var label = (c.Email?.Length ?? 0) > 0 ? $"{c.Name} ({c.Email})" : c.Name;
+                                    <option value="@label"></option>
+                                }
+                            </datalist>
+                        </div>
+                        <div>
+                            <label class="label label-text text-xs opacity-70 mb-1">Location</label>
+                            <select name="LocationId" class="select select-sm w-full bg-neutral-900/80 border border-white/10 text-slate-100">
+                                <option value="">Any Location</option>
+                                @foreach (var l in Model.LocationOptions)
+                                {
+                                    @if (Model.LocationId.HasValue && Model.LocationId.Value == l.Id)
+                                    {
+                                        <option value="@l.Id" selected>@l.Name</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@l.Id">@l.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex items-center justify-between pt-2 border-t border-white/10">
+                        <label class="label cursor-pointer gap-2">
+                            <input type="checkbox" name="Mine" value="true" class="checkbox checkbox-sm checkbox-primary" @(Model.Mine ? "checked" : "") />
+                            <span class="label-text">Show only my tickets</span>
+                            <span class="badge badge-soft badge-sm rounded-full">@Model.MyCount</span>
+                        </label>
+                        <div class="flex gap-2">
+                            <a href="/workspaces/@Model.WorkspaceSlug/tickets" class="btn btn-ghost btn-sm">Clear All</a>
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="fa fa-filter mr-1"></i> Apply Filters
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle filter panel chevron
+        const filterPanel = document.getElementById('filter-panel');
+        const filterChevron = document.getElementById('filter-chevron');
+        const observer = new MutationObserver(() => {
+            if (filterPanel.classList.contains('hidden')) {
+                filterChevron.classList.remove('fa-chevron-up');
+                filterChevron.classList.add('fa-chevron-down');
+            } else {
+                filterChevron.classList.remove('fa-chevron-down');
+                filterChevron.classList.add('fa-chevron-up');
+            }
+        });
+        observer.observe(filterPanel, { attributes: true, attributeFilter: ['class'] });
+    </script>
+
+    <!-- Tickets Table -->
     <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
-      <div class="card-body">
-        <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
-          <table class="table table-sm table-zebra">
-            <thead class="bg-white/5">
-                <tr>
-                    <th>Subject</th>
-                    <th>Type</th>
-                    <th>Priority</th>
-                    <th>Status</th>
-                    <th>Contact</th>
-                    <th class="hidden sm:table-cell">Assignee</th>
-                    <th class="hidden sm:table-cell">Inventory</th>
-                    <th class="hidden md:table-cell">Created</th>
-                    <th class="hidden md:table-cell">Location</th>
-                    <th>Actions</th>
+      <div class="card-body p-0">
+        <div class="overflow-x-auto">
+          <table class="table table-sm table-zebra align-middle min-w-[720px]">
+            <thead>
+                <tr class="border-b border-white/10 bg-white/5">
+                    <th class="font-semibold text-xs uppercase tracking-wider opacity-90">Subject</th>
+                    <th class="font-semibold text-xs uppercase tracking-wider opacity-90">Type / Priority</th>
+                    <th class="font-semibold text-xs uppercase tracking-wider opacity-90">Status</th>
+                    <th class="font-semibold text-xs uppercase tracking-wider opacity-90">Assignee</th>
+                    <th class="font-semibold text-xs uppercase tracking-wider opacity-90">Actions</th>
                 </tr>
             </thead>
             <tbody>
+                        @if (!Model.Tickets.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center py-12">
+                                    <div class="flex flex-col items-center gap-3 opacity-60">
+                                        <i class="fa fa-ticket text-4xl"></i>
+                                        <p class="text-lg">No tickets found</p>
+                                        <p class="text-sm">Try adjusting your filters or create a new ticket</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
                         @foreach (var t in Model.Tickets)
             {
-                <tr>
+                <tr class="hover:bg-white/5 transition-colors border-b border-white/5 text-sm">
                                         @{
                                             var rowQs = $"Query={Model.Query}&Type={Model.Type}&Status={Model.Status}&Priority={Model.Priority}&ContactQuery={Model.ContactQuery}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&LocationId={Model.LocationId}&PageNumber={Model.PageNumber}&PageSize={Model.PageSize}";
                                         }
-                                        <td><a class="link link-hover" href="/workspaces/@Model.WorkspaceSlug/tickets/@t.Id?@rowQs">@t.Subject</a></td>
+                                        <td class="py-3 align-top max-w-[260px]">
+                            <div class="flex flex-col gap-1">
+                                <a class="link link-hover font-semibold text-blue-300 hover:text-blue-200 truncate" title="@t.Subject" href="/workspaces/@Model.WorkspaceSlug/tickets/@t.Id?@rowQs">@t.Subject</a>
+                                <div class="flex flex-wrap gap-2 text-xs text-white/60">
+                                    <span class="badge badge-ghost badge-xs rounded-full">#@t.Id</span>
+                                    <span>@t.CreatedAt.ToLocalTime().ToString("MMM dd, HH:mm")</span>
+                                </div>
+                            </div>
+                        </td>
                     @{
                         var tcolor = Model.TypeColorByName.TryGetValue(t.Type, out var tclr) ? tclr : "neutral";
                         var tIsHex = tcolor.StartsWith("#");
-                        var tCls = tIsHex ? "badge badge-soft" : $"badge badge-soft badge-{tcolor}";
+                        var tCls = tIsHex ? "badge badge-soft rounded-full" : $"badge badge-soft badge-{tcolor} rounded-full";
                         var tStyle = tIsHex ? $"background-color: {tcolor}; color: #fff;" : null;
                     }
-                    <td><span class="@tCls" style="@tStyle">@t.Type</span></td>
-                    @{
-                        var pcolor = Model.PriorityColorByName.TryGetValue(t.Priority, out var pclr) ? pclr : "neutral";
-                        var pIsHex = pcolor.StartsWith("#");
-                        var pCls = pIsHex ? "badge badge-soft" : $"badge badge-soft badge-{pcolor}";
-                        var pStyle = pIsHex ? $"background-color: {pcolor}; color: #fff;" : null;
-                    }
-                    <td><span class="@pCls" style="@pStyle">@t.Priority</span></td>
+                                    <td class="py-3 align-top">
+                                        <div class="flex flex-col gap-1">
+                                            <span class="@tCls text-xs" style="@tStyle">@t.Type</span>
+                                            @{
+                                                var pcolor = Model.PriorityColorByName.TryGetValue(t.Priority, out var pclr) ? pclr : "neutral";
+                                                var pIsHex = pcolor.StartsWith("#");
+                                                var pCls = pIsHex ? "badge badge-soft rounded-full" : $"badge badge-soft badge-{pcolor} rounded-full";
+                                                var pStyle = pIsHex ? $"background-color: {pcolor}; color: #fff;" : null;
+                                            }
+                                            <span class="@pCls text-xs font-semibold" style="@pStyle">@t.Priority</span>
+                                        </div>
+                                    </td>
                     @{
                         var color = Model.StatusColorByName.TryGetValue(t.Status, out var col) ? col : "neutral";
                         var isHex = color.StartsWith("#");
-                        var statusCls = isHex ? "badge badge-soft" : $"badge badge-soft badge-{color}";
+                        var statusCls = isHex ? "badge badge-soft rounded-full" : $"badge badge-soft badge-{color} rounded-full";
                         var statusStyle = isHex ? $"background-color: {color}; color: #fff;" : null;
                     }
-                    <td><span class="@statusCls" style="@statusStyle">@t.Status</span></td>
-                        <td>
-                        @if (t.ContactId.HasValue && Model.ContactsById.TryGetValue(t.ContactId.Value, out var c))
-                        {
-                            <span>@c.Name</span>
-                            <span class="opacity-60 break-all">(@c.Email)</span>
-                        }
-                        else
-                        {
-                                <span class="opacity-60">—</span>
-                        }
-                    </td>
-                        <td class="hidden sm:table-cell">
+                    <td class="py-3 align-top"><span class="@statusCls text-xs font-semibold" style="@statusStyle">@t.Status</span></td>
+                                            <td class="py-3 align-top">
                         @if (t.AssignedTeamId.HasValue && Model.TeamsById.TryGetValue(t.AssignedTeamId.Value, out var team))
                         {
-                            <span class="badge badge-soft rounded-full">@team.Name</span>
+                            <span class="badge badge-info badge-soft rounded-full text-xs"><i class="fa fa-users mr-1"></i>@team.Name</span>
                         }
                         else if (t.AssignedUserId.HasValue && Model.UsersById.TryGetValue(t.AssignedUserId.Value, out var au))
                         {
-                            <span class="badge badge-soft rounded-full">@au.Name</span>
-                            <span class="opacity-60 ml-2">(@au.Email)</span>
+                            <div class="flex flex-col">
+                                <span class="badge badge-soft rounded-full text-xs"><i class="fa fa-user mr-1"></i>@au.Name</span>
+                            </div>
                         }
                         else
                         {
-                            <span class="badge">Unassigned</span>
+                            <span class="badge badge-ghost badge-sm rounded-full opacity-50">Unassigned</span>
                         }
                     </td>
-                        <td class="hidden sm:table-cell">
-                        @{
-                            var invs = t.TicketInventories?.ToList() ?? new List<Tickflo.Core.Entities.TicketInventory>();
-                            if (invs.Count > 0)
-                            {
-                                var count = invs.Count;
-                                var total = invs.Sum(iv => iv.UnitPrice * iv.Quantity);
-                                var summary = $"{count} item{(count == 1 ? string.Empty : "s")} · ${total:F2}";
-                                var tooltip = string.Join(", ", invs.Select(iv => $"{(iv.Inventory?.Name ?? ("SKU " + (iv.Inventory?.Sku ?? iv.InventoryId.ToString())))} x{iv.Quantity}"));
-                                <span class="opacity-80" title="@tooltip">@summary</span>
-                            }
-                            else
-                            {
-                                <span class="opacity-50">—</span>
-                            }
-                        }
-                    </td>
-                        <td class="hidden md:table-cell">@t.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
-                        <td class="hidden md:table-cell">
-                            @if (t.LocationId.HasValue && Model.LocationsById.TryGetValue(t.LocationId.Value, out var loc))
-                            {
-                                <span>@loc.Name</span>
-                            }
-                            else
-                            {
-                                <span class="opacity-60">—</span>
-                            }
-                        </td>
-                    <td>
-                        <div class="flex flex-wrap gap-2 items-center">
-                            @if (Model.CanCreateTickets)
-                            {
-                                <a class="btn btn-soft btn-sm" href="/workspaces/@Model.WorkspaceSlug/tickets/0@(t.ContactId.HasValue ? ($"?contactId={t.ContactId}") : string.Empty)">Clone</a>
-                            }
-                            else
-                            {
-                                <button class="btn btn-soft btn-sm" disabled>Clone</button>
-                            }
-                            <form method="post" action="/workspaces/@Model.WorkspaceSlug/tickets/@t.Id?@rowQs" class="join ajax-assign" data-ticket-id="@t.Id">
+                    <td class="py-3 align-top">
+                        <div class="flex flex-col gap-2">
+                            <div class="flex gap-1 flex-wrap">
+                                @if (Model.CanCreateTickets)
+                                {
+                                    <a class="btn btn-ghost btn-xs" href="/workspaces/@Model.WorkspaceSlug/tickets/0@(t.ContactId.HasValue ? ($"?contactId={t.ContactId}") : string.Empty)" title="Clone ticket">
+                                        <i class="fa fa-copy"></i>
+                                    </a>
+                                }
+                                <a class="btn btn-primary btn-xs" href="/workspaces/@Model.WorkspaceSlug/tickets/@t.Id?@rowQs" title="View details">
+                                    <i class="fa fa-eye"></i>
+                                </a>
+                            </div>
+                            <form method="post" action="/workspaces/@Model.WorkspaceSlug/tickets/@t.Id?@rowQs" class="flex gap-1 ajax-assign" data-ticket-id="@t.Id">
                                 <input type="hidden" name="handler" value="Assign" />
                                 <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
                                 <input type="hidden" name="id" value="@t.Id" />
                                 <input type="hidden" id="assignedUserId-@t.Id" name="assignedUserId" value="@(t.AssignedUserId?.ToString() ?? "")" />
-                                <input id="assignee-search-@t.Id" class="input input-bordered join-item input-xs md:input-sm" list="assignees-list-@t.Id" placeholder="Assign" />
+                                <input id="assignee-search-@t.Id" class="input input-bordered input-xs w-32" list="assignees-list-@t.Id" placeholder="Assign to..." />
                                 <datalist id="assignees-list-@t.Id">
                                     <option value="Unassigned" data-id=""></option>
                                     @foreach (var kv in Model.UsersById)
                                     {
-                                        <option value="@kv.Value.Name (@kv.Value.Email)" data-id="@kv.Key"></option>
+                                        <option value="@kv.Value.Name" data-id="@kv.Key"></option>
                                     }
                                 </datalist>
-                                                            <button class="btn btn-soft join-item btn-sm" type="submit" @(Model.CanEditTickets ? "" : "disabled")>Assign</button>
+                                <button class="btn btn-primary btn-xs" type="submit" @(Model.CanEditTickets ? "" : "disabled") title="Assign ticket">
+                                    <i class="fa fa-check"></i>
+                                </button>
                             </form>
                             <script>
                                 (function(){
@@ -356,7 +463,7 @@
                             toast.style.display = '';
                             setTimeout(()=>{ toast.style.display = 'none'; }, 2500);
                         }
-                        const badgeCell = form.closest('tr')?.querySelector('td:nth-child(5)');
+                        const badgeCell = form.closest('tr')?.querySelector('td:nth-child(4)');
                         if (badgeCell){
                             if (hidden.value){
                                 badgeCell.innerHTML = `<span class="badge badge-soft rounded-full">${input.value}</span>`;
@@ -398,95 +505,64 @@
                     .withAutomaticReconnect()
                     .build();
                 connection.on('ticketCreated', function(t){
-                    // Prepend a new row for the created ticket
                     const tbody = document.querySelector('table tbody');
                     if (!tbody) return;
-                    const contactDisplay = t.contactDisplay || (t.contactId ?? '—');
-                    const created = new Date(t.createdAt).toLocaleString();
-                                        const tr = document.createElement('tr');
-                                        tr.classList.add('fade-in');
+                    const tr = document.createElement('tr');
+                    tr.classList.add('fade-in');
                     const rowQs = `Query=@Model.Query&Status=@Model.Status&Priority=@Model.Priority&ContactQuery=@Model.ContactQuery&Mine=@Model.Mine&AssigneeUserId=@Model.AssigneeUserId&PageNumber=@Model.PageNumber&PageSize=@Model.PageSize`;
-                                        const color = statusColors[t.status] || 'neutral';
-                                        const isHex = (typeof color === 'string') && color.startsWith('#');
-                                        const statusSpan = isHex
-                                                ? `<span class="badge" style="background-color: ${color}; color: #fff;">${t.status}</span>`
-                                                : `<span class="badge badge-soft badge-${color} rounded-full">${t.status}</span>`;
+                    const color = statusColors[t.status] || 'neutral';
+                    const isHex = (typeof color === 'string') && color.startsWith('#');
+                    const statusSpan = isHex
+                            ? `<span class="badge" style="background-color: ${color}; color: #fff;">${t.status}</span>`
+                            : `<span class="badge badge-soft badge-${color} rounded-full">${t.status}</span>`;
+                    const tc = typeColors[t.type] || 'neutral';
+                    const tIsHex = (typeof tc === 'string') && tc.startsWith('#');
+                    const typeSpan = tIsHex ? `<span class="badge badge-soft rounded-full" style="background-color: ${tc}; color: #fff;">${t.type}</span>` : `<span class="badge badge-soft badge-${tc} rounded-full">${t.type}</span>`;
+                    const pc = priorityColors[t.priority] || 'neutral';
+                    const pIsHex = (typeof pc === 'string') && pc.startsWith('#');
+                    const prioSpan = pIsHex ? `<span class="badge badge-soft rounded-full" style="background-color: ${pc}; color: #fff;">${t.priority}</span>` : `<span class="badge badge-soft badge-${pc} rounded-full">${t.priority}</span>`;
+                    const created = new Date(t.createdAt).toLocaleString();
                     tr.innerHTML = `
-                        <td><a class="link link-hover" href="/workspaces/${slug}/tickets/${t.id}?${rowQs}">${t.subject}</a></td>
-                        ${(() => { const tc = typeColors[t.type] || 'neutral'; const tIsHex = (typeof tc === 'string') && tc.startsWith('#'); return tIsHex ? `<td><span class=\"badge badge-soft\" style=\"background-color: ${tc}; color: #fff;\">${t.type}</span></td>` : `<td><span class=\"badge badge-soft badge-${tc}\">${t.type}</span></td>`; })()}
-                        {
-                            const pc = priorityColors[t.priority] || 'neutral';
-                            const pIsHex = (typeof pc === 'string') && pc.startsWith('#');
-                            const prioSpan = pIsHex
-                                ? `<span class="badge badge-soft rounded-full" style="background-color: ${pc}; color: #fff;">${t.priority}</span>`
-                                : `<span class="badge badge-soft badge-${pc} rounded-full">${t.priority}</span>`;
-                            }
-                        <td>${prioSpan}</td>
-                                                <td>${statusSpan}</td>
-                        <td><span>${contactDisplay}</span></td>
-                        <td class="hidden sm:table-cell"><span class="badge ${t.assignedUserId ? 'badge-soft' : ''} rounded-full">${t.assignedUserId ? (t.assignedDisplay || 'Assigned') : 'Unassigned'}</span></td>
-                            <td class="hidden sm:table-cell"><span class="opacity-80" title="${t.inventoryDetails || ''}">${t.inventorySummary || '—'}</span></td>
-                        <td class="hidden md:table-cell">${created}</td>
-                        <td>
-                          <div class="flex flex-wrap gap-2 items-center">
-                            <a class="btn btn-soft btn-sm" href="/workspaces/${slug}/tickets/0?contactId=${t.contactId}">Clone</a>
-                            <!-- Inline assign form omitted for live-created rows; user can open details page -->
-                          </div>
-                        </td>`;
+                        <td><div class="flex flex-col gap-1"><a class="link link-hover" href="/workspaces/${slug}/tickets/${t.id}?${rowQs}">${t.subject}</a><div class="flex flex-wrap gap-2 text-xs text-white/60"><span class="badge badge-ghost badge-xs rounded-full">#${t.id}</span><span>${created}</span></div></div></td>
+                        <td><div class="flex flex-col gap-1">${typeSpan}${prioSpan}</div></td>
+                        <td>${statusSpan}</td>
+                        <td><span class="badge ${t.assignedUserId ? 'badge-soft' : 'badge-ghost'} rounded-full">${t.assignedUserId ? (t.assignedDisplay || 'Assigned') : 'Unassigned'}</span></td>
+                        <td><a class="btn btn-primary btn-xs" href="/workspaces/${slug}/tickets/${t.id}?${rowQs}"><i class="fa fa-eye"></i></a></td>`;
                     tbody.insertBefore(tr, tbody.firstChild);
                 });
-                // Update existing row when a ticket is edited
                 connection.on('ticketUpdated', function(t){
                     const row = document.querySelector(`tr td a[href^="/workspaces/${slug}/tickets/${t.id}"]`)?.closest('tr');
                     if (row){
                         const subjectCell = row.querySelector('td:nth-child(1) a');
-                        const typeCell = row.querySelector('td:nth-child(2) .badge');
-                        const prioCell = row.querySelector('td:nth-child(3) .badge');
-                        const statusCell = row.querySelector('td:nth-child(4) .badge');
-                        if (typeCell){
-                            typeCell.textContent = t.type;
-                            const tc = typeColors[t.type] || 'neutral';
-                            if ((typeof tc === 'string') && tc.startsWith('#')){
-                                typeCell.className = 'badge badge-soft';
-                                typeCell.setAttribute('style', `background-color: ${tc}; color: #fff;`);
-                            } else {
-                                typeCell.className = `badge badge-soft badge-${tc}`;
-                                typeCell.removeAttribute('style');
-                            }
-                        }
+                        const typePriCell = row.querySelector('td:nth-child(2)');
+                        const statusCell = row.querySelector('td:nth-child(3) .badge');
                         if (subjectCell) subjectCell.textContent = t.subject;
-                        if (prioCell) {
-                            prioCell.textContent = t.priority;
+                        if (typePriCell){
+                            const tc = typeColors[t.type] || 'neutral';
+                            const tIsHex = (typeof tc === 'string') && tc.startsWith('#');
+                            const typeSpan = tIsHex ? `<span class="badge badge-soft rounded-full" style="background-color: ${tc}; color: #fff;">${t.type}</span>` : `<span class="badge badge-soft badge-${tc} rounded-full">${t.type}</span>`;
                             const pc = priorityColors[t.priority] || 'neutral';
-                            if ((typeof pc === 'string') && pc.startsWith('#')){
-                                prioCell.className = 'badge badge-soft';
-                                prioCell.setAttribute('style', `background-color: ${pc}; color: #fff;`);
-                            } else {
-                                prioCell.className = `badge badge-soft badge-${pc}`;
-                                prioCell.removeAttribute('style');
-                            }
+                            const pIsHex = (typeof pc === 'string') && pc.startsWith('#');
+                            const prioSpan = pIsHex ? `<span class="badge badge-soft rounded-full" style="background-color: ${pc}; color: #fff;">${t.priority}</span>` : `<span class="badge badge-soft badge-${pc} rounded-full">${t.priority}</span>`;
+                            typePriCell.innerHTML = `<div class="flex flex-col gap-1">${typeSpan}${prioSpan}</div>`;
                         }
                         if (statusCell) {
                             statusCell.textContent = t.status;
                             const c = statusColors[t.status] || 'neutral';
                             if ((typeof c === 'string') && c.startsWith('#')) {
-                                statusCell.className = 'badge';
+                                statusCell.className = 'badge badge-soft rounded-full';
                                 statusCell.setAttribute('style', `background-color: ${c}; color: #fff;`);
                             } else {
-                                statusCell.className = `badge badge-soft badge-${c}`;
+                                statusCell.className = `badge badge-soft badge-${c} rounded-full`;
                                 statusCell.removeAttribute('style');
                             }
-                        }
-                        const invCell = row.querySelector('td:nth-child(7)');
-                        if (invCell){
-                               invCell.innerHTML = `<span class="opacity-80" title="${t.inventoryDetails || ''}">${t.inventorySummary || '—'}</span>`;
                         }
                     }
                 });
                 connection.on('ticketAssigned', function(t){
                     const row = document.querySelector(`tr td a[href^="/workspaces/${slug}/tickets/${t.id}"]`)?.closest('tr');
                     if (!row) return;
-                    const assigneeCell = row.querySelector('td:nth-child(5)');
+                    const assigneeCell = row.querySelector('td:nth-child(4)');
                     if (!assigneeCell) return;
                     if (t.assignedUserId){
                         const label = t.assignedDisplay || 'Assigned';
@@ -503,16 +579,55 @@
         })();
     </script>
 
-    <div class="flex justify-between items-center">
-        <div class="text-sm opacity-70">Showing page @Model.PageNumber of @((Model.Total + Model.PageSize - 1)/Model.PageSize) · @Model.Total total</div>
-        <div class="join">
-            @{
-                var prev = Model.PageNumber > 1 ? Model.PageNumber - 1 : 1;
-                var next = (Model.PageNumber * Model.PageSize) < Model.Total ? Model.PageNumber + 1 : Model.PageNumber;
-                var baseQs = $"Query={Model.Query}&Type={Model.Type}&Status={Model.Status}&Priority={Model.Priority}&ContactQuery={Model.ContactQuery}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&LocationId={Model.LocationId}&PageSize={Model.PageSize}";
-            }
-            <a class="btn btn-soft join-item btn-sm @(Model.PageNumber <= 1 ? "btn-disabled" : "")" href="?@baseQs&PageNumber=@prev">Prev</a>
-            <a class="btn btn-soft join-item btn-sm @(((Model.PageNumber * Model.PageSize) >= Model.Total) ? "btn-disabled" : "")" href="?@baseQs&PageNumber=@next">Next</a>
+    <!-- Pagination -->
+    <div class="card bg-neutral-900/60 backdrop-blur rounded-2xl">
+        <div class="card-body p-4">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
+                <div class="flex flex-col sm:flex-row items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium">@Model.Total tickets total</span>
+                        <span class="hidden sm:inline opacity-50">·</span>
+                        <span class="text-sm opacity-70">Page @Model.PageNumber of @((Model.Total + Model.PageSize - 1)/Model.PageSize)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm opacity-70">Show:</label>
+                        <select id="page-size-select" class="select select-sm bg-neutral-900/80 border border-white/10 text-slate-100" onchange="window.location.href = this.value">
+                            @{
+                                var pageSizeQs = $"Query={Model.Query}&Type={Model.Type}&Status={Model.Status}&Priority={Model.Priority}&ContactQuery={Model.ContactQuery}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&LocationId={Model.LocationId}&PageNumber=1";
+                                var pageSizes = new[] { 10, 25, 50, 100 };
+                            }
+                            @foreach (var size in pageSizes)
+                            {
+                                @if (Model.PageSize == size)
+                                {
+                                    <option value="?@pageSizeQs&PageSize=@size" selected>@size rows</option>
+                                }
+                                else
+                                {
+                                    <option value="?@pageSizeQs&PageSize=@size">@size rows</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="join">
+                    @{
+                        var prev = Model.PageNumber > 1 ? Model.PageNumber - 1 : 1;
+                        var next = (Model.PageNumber * Model.PageSize) < Model.Total ? Model.PageNumber + 1 : Model.PageNumber;
+                        var baseQs = $"Query={Model.Query}&Type={Model.Type}&Status={Model.Status}&Priority={Model.Priority}&ContactQuery={Model.ContactQuery}&Mine={Model.Mine}&AssigneeUserId={Model.AssigneeUserId}&LocationId={Model.LocationId}&PageSize={Model.PageSize}";
+                        var totalPages = (Model.Total + Model.PageSize - 1) / Model.PageSize;
+                    }
+                    <a class="btn btn-soft join-item btn-sm @(Model.PageNumber <= 1 ? "btn-disabled" : "")" href="?@baseQs&PageNumber=@prev">
+                        <i class="fa fa-chevron-left"></i> Previous
+                    </a>
+                    <button class="btn btn-soft join-item btn-sm" disabled>
+                        @Model.PageNumber / @totalPages
+                    </button>
+                    <a class="btn btn-soft join-item btn-sm @(((Model.PageNumber * Model.PageSize) >= Model.Total) ? "btn-disabled" : "")" href="?@baseQs&PageNumber=@next">
+                        Next <i class="fa fa-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
     </div>

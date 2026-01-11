@@ -7,4 +7,5 @@ public interface IWorkspaceRepository
     Task<Workspace?> FindBySlugAsync(string slug);
     Task<Workspace?> FindByIdAsync(int id);
     Task AddAsync(Workspace workspace);
+    Task UpdateAsync(Workspace workspace);
 }

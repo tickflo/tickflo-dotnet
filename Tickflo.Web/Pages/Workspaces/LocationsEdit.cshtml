@@ -49,7 +49,7 @@
                     </div>
                         <div class="card-actions flex flex-wrap gap-2 md:join mt-4">
                             @{ var saveLabel = (Model.LocationId == 0) ? "Create" : "Update"; }
-                            <button type="submit" class="btn btn-soft btn-primary join-item btn-sm w-full md:w-auto" @( (Model.LocationId == 0 ? Model.CanCreateLocations : Model.CanEditLocations) ? "" : "disabled")>@saveLabel</button>
+                            <button type="submit" class="btn btn-primary join-item btn-sm w-full md:w-auto" @( (Model.LocationId == 0 ? Model.CanCreateLocations : Model.CanEditLocations) ? "" : "disabled")>@saveLabel</button>
                         <a class="btn btn-ghost join-item btn-sm" asp-page="/Workspaces/Locations" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Cancel</a>
                     </div>
                 </form>

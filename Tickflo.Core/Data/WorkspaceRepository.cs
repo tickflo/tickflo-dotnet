@@ -22,4 +22,10 @@ public class WorkspaceRepository(TickfloDbContext db) : IWorkspaceRepository
         _db.Workspaces.Add(workspace);
         await _db.SaveChangesAsync();
     }
+
+    public async Task UpdateAsync(Workspace workspace)
+    {
+        _db.Workspaces.Update(workspace);
+        await _db.SaveChangesAsync();
+    }
 }

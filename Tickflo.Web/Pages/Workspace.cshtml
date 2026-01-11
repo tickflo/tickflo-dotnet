@@ -20,10 +20,10 @@
                 <span class="flex items-center gap-2 text-sm"><i class="fa fa-envelope-open-text"></i> You have not yet confirmed your email address</span>
                 <div class="join join-horizontal">
                     <form class="join-item" data-discover="true" action="/email-confirmation/dismiss" method="post">
-                        <button type="submit" class="btn btn-soft btn-sm">Dismiss</button>
+                        <button type="submit" class="btn btn-ghost btn-sm">Dismiss</button>
                     </form>
                     <form class="join-item" data-discover="true" action="/email-confirmation/resend" method="post">
-                        <button type="submit" class="btn btn-soft btn-sm btn-primary">Resend Email</button>
+                        <button type="submit" class="btn btn-primary btn-sm">Resend Email</button>
                     </form>
                 </div>
             </div>
@@ -93,12 +93,28 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                     @if (Model.CanViewTickets)
                     {
+                        var primaryGlow = Model.PrimaryIsHex ? WorkspaceModel.HexToRgba(primary, 0.15) : null;
+                        var primaryBg = Model.PrimaryIsHex ? WorkspaceModel.HexToRgba(primary, 0.2) : null;
                         <a href="/workspaces/@Model.Workspace.Slug/tickets?status=Open&range=@Model.RangeDays" style="text-decoration:none">
                             <div class="card bg-neutral-900/80 backdrop-blur text-slate-100 shadow-xl cursor-pointer hover:shadow-2xl transition-all hover:-translate-y-0.5 rounded-3xl overflow-hidden group">
                                 <div class="card-body relative">
-                                    <div class="absolute top-0 right-0 w-28 h-28 bg-@(primary)/15 blur-2xl rounded-full -mr-12 -mt-10 group-hover:scale-110 transition-transform"></div>
+                                    @if (Model.PrimaryIsHex)
+                                    {
+                                        <div class="absolute top-0 right-0 w-28 h-28 blur-2xl rounded-full -mr-12 -mt-10 group-hover:scale-110 transition-transform" style="background-color: @primaryGlow;"></div>
+                                    }
+                                    else
+                                    {
+                                        <div class="absolute top-0 right-0 w-28 h-28 bg-@(primary)/15 blur-2xl rounded-full -mr-12 -mt-10 group-hover:scale-110 transition-transform"></div>
+                                    }
                                     <div class="flex items-center justify-between mb-3">
-                                        <div class="p-3 bg-@(primary)/20 text-@(primary) rounded-2xl"><i class="fa fa-ticket-alt text-xl"></i></div>
+                                        @if (Model.PrimaryIsHex)
+                                        {
+                                            <div class="p-3 rounded-2xl" style="background-color: @primaryBg; color: @primary;"><i class="fa fa-ticket-alt text-xl"></i></div>
+                                        }
+                                        else
+                                        {
+                                            <div class="p-3 bg-@(primary)/20 text-@(primary) rounded-2xl"><i class="fa fa-ticket-alt text-xl"></i></div>
+                                        }
                                         <span class="badge badge-outline badge-sm rounded-full">@Model.RangeDays d</span>
                                     </div>
                                     <div class="text-sm opacity-80">Open Tickets</div>
@@ -110,12 +126,28 @@
                     }
                     @if (Model.CanViewTickets)
                     {
+                        var successGlow = Model.SuccessIsHex ? WorkspaceModel.HexToRgba(success, 0.15) : null;
+                        var successBg = Model.SuccessIsHex ? WorkspaceModel.HexToRgba(success, 0.2) : null;
                         <a href="/workspaces/@Model.Workspace.Slug/tickets?status=Closed&range=@Model.RangeDays" style="text-decoration:none">
                             <div class="card bg-neutral-900/80 backdrop-blur text-slate-100 shadow-xl cursor-pointer hover:shadow-2xl transition-all hover:-translate-y-0.5 rounded-3xl overflow-hidden group">
                                 <div class="card-body relative">
-                                    <div class="absolute top-0 right-0 w-28 h-28 bg-@(success)/15 blur-2xl rounded-full -mr-12 -mt-10 group-hover:scale-110 transition-transform"></div>
+                                    @if (Model.SuccessIsHex)
+                                    {
+                                        <div class="absolute top-0 right-0 w-28 h-28 blur-2xl rounded-full -mr-12 -mt-10 group-hover:scale-110 transition-transform" style="background-color: @successGlow;"></div>
+                                    }
+                                    else
+                                    {
+                                        <div class="absolute top-0 right-0 w-28 h-28 bg-@(success)/15 blur-2xl rounded-full -mr-12 -mt-10 group-hover:scale-110 transition-transform"></div>
+                                    }
                                     <div class="flex items-center justify-between mb-3">
-                                        <div class="p-3 bg-@(success)/20 text-@(success) rounded-2xl"><i class="fa fa-check-circle text-xl"></i></div>
+                                        @if (Model.SuccessIsHex)
+                                        {
+                                            <div class="p-3 rounded-2xl" style="background-color: @successBg; color: @success;"><i class="fa fa-check-circle text-xl"></i></div>
+                                        }
+                                        else
+                                        {
+                                            <div class="p-3 bg-@(success)/20 text-@(success) rounded-2xl"><i class="fa fa-check-circle text-xl"></i></div>
+                                        }
                                         <span class="badge badge-outline badge-sm rounded-full">@Model.RangeDays d</span>
                                     </div>
                                     <div class="text-sm opacity-80">Resolved</div>
@@ -173,14 +205,14 @@
                                     var percentage = Model.RecentTickets.Count > 0 ? Math.Round((double)count / Model.RecentTickets.Count * 100) : 0;
                                     var sColor = string.IsNullOrWhiteSpace(s.Color) ? "neutral" : s.Color;
                                     var sIsHex = sColor.StartsWith("#");
-                                    var badgeCls = sIsHex ? "badge badge-outline" : $"badge badge-outline badge-{sColor}";
-                                    var badgeStyle = sIsHex ? $"--badge-color: {sColor};" : null;
+                                    var badgeCls = sIsHex ? "badge badge-soft" : $"badge badge-soft badge-{sColor}";
+                                    var badgeStyle = sIsHex ? $"background-color: {sColor}; color: #fff;" : null;
                                     var progressCls = sIsHex ? "progress" : $"progress progress-{sColor}";
                                     var progressStyle = sIsHex ? $"background-color: {sColor};" : null;
                                     <div class="flex items-center gap-3">
                                         <div class="flex-1">
                                             <div class="flex items-center justify-between mb-1">
-                                                <span class="text-sm font-medium">@s.Name</span>
+                                                <span class="text-sm font-medium truncate mr-2">@s.Name</span>
                                                 <span class="@badgeCls" style="@badgeStyle">@count</span>
                                             </div>
                                             <progress class="@progressCls progress-sm" value="@percentage" max="100" @(sIsHex ? $"style=\"{progressStyle}\"" : null)></progress>
@@ -205,14 +237,14 @@
                                     var percentage = Model.RecentTickets.Count > 0 ? Math.Round((double)p.Value / Model.RecentTickets.Count * 100) : 0;
                                     var pColor = string.IsNullOrWhiteSpace(prio?.Color) ? "neutral" : prio!.Color;
                                     var pIsHex = pColor.StartsWith("#");
-                                    var badgeCls = pIsHex ? "badge badge-outline" : $"badge badge-outline badge-{pColor}";
-                                    var badgeStyle = pIsHex ? $"--badge-color: {pColor};" : null;
+                                    var badgeCls = pIsHex ? "badge badge-soft" : $"badge badge-soft badge-{pColor}";
+                                    var badgeStyle = pIsHex ? $"background-color: {pColor}; color: #fff;" : null;
                                     var progressCls = pIsHex ? "progress" : $"progress progress-{pColor}";
                                     var progressStyle = pIsHex ? $"background-color: {pColor};" : null;
                                     <div class="flex items-center gap-3">
                                         <div class="flex-1">
                                             <div class="flex items-center justify-between mb-1">
-                                                <span class="text-sm font-medium">@p.Key</span>
+                                                <span class="text-sm font-medium truncate mr-2">@p.Key</span>
                                                 <span class="@badgeCls" style="@badgeStyle">@p.Value</span>
                                             </div>
                                             <progress class="@progressCls progress-sm" value="@percentage" max="100" @(pIsHex ? $"style=\"{progressStyle}\"" : null)></progress>
@@ -268,7 +300,7 @@
                                                     <a class="@typeCls" style="@typeStyle" href="/workspaces/@Model.Workspace!.Slug/tickets?type=@Uri.EscapeDataString(t.Type)&range=@Model.RangeDays">@t.Type</a>
                                                 </td>
                                                 <td>
-                                                    @{ var statusColor = string.IsNullOrWhiteSpace(t.StatusColor) ? "neutral" : t.StatusColor; var sIsHex2 = statusColor.StartsWith("#"); var statusCls = sIsHex2 ? "badge badge-outline" : $"badge badge-outline badge-{statusColor}"; var statusStyle2 = sIsHex2 ? $"--badge-color: {statusColor};" : null; }
+                                                    @{ var statusColor = string.IsNullOrWhiteSpace(t.StatusColor) ? "neutral" : t.StatusColor; var sIsHex2 = statusColor.StartsWith("#"); var statusCls = sIsHex2 ? "badge badge-soft" : $"badge badge-outline badge-{statusColor}"; var statusStyle2 = sIsHex2 ? $"background-color: {statusColor}; color: #fff;" : null; }
                                                     <a class="@statusCls" style="@statusStyle2" href="/workspaces/@Model.Workspace!.Slug/tickets?status=@Uri.EscapeDataString(t.Status)&range=@Model.RangeDays">@t.Status</a>
                                                 </td>
                                                 <td>

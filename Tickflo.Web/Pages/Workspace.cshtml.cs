@@ -64,6 +64,13 @@ public class WorkspaceModel : PageModel
     public string InfoColor { get; set; } = "info";
     public string WarningColor { get; set; } = "warning";
     public string ErrorColor { get; set; } = "error";
+    
+    // Custom color support (hex or DaisyUI color names)
+    public bool PrimaryIsHex { get; set; }
+    public bool SuccessIsHex { get; set; }
+    public bool InfoIsHex { get; set; }
+    public bool WarningIsHex { get; set; }
+    public bool ErrorIsHex { get; set; }
 
     public WorkspaceModel(
         IWorkspaceRepository workspaceRepo,
@@ -229,6 +236,22 @@ public class WorkspaceModel : PageModel
         var closedNames = new HashSet<string>(StatusList.Where(s => s.IsClosedState).Select(s => s.Name), System.StringComparer.OrdinalIgnoreCase);
         var statusColor = StatusList.GroupBy(s => s.Name, System.StringComparer.OrdinalIgnoreCase)
               .ToDictionary(g => g.Key, g => g.First().Color, System.StringComparer.OrdinalIgnoreCase);
+        
+        // Extract custom colors for dashboard KPI cards
+        var openStatus = StatusList.FirstOrDefault(s => !s.IsClosedState);
+        var closedStatus = StatusList.FirstOrDefault(s => s.IsClosedState);
+        
+        if (openStatus != null && !string.IsNullOrWhiteSpace(openStatus.Color))
+        {
+            PrimaryColor = openStatus.Color;
+            PrimaryIsHex = openStatus.Color.StartsWith("#");
+        }
+        
+        if (closedStatus != null && !string.IsNullOrWhiteSpace(closedStatus.Color))
+        {
+            SuccessColor = closedStatus.Color;
+            SuccessIsHex = closedStatus.Color.StartsWith("#");
+        }
 
         // Load custom ticket types and color map
         TypeList = (await _typeRepo.ListAsync(workspaceId)).ToList();
@@ -375,6 +398,34 @@ public class WorkspaceModel : PageModel
         }
         userId = default;
         return false;
+    }
+    
+    public static string HexToRgba(string hex, double opacity)
+    {
+        if (string.IsNullOrWhiteSpace(hex) || !hex.StartsWith("#"))
+            return hex;
+        
+        hex = hex.TrimStart('#');
+        if (hex.Length == 3)
+        {
+            // Expand shorthand hex (e.g., #abc to #aabbcc)
+            hex = $"{hex[0]}{hex[0]}{hex[1]}{hex[1]}{hex[2]}{hex[2]}";
+        }
+        
+        if (hex.Length != 6)
+            return hex;
+        
+        try
+        {
+            int r = Convert.ToInt32(hex.Substring(0, 2), 16);
+            int g = Convert.ToInt32(hex.Substring(2, 2), 16);
+            int b = Convert.ToInt32(hex.Substring(4, 2), 16);
+            return $"rgba({r}, {g}, {b}, {opacity})";
+        }
+        catch
+        {
+            return hex;
+        }
     }
 
     // Close LoadDashboardDataAsync method

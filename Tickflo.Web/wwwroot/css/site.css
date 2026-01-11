@@ -70,21 +70,35 @@
     @apply space-y-4;
 }
 
-.table {
-    @apply rounded-2xl overflow-hidden border shadow-lg backdrop-blur;
-    background: rgba(10, 14, 25, 0.92);
-    border-color: rgba(255,255,255,0.05);
+.badge {
+    @apply rounded-2xl;
+    display: inline-block;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #e2e8f0;
+    /* Prevent text wrapping inside the badge */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* Keep multi-line text contained visually */
+    text-align: center;
+    line-height: 1.2;
+    padding: 0.25rem 0.5rem;
+    width: auto;
+    max-width: 100%;
+    flex-shrink: 0;
 }
 
-.table thead {
-    @apply text-[11px] uppercase tracking-wide;
-    background: rgba(255,255,255,0.02);
-    color: rgba(255,255,255,0.65);
+/* Avoid fully-rounded pills for multi-line badges */
+.badge.rounded-full {
+    border-radius: var(--radius-2xl);
 }
+ 
 
 .table :where(th, td) {
     @apply align-middle px-4 py-3;
     color: #e2e8f0;
+    word-break: break-word;
 }
 
 .table tbody tr {
@@ -126,19 +140,19 @@
 
 /* Rounded elements for modern look */
 .btn {
-    @apply rounded-2xl;
+    @apply rounded-2xl transition-all duration-200;
 }
 
 .btn-primary {
-    @apply bg-gradient-to-r from-primary to-secondary text-primary-content border-0 shadow-lg hover:shadow-xl transition-all;
+    @apply bg-purple-600 hover:bg-purple-700 text-white border-0 shadow-md hover:shadow-lg transition-all;
 }
 
 .btn-secondary {
-    @apply bg-gradient-to-r from-secondary to-accent text-secondary-content border-0 shadow-lg hover:shadow-xl transition-all;
+    @apply bg-purple-500 hover:bg-purple-600 text-white border-0 shadow-md hover:shadow-lg transition-all;
 }
 
 .btn-outline {
-    @apply border-base-300 text-base-content hover:border-primary hover:text-primary;
+    @apply border-base-300 text-base-content hover:border-purple-500 hover:text-purple-400;
 }
 
 .btn-ghost {
@@ -147,9 +161,13 @@
 }
 
 .btn-soft {
-    @apply shadow-sm text-slate-100;
+    @apply shadow-sm text-slate-100 hover:bg-purple-600/20 hover:border-purple-500/30 transition-all;
     background: rgba(255,255,255,0.06);
     border: 1px solid rgba(255,255,255,0.08);
+}
+
+.btn-error {
+    @apply bg-red-600/80 hover:bg-red-600 text-white border-0 shadow-md hover:shadow-lg transition-all;
 }
 
 .input,
@@ -163,11 +181,25 @@
     @apply text-sm font-medium text-base-content/80;
 }
 
-.badge {
-    @apply rounded-2xl;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.08);
-    color: #e2e8f0;
+ 
+
+/* Ensure hex color badges display properly */
+.badge[style*="background-color"] {
+    @apply border-none;
+}
+
+/* Prevent badge wrapping in table cells */
+.table .badge,
+.table .badge * {
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    display: inline-block !important;
+}
+
+
+.badge-soft {
+    @apply bg-purple-600/20 border border-purple-500/40 text-slate-100 hover:bg-purple-600/30 transition-colors;
 }
 
 .alert {
@@ -285,10 +317,6 @@
 }
 
 /* Badges */
-.badge-soft {
-    @apply bg-base-200/70 border border-base-200 text-base-content;
-}
-
 .badge-ghost {
     @apply bg-transparent border border-base-300 text-base-content/70;
 }
