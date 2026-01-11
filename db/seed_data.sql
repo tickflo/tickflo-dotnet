@@ -1,52 +1,54 @@
 -- =============================================
--- Tickflo Demo Seed Data
--- This file contains demo data for testing and development
+-- Tickflo Seed Data (includes production-safe demo reset)
 -- =============================================
 
--- Clear existing data (in reverse order of dependencies)
-DELETE FROM public.notifications;
-DELETE FROM public.user_notification_preferences;
-DELETE FROM public.role_permissions;
-DELETE FROM public.user_workspace_roles;
-DELETE FROM public.user_workspaces;
-DELETE FROM public.ticket_history;
-DELETE FROM public.ticket_inventories;
-DELETE FROM public.tickets;
-DELETE FROM public.team_members;
-DELETE FROM public.teams;
-DELETE FROM public.contact_locations;
-DELETE FROM public.contacts;
-DELETE FROM public.inventory;
-DELETE FROM public.ticket_statuses;
-DELETE FROM public.priorities;
-DELETE FROM public.ticket_types;
-DELETE FROM public.report_runs;
-DELETE FROM public.reports;
-DELETE FROM public.locations;
-DELETE FROM public.roles;
-DELETE FROM public.permissions;
-DELETE FROM public.file_storage;
-DELETE FROM public.tokens;
-DELETE FROM public.workspaces;
-DELETE FROM public.users;
+-- Reset only data previously inserted by this seed (no global wipes)
+DO $$
+BEGIN
+    -- Delete data for seeded workspaces
+    DELETE FROM public.notifications WHERE workspace_id IN (SELECT id FROM public.workspaces WHERE slug IN ('tickflo-demo','techstart','global-services'));
+    DELETE FROM public.report_runs WHERE report_id IN (
+        SELECT id FROM public.reports WHERE workspace_id IN (SELECT id FROM public.workspaces WHERE slug IN ('tickflo-demo','techstart','global-services'))
+    );
+    DELETE FROM public.reports WHERE workspace_id IN (SELECT id FROM public.workspaces WHERE slug IN ('tickflo-demo','techstart','global-services'));
+    DELETE FROM public.ticket_history WHERE workspace_id IN (SELECT id FROM public.workspaces WHERE slug IN ('tickflo-demo','techstart','global-services'));
+    DELETE FROM public.ticket_inventories WHERE ticket_id IN (
+        SELECT id FROM public.tickets WHERE workspace_id IN (SELECT id FROM public.workspaces WHERE slug IN ('tickflo-demo','techstart','global-services'))
+    );
+    DELETE FROM public.tickets WHERE workspace_id IN (SELECT id FROM public.workspaces WHERE slug IN ('tickflo-demo','techstart','global-services'));
+    DELETE FROM public.inventory WHERE workspace_id IN (SELECT id FROM public.workspaces WHERE slug IN ('tickflo-demo','techstart','global-services'));
+    DELETE FROM public.contact_locations WHERE workspace_id IN (SELECT id FROM public.workspaces WHERE slug IN ('tickflo-demo','techstart','global-services'));
+    DELETE FROM public.contacts WHERE workspace_id IN (SELECT id FROM public.workspaces WHERE slug IN ('tickflo-demo','techstart','global-services'));
+    DELETE FROM public.team_members WHERE team_id IN (
+        SELECT id FROM public.teams WHERE workspace_id IN (SELECT id FROM public.workspaces WHERE slug IN ('tickflo-demo','techstart','global-services'))
+    );
+    DELETE FROM public.teams WHERE workspace_id IN (SELECT id FROM public.workspaces WHERE slug IN ('tickflo-demo','techstart','global-services'));
+    DELETE FROM public.ticket_statuses WHERE workspace_id IN (SELECT id FROM public.workspaces WHERE slug IN ('tickflo-demo','techstart','global-services'));
+    DELETE FROM public.priorities WHERE workspace_id IN (SELECT id FROM public.workspaces WHERE slug IN ('tickflo-demo','techstart','global-services'));
+    DELETE FROM public.ticket_types WHERE workspace_id IN (SELECT id FROM public.workspaces WHERE slug IN ('tickflo-demo','techstart','global-services'));
+    DELETE FROM public.locations WHERE workspace_id IN (SELECT id FROM public.workspaces WHERE slug IN ('tickflo-demo','techstart','global-services'));
+    DELETE FROM public.user_workspace_roles WHERE workspace_id IN (SELECT id FROM public.workspaces WHERE slug IN ('tickflo-demo','techstart','global-services'));
+    DELETE FROM public.roles WHERE workspace_id IN (SELECT id FROM public.workspaces WHERE slug IN ('tickflo-demo','techstart','global-services'));
+    DELETE FROM public.user_workspaces WHERE workspace_id IN (SELECT id FROM public.workspaces WHERE slug IN ('tickflo-demo','techstart','global-services'));
 
--- Reset sequences
-ALTER SEQUENCE public.users_id_seq RESTART WITH 1;
-ALTER SEQUENCE public.workspaces_id_seq RESTART WITH 1;
-ALTER SEQUENCE public.roles_id_seq RESTART WITH 1;
-ALTER SEQUENCE public.permissions_id_seq RESTART WITH 1;
-ALTER SEQUENCE public.locations_id_seq RESTART WITH 1;
-ALTER SEQUENCE public.reports_id_seq RESTART WITH 1;
-ALTER SEQUENCE public.contacts_id_seq RESTART WITH 1;
-ALTER SEQUENCE public.inventory_id_seq RESTART WITH 1;
-ALTER SEQUENCE public.teams_id_seq RESTART WITH 1;
-ALTER SEQUENCE public.tickets_id_seq RESTART WITH 1;
-ALTER SEQUENCE public.ticket_statuses_id_seq RESTART WITH 1;
-ALTER SEQUENCE public.priorities_id_seq RESTART WITH 1;
-ALTER SEQUENCE public.ticket_types_id_seq RESTART WITH 1;
-ALTER SEQUENCE public.report_runs_id_seq RESTART WITH 1;
-ALTER SEQUENCE public.notifications_id_seq RESTART WITH 1;
-ALTER SEQUENCE public.file_storage_id_seq RESTART WITH 1;
+    -- Delete seeded workspaces themselves
+    DELETE FROM public.workspaces WHERE slug IN ('tickflo-demo','techstart','global-services');
+
+    -- Delete demo users and related preferences/tokens/changes
+    DELETE FROM public.user_notification_preferences WHERE user_id IN (
+        SELECT id FROM public.users WHERE email IN ('admin@demo.com','sarah@demo.com','mike@demo.com','lisa@demo.com','tom@demo.com','emma@demo.com')
+    );
+    DELETE FROM public.tokens WHERE user_id IN (
+        SELECT id FROM public.users WHERE email IN ('admin@demo.com','sarah@demo.com','mike@demo.com','lisa@demo.com','tom@demo.com','emma@demo.com')
+    );
+    DELETE FROM public.user_email_changes WHERE user_id IN (
+        SELECT id FROM public.users WHERE email IN ('admin@demo.com','sarah@demo.com','mike@demo.com','lisa@demo.com','tom@demo.com','emma@demo.com')
+    );
+    DELETE FROM public.users WHERE email IN ('admin@demo.com','sarah@demo.com','mike@demo.com','lisa@demo.com','tom@demo.com','emma@demo.com');
+END $$;
+
+
+-- Clear existing data (in reverse order of dependencies)
 
 -- =============================================
 -- Users
@@ -65,7 +67,7 @@ INSERT INTO public.users (name, email, email_confirmed, password_hash, system_ad
 -- Workspaces
 -- =============================================
 INSERT INTO public.workspaces (name, slug, created_by, created_at) VALUES
-('Acme Corporation', 'acme-corp', 1, NOW()),
+('Tickflo Demo', 'tickflo-demo', 1, NOW()),
 ('TechStart Inc', 'techstart', 1, NOW()),
 ('Global Services', 'global-services', 1, NOW());
 
@@ -125,7 +127,8 @@ INSERT INTO public.permissions (resource, action) VALUES
 ('users', 'read'),
 ('users', 'update'),
 ('users', 'delete'),
-('workspace', 'manage');
+('workspace', 'manage')
+ON CONFLICT (action, resource) DO NOTHING;
 
 -- =============================================
 -- Roles

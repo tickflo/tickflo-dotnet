@@ -18,3 +18,18 @@ docker compose up -d
 ```bash
 dbmate up
 ```
+
+## Demo Workspace Reset (Scoped)
+- The seed resets only data that this seed inserts (demo users and workspaces), without touching unrelated data or sequences.
+
+Run after migrations:
+
+```bash
+psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -f db/seed_data.sql
+
+docker exec -i $(docker ps -qf name=db) psql -U $POSTGRES_USER -d $POSTGRES_DB -f /work/db/seed_data.sql
+```
+
+Notes:
+- Only demo workspaces (`tickflo-demo`, `techstart`, `global-services`) and demo users are reset.
+- Global permissions are upserted (no deletes); other workspace data remains intact.
