@@ -4,7 +4,7 @@
     ViewData["Title"] = "Ticket Details";
 }
 
-<div class="flex flex-row gap-4">
+<div class="flex flex-row gap-6">
   @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
   <section class="relative overflow-hidden p-6 flex-1 space-y-6 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
 @{
@@ -12,106 +12,163 @@
 }
 @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = sectionTitle })
 
-<div class="grid gap-4">
-  <div class="card bg-neutral-900/75 backdrop-blur rounded-3xl border border-white/5">
-    <div class="card-body gap-3">
+<div class="space-y-6">
+<!-- Ticket Overview Card -->
+<div class="card bg-neutral-900/75 backdrop-blur rounded-2xl border border-white/5 shadow-xl">
+  <div class="card-body">
+    <!-- Header Section -->
+    <div class="flex flex-col gap-4">
+      <!-- Title and Actions Row -->
       <div class="flex flex-wrap items-start justify-between gap-3">
-        <div class="space-y-2">
-          <div class="text-xs uppercase tracking-wide text-white/60">Ticket overview</div>
-          <h2 class="text-2xl font-semibold text-white">@((Model.Ticket?.Subject?.Length ?? 0) > 0 ? Model.Ticket!.Subject : "Untitled ticket")</h2>
-          <div class="flex flex-wrap gap-2">
-            @{
-              var tColor = (Model.Ticket != null && Model.TypeColorByName.TryGetValue(Model.Ticket.Type, out var tc)) ? tc : "neutral";
-              var tIsHex = tColor.StartsWith("#");
-              var tCls = tIsHex ? "badge badge-soft" : $"badge badge-soft badge-{tColor}";
-              var tStyle = tIsHex ? $"background-color: {tColor}; color: #fff;" : null;
-            }
-            <span class="@tCls rounded-full" style="@tStyle">@Model.Ticket?.Type</span>
-            @{
-              var pColor = (Model.Ticket != null && Model.PriorityColorByName.TryGetValue(Model.Ticket.Priority, out var pc)) ? pc : "neutral";
-              var pIsHex = pColor.StartsWith("#");
-              var pCls = pIsHex ? "badge badge-soft" : $"badge badge-soft badge-{pColor}";
-              var pStyle = pIsHex ? $"background-color: {pColor}; color: #fff;" : null;
-            }
-            <span class="@pCls rounded-full" style="@pStyle">@Model.Ticket?.Priority</span>
-            @{
-              var sColor = (Model.Ticket != null && Model.StatusColorByName.TryGetValue(Model.Ticket.Status, out var c)) ? c : "neutral";
-              var isHex = sColor.StartsWith("#");
-              var sCls = isHex ? "badge badge-soft" : $"badge badge-soft badge-{sColor}";
-              var sStyle = isHex ? $"background-color: {sColor}; color: #fff;" : null;
-            }
-            <span class="@sCls rounded-full" style="@sStyle">@Model.Ticket?.Status</span>
+        <div class="flex-1 min-w-0">
+          <div class="text-xs uppercase tracking-wider font-semibold text-white/40 mb-2">
+            <i class="fa fa-ticket-alt mr-1"></i>Ticket #@((Model.Ticket?.Id ?? 0) > 0 ? Model.Ticket!.Id.ToString() : "New")
           </div>
+          <h1 class="text-3xl font-bold text-white mb-3 break-words">
+            @((Model.Ticket?.Subject?.Length ?? 0) > 0 ? Model.Ticket!.Subject : "Untitled Ticket")
+          </h1>
         </div>
         <div class="flex flex-wrap gap-2">
-          <a class="btn btn-soft btn-sm" asp-page="/Workspaces/Tickets" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>
-            <i class="fa fa-chevron-left mr-1"></i> Back to list
+          <a class="btn btn-ghost btn-sm" asp-page="/Workspaces/Tickets" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>
+            <i class="fa fa-arrow-left mr-1"></i> Back
           </a>
           @if(Model.Ticket != null && Model.Ticket.Id > 0 && Model.Contact?.Id > 0)
           {
-            <a class="btn btn-ghost btn-sm" href="/workspaces/@Model.WorkspaceSlug/tickets/0?contactId=@Model.Contact.Id">
-              <i class="fa fa-copy mr-1"></i> Clone from contact
+            <a class="btn btn-soft btn-sm" href="/workspaces/@Model.WorkspaceSlug/tickets/0?contactId=@Model.Contact.Id">
+              <i class="fa fa-copy mr-1"></i> Clone
             </a>
           }
         </div>
       </div>
-      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm text-white/80">
-        <div class="flex flex-col gap-1">
-          <span class="text-xs uppercase tracking-wide text-white/50">Created</span>
-          <span>@Model.Ticket?.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
+      
+      <!-- Status Badges -->
+      <div class="flex flex-wrap gap-2">
+        @{
+          var tColor = (Model.Ticket != null && Model.TypeColorByName.TryGetValue(Model.Ticket.Type, out var tc)) ? tc : "neutral";
+          var tIsHex = tColor.StartsWith("#");
+          var tCls = tIsHex ? "badge badge-lg" : $"badge badge-lg badge-{tColor}";
+          var tStyle = tIsHex ? $"background-color: {tColor}; color: #fff;" : null;
+        }
+        <span class="@tCls rounded-full font-medium" style="@tStyle">
+          <i class="fa fa-tag mr-1"></i>@Model.Ticket?.Type
+        </span>
+        @{
+          var pColor = (Model.Ticket != null && Model.PriorityColorByName.TryGetValue(Model.Ticket.Priority, out var pc)) ? pc : "neutral";
+          var pIsHex = pColor.StartsWith("#");
+          var pCls = pIsHex ? "badge badge-lg" : $"badge badge-lg badge-{pColor}";
+          var pStyle = pIsHex ? $"background-color: {pColor}; color: #fff;" : null;
+        }
+        <span class="@pCls rounded-full font-medium" style="@pStyle">
+          <i class="fa fa-exclamation-circle mr-1"></i>@Model.Ticket?.Priority
+        </span>
+        @{
+          var sColor = (Model.Ticket != null && Model.StatusColorByName.TryGetValue(Model.Ticket.Status, out var c)) ? c : "neutral";
+          var isHex = sColor.StartsWith("#");
+          var sCls = isHex ? "badge badge-lg" : $"badge badge-lg badge-{sColor}";
+          var sStyle = isHex ? $"background-color: {sColor}; color: #fff;" : null;
+        }
+        <span class="@sCls rounded-full font-medium" style="@sStyle">
+          <i class="fa fa-circle mr-1"></i>@Model.Ticket?.Status
+        </span>
+      </div>
+      
+      <!-- Description Preview (if exists and not empty) -->
+      @if(!string.IsNullOrWhiteSpace(Model.Ticket?.Description))
+      {
+        <div class="bg-neutral-950/40 rounded-lg p-4 border border-white/5">
+          <div class="text-xs uppercase tracking-wider font-semibold text-white/40 mb-2">
+            <i class="fa fa-align-left mr-1"></i>Description
+          </div>
+          <div class="text-sm text-white/80 whitespace-pre-wrap line-clamp-3">@Model.Ticket.Description</div>
         </div>
-        <div class="flex flex-col gap-1">
-          <span class="text-xs uppercase tracking-wide text-white/50">Contact</span>
-          @if(Model.Contact != null)
+      }
+    </div>
+
+    <!-- Ticket Metadata -->
+    <div class="divider my-2"></div>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="bg-neutral-950/30 rounded-lg p-3 space-y-1">
+        <div class="text-xs uppercase tracking-wider font-semibold text-white/40">
+          <i class="fa fa-clock mr-1"></i>Created
+        </div>
+        <div class="text-sm text-white/90 font-medium">
+          @Model.Ticket?.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")
+        </div>
+        <div class="text-xs text-white/60">
+          @Model.Ticket?.CreatedAt.ToLocalTime().ToString("h:mm tt")
+        </div>
+      </div>
+      <div class="bg-neutral-950/30 rounded-lg p-3 space-y-1">
+        <div class="text-xs uppercase tracking-wider font-semibold text-white/40">
+          <i class="fa fa-address-book mr-1"></i>Contact
+        </div>
+        @if(Model.Contact != null)
+        {
+          <div class="text-sm font-semibold text-white/90">@Model.Contact.Name</div>
+          <a href="mailto:@Model.Contact.Email" class="text-xs text-white/60 hover:text-white/80 truncate block">@Model.Contact.Email</a>
+        }
+        else
+        {
+          <div class="text-sm text-white/50 italic">No contact assigned</div>
+        }
+      </div>
+      <div class="bg-neutral-950/30 rounded-lg p-3 space-y-1">
+        <div class="text-xs uppercase tracking-wider font-semibold text-white/40">
+          <i class="fa fa-user-check mr-1"></i>Assigned To
+        </div>
+        @if(Model.Ticket?.AssignedUserId != null)
+        {
+          var assignedUser = Model.Members.FirstOrDefault(m => m.Id == Model.Ticket.AssignedUserId);
+          if (assignedUser != null)
           {
-            <span class="font-semibold">@Model.Contact.Name</span>
-            <span class="text-xs text-white/60">@Model.Contact.Email</span>
+            <div class="text-sm font-semibold text-white/90">@(string.IsNullOrWhiteSpace(assignedUser.Name) ? assignedUser.Email : assignedUser.Name)</div>
+            <a class="link link-hover text-xs" href="/workspaces/@Model.WorkspaceSlug/tickets?AssigneeUserId=@Model.Ticket!.AssignedUserId">
+              View all assigned tickets
+            </a>
           }
           else
           {
-            <span class="opacity-60">No contact</span>
+            <div class="text-sm text-white/90">User #@Model.Ticket.AssignedUserId</div>
           }
+        }
+        else if(Model.Ticket?.AssignedTeamId != null)
+        {
+          var team = Model.Teams.FirstOrDefault(t => t.Id == Model.Ticket!.AssignedTeamId);
+          if (team != null)
+          {
+            <div class="badge badge-soft badge-sm rounded-full">
+              <i class="fa fa-users mr-1"></i>@team.Name
+            </div>
+          }
+        }
+        else
+        {
+          <div class="text-sm text-white/50 italic">Unassigned</div>
+        }
+      </div>
+      <div class="bg-neutral-950/30 rounded-lg p-3 space-y-1">
+        <div class="text-xs uppercase tracking-wider font-semibold text-white/40">
+          <i class="fa fa-map-marker-alt mr-1"></i>Location
         </div>
-        <div class="flex flex-col gap-1">
-          <span class="text-xs uppercase tracking-wide text-white/50">Assigned</span>
-          @if(Model.Ticket?.AssignedUserId != null)
+        @if(Model.LocationId.HasValue)
+        {
+          var loc = Model.LocationOptions.FirstOrDefault(l => l.Id == Model.LocationId.Value);
+          if (loc != null)
           {
-            <a class="link" href="/workspaces/@Model.WorkspaceSlug/tickets?AssigneeUserId=@Model.Ticket!.AssignedUserId" asp-preserve-query>View assignee tickets</a>
+            <div class="text-sm font-medium text-white/90">@loc.Name</div>
+            <a class="link link-hover text-xs" href="/workspaces/@Model.WorkspaceSlug/tickets?LocationId=@loc.Id">
+              View all at this location
+            </a>
           }
-          else if(Model.Ticket?.AssignedTeamId != null)
-          {
-            var team = Model.Teams.FirstOrDefault(t => t.Id == Model.Ticket!.AssignedTeamId);
-            if (team != null)
-            {
-              <span class="badge badge-soft rounded-full">@team.Name</span>
-            }
-          }
-          else
-          {
-            <span class="opacity-60">Unassigned</span>
-          }
-        </div>
-        <div class="flex flex-col gap-1">
-          <span class="text-xs uppercase tracking-wide text-white/50">Location</span>
-          @if(Model.LocationId.HasValue)
-          {
-            var loc = Model.LocationOptions.FirstOrDefault(l => l.Id == Model.LocationId.Value);
-            if (loc != null)
-            {
-              <div class="flex items-center gap-2">
-                <span class="badge badge-ghost badge-sm rounded-full"><i class="fa fa-map-marker-alt mr-1"></i>@loc.Name</span>
-                <a class="link text-xs" href="/workspaces/@Model.WorkspaceSlug/tickets?LocationId=@loc.Id" asp-preserve-query>View all</a>
-              </div>
-            }
-          }
-          else
-          {
-            <span class="opacity-60">No location</span>
-          }
-        </div>
+        }
+        else
+        {
+          <div class="text-sm text-white/50 italic">No location</div>
+        }
       </div>
     </div>
   </div>
+</div>
 
   @{
     var isNewTicket = (Model.Ticket == null || Model.Ticket.Id == 0);
@@ -119,166 +176,264 @@
   }
   @if(Model.CanViewTickets)
   {
-    <div class="card bg-neutral-900/80 backdrop-blur rounded-3xl border border-white/5">
-      <div class="card-body space-y-5">
-        <form method="post" asp-page-handler="Save" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@(@Model.Ticket?.Id ?? 0)" asp-route-locationId="@Model.LocationId" class="grid gap-5" id="ticket-save-form" data-can-submit="@canSubmit.ToString().ToLower()">
+    <!-- Edit Form Card -->
+    <div class="card bg-neutral-900/80 backdrop-blur rounded-2xl border border-white/5 shadow-xl">
+      <div class="card-body">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-bold text-white">
+            <i class="fa fa-edit mr-2"></i>@(isNewTicket ? "Create New Ticket" : "Edit Ticket Details")
+          </h2>
+          <span class="badge @(canSubmit ? "badge-success" : "badge-warning") badge-lg">
+            <i class="fa @(canSubmit ? "fa-unlock" : "fa-lock") mr-1"></i>
+            @(canSubmit ? "Editable" : "Read Only")
+          </span>
+        </div>
+
+        <form method="post" asp-page-handler="Save" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@(@Model.Ticket?.Id ?? 0)" asp-route-locationId="@Model.LocationId" class="space-y-6" id="ticket-save-form" data-can-submit="@canSubmit.ToString().ToLower()">
           <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
           <input type="hidden" name="id" value="@Model.Ticket?.Id ?? 0" />
           <input type="hidden" name="locationId" value="@Model.LocationId" />
 
-          <div class="grid gap-4 lg:grid-cols-3">
-            <div class="lg:col-span-2 space-y-3">
-              <div class="flex items-center justify-between">
-                <span class="text-xs uppercase tracking-wide text-white/60">Details</span>
-                <span class="badge badge-ghost badge-sm">@(canSubmit ? "Editable" : "Read only")</span>
+          <!-- Ticket Details Section -->
+          <div class="bg-neutral-950/50 rounded-xl p-5 border border-white/5">
+            <h3 class="text-sm uppercase tracking-wider font-semibold text-white/60 mb-4">
+              <i class="fa fa-file-alt mr-2"></i>Ticket Details
+            </h3>
+            <div class="space-y-4">
+              <!-- Subject Field -->
+              <div>
+                <label class="label">
+                  <span class="label-text text-white/80 font-medium">Subject *</span>
+                  <span class="label-text-alt text-white/40">Required</span>
+                </label>
+                <input name="EditSubject" value="@Model.Ticket!.Subject" class="input input-bordered w-full bg-neutral-900/70 focus:bg-neutral-900" placeholder="Brief description of the issue" required />
               </div>
-              <div class="space-y-2">
-                <label class="label text-sm">Subject</label>
-                <input name="EditSubject" value="@Model.Ticket!.Subject" class="input input-bordered w-full bg-neutral-950/70" placeholder="What needs attention?" />
-              </div>
-              <div class="space-y-2">
-                <label class="label text-sm">Description</label>
-                <textarea name="EditDescription" class="textarea textarea-bordered w-full bg-neutral-950/70" rows="6" placeholder="Add context, steps, or notes">@Model.Ticket!.Description</textarea>
-              </div>
-            </div>
-            <div class="space-y-3">
-              <span class="text-xs uppercase tracking-wide text-white/60">Attributes</span>
-              <div class="space-y-2">
-                <label class="label text-sm">Type</label>
-                <select name="EditType" class="select select-bordered w-full bg-neutral-950/70">
-                  @foreach (var t in Model.Types)
-                  {
-                    if (Model.Ticket!.Type == t.Name) {<option value="@t.Name" selected>@t.Name</option>} else {<option value="@t.Name">@t.Name</option>}
-                  }
-                </select>
-              </div>
-              <div class="space-y-2">
-                <label class="label text-sm">Status</label>
-                <select name="EditStatus" class="select select-bordered w-full bg-neutral-950/70">
-                  @foreach (var s in Model.Statuses)
-                  {
-                    if (Model.Ticket!.Status == s.Name) {<option value="@s.Name" selected>@s.Name</option>} else {<option value="@s.Name">@s.Name</option>}
-                  }
-                </select>
-              </div>
-              <div class="space-y-2">
-                <label class="label text-sm">Priority</label>
-                <select name="EditPriority" class="select select-bordered w-full bg-neutral-950/70">
-                  @foreach (var p in Model.Priorities)
-                  {
-                    if (Model.Ticket!.Priority == p.Name) {<option value="@p.Name" selected>@p.Name</option>} else {<option value="@p.Name">@p.Name</option>}
-                  }
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid gap-4 lg:grid-cols-2">
-            <div class="space-y-2">
-              <div class="text-xs uppercase tracking-wide text-white/60">Assignment</div>
-              <input type="hidden" id="assignedUserId" name="assignedUserId" value="@Model.Ticket!.AssignedUserId" />
-              <label class="label text-sm">Assignee</label>
-              <input id="assignee-search" class="input input-bordered w-full bg-neutral-950/70" list="assignees-list" placeholder="Search assignee by name or email" />
-              <datalist id="assignees-list">
-                <option value="Unassigned" data-id=""></option>
-                @foreach (var u in Model.Members)
-                {
-                  <option value="@u.Name (@u.Email)" data-id="@u.Id"></option>
-                }
-              </datalist>
-              <label class="label text-sm mt-2">Team</label>
-              <input type="hidden" id="assignedTeamId" name="assignedTeamId" value="@Model.Ticket!.AssignedTeamId" />
-              <input id="team-search" class="input input-bordered w-full bg-neutral-950/70" list="teams-list" placeholder="Search team by name" />
-              <datalist id="teams-list">
-                <option value="None" data-id=""></option>
-                @foreach (var t in Model.Teams)
-                {
-                  <option value="@t.Name" data-id="@t.Id"></option>
-                }
-              </datalist>
-            </div>
-            <div class="space-y-2">
-              <div class="text-xs uppercase tracking-wide text-white/60">Contact & Location</div>
-              <label class="label text-sm">Contact</label>
-              <input type="hidden" name="EditContactId" id="editContactId" value="@Model.Ticket!.ContactId" />
-              <input id="contact-search" class="input input-bordered w-full bg-neutral-950/70" list="contacts-list" placeholder="Search contacts by name or email" />
-              <datalist id="contacts-list">
-                @foreach (var c in Model.Contacts)
-                {
-                  <option value="@c.Name (@c.Email)" data-id="@c.Id"></option>
-                }
-              </datalist>
-              <label class="label text-sm mt-2">Location</label>
-              <select name="locationId" class="select select-bordered w-full bg-neutral-950/70">
-                <option value="">None</option>
-                @foreach (var l in Model.LocationOptions)
-                {
-                    var selected = Model.LocationId.HasValue && Model.LocationId.Value == l.Id ? "selected" : null;
-                    <option value="@l.Id" selected="@selected">@l.Name</option>
-                }
-              </select>
-            </div>
-          </div>
-
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-xs uppercase tracking-wide text-white/60">Parts / Inventory</span>
-              <span class="text-xs text-white/50">Add items, adjust qty, and totals update automatically</span>
-            </div>
-            <div id="inventory-products-section" class="card bg-neutral-950/60 p-3 rounded-3xl border border-white/5">
-              <div class="flex flex-wrap gap-2 mb-2 items-center">
-                <input id="inventory-search" class="input input-bordered grow bg-neutral-900" list="inventory-list" placeholder="Search inventory by name or SKU" />
-                <input id="inventory-qty" type="number" min="1" value="1" class="input input-bordered w-20 bg-neutral-900" aria-label="Quantity" placeholder="Qty" />
-                <button type="button" class="btn btn-primary" id="add-inventory-btn">Add</button>
-                <div class="ml-auto flex items-center gap-2">
-                  <span id="invoice-count" class="badge">0 items</span>
-                  <button type="button" class="btn btn-soft btn-sm" id="clear-invoice-btn">Clear</button>
+              
+              <!-- Type, Status, Priority in a row -->
+              <div class="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <label class="label">
+                    <span class="label-text text-white/80 font-medium">
+                      <i class="fa fa-tag mr-1"></i>Type
+                    </span>
+                  </label>
+                  <select name="EditType" class="select select-bordered w-full bg-neutral-900/70 focus:bg-neutral-900">
+                    @foreach (var t in Model.Types)
+                    {
+                      if (Model.Ticket!.Type == t.Name) {<option value="@t.Name" selected>@t.Name</option>} else {<option value="@t.Name">@t.Name</option>}
+                    }
+                  </select>
+                </div>
+                <div>
+                  <label class="label">
+                    <span class="label-text text-white/80 font-medium">
+                      <i class="fa fa-circle mr-1"></i>Status
+                    </span>
+                  </label>
+                  <select name="EditStatus" class="select select-bordered w-full bg-neutral-900/70 focus:bg-neutral-900">
+                    @foreach (var s in Model.Statuses)
+                    {
+                      if (Model.Ticket!.Status == s.Name) {<option value="@s.Name" selected>@s.Name</option>} else {<option value="@s.Name">@s.Name</option>}
+                    }
+                  </select>
+                </div>
+                <div>
+                  <label class="label">
+                    <span class="label-text text-white/80 font-medium">
+                      <i class="fa fa-exclamation-circle mr-1"></i>Priority
+                    </span>
+                  </label>
+                  <select name="EditPriority" class="select select-bordered w-full bg-neutral-900/70 focus:bg-neutral-900">
+                    @foreach (var p in Model.Priorities)
+                    {
+                      if (Model.Ticket!.Priority == p.Name) {<option value="@p.Name" selected>@p.Name</option>} else {<option value="@p.Name">@p.Name</option>}
+                    }
+                  </select>
                 </div>
               </div>
+              
+              <!-- Description Field -->
+              <div>
+                <label class="label">
+                  <span class="label-text text-white/80 font-medium">Description</span>
+                  <span class="label-text-alt text-white/40">Optional</span>
+                </label>
+                <textarea name="EditDescription" class="textarea textarea-bordered w-full bg-neutral-900/70 focus:bg-neutral-900 min-h-[150px]" placeholder="Provide detailed context, steps to reproduce, or additional notes...">@Model.Ticket!.Description</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Assignment & Location Section -->
+          <div class="bg-neutral-950/50 rounded-xl p-5 border border-white/5">
+            <h3 class="text-sm uppercase tracking-wider font-semibold text-white/60 mb-4">
+              <i class="fa fa-users mr-2"></i>Assignment & Location
+            </h3>
+            <div class="grid gap-4 lg:grid-cols-2">
+              <div class="space-y-4">
+                <div>
+                  <label class="label">
+                    <span class="label-text text-white/80 font-medium">
+                      <i class="fa fa-user mr-1"></i>Assignee
+                    </span>
+                  </label>
+                  <input type="hidden" id="assignedUserId" name="assignedUserId" value="@Model.Ticket!.AssignedUserId" />
+                  <input id="assignee-search" class="input input-bordered w-full bg-neutral-900/70 focus:bg-neutral-900" list="assignees-list" placeholder="Search by name or email..." />
+                  <datalist id="assignees-list">
+                    <option value="Unassigned" data-id=""></option>
+                    @foreach (var u in Model.Members)
+                    {
+                      <option value="@u.Name (@u.Email)" data-id="@u.Id"></option>
+                    }
+                  </datalist>
+                </div>
+                <div>
+                  <label class="label">
+                    <span class="label-text text-white/80 font-medium">
+                      <i class="fa fa-users mr-1"></i>Team
+                    </span>
+                  </label>
+                  <input type="hidden" id="assignedTeamId" name="assignedTeamId" value="@Model.Ticket!.AssignedTeamId" />
+                  <input id="team-search" class="input input-bordered w-full bg-neutral-900/70 focus:bg-neutral-900" list="teams-list" placeholder="Search team..." />
+                  <datalist id="teams-list">
+                    <option value="None" data-id=""></option>
+                    @foreach (var t in Model.Teams)
+                    {
+                      <option value="@t.Name" data-id="@t.Id"></option>
+                    }
+                  </datalist>
+                </div>
+              </div>
+              <div class="space-y-4">
+                <div>
+                <div>
+                  <label class="label">
+                    <span class="label-text text-white/80 font-medium">
+                      <i class="fa fa-user mr-1"></i>Contact
+                    </span>
+                  </label>
+                  <input type="hidden" name="EditContactId" id="editContactId" value="@Model.Ticket!.ContactId" />
+                  <input id="contact-search" class="input input-bordered w-full bg-neutral-900/70 focus:bg-neutral-900" list="contacts-list" placeholder="Search contacts..." />
+                  <datalist id="contacts-list">
+                    @foreach (var c in Model.Contacts)
+                    {
+                      <option value="@c.Name (@c.Email)" data-id="@c.Id"></option>
+                    }
+                  </datalist>
+                </div>
+                <div>
+                  <label class="label">
+                    <span class="label-text text-white/80 font-medium">
+                      <i class="fa fa-map-marker-alt mr-1"></i>Location
+                    </span>
+                  </label>
+                  <select name="locationId" class="select select-bordered w-full bg-neutral-900/70 focus:bg-neutral-900">
+                    <option value="">None</option>
+                    @foreach (var l in Model.LocationOptions)
+                    {
+                        var selected = Model.LocationId.HasValue && Model.LocationId.Value == l.Id ? "selected" : null;
+                        <option value="@l.Id" selected="@selected">@l.Name</option>
+                    }
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Parts / Inventory Section -->
+          <div class="bg-neutral-950/50 rounded-xl p-5 border border-white/5">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-sm uppercase tracking-wider font-semibold text-white/60">
+                <i class="fa fa-boxes mr-2"></i>Parts & Inventory
+              </h3>
+              <span class="text-xs text-white/40">Add items and quantities automatically calculate</span>
+            </div>
+            
+            <div id="inventory-products-section" class="space-y-3">
+              <!-- Add Inventory Controls -->
+              <div class="flex flex-wrap gap-2 items-center p-3 bg-neutral-900/60 rounded-lg border border-white/5">
+                <input id="inventory-search" class="input input-bordered flex-1 min-w-[200px] bg-neutral-900 focus:bg-neutral-950" list="inventory-list" placeholder="Search by name or SKU..." />
+                <div class="flex items-center gap-2">
+                  <label class="text-xs text-white/60">Qty:</label>
+                  <input id="inventory-qty" type="number" min="1" value="1" class="input input-bordered w-20 bg-neutral-900 focus:bg-neutral-950" />
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" id="add-inventory-btn">
+                  <i class="fa fa-plus mr-1"></i>Add Item
+                </button>
+                <div class="ml-auto flex items-center gap-2">
+                  <span id="invoice-count" class="badge badge-ghost">0 items</span>
+                  <button type="button" class="btn btn-ghost btn-xs" id="clear-invoice-btn">
+                    <i class="fa fa-trash mr-1"></i>Clear All
+                  </button>
+                </div>
+              </div>
+              
               <datalist id="inventory-list">
                 @foreach (var i in Model.InventoryItems)
                 {
                   <option value="@i.Name (@i.Sku)" data-id="@i.Id" data-sku="@i.Sku" data-name="@i.Name" data-price="@((i.Price ?? i.Cost).ToString(System.Globalization.CultureInfo.InvariantCulture))" />
                 }
               </datalist>
-              <table class="table table-sm table-zebra w-full" id="invoice-table">
-                <thead>
-                  <tr>
-                    <th>SKU</th>
-                    <th>Name</th>
-                    <th>Qty</th>
-                    <th>Unit Price</th>
-                    <th>Total</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody id="invoice-body">
-                  @* Rows will be dynamically added by JS *@
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colspan="4" class="text-right font-bold">Total</td>
-                    <td id="invoice-total" class="font-bold">$0.00</td>
-                    <td></td>
-                  </tr>
-                </tfoot>
-              </table>
+
+              <!-- Inventory Table -->
+              <div class="overflow-x-auto bg-neutral-900/40 rounded-lg border border-white/5">
+                <table class="table table-sm w-full" id="invoice-table">
+                  <thead>
+                    <tr class="border-b border-white/5">
+                      <th class="bg-neutral-950/50 text-white/60">SKU</th>
+                      <th class="bg-neutral-950/50 text-white/60">Item Name</th>
+                      <th class="bg-neutral-950/50 text-white/60 text-center">Quantity</th>
+                      <th class="bg-neutral-950/50 text-white/60 text-right">Unit Price</th>
+                      <th class="bg-neutral-950/50 text-white/60 text-right">Total</th>
+                      <th class="bg-neutral-950/50 text-white/60 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="invoice-body">
+                    <tr class="text-white/40 text-center">
+                      <td colspan="6" class="py-8">
+                        <i class="fa fa-inbox text-3xl mb-2"></i>
+                        <div>No items added yet</div>
+                      </td>
+                    </tr>
+                  </tbody>
+                  <tfoot class="border-t border-white/10">
+                    <tr class="font-bold">
+                      <td colspan="4" class="text-right text-white/80 bg-neutral-950/50">Grand Total:</td>
+                      <td id="invoice-total" class="text-right text-white bg-neutral-950/50">$0.00</td>
+                      <td class="bg-neutral-950/50"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
             <input type="hidden" name="TicketInventoriesJson" id="TicketInventoriesJson" />
           </div>
 
-          <div class="flex flex-wrap gap-2 justify-end">
-            @{ var saveLabel = (Model.Ticket != null && Model.Ticket.Id > 0) ? "Update" : "Save"; }
-            <a class="btn btn-ghost btn-sm" asp-page="/Workspaces/Tickets" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Cancel</a>
-            <button class="btn btn-primary btn-sm" type="submit" id="ticket-save-btn" @(canSubmit ? "" : "disabled")>@saveLabel</button>
+          <!-- Form Actions -->
+          <div class="flex flex-wrap gap-3 justify-end pt-4 border-t border-white/10">
+            @{ var saveLabel = (Model.Ticket != null && Model.Ticket.Id > 0) ? "Update Ticket" : "Create Ticket"; }
+            <a class="btn btn-ghost" asp-page="/Workspaces/Tickets" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>
+              <i class="fa fa-times mr-1"></i>Cancel
+            </a>
+            <button class="btn btn-primary" type="submit" id="ticket-save-btn" @(canSubmit ? "" : "disabled")>
+              <i class="fa @(isNewTicket ? "fa-plus" : "fa-save") mr-1"></i>@saveLabel
+            </button>
           </div>
         </form>
-        <div class="toast" id="save-toast" style="display:none;">
-          <div class="alert alert-success"><span id="save-toast-msg">Saved.</span></div>
+
+        <!-- Toast Notifications -->
+        <div class="toast toast-top toast-end" id="save-toast" style="display:none;">
+          <div class="alert alert-success shadow-lg">
+            <i class="fa fa-check-circle"></i>
+            <span id="save-toast-msg">Saved successfully!</span>
+          </div>
         </div>
-        <div class="toast" id="save-error-toast" style="display:none;">
-          <div class="alert alert-error"><span id="save-error-toast-msg">Save failed.</span></div>
+        <div class="toast toast-top toast-end" id="save-error-toast" style="display:none;">
+          <div class="alert alert-error shadow-lg">
+            <i class="fa fa-exclamation-triangle"></i>
+            <span id="save-error-toast-msg">Save failed.</span>
+          </div>
         </div>
+
         <script>
           (function(){
             @{ var statusDict = new System.Collections.Generic.Dictionary<string, string>();
@@ -328,26 +483,49 @@
             function renderInvoice() {
               invoiceBody.innerHTML = '';
               let total = 0;
-              invoiceItems.forEach((item, idx) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td>${item.sku}</td>
-                                 <td>${item.name}</td>
-                                 <td class='flex items-center gap-1'>
-                                   <button type='button' class='btn btn-xs' data-action='dec' data-idx='${idx}'>–</button>
-                                   <input type='number' min='1' value='${item.quantity}' class='input input-bordered input-xs w-16 qty-input' data-idx='${idx}' />
-                                   <button type='button' class='btn btn-xs' data-action='inc' data-idx='${idx}'>+</button>
-                                 </td>
-                                 <td>
-                                   <div class='flex items-center gap-1'>
-                                     <span>$</span>
-                                     <input type='number' min='0' step='0.01' value='${item.unitPrice.toFixed(2)}' class='input input-bordered input-xs w-24 price-input' data-idx='${idx}' />
-                                   </div>
-                                 </td>
-                                 <td>$${(item.unitPrice * item.quantity).toFixed(2)}</td>
-                                 <td><button type='button' class='btn btn-error btn-sm remove-btn' data-idx='${idx}'>Remove</button></td>`;
-                invoiceBody.appendChild(row);
-                total += item.unitPrice * item.quantity;
-              });
+              
+              if (invoiceItems.length === 0) {
+                const emptyRow = document.createElement('tr');
+                emptyRow.className = 'text-white/40 text-center';
+                emptyRow.innerHTML = `<td colspan='6' class='py-8'>
+                  <i class='fa fa-inbox text-3xl mb-2 block'></i>
+                  <div>No items added yet</div>
+                </td>`;
+                invoiceBody.appendChild(emptyRow);
+              } else {
+                invoiceItems.forEach((item, idx) => {
+                  const row = document.createElement('tr');
+                  row.className = 'hover:bg-neutral-900/40';
+                  row.innerHTML = `<td class='font-mono text-xs'>${item.sku}</td>
+                                   <td class='font-medium'>${item.name}</td>
+                                   <td>
+                                     <div class='flex items-center justify-center gap-1'>
+                                       <button type='button' class='btn btn-xs btn-ghost' data-action='dec' data-idx='${idx}'>
+                                         <i class='fa fa-minus'></i>
+                                       </button>
+                                       <input type='number' min='1' value='${item.quantity}' class='input input-bordered input-xs w-16 text-center qty-input' data-idx='${idx}' />
+                                       <button type='button' class='btn btn-xs btn-ghost' data-action='inc' data-idx='${idx}'>
+                                         <i class='fa fa-plus'></i>
+                                       </button>
+                                     </div>
+                                   </td>
+                                   <td>
+                                     <div class='flex items-center justify-end gap-1'>
+                                       <span class='text-white/60'>$</span>
+                                       <input type='number' min='0' step='0.01' value='${item.unitPrice.toFixed(2)}' class='input input-bordered input-xs w-24 text-right price-input' data-idx='${idx}' />
+                                     </div>
+                                   </td>
+                                   <td class='text-right font-semibold'>$${(item.unitPrice * item.quantity).toFixed(2)}</td>
+                                   <td class='text-center'>
+                                     <button type='button' class='btn btn-error btn-xs remove-btn' data-idx='${idx}'>
+                                       <i class='fa fa-trash'></i>
+                                     </button>
+                                   </td>`;
+                  invoiceBody.appendChild(row);
+                  total += item.unitPrice * item.quantity;
+                });
+              }
+              
               invoiceTotal.textContent = `$${total.toFixed(2)}`;
               ticketInventoriesJson.value = JSON.stringify(invoiceItems);
               const cnt = invoiceItems.reduce((a,b)=>a+b.quantity,0);
@@ -650,47 +828,74 @@
             }
           })();
         </script>
-        <div class="divider"></div>
+
+        <!-- History Section -->
         @if ((Model.Ticket?.Id ?? 0) > 0)
         {
-          <h3 class="text-lg font-semibold mb-3">History</h3>
-          <div class="grid gap-2 rounded-2xl bg-neutral-950/50 border border-white/5 p-3">
-            @if (Model.History != null && Model.History.Count > 0)
-            {
-              foreach (var h in Model.History)
+          <div class="divider my-6"></div>
+          <div class="bg-neutral-950/50 rounded-xl p-5 border border-white/5">
+            <h3 class="text-sm uppercase tracking-wider font-semibold text-white/60 mb-4">
+              <i class="fa fa-history mr-2"></i>Activity History
+            </h3>
+            <div class="space-y-3">
+              @if (Model.History != null && Model.History.Count > 0)
               {
-                var actor = Model.Members.FirstOrDefault(m => m.Id == h.CreatedByUserId);
-                var actorName = actor != null ? (string.IsNullOrWhiteSpace(actor.Name) ? actor.Email : actor.Name) : $"User #{h.CreatedByUserId}";
-                <div class="flex items-start gap-3">
-                  <div class="badge badge-soft rounded-full whitespace-nowrap">@h.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</div>
-                  @if ((h.Action ?? string.Empty) == "created")
-                  {
-                    <div><span class="font-medium">@actorName</span> created the ticket.</div>
-                  }
-                  else if ((h.Action ?? string.Empty) == "field_changed")
-                  {
-                    <div>
-                      <span class="font-medium">@actorName</span> changed <span class="font-medium">@h.Field</span>
-                      from <span class="opacity-70">@((h.OldValue ?? "(empty)"))</span>
-                      to <span class="opacity-70">@((h.NewValue ?? "(empty)"))</span>.
+                foreach (var h in Model.History)
+                {
+                  var actor = Model.Members.FirstOrDefault(m => m.Id == h.CreatedByUserId);
+                  var actorName = actor != null ? (string.IsNullOrWhiteSpace(actor.Name) ? actor.Email : actor.Name) : $"User #{h.CreatedByUserId}";
+                  <div class="flex items-start gap-3 p-3 rounded-lg bg-neutral-900/30 hover:bg-neutral-900/50 transition-colors">
+                    <div class="flex-shrink-0">
+                      <div class="avatar placeholder">
+                        <div class="bg-neutral-700 text-white rounded-full w-10 h-10">
+                          <span class="text-xs">@actorName.Substring(0, Math.Min(2, actorName.Length)).ToUpper()</span>
+                        </div>
+                      </div>
                     </div>
-                  }
-                  else
-                  {
-                    <div><span class="font-medium">@actorName</span> @h.Action @h.Note</div>
-                  }
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="font-semibold text-white">@actorName</span>
+                        <span class="text-xs text-white/40">•</span>
+                        <span class="text-xs text-white/50">@h.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy h:mm tt")</span>
+                      </div>
+                      <div class="text-sm text-white/80">
+                        @if ((h.Action ?? string.Empty) == "created")
+                        {
+                          <span><i class="fa fa-plus-circle text-success mr-1"></i>Created the ticket</span>
+                        }
+                        else if ((h.Action ?? string.Empty) == "field_changed")
+                        {
+                          <div>
+                            <i class="fa fa-edit text-info mr-1"></i>Changed <span class="font-medium text-white">@h.Field</span>
+                            <div class="mt-1 text-xs">
+                              <span class="text-white/50">From:</span> <span class="badge badge-ghost badge-xs">@((h.OldValue ?? "(empty)"))</span>
+                              <i class="fa fa-arrow-right mx-1 text-white/30"></i>
+                              <span class="text-white/50">To:</span> <span class="badge badge-ghost badge-xs">@((h.NewValue ?? "(empty)"))</span>
+                            </div>
+                          </div>
+                        }
+                        else
+                        {
+                          <span><i class="fa fa-info-circle text-warning mr-1"></i>@h.Action @h.Note</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+              }
+              else
+              {
+                <div class="text-center py-8 text-white/40">
+                  <i class="fa fa-history text-3xl mb-2"></i>
+                  <div>No activity history yet</div>
                 </div>
               }
-            }
-            else
-            {
-              <div class="opacity-60">No history yet.</div>
-            }
+            </div>
           </div>
         }
       </div>
     </div>
   }
-  </div>
+</div>
   </section>
 </div>
