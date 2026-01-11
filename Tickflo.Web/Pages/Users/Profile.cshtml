@@ -9,7 +9,7 @@
         <div class="flex items-center gap-6">
             <div class="avatar">
                 <div class="w-24 rounded-full ring ring-primary ring-offset-2 ring-offset-base-100">
-                    <img src="/users/@Model.UserId/avatar" alt="Avatar" />
+                    <img src="/users/@Model.UserId/avatar" alt="Avatar" onerror="this.parentElement.parentElement.style.display='none';" />
                 </div>
                 <a href="/profile/avatar" class="btn btn-sm btn-soft mt-4">Change Avatar</a>
             </div>

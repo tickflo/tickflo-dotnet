@@ -306,8 +306,10 @@
                                                 <td>
                                                     @if (!string.IsNullOrWhiteSpace(t.AssigneeName)) {
                                                         <div class="flex items-center gap-2">
-                                                            <div class="avatar placeholder">
-                                                                <div class="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-secondary text-primary-content text-xs font-bold">@t.AssigneeName.Substring(0,1)</div>
+                                                            <div class="avatar" id="avatar-assignee-@t.Id" style="display:none;">
+                                                                <div class="w-7 h-7 rounded-full">
+                                                                    <img src="/users/@(t.AssignedUserId ?? 0)/avatar" alt="@t.AssigneeName" onload="document.getElementById('avatar-assignee-@t.Id').style.display='';" onerror="document.getElementById('avatar-assignee-@t.Id').style.display='none';" />
+                                                                </div>
                                                             </div>
                                                             <span class="text-sm">@t.AssigneeName</span>
                                                         </div>
@@ -348,8 +350,10 @@
                             @foreach (var m in Model.TopMembers.Take(5))
                             {
                                 <li class="flex items-center gap-3 p-3 rounded-2xl hover:bg-white/5 transition cursor-pointer">
-                                        <div class="avatar placeholder flex-shrink-0">
-                                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary text-primary-content text-sm font-bold">@m.Name.Substring(0,1).ToUpper()</div>
+                                        <div class="avatar flex-shrink-0" id="avatar-performer-@m.UserId" style="display:none;">
+                                            <div class="w-10 h-10 rounded-full">
+                                                <img src="/users/@m.UserId/avatar" alt="@m.Name" onload="document.getElementById('avatar-performer-@m.UserId').style.display='';\" onerror="document.getElementById('avatar-performer-@m.UserId').style.display='none';" />
+                                            </div>
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <div class="font-semibold text-sm">@m.Name</div>

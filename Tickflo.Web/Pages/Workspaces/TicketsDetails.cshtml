@@ -846,9 +846,9 @@
                   var actorName = actor != null ? (string.IsNullOrWhiteSpace(actor.Name) ? actor.Email : actor.Name) : $"User #{h.CreatedByUserId}";
                   <div class="flex items-start gap-3 p-3 rounded-lg bg-neutral-900/30 hover:bg-neutral-900/50 transition-colors">
                     <div class="flex-shrink-0">
-                      <div class="avatar placeholder">
-                        <div class="bg-neutral-700 text-white rounded-full w-10 h-10">
-                          <span class="text-xs">@actorName.Substring(0, Math.Min(2, actorName.Length)).ToUpper()</span>
+                      <div class="avatar" id="avatar-history-@h.Id" style="display:none;">
+                        <div class="w-10 h-10 rounded-full">
+                          <img src="/users/@h.CreatedByUserId/avatar" alt="@actorName" onload="document.getElementById('avatar-history-@h.Id').style.display='';" onerror="document.getElementById('avatar-history-@h.Id').style.display='none';" />
                         </div>
                       </div>
                     </div>
