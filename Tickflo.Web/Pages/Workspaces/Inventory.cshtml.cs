@@ -1,12 +1,9 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authorization;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using System.Security.Claims;
+using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Workspaces
 {
@@ -15,15 +12,19 @@ namespace Tickflo.Web.Pages.Workspaces
     {
         private readonly IInventoryRepository _inventory;
         private readonly IWorkspaceRepository _workspaces;
-        private readonly IUserWorkspaceRoleRepository _roles;
-        private readonly IRolePermissionRepository _rolePerms;
+        private readonly ICurrentUserService _currentUserService;
+        private readonly IWorkspaceAccessService _workspaceAccessService;
 
-        public InventoryModel(IInventoryRepository inventory, IWorkspaceRepository workspaces, IUserWorkspaceRoleRepository roles, IRolePermissionRepository rolePerms)
+        public InventoryModel(
+            IInventoryRepository inventory,
+            IWorkspaceRepository workspaces,
+            ICurrentUserService currentUserService,
+            IWorkspaceAccessService workspaceAccessService)
         {
             _inventory = inventory;
             _workspaces = workspaces;
-            _roles = roles;
-            _rolePerms = rolePerms;
+            _currentUserService = currentUserService;
+            _workspaceAccessService = workspaceAccessService;
         }
 
         [BindProperty(SupportsGet = true)]
@@ -47,21 +48,28 @@ namespace Tickflo.Web.Pages.Workspaces
             {
                 return NotFound();
             }
-            IsWorkspaceAdmin = TryGetUserId(out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
-            if (TryGetUserId(out var currentUserId))
+
+            if (!_currentUserService.TryGetUserId(User, out var uid))
             {
-                var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, currentUserId);
-                if (eff.TryGetValue("inventory", out var ip))
-                {
-                    CanCreateInventory = ip.CanCreate || IsWorkspaceAdmin;
-                    CanEditInventory = ip.CanEdit || IsWorkspaceAdmin;
-                }
-                else
-                {
-                    CanCreateInventory = IsWorkspaceAdmin;
-                    CanEditInventory = IsWorkspaceAdmin;
-                }
+                return Forbid();
             }
+
+            // Use service to check admin status
+            IsWorkspaceAdmin = await _workspaceAccessService.UserIsWorkspaceAdminAsync(uid, Workspace.Id);
+            
+            // Use service to get permissions
+            var permissions = await _workspaceAccessService.GetUserPermissionsAsync(Workspace.Id, uid);
+            if (permissions.TryGetValue("inventory", out var ip))
+            {
+                CanCreateInventory = ip.CanCreate || IsWorkspaceAdmin;
+                CanEditInventory = ip.CanEdit || IsWorkspaceAdmin;
+            }
+            else
+            {
+                CanCreateInventory = IsWorkspaceAdmin;
+                CanEditInventory = IsWorkspaceAdmin;
+            }
+
             Items = await _inventory.ListAsync(Workspace.Id, Query, Status);
             return Page();
         }
@@ -74,22 +82,25 @@ namespace Tickflo.Web.Pages.Workspaces
             {
                 return NotFound();
             }
-            var isAdmin = TryGetUserId(out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
-            bool allowed = isAdmin;
-            if (!allowed && TryGetUserId(out var currentUserId))
+
+            if (!_currentUserService.TryGetUserId(User, out var uid))
             {
-                var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, currentUserId);
-                if (eff.TryGetValue("inventory", out var ip)) allowed = ip.CanEdit;
+                return Forbid();
             }
+
+            // Use service to check permissions
+            bool allowed = await _workspaceAccessService.CanUserPerformActionAsync(Workspace.Id, uid, "inventory", "edit");
             if (!allowed)
             {
                 return Forbid();
             }
+
             var item = await _inventory.FindAsync(Workspace.Id, id);
             if (item == null)
             {
                 return NotFound();
             }
+
             item.Status = "archived";
             await _inventory.UpdateAsync(item);
             return Redirect($"/workspaces/{Workspace.Slug}/inventory");
@@ -103,37 +114,28 @@ namespace Tickflo.Web.Pages.Workspaces
             {
                 return NotFound();
             }
-            var isAdmin = TryGetUserId(out var uid) && await _roles.IsAdminAsync(uid, Workspace.Id);
-            bool allowed = isAdmin;
-            if (!allowed && TryGetUserId(out var currentUserId))
+
+            if (!_currentUserService.TryGetUserId(User, out var uid))
             {
-                var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, currentUserId);
-                if (eff.TryGetValue("inventory", out var ip)) allowed = ip.CanEdit;
+                return Forbid();
             }
+
+            // Use service to check permissions
+            bool allowed = await _workspaceAccessService.CanUserPerformActionAsync(Workspace.Id, uid, "inventory", "edit");
             if (!allowed)
             {
                 return Forbid();
             }
+
             var item = await _inventory.FindAsync(Workspace.Id, id);
             if (item == null)
             {
                 return NotFound();
             }
+
             item.Status = "active";
             await _inventory.UpdateAsync(item);
             return Redirect($"/workspaces/{Workspace.Slug}/inventory");
-        }
-
-        private bool TryGetUserId(out int userId)
-        {
-            var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (int.TryParse(idValue, out userId))
-            {
-                return true;
-            }
-
-            userId = default;
-            return false;
         }
     }
 }

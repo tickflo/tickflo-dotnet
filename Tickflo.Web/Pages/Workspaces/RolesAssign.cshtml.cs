@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
@@ -13,8 +13,9 @@ public class RolesAssignModel : PageModel
     private readonly IWorkspaceRepository _workspaces;
     private readonly IUserRepository _users;
     private readonly IUserWorkspaceRepository _userWorkspaces;
-    private readonly IUserWorkspaceRoleRepository _uwr;
-    private readonly IRoleRepository _roles;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly IWorkspaceAccessService _workspaceAccessService;
+    private readonly IRoleManagementService _roleManagementService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -27,13 +28,20 @@ public class RolesAssignModel : PageModel
     [BindProperty]
     public int SelectedRoleId { get; set; }
 
-    public RolesAssignModel(IWorkspaceRepository workspaces, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository uwr, IRoleRepository roles)
+    public RolesAssignModel(
+        IWorkspaceRepository workspaces,
+        IUserRepository users,
+        IUserWorkspaceRepository userWorkspaces,
+        ICurrentUserService currentUserService,
+        IWorkspaceAccessService workspaceAccessService,
+        IRoleManagementService roleManagementService)
     {
         _workspaces = workspaces;
         _users = users;
         _userWorkspaces = userWorkspaces;
-        _uwr = uwr;
-        _roles = roles;
+        _currentUserService = currentUserService;
+        _workspaceAccessService = workspaceAccessService;
+        _roleManagementService = roleManagementService;
     }
 
     public async Task<IActionResult> OnGetAsync(string slug)
@@ -52,10 +60,13 @@ public class RolesAssignModel : PageModel
             var u = await _users.FindByIdAsync(id);
             if (u != null) Members.Add(u);
         }
-        Roles = await _roles.ListForWorkspaceAsync(ws.Id);
+
+        // Use service to get roles
+        Roles = await _roleManagementService.GetWorkspaceRolesAsync(ws.Id);
+        
         foreach (var id in userIds)
         {
-            var roles = await _uwr.GetRolesAsync(id, ws.Id);
+            var roles = await _roleManagementService.GetUserRolesAsync(id, ws.Id);
             UserRoles[id] = roles;
         }
         return Page();
@@ -75,14 +86,24 @@ public class RolesAssignModel : PageModel
             return await OnGetAsync(slug);
         }
 
-        var role = await _roles.FindByIdAsync(SelectedRoleId);
-        if (role == null || role.WorkspaceId != ws.Id)
+        // Verify role belongs to workspace
+        if (!await _roleManagementService.RoleBelongsToWorkspaceAsync(SelectedRoleId, ws.Id))
         {
             ModelState.AddModelError(string.Empty, "Invalid role selection.");
             return await OnGetAsync(slug);
         }
 
-        await _uwr.AddAsync(SelectedUserId, ws.Id, SelectedRoleId, uid);
+        // Use service to assign role
+        try
+        {
+            await _roleManagementService.AssignRoleToUserAsync(SelectedUserId, ws.Id, SelectedRoleId, uid);
+        }
+        catch (InvalidOperationException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return await OnGetAsync(slug);
+        }
+
         var queryQ = Request.Query["Query"].ToString();
         return Redirect($"/workspaces/{slug}/users/roles/assign?Query={Uri.EscapeDataString(queryQ ?? string.Empty)}");
     }
@@ -93,23 +114,12 @@ public class RolesAssignModel : PageModel
         if (access.failure != null) return access.failure;
 
         var ws = access.workspace!;
-        var uid = access.userId;
 
-        await _uwr.RemoveAsync(userId, ws.Id, roleId);
+        // Use service to remove role
+        await _roleManagementService.RemoveRoleFromUserAsync(userId, ws.Id, roleId);
+        
         var queryQ = Request.Query["Query"].ToString();
         return Redirect($"/workspaces/{slug}/users/roles/assign?Query={Uri.EscapeDataString(queryQ ?? string.Empty)}");
-    }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-
-        userId = default;
-        return false;
     }
 
     private async Task<(Workspace? workspace, int userId, IActionResult? failure)> EnsureAdminAccessAsync(string slug)
@@ -121,9 +131,9 @@ public class RolesAssignModel : PageModel
 
         Workspace = ws;
 
-        if (!TryGetUserId(out var uid)) return (ws, 0, Forbid());
+        if (!_currentUserService.TryGetUserId(User, out var uid)) return (ws, 0, Forbid());
 
-        var isAdmin = await _uwr.IsAdminAsync(uid, ws.Id);
+        var isAdmin = await _workspaceAccessService.UserIsWorkspaceAdminAsync(uid, ws.Id);
         if (!isAdmin) return (ws, uid, Forbid());
 
         return (ws, uid, null);

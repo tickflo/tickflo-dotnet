@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
@@ -12,19 +12,26 @@ public class LocationsModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly ILocationRepository _locationRepo;
-    private readonly IRolePermissionRepository _rolePerms;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly IWorkspaceAccessService _workspaceAccessService;
+
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
     public List<LocationItem> Locations { get; private set; } = new();
+    public bool CanCreateLocations { get; private set; }
+    public bool CanEditLocations { get; private set; }
 
-    public LocationsModel(IWorkspaceRepository workspaceRepo, ILocationRepository locationRepo, IRolePermissionRepository rolePerms)
+    public LocationsModel(
+        IWorkspaceRepository workspaceRepo,
+        ILocationRepository locationRepo,
+        ICurrentUserService currentUserService,
+        IWorkspaceAccessService workspaceAccessService)
     {
         _workspaceRepo = workspaceRepo;
         _locationRepo = locationRepo;
-        _rolePerms = rolePerms;
+        _currentUserService = currentUserService;
+        _workspaceAccessService = workspaceAccessService;
     }
-    public bool CanCreateLocations { get; private set; }
-    public bool CanEditLocations { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {
@@ -32,10 +39,11 @@ public class LocationsModel : PageModel
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
 
-        if (!TryGetUserId(out var uid)) return Forbid();
+        if (!_currentUserService.TryGetUserId(User, out var uid)) return Forbid();
 
-        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
-        if (eff.TryGetValue("locations", out var lp))
+        // Use service to get permissions
+        var permissions = await _workspaceAccessService.GetUserPermissionsAsync(Workspace.Id, uid);
+        if (permissions.TryGetValue("locations", out var lp))
         {
             CanCreateLocations = lp.CanCreate;
             CanEditLocations = lp.CanEdit;
@@ -60,11 +68,14 @@ public class LocationsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
+
+        if (!_currentUserService.TryGetUserId(User, out var uid)) return Forbid();
+
         // Enforce edit permission for deletes
-        if (!TryGetUserId(out var uid)) return Forbid();
-        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
-        bool allowed = eff.TryGetValue("locations", out var lp) && lp.CanEdit;
-        if (!allowed) return Forbid();
+        var canDelete = await _workspaceAccessService.CanUserPerformActionAsync(
+            Workspace.Id, uid, "locations", "edit");
+        if (!canDelete) return Forbid();
+
         var ok = await _locationRepo.DeleteAsync(Workspace.Id, locationId);
         TempData["Success"] = ok ? $"Location #{locationId} deleted." : "Location not found.";
         return RedirectToPage("/Workspaces/Locations", new { slug });
@@ -78,17 +89,5 @@ public class LocationsModel : PageModel
         public bool Active { get; set; }
         public int ContactCount { get; set; }
         public string ContactPreview { get; set; } = string.Empty;
-    }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-
-        userId = default;
-        return false;
     }
 }

@@ -61,6 +61,14 @@ builder.Services.AddScoped<IWorkspaceRoleBootstrapper, WorkspaceRoleBootstrapper
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<Tickflo.Core.Services.Notifications.INotificationService, Tickflo.Core.Services.Notifications.NotificationService>();
 
+// New domain services for business logic
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IUserManagementService, UserManagementService>();
+builder.Services.AddScoped<IWorkspaceAccessService, WorkspaceAccessService>();
+builder.Services.AddScoped<IRoleManagementService, RoleManagementService>();
+builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
+builder.Services.AddScoped<INotificationPreferenceService, NotificationPreferenceService>();
+
 // RustFS file and image storage services (Web implementations)
 builder.Services.AddScoped<IFileStorageService, Tickflo.Web.Services.RustFSStorageService>();
 builder.Services.AddScoped<IImageStorageService, Tickflo.Web.Services.RustFSImageStorageService>();
