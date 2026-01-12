@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
@@ -11,9 +12,10 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class RolesEditModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaces;
-    private readonly IUserWorkspaceRoleRepository _uwr;
     private readonly IRoleRepository _roles;
     private readonly IRolePermissionRepository _rolePerms;
+    private readonly IRoleManagementService _roleService;
+    private readonly IWorkspaceRolesEditViewService _rolesEditViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Role? Role { get; private set; }
@@ -24,12 +26,13 @@ public class RolesEditModel : PageModel
     [BindProperty]
     public bool Admin { get; set; }
 
-    public RolesEditModel(IWorkspaceRepository workspaces, IUserWorkspaceRoleRepository uwr, IRoleRepository roles, IRolePermissionRepository rolePerms)
+    public RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository roles, IRolePermissionRepository rolePerms, IRoleManagementService roleService, IWorkspaceRolesEditViewService rolesEditViewService)
     {
         _workspaces = workspaces;
-        _uwr = uwr;
         _roles = roles;
         _rolePerms = rolePerms;
+        _roleService = roleService;
+        _rolesEditViewService = rolesEditViewService;
     }
 
     // Security item bindings
@@ -52,17 +55,17 @@ public class RolesEditModel : PageModel
         if (ws == null) return NotFound();
         if (!TryGetUserId(out var uid)) return Forbid();
         var workspaceId = ws.Id;
-        var isAdmin = await _uwr.IsAdminAsync(uid, workspaceId);
-        if (!isAdmin) return Forbid();
+        var data = await _rolesEditViewService.BuildAsync(workspaceId, uid, id);
+        if (!data.IsAdmin) return Forbid();
         if (id > 0)
         {
-            var role = await _roles.FindByIdAsync(id);
+            var role = data.ExistingRole;
             if (role == null || role.WorkspaceId != workspaceId) return NotFound();
             Role = role;
             Name = role.Name ?? string.Empty;
             Admin = role.Admin;
-            // Load existing permissions
-            var existingPerms = await _rolePerms.ListByRoleAsync(role.Id);
+            // Load existing permissions from view data
+            var existingPerms = data.ExistingPermissions;
             Permissions = BuildDefaultPermissions();
             foreach (var p in existingPerms)
             {
@@ -94,45 +97,49 @@ public class RolesEditModel : PageModel
         if (ws == null) return NotFound();
         if (!TryGetUserId(out var uid)) return Forbid();
         var workspaceId = ws.Id;
-        var isAdmin = await _uwr.IsAdminAsync(uid, workspaceId);
-        if (!isAdmin) return Forbid();
+        var data = await _rolesEditViewService.BuildAsync(workspaceId, uid, id);
+        if (!data.IsAdmin) return Forbid();
         var nameTrim = Name?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(nameTrim))
         {
             ModelState.AddModelError(nameof(Name), "Role name is required");
             return Page();
         }
-        // ensure unique name per workspace
-        var existing = await _roles.FindByNameAsync(workspaceId, nameTrim);
-        if (id == 0)
+        try
         {
-            if (existing != null)
+            if (id == 0)
             {
-                ModelState.AddModelError(nameof(Name), "A role with that name already exists");
-                return Page();
+                // Create role
+                var createdId = (await _roles.AddAsync(workspaceId, nameTrim, Admin, uid))?.Id ?? 0;
+                if (createdId == 0)
+                {
+                    ModelState.AddModelError(string.Empty, "Failed to create role.");
+                    return Page();
+                }
+                await _rolePerms.UpsertAsync(createdId, MapEffectivePermissions(), uid);
             }
-            await _roles.AddAsync(workspaceId, nameTrim, Admin, uid);
-            // Reload to get the created role for permissions
-            var created = await _roles.FindByNameAsync(workspaceId, nameTrim);
-            if (created != null)
+            else
             {
-                await _rolePerms.UpsertAsync(created.Id, MapEffectivePermissions(), uid);
+                var role = data.ExistingRole ?? await _roles.FindByIdAsync(id);
+                if (role == null || role.WorkspaceId != workspaceId) return NotFound();
+                // Ensure name uniqueness for update
+                var existing = await _roles.FindByNameAsync(workspaceId, nameTrim);
+                if (existing != null && existing.Id != role.Id)
+                {
+                    ModelState.AddModelError(nameof(Name), "A role with that name already exists");
+                    Role = role;
+                    return Page();
+                }
+                role.Name = nameTrim;
+                role.Admin = Admin;
+                await _roles.UpdateAsync(role);
+                await _rolePerms.UpsertAsync(role.Id, MapEffectivePermissions(), uid);
             }
         }
-        else
+        catch (InvalidOperationException ex)
         {
-            var role = await _roles.FindByIdAsync(id);
-            if (role == null || role.WorkspaceId != workspaceId) return NotFound();
-            if (existing != null && existing.Id != role.Id)
-            {
-                ModelState.AddModelError(nameof(Name), "A role with that name already exists");
-                Role = role;
-                return Page();
-            }
-            role.Name = nameTrim;
-            role.Admin = Admin;
-            await _roles.UpdateAsync(role);
-            await _rolePerms.UpsertAsync(role.Id, MapEffectivePermissions(), uid);
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return Page();
         }
         var queryQ = Request.Query["Query"].ToString();
         var pageQ = Request.Query["PageNumber"].ToString();

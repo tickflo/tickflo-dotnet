@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
@@ -13,23 +14,23 @@ public class SettingsModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePermRepo;
     private readonly ITicketStatusRepository _statusRepo;
     private readonly ITicketPriorityRepository _priorityRepo;
     private readonly ITicketTypeRepository _typeRepo;
+    private readonly IWorkspaceSettingsService _settingsService;
+    private readonly IWorkspaceSettingsViewService _settingsViewService;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
-    public SettingsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, IRolePermissionRepository rolePermRepo)
+    public SettingsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, IWorkspaceSettingsService settingsService, IWorkspaceSettingsViewService settingsViewService)
     {
         _workspaceRepo = workspaceRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
-        _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
         _statusRepo = statusRepo;
         _priorityRepo = priorityRepo;
         _typeRepo = typeRepo;
-        _rolePermRepo = rolePermRepo;
+        _settingsService = settingsService;
+        _settingsViewService = settingsViewService;
     }
 
     public IReadOnlyList<Tickflo.Core.Entities.TicketStatus> Statuses { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketStatus>();
@@ -44,8 +45,8 @@ public class SettingsModel : PageModel
     private async Task<(int userId, bool isAdmin)> ResolveUserAsync()
     {
         if (!TryGetUserId(out var uid)) return (0, false);
-        var isAdmin = Workspace != null && await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
-        return (uid, isAdmin);
+        // isAdmin is computed via view service; return uid and false placeholder
+        return (uid, false);
     }
 
     private bool TryGetUserId(out int userId)
@@ -59,20 +60,29 @@ public class SettingsModel : PageModel
         return false;
     }
 
-    private async Task<bool> EnsurePermissionsAsync(int userId, bool isAdmin)
+    private async Task<bool> EnsurePermissionsAsync(int userId)
     {
-        IsWorkspaceAdmin = isAdmin;
         if (Workspace == null) return false;
-        if (isAdmin)
-        {
-            CanViewSettings = CanEditSettings = CanCreateSettings = true;
-            return true;
-        }
-        var perms = await _rolePermRepo.GetEffectivePermissionsForUserAsync(Workspace.Id, userId);
-        if (!perms.TryGetValue("settings", out var eff)) eff = new EffectiveSectionPermission { Section = "settings" };
-        CanViewSettings = eff.CanView;
-        CanEditSettings = eff.CanEdit;
-        CanCreateSettings = eff.CanCreate;
+        var data = await _settingsViewService.BuildAsync(Workspace.Id, userId);
+        CanViewSettings = data.CanViewSettings;
+        CanEditSettings = data.CanEditSettings;
+        CanCreateSettings = data.CanCreateSettings;
+        // populate lists and defaults
+        Statuses = data.Statuses;
+        Priorities = data.Priorities;
+        Types = data.Types;
+        NotificationsEnabled = data.NotificationsEnabled;
+        EmailIntegrationEnabled = data.EmailIntegrationEnabled;
+        EmailProvider = data.EmailProvider;
+        SmsIntegrationEnabled = data.SmsIntegrationEnabled;
+        SmsProvider = data.SmsProvider;
+        PushIntegrationEnabled = data.PushIntegrationEnabled;
+        PushProvider = data.PushProvider;
+        InAppNotificationsEnabled = data.InAppNotificationsEnabled;
+        BatchNotificationDelay = data.BatchNotificationDelay;
+        DailySummaryHour = data.DailySummaryHour;
+        MentionNotificationsUrgent = data.MentionNotificationsUrgent;
+        TicketAssignmentNotificationsHigh = data.TicketAssignmentNotificationsHigh;
         return true;
     }
 
@@ -132,102 +142,39 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var (uid, isAdmin) = await ResolveUserAsync();
+        var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid, isAdmin);
+        await EnsurePermissionsAsync(uid);
         if (!CanEditSettings) return Forbid();
         
         if (!ModelState.IsValid)
         {
             TempData["ErrorMessage"] = "Please fix the validation errors.";
-            await LoadDataAsync(Workspace);
+            await EnsurePermissionsAsync(uid);
             return Page();
         }
-        
-        // Update workspace
-        Workspace.Name = (Request.Form["Workspace.Name"].ToString() ?? Workspace.Name).Trim();
+        // Update workspace via service (validates slug uniqueness)
+        var name = (Request.Form["Workspace.Name"].ToString() ?? Workspace.Name).Trim();
         var newSlug = (Request.Form["Workspace.Slug"].ToString() ?? Workspace.Slug).Trim();
-        
-        // Check if slug changed and if new slug is unique
-        if (newSlug != Workspace.Slug)
+        try
         {
-            var existingWorkspace = await _workspaceRepo.FindBySlugAsync(newSlug);
-            if (existingWorkspace != null)
-            {
-                TempData["ErrorMessage"] = "Slug is already in use. Please choose a different one.";
-                await LoadDataAsync(Workspace);
-                return Page();
-            }
-            Workspace.Slug = newSlug;
+            Workspace = await _settingsService.UpdateWorkspaceBasicSettingsAsync(Workspace.Id, name, newSlug);
         }
-        
-        await _workspaceRepo.UpdateAsync(Workspace);
+        catch (InvalidOperationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+            await EnsurePermissionsAsync(uid);
+            return Page();
+        }
         TempData["SuccessMessage"] = "Workspace settings saved successfully!";
         return RedirectToPage("/Workspaces/Settings", new { slug = Workspace.Slug });
     }
 
     private async Task LoadDataAsync(Workspace workspace)
     {
-        // Load or bootstrap default statuses
-        var list = await _statusRepo.ListAsync(workspace.Id);
-        if (list.Count == 0)
-        {
-            var defaults = new[]
-            {
-                new Tickflo.Core.Entities.TicketStatus { WorkspaceId = workspace.Id, Name = "New", Color = "info", SortOrder = 1, IsClosedState = false },
-                new Tickflo.Core.Entities.TicketStatus { WorkspaceId = workspace.Id, Name = "Completed", Color = "success", SortOrder = 2, IsClosedState = true },
-                new Tickflo.Core.Entities.TicketStatus { WorkspaceId = workspace.Id, Name = "Closed", Color = "error", SortOrder = 3, IsClosedState = true },
-            };
-            foreach (var s in defaults)
-            {
-                await _statusRepo.CreateAsync(s);
-            }
-            list = await _statusRepo.ListAsync(workspace.Id);
-        }
-        Statuses = list;
-
-        // Load or bootstrap default priorities
-        var plist = await _priorityRepo.ListAsync(workspace.Id);
-        if (plist.Count == 0)
-        {
-            var pdefs = new[]
-            {
-                new Tickflo.Core.Entities.TicketPriority { WorkspaceId = workspace.Id, Name = "Low", Color = "warning", SortOrder = 1 },
-                new Tickflo.Core.Entities.TicketPriority { WorkspaceId = workspace.Id, Name = "Normal", Color = "neutral", SortOrder = 2 },
-                new Tickflo.Core.Entities.TicketPriority { WorkspaceId = workspace.Id, Name = "High", Color = "error", SortOrder = 3 },
-            };
-            foreach (var p in pdefs) { await _priorityRepo.CreateAsync(p); }
-            plist = await _priorityRepo.ListAsync(workspace.Id);
-        }
-        Priorities = plist;
-        // Load or bootstrap default types
-        var tlist = await _typeRepo.ListAsync(workspace.Id);
-        if (tlist.Count == 0)
-        {
-            var tdefs = new[]
-            {
-                new Tickflo.Core.Entities.TicketType { WorkspaceId = workspace.Id, Name = "Standard", Color = "neutral", SortOrder = 1 },
-                new Tickflo.Core.Entities.TicketType { WorkspaceId = workspace.Id, Name = "Bug", Color = "error", SortOrder = 2 },
-                new Tickflo.Core.Entities.TicketType { WorkspaceId = workspace.Id, Name = "Feature", Color = "primary", SortOrder = 3 },
-            };
-            foreach (var t in tdefs) { await _typeRepo.CreateAsync(t); }
-            tlist = await _typeRepo.ListAsync(workspace.Id);
-        }
-        Types = tlist;
-        
-        // Load notification integration settings from workspace metadata or use defaults
-        NotificationsEnabled = true;
-        EmailIntegrationEnabled = true;
-        EmailProvider = "smtp";
-        SmsIntegrationEnabled = false;
-        SmsProvider = "none";
-        PushIntegrationEnabled = false;
-        PushProvider = "none";
-        InAppNotificationsEnabled = true;
-        BatchNotificationDelay = 30;
-        DailySummaryHour = 9;
-        MentionNotificationsUrgent = true;
-        TicketAssignmentNotificationsHigh = true;
+        // Use view service to populate lists and defaults
+        if (!TryGetUserId(out var uid)) { Statuses = Array.Empty<Tickflo.Core.Entities.TicketStatus>(); Priorities = Array.Empty<Tickflo.Core.Entities.TicketPriority>(); Types = Array.Empty<Tickflo.Core.Entities.TicketType>(); return; }
+        await EnsurePermissionsAsync(uid);
     }
 
     public async Task<IActionResult> OnGetAsync(string slug)
@@ -235,11 +182,11 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var (uid, isAdmin) = await ResolveUserAsync();
+        var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid, isAdmin);
+        await EnsurePermissionsAsync(uid);
         if (!CanViewSettings) return Forbid();
-        await LoadDataAsync(Workspace);
+        // lists already populated by EnsurePermissionsAsync
         return Page();
     }
 
@@ -248,35 +195,25 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var (uid, isAdmin) = await ResolveUserAsync();
+        var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid, isAdmin);
+        await EnsurePermissionsAsync(uid);
         if (!CanCreateSettings) return Forbid();
         var name = (NewStatusName ?? string.Empty).Trim();
         var color = (NewStatusColor ?? "neutral").Trim();
-        if (!string.IsNullOrWhiteSpace(name))
+        if (string.IsNullOrWhiteSpace(name))
         {
-            var exists = await _statusRepo.FindByNameAsync(Workspace.Id, name);
-            if (exists == null)
-            {
-                var maxOrder = (await _statusRepo.ListAsync(Workspace.Id)).DefaultIfEmpty().Max(s => s?.SortOrder ?? 0);
-                await _statusRepo.CreateAsync(new Tickflo.Core.Entities.TicketStatus
-                {
-                    WorkspaceId = Workspace.Id,
-                    Name = name,
-                    Color = string.IsNullOrWhiteSpace(color) ? "neutral" : color,
-                    SortOrder = maxOrder + 1
-                });
-                TempData["SuccessMessage"] = $"Priority '{name}' added successfully!";
-            }
-            else
-            {
-                TempData["ErrorMessage"] = $"Priority '{name}' already exists.";
-            }
+            TempData["ErrorMessage"] = "Status name is required.";
+            return RedirectToPage("/Workspaces/Settings", new { slug });
         }
-        else
+        try
         {
-            TempData["ErrorMessage"] = "Priority name is required.";
+            await _settingsService.AddStatusAsync(Workspace.Id, name, color, false);
+            TempData["SuccessMessage"] = $"Status '{name}' added successfully!";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
         }
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
@@ -286,35 +223,25 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var (uid, isAdmin) = await ResolveUserAsync();
+        var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid, isAdmin);
+        await EnsurePermissionsAsync(uid);
         if (!CanCreateSettings) return Forbid();
         var name = (NewPriorityName ?? string.Empty).Trim();
         var color = (NewPriorityColor ?? "neutral").Trim();
-        if (!string.IsNullOrWhiteSpace(name))
-        {
-            var exists = await _priorityRepo.FindAsync(Workspace.Id, name);
-            if (exists == null)
-            {
-                var maxOrder = (await _priorityRepo.ListAsync(Workspace.Id)).DefaultIfEmpty().Max(p => p?.SortOrder ?? 0);
-                await _priorityRepo.CreateAsync(new Tickflo.Core.Entities.TicketPriority
-                {
-                    WorkspaceId = Workspace.Id,
-                    Name = name,
-                    Color = string.IsNullOrWhiteSpace(color) ? "neutral" : color,
-                    SortOrder = maxOrder + 1
-                });
-                TempData["SuccessMessage"] = $"Priority '{name}' added successfully!";
-            }
-            else
-            {
-                TempData["ErrorMessage"] = $"Priority '{name}' already exists.";
-            }
-        }
-        else
+        if (string.IsNullOrWhiteSpace(name))
         {
             TempData["ErrorMessage"] = "Priority name is required.";
+            return RedirectToPage("/Workspaces/Settings", new { slug });
+        }
+        try
+        {
+            await _settingsService.AddPriorityAsync(Workspace.Id, name, color);
+            TempData["SuccessMessage"] = $"Priority '{name}' added successfully!";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
         }
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
@@ -324,35 +251,25 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var (uid, isAdmin) = await ResolveUserAsync();
+        var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid, isAdmin);
+        await EnsurePermissionsAsync(uid);
         if (!CanCreateSettings) return Forbid();
         var name = (NewTypeName ?? string.Empty).Trim();
         var color = (NewTypeColor ?? "neutral").Trim();
-        if (!string.IsNullOrWhiteSpace(name))
-        {
-            var exists = await _typeRepo.FindByNameAsync(Workspace.Id, name);
-            if (exists == null)
-            {
-                var maxOrder = (await _typeRepo.ListAsync(Workspace.Id)).DefaultIfEmpty().Max(t => t?.SortOrder ?? 0);
-                await _typeRepo.CreateAsync(new Tickflo.Core.Entities.TicketType
-                {
-                    WorkspaceId = Workspace.Id,
-                    Name = name,
-                    Color = string.IsNullOrWhiteSpace(color) ? "neutral" : color,
-                    SortOrder = maxOrder + 1
-                });
-                TempData["SuccessMessage"] = $"Type '{name}' added successfully!";
-            }
-            else
-            {
-                TempData["ErrorMessage"] = $"Type '{name}' already exists.";
-            }
-        }
-        else
+        if (string.IsNullOrWhiteSpace(name))
         {
             TempData["ErrorMessage"] = "Type name is required.";
+            return RedirectToPage("/Workspaces/Settings", new { slug });
+        }
+        try
+        {
+            await _settingsService.AddTypeAsync(Workspace.Id, name, color);
+            TempData["SuccessMessage"] = $"Type '{name}' added successfully!";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
         }
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
@@ -362,22 +279,21 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var (uid, isAdmin) = await ResolveUserAsync();
+        var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid, isAdmin);
+        await EnsurePermissionsAsync(uid);
         if (!CanEditSettings) return Forbid();
-        var s = await _statusRepo.FindByIdAsync(Workspace.Id, id);
-        if (s == null) return NotFound();
-        s.Name = (name ?? s.Name).Trim();
-        s.Color = string.IsNullOrWhiteSpace(color)
-            ? (string.IsNullOrWhiteSpace(s.Color) ? "neutral" : s.Color)
-            : color.Trim();
-        s.SortOrder = sortOrder;
-        // Read isClosedState from form
         var isClosedStateStr = Request.Form["isClosedState"];
-        s.IsClosedState = !string.IsNullOrEmpty(isClosedStateStr) && (isClosedStateStr == "true" || isClosedStateStr == "on");
-        await _statusRepo.UpdateAsync(s);
-        TempData["SuccessMessage"] = $"Status '{s.Name}' updated successfully!";
+        var isClosedState = !string.IsNullOrEmpty(isClosedStateStr) && (isClosedStateStr == "true" || isClosedStateStr == "on");
+        try
+        {
+            var s = await _settingsService.UpdateStatusAsync(Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder, isClosedState);
+            TempData["SuccessMessage"] = $"Status '{s.Name}' updated successfully!";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
@@ -386,19 +302,19 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var (uid, isAdmin) = await ResolveUserAsync();
+        var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid, isAdmin);
+        await EnsurePermissionsAsync(uid);
         if (!CanEditSettings) return Forbid();
-        var p = await _priorityRepo.FindAsync(Workspace.Id, name) ?? (await _priorityRepo.ListAsync(Workspace.Id)).FirstOrDefault(x => x.Id == id);
-        if (p == null) return NotFound();
-        p.Name = (name ?? p.Name).Trim();
-        p.Color = string.IsNullOrWhiteSpace(color)
-            ? (string.IsNullOrWhiteSpace(p.Color) ? "neutral" : p.Color)
-            : color.Trim();
-        p.SortOrder = sortOrder;
-        await _priorityRepo.UpdateAsync(p);
-        TempData["SuccessMessage"] = $"Priority '{p.Name}' updated successfully!";
+        try
+        {
+            var p = await _settingsService.UpdatePriorityAsync(Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
+            TempData["SuccessMessage"] = $"Priority '{p.Name}' updated successfully!";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
@@ -407,19 +323,19 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var (uid, isAdmin) = await ResolveUserAsync();
+        var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid, isAdmin);
+        await EnsurePermissionsAsync(uid);
         if (!CanEditSettings) return Forbid();
-        var t = await _typeRepo.FindByIdAsync(Workspace.Id, id);
-        if (t == null) return NotFound();
-        t.Name = (name ?? t.Name).Trim();
-        t.Color = string.IsNullOrWhiteSpace(color)
-            ? (string.IsNullOrWhiteSpace(t.Color) ? "neutral" : t.Color)
-            : color.Trim();
-        t.SortOrder = sortOrder;
-        await _typeRepo.UpdateAsync(t);
-        TempData["SuccessMessage"] = $"Type '{t.Name}' updated successfully!";
+        try
+        {
+            var t = await _settingsService.UpdateTypeAsync(Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
+            TempData["SuccessMessage"] = $"Type '{t.Name}' updated successfully!";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
@@ -428,11 +344,11 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var (uid, isAdmin) = await ResolveUserAsync();
+        var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid, isAdmin);
+        await EnsurePermissionsAsync(uid);
         if (!CanEditSettings) return Forbid();
-        await _statusRepo.DeleteAsync(Workspace.Id, id);
+        await _settingsService.DeleteStatusAsync(Workspace.Id, id);
         TempData["SuccessMessage"] = "Status deleted successfully!";
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
@@ -442,11 +358,11 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var (uid, isAdmin) = await ResolveUserAsync();
+        var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid, isAdmin);
+        await EnsurePermissionsAsync(uid);
         if (!CanEditSettings) return Forbid();
-        await _priorityRepo.DeleteAsync(Workspace.Id, id);
+        await _settingsService.DeletePriorityAsync(Workspace.Id, id);
         TempData["SuccessMessage"] = "Priority deleted successfully!";
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
@@ -456,11 +372,11 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var (uid, isAdmin) = await ResolveUserAsync();
+        var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid, isAdmin);
+        await EnsurePermissionsAsync(uid);
         if (!CanEditSettings) return Forbid();
-        await _typeRepo.DeleteAsync(Workspace.Id, id);
+        await _settingsService.DeleteTypeAsync(Workspace.Id, id);
         TempData["SuccessMessage"] = "Type deleted successfully!";
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
@@ -470,9 +386,9 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var (uid, isAdmin) = await ResolveUserAsync();
+        var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid, isAdmin);
+        await EnsurePermissionsAsync(uid);
         if (!CanEditSettings) return Forbid();
         
         // TODO: Save notification settings to workspace_settings table or workspace metadata
@@ -495,9 +411,9 @@ public class SettingsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var (uid, isAdmin) = await ResolveUserAsync();
+        var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid, isAdmin);
+        await EnsurePermissionsAsync(uid);
         if (!CanEditSettings) return Forbid();
 
         int changedCount = 0;

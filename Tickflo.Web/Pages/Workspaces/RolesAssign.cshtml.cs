@@ -11,11 +11,8 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class RolesAssignModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaces;
-    private readonly IUserRepository _users;
-    private readonly IUserWorkspaceRepository _userWorkspaces;
-    private readonly ICurrentUserService _currentUserService;
-    private readonly IWorkspaceAccessService _workspaceAccessService;
     private readonly IRoleManagementService _roleManagementService;
+    private readonly IWorkspaceRolesAssignViewService _rolesAssignViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -30,55 +27,38 @@ public class RolesAssignModel : PageModel
 
     public RolesAssignModel(
         IWorkspaceRepository workspaces,
-        IUserRepository users,
-        IUserWorkspaceRepository userWorkspaces,
-        ICurrentUserService currentUserService,
-        IWorkspaceAccessService workspaceAccessService,
-        IRoleManagementService roleManagementService)
+        IRoleManagementService roleManagementService,
+        IWorkspaceRolesAssignViewService rolesAssignViewService)
     {
         _workspaces = workspaces;
-        _users = users;
-        _userWorkspaces = userWorkspaces;
-        _currentUserService = currentUserService;
-        _workspaceAccessService = workspaceAccessService;
         _roleManagementService = roleManagementService;
+        _rolesAssignViewService = rolesAssignViewService;
     }
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {
-        var access = await EnsureAdminAccessAsync(slug);
-        if (access.failure != null) return access.failure;
-
-        var ws = access.workspace!;
-        var uid = access.userId;
-
-        var memberships = await _userWorkspaces.FindForWorkspaceAsync(ws.Id);
-        var userIds = memberships.Select(m => m.UserId).Distinct().ToList();
-        Members = new List<User>();
-        foreach (var id in userIds)
-        {
-            var u = await _users.FindByIdAsync(id);
-            if (u != null) Members.Add(u);
-        }
-
-        // Use service to get roles
-        Roles = await _roleManagementService.GetWorkspaceRolesAsync(ws.Id);
-        
-        foreach (var id in userIds)
-        {
-            var roles = await _roleManagementService.GetUserRolesAsync(id, ws.Id);
-            UserRoles[id] = roles;
-        }
+        WorkspaceSlug = slug;
+        var ws = await _workspaces.FindBySlugAsync(slug);
+        if (ws == null) return NotFound();
+        var uid = TryGetUserId(out var idVal) ? idVal : 0;
+        if (uid == 0) return Forbid();
+        var data = await _rolesAssignViewService.BuildAsync(ws.Id, uid);
+        if (!data.IsAdmin) return Forbid();
+        Members = data.Members ?? new();
+        Roles = data.Roles ?? new();
+        UserRoles = data.UserRoles ?? new();
         return Page();
     }
 
     public async Task<IActionResult> OnPostAssignAsync(string slug)
     {
-        var access = await EnsureAdminAccessAsync(slug);
-        if (access.failure != null) return access.failure;
-
-        var ws = access.workspace!;
-        var uid = access.userId;
+        WorkspaceSlug = slug;
+        var ws = await _workspaces.FindBySlugAsync(slug);
+        if (ws == null) return NotFound();
+        var uid = TryGetUserId(out var idVal) ? idVal : 0;
+        if (uid == 0) return Forbid();
+        var data = await _rolesAssignViewService.BuildAsync(ws.Id, uid);
+        if (!data.IsAdmin) return Forbid();
 
         if (SelectedUserId <= 0 || SelectedRoleId <= 0)
         {
@@ -110,10 +90,13 @@ public class RolesAssignModel : PageModel
 
     public async Task<IActionResult> OnPostRemoveAsync(string slug, int userId, int roleId)
     {
-        var access = await EnsureAdminAccessAsync(slug);
-        if (access.failure != null) return access.failure;
-
-        var ws = access.workspace!;
+        WorkspaceSlug = slug;
+        var ws = await _workspaces.FindBySlugAsync(slug);
+        if (ws == null) return NotFound();
+        var uid = TryGetUserId(out var idVal) ? idVal : 0;
+        if (uid == 0) return Forbid();
+        var data = await _rolesAssignViewService.BuildAsync(ws.Id, uid);
+        if (!data.IsAdmin) return Forbid();
 
         // Use service to remove role
         await _roleManagementService.RemoveRoleFromUserAsync(userId, ws.Id, roleId);
@@ -122,20 +105,15 @@ public class RolesAssignModel : PageModel
         return Redirect($"/workspaces/{slug}/users/roles/assign?Query={Uri.EscapeDataString(queryQ ?? string.Empty)}");
     }
 
-    private async Task<(Workspace? workspace, int userId, IActionResult? failure)> EnsureAdminAccessAsync(string slug)
+    private bool TryGetUserId(out int userId)
     {
-        WorkspaceSlug = slug;
-
-        var ws = await _workspaces.FindBySlugAsync(slug);
-        if (ws == null) return (null, 0, NotFound());
-
-        Workspace = ws;
-
-        if (!_currentUserService.TryGetUserId(User, out var uid)) return (ws, 0, Forbid());
-
-        var isAdmin = await _workspaceAccessService.UserIsWorkspaceAdminAsync(uid, ws.Id);
-        if (!isAdmin) return (ws, uid, Forbid());
-
-        return (ws, uid, null);
+        var idValue = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+        userId = default;
+        return false;
     }
+
 }

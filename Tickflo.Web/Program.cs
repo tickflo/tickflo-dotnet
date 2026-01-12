@@ -59,6 +59,7 @@ builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IFileStorageRepository, FileStorageRepository>();
 builder.Services.AddScoped<IWorkspaceRoleBootstrapper, WorkspaceRoleBootstrapper>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<IPasswordSetupService, PasswordSetupService>();
 builder.Services.AddScoped<Tickflo.Core.Services.Notifications.INotificationService, Tickflo.Core.Services.Notifications.NotificationService>();
 
 // New domain services for business logic
@@ -68,6 +69,58 @@ builder.Services.AddScoped<IWorkspaceAccessService, WorkspaceAccessService>();
 builder.Services.AddScoped<IRoleManagementService, RoleManagementService>();
 builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
 builder.Services.AddScoped<INotificationPreferenceService, NotificationPreferenceService>();
+
+// Phase 1: Critical business logic services (Dashboard, Tickets)
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<ITicketManagementService, TicketManagementService>();
+builder.Services.AddScoped<ITicketFilterService, TicketFilterService>();
+builder.Services.AddScoped<IWorkspaceDashboardViewService, WorkspaceDashboardViewService>();
+builder.Services.AddScoped<IWorkspaceTicketsViewService, WorkspaceTicketsViewService>();
+builder.Services.AddScoped<IWorkspaceTicketDetailsViewService, WorkspaceTicketDetailsViewService>();
+builder.Services.AddScoped<IWorkspaceUsersViewService, WorkspaceUsersViewService>();
+builder.Services.AddScoped<IWorkspaceReportsViewService, WorkspaceReportsViewService>();
+builder.Services.AddScoped<IWorkspaceInventoryViewService, WorkspaceInventoryViewService>();
+builder.Services.AddScoped<IWorkspaceTeamsViewService, WorkspaceTeamsViewService>();
+builder.Services.AddScoped<IWorkspaceLocationsViewService, WorkspaceLocationsViewService>();
+builder.Services.AddScoped<IWorkspaceContactsViewService, WorkspaceContactsViewService>();
+builder.Services.AddScoped<IWorkspaceRolesViewService, WorkspaceRolesViewService>();
+builder.Services.AddScoped<IWorkspaceLocationsEditViewService, WorkspaceLocationsEditViewService>();
+builder.Services.AddScoped<IWorkspaceContactsEditViewService, WorkspaceContactsEditViewService>();
+builder.Services.AddScoped<IWorkspaceInventoryEditViewService, WorkspaceInventoryEditViewService>();
+builder.Services.AddScoped<IWorkspaceReportsEditViewService, WorkspaceReportsEditViewService>();
+builder.Services.AddScoped<IWorkspaceRolesEditViewService, WorkspaceRolesEditViewService>();
+builder.Services.AddScoped<IWorkspaceTeamsEditViewService, WorkspaceTeamsEditViewService>();
+    builder.Services.AddScoped<IWorkspaceSettingsViewService, WorkspaceSettingsViewService>();
+    builder.Services.AddScoped<IWorkspaceRolesAssignViewService, WorkspaceRolesAssignViewService>();
+    builder.Services.AddScoped<IWorkspaceTeamsAssignViewService, WorkspaceTeamsAssignViewService>();
+    builder.Services.AddScoped<IWorkspaceReportRunViewService, WorkspaceReportRunViewService>();
+    builder.Services.AddScoped<IWorkspaceReportRunDownloadViewService, WorkspaceReportRunDownloadViewService>();
+    builder.Services.AddScoped<IWorkspaceReportDeleteViewService, WorkspaceReportDeleteViewService>();
+    builder.Services.AddScoped<IWorkspaceFilesViewService, WorkspaceFilesViewService>();
+    builder.Services.AddScoped<IWorkspaceReportRunsBackfillViewService, WorkspaceReportRunsBackfillViewService>();
+    builder.Services.AddScoped<IWorkspaceReportRunExecuteViewService, WorkspaceReportRunExecuteViewService>();
+    builder.Services.AddScoped<IWorkspaceReportRunsViewService, WorkspaceReportRunsViewService>();
+    builder.Services.AddScoped<IWorkspaceUsersInviteViewService, WorkspaceUsersInviteViewService>();
+    builder.Services.AddScoped<IWorkspaceUsersManageViewService, WorkspaceUsersManageViewService>();
+    builder.Services.AddScoped<IWorkspaceTicketsSaveViewService, WorkspaceTicketsSaveViewService>();
+
+// Phase 2 & 3: Domain entity services
+builder.Services.AddScoped<IWorkspaceSettingsService, WorkspaceSettingsService>();
+builder.Services.AddScoped<IUserInvitationService, UserInvitationService>();
+builder.Services.AddScoped<IContactService, ContactService>();
+builder.Services.AddScoped<ILocationService, LocationService>();
+builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<ITeamManagementService, TeamManagementService>();
+builder.Services.AddScoped<IReportQueryService, ReportQueryService>();
+builder.Services.AddScoped<IReportRunService, ReportRunService>();
+builder.Services.AddScoped<IReportCommandService, ReportCommandService>();
+builder.Services.AddScoped<IReportDefinitionValidator, ReportDefinitionValidator>();
+
+// Listing services for filter/pagination/enrichment
+builder.Services.AddScoped<IContactListingService, ContactListingService>();
+builder.Services.AddScoped<IInventoryListingService, InventoryListingService>();
+builder.Services.AddScoped<ILocationListingService, LocationListingService>();
+builder.Services.AddScoped<ITeamListingService, TeamListingService>();
 
 // RustFS file and image storage services (Web implementations)
 builder.Services.AddScoped<IFileStorageService, Tickflo.Web.Services.RustFSStorageService>();
@@ -92,8 +145,8 @@ builder.Services.AddRazorPages(options =>
 });
 builder.Services.AddControllers();
 
-// Reporting services
-builder.Services.AddScoped<Tickflo.Web.Services.IReportingService, Tickflo.Web.Services.ReportingService>();
+// Reporting services (moved to Core)
+builder.Services.AddScoped<Tickflo.Core.Services.IReportingService, Tickflo.Core.Services.ReportingService>();
 builder.Services.AddHostedService<Tickflo.Web.Services.ScheduledReportsHostedService>();
 
 builder.Services.AddDistributedMemoryCache();

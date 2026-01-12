@@ -1,22 +1,24 @@
-using System;
-using System.Security.Claims;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
+[Authorize]
 public class FilesModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepository;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepository;
+    private readonly IWorkspaceFilesViewService _filesViewService;
 
-    public FilesModel(IWorkspaceRepository workspaceRepository, IUserWorkspaceRepository userWorkspaceRepository)
+    public FilesModel(
+        IWorkspaceRepository workspaceRepository,
+        IWorkspaceFilesViewService filesViewService)
     {
         _workspaceRepository = workspaceRepository;
-        _userWorkspaceRepository = userWorkspaceRepository;
+        _filesViewService = filesViewService;
     }
 
     public Workspace? Workspace { get; set; }
@@ -24,14 +26,13 @@ public class FilesModel : PageModel
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {
-        if (!TryGetUserId(out var uid)) return Forbid();
+        var uid = TryGetUserId(out var idVal) ? idVal : 0;
+        if (uid == 0) return Forbid();
 
         var ws = await _workspaceRepository.FindBySlugAsync(slug);
         if (ws == null) return NotFound();
-
-        // Check if user has access to this workspace
-        var userWorkspace = await _userWorkspaceRepository.FindAsync(uid, ws.Id);
-        if (userWorkspace == null) return Forbid();
+        var data = await _filesViewService.BuildAsync(ws.Id, uid);
+        if (!data.CanViewFiles) return Forbid();
 
         Workspace = ws;
         WorkspaceId = ws.Id;
@@ -40,12 +41,11 @@ public class FilesModel : PageModel
 
     private bool TryGetUserId(out int userId)
     {
-        var id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(id, out userId))
+        var idValue = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
         {
             return true;
         }
-
         userId = default;
         return false;
     }

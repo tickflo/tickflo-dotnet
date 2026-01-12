@@ -1,22 +1,17 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Tickflo.Core.Data;
 using Tickflo.Core.Services.Auth;
 
 namespace Tickflo.Web.Pages.Account;
 
 public class SetPasswordModel : PageModel
 {
-    private readonly ITokenRepository _tokens;
-    private readonly IUserRepository _users;
-    private readonly IPasswordHasher _hasher;
+    private readonly IPasswordSetupService _passwordSetupService;
 
-    public SetPasswordModel(ITokenRepository tokens, IUserRepository users, IPasswordHasher hasher)
+    public SetPasswordModel(IPasswordSetupService passwordSetupService)
     {
-        _tokens = tokens;
-        _users = users;
-        _hasher = hasher;
+        _passwordSetupService = passwordSetupService;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -37,42 +32,32 @@ public class SetPasswordModel : PageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
-        if (string.IsNullOrWhiteSpace(Token))
+        var validation = await _passwordSetupService.ValidateResetTokenAsync(Token);
+        if (!validation.IsValid)
         {
-            Error = "Missing token.";
-            return Page();
-        }
-        var tok = await _tokens.FindByValueAsync(Token);
-        if (tok == null)
-        {
-            Error = "Invalid or expired token.";
+            Error = validation.ErrorMessage;
         }
         return Page();
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
-        var tok = await _tokens.FindByValueAsync(Token);
-        if (tok == null)
-        {
-            Error = "Invalid or expired token.";
-            return Page();
-        }
         if (!ModelState.IsValid)
         {
+            var validation = await _passwordSetupService.ValidateResetTokenAsync(Token);
+            if (!validation.IsValid)
+            {
+                Error = validation.ErrorMessage;
+            }
             return Page();
         }
 
-        var user = await _users.FindByIdAsync(tok.UserId);
-        if (user == null)
+        var result = await _passwordSetupService.SetPasswordWithTokenAsync(Token, Password);
+        if (!result.Success)
         {
-            Error = "User not found.";
+            Error = result.ErrorMessage;
             return Page();
         }
-
-        user.PasswordHash = _hasher.Hash(Password);
-        user.UpdatedAt = DateTime.UtcNow;
-        await _users.UpdateAsync(user);
 
         TempData["Message"] = "Password updated. You can now sign in.";
         return Redirect("/login");

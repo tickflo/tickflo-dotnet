@@ -4,17 +4,15 @@ using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
-namespace Tickflo.Web.Services;
+namespace Tickflo.Core.Services;
 
 public class ReportingService : IReportingService
 {
     private readonly TickfloDbContext _db;
-    private readonly IWebHostEnvironment _env;
 
-    public ReportingService(TickfloDbContext db, IWebHostEnvironment env)
+    public ReportingService(TickfloDbContext db)
     {
         _db = db;
-        _env = env;
     }
 
     public IReadOnlyDictionary<string, string[]> GetAvailableSources() => new Dictionary<string, string[]>
@@ -62,6 +60,61 @@ public class ReportingService : IReportingService
         var bytes = GenerateCsvBytes(def.Fields);
         var fileName = $"run_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
         return new ReportExecutionResult(rows, string.Empty, bytes, fileName, "text/csv");
+    }
+
+    public Task<ReportRunPage> GetRunPageAsync(ReportRun run, int page, int take, CancellationToken ct = default)
+    {
+        if (run == null) throw new ArgumentNullException(nameof(run));
+        var totalRows = run.RowCount;
+        var clampedTake = Math.Clamp(take <= 0 ? 500 : take, 1, 5000);
+        var totalPages = Math.Max(1, (int)Math.Ceiling((double)totalRows / Math.Max(1, clampedTake)));
+        var clampedPage = Math.Clamp(page <= 0 ? 1 : page, 1, totalPages);
+
+        if (run.FileBytes == null || run.FileBytes.Length == 0)
+        {
+            var empty = new ReportRunPage(clampedPage, clampedTake, totalRows, totalPages, 0, 0, false,
+                Array.Empty<string>(), Array.Empty<IReadOnlyList<string>>());
+            return Task.FromResult(empty);
+        }
+
+        using var fs = new MemoryStream(run.FileBytes);
+        using var sr = new StreamReader(fs, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+
+        var header = ReadCsvRecord(sr);
+        if (header == null)
+        {
+            var empty = new ReportRunPage(clampedPage, clampedTake, totalRows, totalPages, 0, 0, false,
+                Array.Empty<string>(), Array.Empty<IReadOnlyList<string>>());
+            return Task.FromResult(empty);
+        }
+
+        var skip = (clampedPage - 1) * clampedTake;
+        for (int i = 0; i < skip; i++)
+        {
+            var skipped = ReadCsvRecord(sr);
+            if (skipped == null)
+            {
+                var empty = new ReportRunPage(clampedPage, clampedTake, totalRows, totalPages, 0, 0, false,
+                    header, Array.Empty<IReadOnlyList<string>>());
+                return Task.FromResult(empty);
+            }
+        }
+
+        var rows = new List<IReadOnlyList<string>>();
+        int count = 0;
+        while (count < clampedTake)
+        {
+            var row = ReadCsvRecord(sr);
+            if (row == null) break;
+            rows.Add(row);
+            count++;
+        }
+
+        var fromRow = totalRows == 0 ? 0 : (clampedPage - 1) * clampedTake + 1;
+        var toRow = Math.Min(clampedPage * clampedTake, totalRows);
+
+        var result = new ReportRunPage(clampedPage, clampedTake, totalRows, totalPages, fromRow, toRow, true, header, rows);
+        return Task.FromResult(result);
     }
 
     private ReportDef ParseDefinition(string? json)
@@ -506,6 +559,87 @@ public class ReportingService : IReportingService
     }
 
     private readonly List<IDictionary<string, object?>> _currentRows = new();
+
+    private static List<string>? ReadCsvRecord(StreamReader sr)
+    {
+        var result = new List<string>();
+        var sb = new StringBuilder();
+        bool inQuotes = false;
+        bool started = false;
+
+        while (true)
+        {
+            int ci = sr.Read();
+            if (ci == -1)
+            {
+                if (!started && sb.Length == 0 && result.Count == 0)
+                {
+                    return null;
+                }
+                result.Add(sb.ToString());
+                return result;
+            }
+            char c = (char)ci;
+
+            if (c == '\r')
+            {
+                continue;
+            }
+            if (c == '\n')
+            {
+                if (inQuotes)
+                {
+                    sb.Append('\n');
+                    started = true;
+                    continue;
+                }
+                result.Add(sb.ToString());
+                return result;
+            }
+
+            if (c == '"')
+            {
+                if (!inQuotes)
+                {
+                    if (sb.Length == 0)
+                    {
+                        inQuotes = true;
+                        started = true;
+                    }
+                    else
+                    {
+                        sb.Append('"');
+                    }
+                }
+                else
+                {
+                    int peek = sr.Peek();
+                    if (peek == '"')
+                    {
+                        sb.Append('"');
+                        sr.Read();
+                        started = true;
+                    }
+                    else
+                    {
+                        inQuotes = false;
+                    }
+                }
+                continue;
+            }
+
+            if (c == ',' && !inQuotes)
+            {
+                result.Add(sb.ToString());
+                sb.Clear();
+                started = false;
+                continue;
+            }
+
+            sb.Append(c);
+            started = true;
+        }
+    }
 
     private byte[] GenerateCsvBytes(List<string> headers)
     {

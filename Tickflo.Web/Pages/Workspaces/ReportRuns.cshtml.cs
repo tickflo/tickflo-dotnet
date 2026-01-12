@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
@@ -10,8 +12,7 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class ReportRunsModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
-    private readonly IReportRepository _reportRepo;
-    private readonly IReportRunRepository _reportRunRepo;
+    private readonly IWorkspaceReportRunsViewService _viewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -19,11 +20,10 @@ public class ReportRunsModel : PageModel
     public Report? Report { get; private set; }
     public List<ReportRun> Runs { get; private set; } = new();
 
-    public ReportRunsModel(IWorkspaceRepository workspaceRepo, IReportRepository reportRepo, IReportRunRepository reportRunRepo)
+    public ReportRunsModel(IWorkspaceRepository workspaceRepo, IWorkspaceReportRunsViewService viewService)
     {
         _workspaceRepo = workspaceRepo;
-        _reportRepo = reportRepo;
-        _reportRunRepo = reportRunRepo;
+        _viewService = viewService;
     }
 
     public async Task<IActionResult> OnGetAsync(string slug, int reportId)
@@ -31,11 +31,26 @@ public class ReportRunsModel : PageModel
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
-        var rep = await _reportRepo.FindAsync(Workspace.Id, reportId);
-        if (rep == null) return NotFound();
-        ReportId = rep.Id;
-        Report = rep;
-        Runs = (await _reportRunRepo.ListForReportAsync(Workspace.Id, rep.Id, 100)).ToList();
+
+        if (!TryGetUserId(out var userId)) return Forbid();
+        var viewData = await _viewService.BuildAsync(Workspace.Id, userId, reportId);
+        if (!viewData.CanViewReports) return Forbid();
+        if (viewData.Report == null) return NotFound();
+
+        ReportId = viewData.Report.Id;
+        Report = viewData.Report;
+        Runs = viewData.Runs;
         return Page();
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+        userId = default;
+        return false;
     }
 }

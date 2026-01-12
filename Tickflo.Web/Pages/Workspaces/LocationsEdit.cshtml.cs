@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
@@ -12,11 +13,8 @@ public class LocationsEditModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly ILocationRepository _locationRepo;
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaces;
-    private readonly IUserRepository _users;
-    private readonly IContactRepository _contacts;
-    private readonly IRolePermissionRepository _rolePerms;
+    private readonly IWorkspaceLocationsEditViewService _viewService;
+    private readonly ILocationService _locationService;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
@@ -35,15 +33,12 @@ public class LocationsEditModel : PageModel
     public List<int> SelectedContactIds { get; set; } = new();
     public List<Contact> ContactOptions { get; private set; } = new();
 
-    public LocationsEditModel(IWorkspaceRepository workspaceRepo, ILocationRepository locationRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IUserWorkspaceRepository userWorkspaces, IUserRepository users, IContactRepository contacts, IRolePermissionRepository rolePerms)
+    public LocationsEditModel(IWorkspaceRepository workspaceRepo, ILocationRepository locationRepo, IWorkspaceLocationsEditViewService viewService, ILocationService locationService)
     {
         _workspaceRepo = workspaceRepo;
         _locationRepo = locationRepo;
-        _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-        _userWorkspaces = userWorkspaces;
-        _users = users;
-        _contacts = contacts;
-        _rolePerms = rolePerms;
+        _viewService = viewService;
+        _locationService = locationService;
     }
     public bool CanViewLocations { get; private set; }
     public bool CanEditLocations { get; private set; }
@@ -56,44 +51,26 @@ public class LocationsEditModel : PageModel
         if (Workspace == null) return NotFound();
         if (!TryGetUserId(out var uid)) return Forbid();
         var workspaceId = Workspace.Id;
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
-        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, uid);
-        if (isAdmin)
-        {
-            CanViewLocations = CanEditLocations = CanCreateLocations = true;
-        }
-        else if (eff.TryGetValue("locations", out var lp))
-        {
-            CanViewLocations = lp.CanView;
-            CanEditLocations = lp.CanEdit;
-            CanCreateLocations = lp.CanCreate;
-        }
+        
+        var viewData = await _viewService.BuildAsync(workspaceId, uid, locationId);
+        CanViewLocations = viewData.CanViewLocations;
+        CanEditLocations = viewData.CanEditLocations;
+        CanCreateLocations = viewData.CanCreateLocations;
+        
         if (!CanViewLocations) return Forbid();
 
-        // Load members for default assignee selection
-        MemberOptions = new();
-        var memberships = await _userWorkspaces.FindForWorkspaceAsync(Workspace.Id);
-        foreach (var m in memberships.Select(m => m.UserId).Distinct())
-        {
-            var u = await _users.FindByIdAsync(m);
-            if (u != null) MemberOptions.Add(u);
-        }
-
-        // Load contacts and preselect those linked to this location
-        ContactOptions = (await _contacts.ListAsync(Workspace.Id)).ToList();
-        SelectedContactIds = new();
-
+        MemberOptions = viewData.MemberOptions;
+        ContactOptions = viewData.ContactOptions;
+        
         if (locationId > 0)
         {
-            var loc = await _locationRepo.FindAsync(workspaceId, locationId);
-            if (loc == null) return NotFound();
-            LocationId = loc.Id;
-            Name = loc.Name ?? string.Empty;
-            Address = loc.Address ?? string.Empty;
-            Active = loc.Active;
-            DefaultAssigneeUserId = loc.DefaultAssigneeUserId;
-            var selected = await _locationRepo.ListContactIdsAsync(workspaceId, locationId);
-            SelectedContactIds = selected.ToList();
+            if (viewData.ExistingLocation == null) return NotFound();
+            LocationId = viewData.ExistingLocation.Id;
+            Name = viewData.ExistingLocation.Name ?? string.Empty;
+            Address = viewData.ExistingLocation.Address ?? string.Empty;
+            Active = viewData.ExistingLocation.Active;
+            DefaultAssigneeUserId = viewData.ExistingLocation.DefaultAssigneeUserId;
+            SelectedContactIds = viewData.SelectedContactIds;
         }
         else
         {
@@ -114,30 +91,51 @@ public class LocationsEditModel : PageModel
         if (Workspace == null) return NotFound();
         if (!TryGetUserId(out var uid)) return Forbid();
         var workspaceId = Workspace.Id;
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
-        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, uid);
-        bool allowed = isAdmin;
-        if (!allowed && eff.TryGetValue("locations", out var lp))
-        {
-            allowed = (LocationId == 0) ? lp.CanCreate : lp.CanEdit;
-        }
-        if (!allowed) return Forbid();
+        
+        var viewData = await _viewService.BuildAsync(workspaceId, uid, LocationId);
+        if (LocationId == 0 && !viewData.CanCreateLocations) return Forbid();
+        if (LocationId > 0 && !viewData.CanEditLocations) return Forbid();
+        
         if (!ModelState.IsValid) return Page();
 
         var nameTrim = Name?.Trim() ?? string.Empty;
         var addressTrim = Address?.Trim() ?? string.Empty;
         int effectiveLocationId = LocationId;
-        if (LocationId == 0)
+        try
         {
-            var created = await _locationRepo.CreateAsync(new Location { WorkspaceId = workspaceId, Name = nameTrim, Address = addressTrim, Active = Active, DefaultAssigneeUserId = DefaultAssigneeUserId });
-            effectiveLocationId = created.Id;
-            TempData["Success"] = $"Location '{Name}' created successfully.";
+            if (LocationId == 0)
+            {
+                var created = await _locationService.CreateLocationAsync(workspaceId, new CreateLocationRequest
+                {
+                    Name = nameTrim,
+                    Address = addressTrim,
+                    DefaultAssigneeUserId = DefaultAssigneeUserId
+                });
+                // Persist Active flag if different from default
+                created.Active = Active;
+                await _locationRepo.UpdateAsync(created);
+                effectiveLocationId = created.Id;
+                TempData["Success"] = $"Location '{created.Name}' created successfully.";
+            }
+            else
+            {
+                var updated = await _locationService.UpdateLocationAsync(workspaceId, LocationId, new UpdateLocationRequest
+                {
+                    Name = nameTrim,
+                    Address = addressTrim,
+                    DefaultAssigneeUserId = DefaultAssigneeUserId
+                });
+                // Persist Active flag
+                updated.Active = Active;
+                await _locationRepo.UpdateAsync(updated);
+                effectiveLocationId = updated.Id;
+                TempData["Success"] = $"Location '{updated.Name}' updated successfully.";
+            }
         }
-        else
+        catch (InvalidOperationException ex)
         {
-            var updated = await _locationRepo.UpdateAsync(new Location { Id = LocationId, WorkspaceId = workspaceId, Name = nameTrim, Address = addressTrim, Active = Active, DefaultAssigneeUserId = DefaultAssigneeUserId });
-            if (updated == null) return NotFound();
-            TempData["Success"] = $"Location '{Name}' updated successfully.";
+            TempData["Error"] = ex.Message;
+            return Page();
         }
         // Persist contact assignments
         await _locationRepo.SetContactsAsync(workspaceId, effectiveLocationId, SelectedContactIds ?? new List<int>());

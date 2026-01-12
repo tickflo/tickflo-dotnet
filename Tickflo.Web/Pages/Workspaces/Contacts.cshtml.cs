@@ -11,10 +11,8 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class ContactsModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
-    private readonly IContactRepository _contactRepo;
-    private readonly ITicketPriorityRepository _priorityRepo;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IWorkspaceAccessService _workspaceAccessService;
+    private readonly IWorkspaceContactsViewService _viewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -33,16 +31,12 @@ public class ContactsModel : PageModel
 
     public ContactsModel(
         IWorkspaceRepository workspaceRepo,
-        IContactRepository contactRepo,
-        ITicketPriorityRepository priorityRepo,
         ICurrentUserService currentUserService,
-        IWorkspaceAccessService workspaceAccessService)
+        IWorkspaceContactsViewService viewService)
     {
         _workspaceRepo = workspaceRepo;
-        _contactRepo = contactRepo;
-        _priorityRepo = priorityRepo;
         _currentUserService = currentUserService;
-        _workspaceAccessService = workspaceAccessService;
+        _viewService = viewService;
     }
 
     public async Task<IActionResult> OnGetAsync(string slug)
@@ -53,39 +47,17 @@ public class ContactsModel : PageModel
 
         if (!_currentUserService.TryGetUserId(User, out var uid)) return Forbid();
 
-        // Use service to get permissions
-        var permissions = await _workspaceAccessService.GetUserPermissionsAsync(Workspace.Id, uid);
-        if (permissions.TryGetValue("contacts", out var cp))
-        {
-            CanCreateContacts = cp.CanCreate;
-            CanEditContacts = cp.CanEdit;
-        }
-        else
-        {
-            return Forbid();
-        }
+        var viewData = await _viewService.BuildAsync(Workspace.Id, uid, Priority, Query);
+        
+        if (!viewData.CanCreateContacts && !viewData.CanEditContacts) return Forbid();
 
-        var all = await _contactRepo.ListAsync(Workspace.Id);
-        IEnumerable<Contact> filtered = all;
-        
-        if (!string.IsNullOrWhiteSpace(Priority))
-        {
-            filtered = filtered.Where(c => string.Equals(c.Priority, Priority, StringComparison.OrdinalIgnoreCase));
-        }
-        
-        if (!string.IsNullOrWhiteSpace(Query))
-        {
-            var q = Query.Trim();
-            filtered = filtered.Where(c =>
-                (!string.IsNullOrWhiteSpace(c.Name) && c.Name.Contains(q, StringComparison.OrdinalIgnoreCase)) ||
-                (!string.IsNullOrWhiteSpace(c.Email) && c.Email.Contains(q, StringComparison.OrdinalIgnoreCase)) ||
-                (!string.IsNullOrWhiteSpace(c.Company) && c.Company.Contains(q, StringComparison.OrdinalIgnoreCase))
-            );
-        }
-        
-        Contacts = filtered.ToList();
-        Priorities = await _priorityRepo.ListAsync(Workspace.Id);
-        PriorityColorByName = Priorities.ToDictionary(p => p.Name, p => string.IsNullOrWhiteSpace(p.Color) ? "neutral" : p.Color);
+        Contacts = viewData.Contacts;
+        Priorities = viewData.Priorities;
+        PriorityColorByName = viewData.PriorityColorByName;
+        CanCreateContacts = viewData.CanCreateContacts;
+        CanEditContacts = viewData.CanEditContacts;
+
         return Page();
     }
 }
+

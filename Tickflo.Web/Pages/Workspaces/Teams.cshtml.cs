@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
@@ -11,26 +11,25 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class TeamsModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaces;
-    private readonly IUserWorkspaceRoleRepository _uwr;
-    private readonly ITeamRepository _teams;
-    private readonly ITeamMemberRepository _members;
-    private readonly IRolePermissionRepository _rolePerms;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly IWorkspaceTeamsViewService _viewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
     public List<Team> Teams { get; private set; } = new();
-    public Dictionary<int,int> MemberCounts { get; private set; } = new();
-
-    public TeamsModel(IWorkspaceRepository workspaces, IUserWorkspaceRoleRepository uwr, ITeamRepository teams, ITeamMemberRepository members, IRolePermissionRepository rolePerms)
-    {
-        _workspaces = workspaces;
-        _uwr = uwr;
-        _teams = teams;
-        _members = members;
-        _rolePerms = rolePerms;
-    }
+    public Dictionary<int, int> MemberCounts { get; private set; } = new();
     public bool CanCreateTeams { get; private set; }
     public bool CanEditTeams { get; private set; }
+
+    public TeamsModel(
+        IWorkspaceRepository workspaces,
+        ICurrentUserService currentUserService,
+        IWorkspaceTeamsViewService viewService)
+    {
+        _workspaces = workspaces;
+        _currentUserService = currentUserService;
+        _viewService = viewService;
+    }
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {
@@ -38,42 +37,17 @@ public class TeamsModel : PageModel
         Workspace = await _workspaces.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
 
-        if (!TryGetUserId(out var uid)) return Forbid();
+        if (!_currentUserService.TryGetUserId(User, out var uid)) return Forbid();
 
-        var isAdmin = await _uwr.IsAdminAsync(uid, Workspace.Id);
-        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
-        bool canView = isAdmin;
-        if (!canView && eff.TryGetValue("teams", out var tp))
-        {
-            canView = tp.CanView;
-            CanCreateTeams = tp.CanCreate;
-            CanEditTeams = tp.CanEdit;
-        }
-        else if (isAdmin)
-        {
-            CanCreateTeams = true;
-            CanEditTeams = true;
-        }
-        if (!canView) return Forbid();
-        Teams = await _teams.ListForWorkspaceAsync(Workspace.Id);
-        MemberCounts = new Dictionary<int,int>();
-        foreach (var t in Teams)
-        {
-            var ms = await _members.ListMembersAsync(t.Id);
-            MemberCounts[t.Id] = ms.Count;
-        }
+        var viewData = await _viewService.BuildAsync(Workspace.Id, uid);
+        
+        if (!viewData.CanViewTeams) return Forbid();
+
+        Teams = viewData.Teams;
+        MemberCounts = viewData.MemberCounts;
+        CanCreateTeams = viewData.CanCreateTeams;
+        CanEditTeams = viewData.CanEditTeams;
+
         return Page();
-    }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-
-        userId = default;
-        return false;
     }
 }

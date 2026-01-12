@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
@@ -24,37 +25,23 @@ public class TicketsDetailsModel : PageModel
     }
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly ITicketRepository _ticketRepo;
-    private readonly IContactRepository _contactRepo;
-    private readonly IUserRepository _users;
-    private readonly IUserWorkspaceRepository _userWorkspaces;
-    private readonly IUserWorkspaceRoleRepository _roles;
-    private readonly ITicketStatusRepository _statusRepo;
-    private readonly ITicketPriorityRepository _priorityRepo;
-    private readonly ITicketTypeRepository _typeRepo;
-    private readonly ITicketHistoryRepository _historyRepo;
-    private readonly ITeamRepository _teamRepo;
-    private readonly IInventoryRepository _inventoryRepo;
+    private readonly ITicketManagementService _ticketService;
+    private readonly IWorkspaceTicketDetailsViewService _viewService;
     private readonly IRolePermissionRepository _rolePerms;
-    private readonly ITeamMemberRepository _teamMembers;
-    private readonly ILocationRepository _locationRepo;
+    private readonly ITeamRepository _teamRepo;
+    private readonly IUserWorkspaceRoleRepository _roles;
+    private readonly IWorkspaceTicketsSaveViewService _savingViewService;
 
-    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, IContactRepository contactRepo, IUserRepository users, IUserWorkspaceRepository userWorkspaces, IUserWorkspaceRoleRepository roles, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, ITicketHistoryRepository historyRepo, ITeamRepository teamRepo, IInventoryRepository inventoryRepo, IRolePermissionRepository rolePerms, ITeamMemberRepository teamMembers, ILocationRepository locationRepo)
+    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, ITicketManagementService ticketService, IWorkspaceTicketDetailsViewService viewService, IRolePermissionRepository rolePerms, ITeamRepository teamRepo, IUserWorkspaceRoleRepository roles, IWorkspaceTicketsSaveViewService savingViewService)
     {
         _workspaceRepo = workspaceRepo;
         _ticketRepo = ticketRepo;
-        _contactRepo = contactRepo;
-        _users = users;
-        _userWorkspaces = userWorkspaces;
-        _roles = roles;
-        _statusRepo = statusRepo;
-        _priorityRepo = priorityRepo;
-        _typeRepo = typeRepo;
-        _historyRepo = historyRepo;
-        _teamRepo = teamRepo;
-        _inventoryRepo = inventoryRepo;
+        _ticketService = ticketService;
+        _viewService = viewService;
         _rolePerms = rolePerms;
-        _teamMembers = teamMembers;
-        _locationRepo = locationRepo;
+        _teamRepo = teamRepo;
+        _roles = roles;
+        _savingViewService = savingViewService;
     }
     public List<Inventory> InventoryItems { get; private set; } = new();
 
@@ -119,130 +106,33 @@ public class TicketsDetailsModel : PageModel
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
         var currentUserId = TryGetUserId(out var uid) ? uid : 0;
-        // Load effective permissions for tickets section
-        if (currentUserId > 0)
-        {
-            var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, currentUserId);
-            if (eff.TryGetValue("tickets", out var tp))
-            {
-                CanViewTickets = tp.CanView;
-                CanEditTickets = tp.CanEdit;
-                CanCreateTickets = tp.CanCreate;
-                TicketViewScope = string.IsNullOrWhiteSpace(tp.TicketViewScope) ? "all" : tp.TicketViewScope;
-            }
-        }
-        // Admin override
-        IsWorkspaceAdmin = currentUserId > 0 && await _roles.IsAdminAsync(currentUserId, Workspace.Id);
-        if (IsWorkspaceAdmin)
-        {
-            CanViewTickets = true;
-            CanEditTickets = true;
-            CanCreateTickets = true;
-            TicketViewScope = "all";
-        }
-        // Enforce view/create permission before loading details
-        if (!IsWorkspaceAdmin)
-        {
-            if (id > 0)
-            {
-                if (!CanViewTickets) return Forbid();
-            }
-            else
-            {
-                if (!CanCreateTickets) return Forbid();
-            }
-        }
-        if (id > 0)
-        {
-            Ticket = await _ticketRepo.FindAsync(Workspace.Id, id);
-            if (Ticket == null) return NotFound();
-            // Enforce ticket scope for details when not admin
-            if (!IsWorkspaceAdmin && currentUserId > 0)
-            {
-                var scope = string.IsNullOrWhiteSpace(TicketViewScope) ? "all" : TicketViewScope!.ToLowerInvariant();
-                if (scope == "mine")
-                {
-                    if (Ticket.AssignedUserId != currentUserId) return Forbid();
-                }
-                else if (scope == "team")
-                {
-                    var myTeams = await _teamMembers.ListTeamsForUserAsync(Workspace.Id, currentUserId);
-                    var teamIds = myTeams.Select(t => t.Id).ToHashSet();
-                    var inScope = (Ticket.AssignedUserId == currentUserId) || (Ticket.AssignedTeamId.HasValue && teamIds.Contains(Ticket.AssignedTeamId.Value));
-                    if (!inScope) return Forbid();
-                }
-            }
-            // Load history only for existing tickets
-            History = await _historyRepo.ListForTicketAsync(Workspace.Id, id);
-        }
-        else
-        {
-            Ticket = new Ticket
-            {
-                WorkspaceId = Workspace.Id,
-                Type = "Standard",
-                Priority = "Normal",
-                Status = "New",
-                LocationId = LocationId
-            };
-        }
-        Contact = Ticket.ContactId.HasValue ? await _contactRepo.FindAsync(Workspace.Id, Ticket.ContactId.Value) : null;
-        Contacts = await _contactRepo.ListAsync(Workspace.Id);
-        InventoryItems = (await _inventoryRepo.ListAsync(Workspace.Id, null, "active")).ToList();
-        var sts = await _statusRepo.ListAsync(Workspace.Id);
-        if (sts.Count == 0)
-        {
-            sts = new List<Tickflo.Core.Entities.TicketStatus>{
-                new() { WorkspaceId = Workspace.Id, Name = "New", Color = "info", SortOrder = 1, IsClosedState = false },
-                new() { WorkspaceId = Workspace.Id, Name = "Completed", Color = "success", SortOrder = 2, IsClosedState = true },
-                new() { WorkspaceId = Workspace.Id, Name = "Closed", Color = "error", SortOrder = 3, IsClosedState = true },
-            };
-        }
-        Statuses = sts;
-        StatusColorByName = sts
-            .GroupBy(s => s.Name)
-            .ToDictionary(g => g.Key, g => string.IsNullOrWhiteSpace(g.Last().Color) ? "neutral" : g.Last().Color);
-        // Load priorities
-        var pris = await _priorityRepo.ListAsync(Workspace.Id);
-        if (pris.Count == 0)
-        {
-            pris = new List<Tickflo.Core.Entities.TicketPriority>{
-                new() { WorkspaceId = Workspace.Id, Name = "Low", Color = "warning", SortOrder = 1 },
-                new() { WorkspaceId = Workspace.Id, Name = "Normal", Color = "neutral", SortOrder = 2 },
-                new() { WorkspaceId = Workspace.Id, Name = "High", Color = "error", SortOrder = 3 },
-            };
-        }
-        Priorities = pris;
-        PriorityColorByName = pris.GroupBy(p => p.Name)
-            .ToDictionary(g => g.Key, g => string.IsNullOrWhiteSpace(g.Last().Color) ? "neutral" : g.Last().Color);
 
-        // Load types
-        var types = await _typeRepo.ListAsync(Workspace.Id);
-        if (types.Count == 0)
-        {
-            types = new List<Tickflo.Core.Entities.TicketType>{
-                new() { WorkspaceId = Workspace.Id, Name = "Standard", Color = "neutral", SortOrder = 1 },
-                new() { WorkspaceId = Workspace.Id, Name = "Bug", Color = "error", SortOrder = 2 },
-                new() { WorkspaceId = Workspace.Id, Name = "Feature", Color = "primary", SortOrder = 3 },
-            };
-        }
-        Types = types;
-        TypeColorByName = types.GroupBy(t => t.Name)
-            .ToDictionary(g => g.Key, g => string.IsNullOrWhiteSpace(g.Last().Color) ? "neutral" : g.Last().Color);
+        // Load view data - this handles permissions, scope, metadata
+        var viewData = await _viewService.BuildAsync(Workspace.Id, id, currentUserId, LocationId);
+        if (viewData == null) return Forbid();
 
-        var memberships = await _userWorkspaces.FindForWorkspaceAsync(Workspace.Id);
-        var userIds = memberships.Select(m => m.UserId).Distinct().ToList();
-        foreach (var uid2 in userIds)
-        {
-            var u = await _users.FindByIdAsync(uid2);
-            if (u != null) Members.Add(u);
-        }
-        Teams = await _teamRepo.ListForWorkspaceAsync(Workspace.Id);
-        LocationOptions = (await _locationRepo.ListAsync(Workspace.Id)).ToList();
-        if (Ticket != null && Ticket.Id > 0 && Ticket.LocationId.HasValue)
-        {
-            LocationId = Ticket.LocationId;
-        }
+        // Populate properties from view data
+        Ticket = viewData.Ticket;
+        Contact = viewData.Contact;
+        Contacts = viewData.Contacts;
+        Statuses = viewData.Statuses;
+        StatusColorByName = viewData.StatusColorByName;
+        Priorities = viewData.Priorities;
+        PriorityColorByName = viewData.PriorityColorByName;
+        Types = viewData.Types;
+        TypeColorByName = viewData.TypeColorByName;
+        History = viewData.History;
+        Members = viewData.Members;
+        Teams = viewData.Teams;
+        InventoryItems = viewData.InventoryItems;
+        LocationOptions = viewData.LocationOptions;
+        CanViewTickets = viewData.CanViewTickets;
+        CanEditTickets = viewData.CanEditTickets;
+        CanCreateTickets = viewData.CanCreateTickets;
+        IsWorkspaceAdmin = viewData.IsWorkspaceAdmin;
+        TicketViewScope = viewData.TicketViewScope;
+        LocationId = Ticket?.LocationId;
+
         return Page();
     }
 
@@ -276,7 +166,6 @@ public class TicketsDetailsModel : PageModel
         if (Workspace == null) return NotFound();
         var workspaceId = Workspace.Id;
         int uid = TryGetUserId(out var currentUid) ? currentUid : 0;
-        bool isAdmin = uid > 0 && await _roles.IsAdminAsync(uid, workspaceId);
         // Robustly resolve ticket id: route -> form -> query
         int resolvedId = id;
         if (resolvedId <= 0)
@@ -304,203 +193,74 @@ public class TicketsDetailsModel : PageModel
             }
         }
         var isNew = resolvedId <= 0;
-        // Permission enforcement: require create for new, edit for update
-        if (!isAdmin)
-        {
-            var eff = (uid > 0) ? await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, uid) : new Dictionary<string, EffectiveSectionPermission>();
-            var allowed = false;
-            if (eff.TryGetValue("tickets", out var tp))
-            {
-                allowed = isNew ? tp.CanCreate : tp.CanEdit;
-            }
-            if (!allowed) return Forbid();
-        }
+        var existing = !isNew ? await _ticketRepo.FindAsync(workspaceId, resolvedId) : null;
+        
+        var saveViewData = await _savingViewService.BuildAsync(workspaceId, uid, isNew, existing);
+        if (isNew && !saveViewData.CanCreateTickets) return Forbid();
+        if (!isNew && !saveViewData.CanEditTickets) return Forbid();
+        if (!isNew && !saveViewData.CanAccessTicket) return Forbid();
+        
         Ticket? t = null;
         if (isNew)
         {
-            t = new Ticket
+            var createReq = new CreateTicketRequest
             {
                 WorkspaceId = workspaceId,
+                CreatedByUserId = uid,
                 Subject = (EditSubject ?? string.Empty).Trim(),
                 Description = (EditDescription ?? string.Empty).Trim(),
                 Type = DefaultOrTrim(EditType, "Standard"),
                 Priority = DefaultOrTrim(EditPriority, "Normal"),
                 Status = DefaultOrTrim(EditStatus, "New"),
-                TicketInventories = inventories,
-                LocationId = locationId
+                ContactId = EditContactId,
+                AssignedUserId = assignedUserId,
+                AssignedTeamId = assignedTeamId,
+                LocationId = locationId,
+                Inventories = inventories
             };
-            // Contact
-            if (EditContactId.HasValue)
+            try
             {
-                var c = await _contactRepo.FindAsync(workspaceId, EditContactId.Value);
-                if (c != null) t.ContactId = EditContactId.Value;
+                t = await _ticketService.CreateTicketAsync(createReq);
             }
-            // Assignment
-            if (assignedUserId.HasValue)
+            catch (InvalidOperationException ex)
             {
-                var memberships = await _userWorkspaces.FindForWorkspaceAsync(workspaceId);
-                if (!memberships.Any(m => m.UserId == assignedUserId.Value)) return BadRequest("User not in workspace");
-                t.AssignedUserId = assignedUserId.Value;
+                TempData["ErrorMessage"] = ex.Message;
+                return RedirectToPage("/Workspaces/Tickets", new { slug });
             }
-            else if (locationId.HasValue)
-            {
-                var loc = await _locationRepo.FindAsync(workspaceId, locationId.Value);
-                if (loc?.DefaultAssigneeUserId.HasValue == true)
-                {
-                    var memberships = await _userWorkspaces.FindForWorkspaceAsync(workspaceId);
-                    if (memberships.Any(m => m.UserId == loc.DefaultAssigneeUserId.Value))
-                    {
-                        t.AssignedUserId = loc.DefaultAssigneeUserId.Value;
-                    }
-                }
-            }
-            if (assignedTeamId.HasValue)
-            {
-                var team = await _teamRepo.FindByIdAsync(assignedTeamId.Value);
-                if (team == null || team.WorkspaceId != workspaceId) return BadRequest("Invalid team");
-                t.AssignedTeamId = assignedTeamId.Value;
-            }
-            await _ticketRepo.CreateAsync(t);
-            // History: created
-            await _historyRepo.CreateAsync(new TicketHistory
-            {
-                WorkspaceId = workspaceId,
-                TicketId = t.Id,
-                CreatedByUserId = uid,
-                Action = "created",
-                Note = "Ticket created"
-            });
         }
         else
         {
-            t = await _ticketRepo.FindAsync(workspaceId, resolvedId);
-            if (t == null) return NotFound();
-            // Enforce ticket scope for edit when not admin
-            if (!isAdmin && uid > 0)
+            existing = await _ticketRepo.FindAsync(workspaceId, resolvedId);
+            if (existing == null) return NotFound();
+
+            var updateReq = new UpdateTicketRequest
             {
-                var scope = await _rolePerms.GetTicketViewScopeForUserAsync(workspaceId, uid, isAdmin);
-                if (scope == "mine")
-                {
-                    if (t.AssignedUserId != uid) return Forbid();
-                }
-                else if (scope == "team")
-                {
-                    var myTeams = await _teamMembers.ListTeamsForUserAsync(workspaceId, uid);
-                    var teamIds = myTeams.Select(tm => tm.Id).ToHashSet();
-                    var inScope = (t.AssignedUserId == uid) || (t.AssignedTeamId.HasValue && teamIds.Contains(t.AssignedTeamId.Value));
-                    if (!inScope) return Forbid();
-                }
-            }
-            // Snapshot old values for diff
-            var old = new {
-                t.Subject,
-                t.Description,
-                t.Type,
-                t.Priority,
-                t.Status,
-                t.ContactId,
-                t.AssignedUserId
+                TicketId = resolvedId,
+                WorkspaceId = workspaceId,
+                UpdatedByUserId = uid,
+                Subject = EditSubject?.Trim(),
+                Description = EditDescription?.Trim(),
+                Type = EditType?.Trim(),
+                Priority = EditPriority?.Trim(),
+                Status = EditStatus?.Trim(),
+                ContactId = EditContactId,
+                AssignedUserId = assignedUserId,
+                AssignedTeamId = assignedTeamId,
+                LocationId = locationId,
+                Inventories = inventories
             };
-            var oldInv = (t.TicketInventories?.ToList() ?? new List<TicketInventory>()).Select(iv => new { iv.InventoryId, iv.Quantity, iv.UnitPrice, Name = iv.Inventory?.Name }).ToList();
-            #pragma warning disable CS8602 // Dereference of a possibly null reference
-            var subjectTrim = EditSubject?.Trim();
-            if (!string.IsNullOrEmpty(subjectTrim)) t.Subject = subjectTrim;
-            var descriptionTrim = EditDescription?.Trim();
-            if (!string.IsNullOrEmpty(descriptionTrim)) t.Description = descriptionTrim;
-            var typeTrim = EditType?.Trim();
-            if (!string.IsNullOrEmpty(typeTrim)) t.Type = typeTrim;
-            var priorityTrim = EditPriority?.Trim();
-            if (!string.IsNullOrEmpty(priorityTrim)) t.Priority = priorityTrim;
-            var statusTrim = EditStatus?.Trim();
-            if (!string.IsNullOrEmpty(statusTrim)) t.Status = statusTrim;
-            var inventoryRefTrim = EditInventoryRef?.Trim();
-            // Removed InventoryRef, now handled by TicketInventories
-            #pragma warning restore CS8602
-            // Update contact if provided
-            if (EditContactId.HasValue)
+            try
             {
-                var c = await _contactRepo.FindAsync(workspaceId, EditContactId.Value);
-                if (c != null) t.ContactId = EditContactId.Value;
+                t = await _ticketService.UpdateTicketAsync(updateReq);
             }
-            // Assignment (optional)
-            if (assignedUserId.HasValue)
+            catch (InvalidOperationException ex)
             {
-                var memberships = await _userWorkspaces.FindForWorkspaceAsync(workspaceId);
-                if (!memberships.Any(m => m.UserId == assignedUserId.Value)) return BadRequest("User not in workspace");
-                t.AssignedUserId = assignedUserId.Value;
+                TempData["ErrorMessage"] = ex.Message;
+                return RedirectToPage("/Workspaces/Tickets", new { slug });
             }
-            if (assignedTeamId.HasValue)
-            {
-                var team = await _teamRepo.FindByIdAsync(assignedTeamId.Value);
-                if (team == null || team.WorkspaceId != workspaceId) return BadRequest("Invalid team");
-                t.AssignedTeamId = assignedTeamId.Value;
-            }
-            t.TicketInventories = inventories;
-            await _ticketRepo.UpdateAsync(t);
-            // History: per-field changes
-            async Task logIfChanged(string field, string? oldVal, string? newVal)
-            {
-                var o = (oldVal ?? string.Empty).Trim();
-                var n = (newVal ?? string.Empty).Trim();
-                if (o == n) return;
-                await _historyRepo.CreateAsync(new TicketHistory
-                {
-                    WorkspaceId = workspaceId,
-                    TicketId = t.Id,
-                    CreatedByUserId = uid,
-                    Action = "field_changed",
-                    Field = field,
-                    OldValue = o == string.Empty ? null : o,
-                    NewValue = n == string.Empty ? null : n
-                });
-            }
-            await logIfChanged("Subject", old.Subject, t.Subject);
-            await logIfChanged("Description", old.Description, t.Description);
-            await logIfChanged("Type", old.Type, t.Type);
-            await logIfChanged("Priority", old.Priority, t.Priority);
-            await logIfChanged("Status", old.Status, t.Status);
-            // Removed InventoryRef change log
-            await logIfChanged("ContactId", old.ContactId?.ToString(), t.ContactId?.ToString());
-            await logIfChanged("AssignedUserId", old.AssignedUserId?.ToString(), t.AssignedUserId?.ToString());
-            // Update location on edit if provided
-            if (locationId.HasValue)
-            {
-                var oldLoc = t.LocationId;
-                t.LocationId = locationId;
-                await logIfChanged("LocationId", oldLoc?.ToString(), t.LocationId?.ToString());
-            }
-            // Inventory summary diff
-            string Summarize(List<TicketInventory> list)
-            {
-                var items = list ?? new List<TicketInventory>();
-                var parts = new List<string>();
-                foreach (var iv in items)
-                {
-                    var name = iv.Inventory?.Name;
-                    if (string.IsNullOrWhiteSpace(name)) name = $"Item #{iv.InventoryId}";
-                    parts.Add($"{name} x{iv.Quantity} @ ${iv.UnitPrice:F2}");
-                }
-                return string.Join(", ", parts);
-            }
-            var newInv = (t.TicketInventories?.ToList() ?? new List<TicketInventory>());
-            var oldSummary = Summarize(oldInv.Select(x => new TicketInventory{ InventoryId = x.InventoryId, Quantity = x.Quantity, UnitPrice = x.UnitPrice, Inventory = new Inventory{ Name = x.Name ?? string.Empty } }).ToList());
-            var newSummary = Summarize(newInv);
-            await logIfChanged("Inventory", string.IsNullOrEmpty(oldSummary) ? null : oldSummary, string.IsNullOrEmpty(newSummary) ? null : newSummary);
         }
         // Broadcast update to workspace clients
-        string? assignedDisplay = null;
-        if (t.AssignedUserId.HasValue)
-        {
-            var au = await _users.FindByIdAsync(t.AssignedUserId.Value);
-            if (au != null)
-            {
-                var nameVal = (au.Name ?? string.Empty).Trim();
-                var emailVal = (au.Email ?? string.Empty).Trim();
-                var name = string.IsNullOrEmpty(nameVal) ? "(unknown)" : nameVal;
-                var email = emailVal;
-                assignedDisplay = string.IsNullOrEmpty(email) ? name : $"{name} ({email})";
-            }
-        }
+        string? assignedDisplay = t.AssignedUserId.HasValue ? await _ticketService.GetAssigneeDisplayNameAsync(t.AssignedUserId.Value) : null;
         string? assignedTeamName = null;
         if (t.AssignedTeamId.HasValue)
         {
@@ -510,22 +270,7 @@ public class TicketsDetailsModel : PageModel
         var group = Tickflo.Web.Realtime.TicketsHub.WorkspaceGroup(WorkspaceSlug ?? string.Empty);
         if (isNew)
         {
-            var invsNew = t.TicketInventories?.ToList() ?? new List<TicketInventory>();
-            var invCountNew = invsNew.Count;
-            var invTotalNew = invsNew.Sum(iv => iv.UnitPrice * iv.Quantity);
-            var invSummaryNew = invCountNew > 0 ? $"{invCountNew} item{(invCountNew == 1 ? string.Empty : "s")} · ${invTotalNew:F2}" : "—";
-            var detailsNew = new List<string>();
-            foreach (var iv in invsNew)
-            {
-                var name = iv.Inventory?.Name;
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    var inv = await _inventoryRepo.FindAsync(workspaceId, iv.InventoryId);
-                    name = inv?.Name ?? $"Item #{iv.InventoryId}";
-                }
-                detailsNew.Add($"{name} x{iv.Quantity}");
-            }
-            var invDetailsNew = string.Join(", ", detailsNew);
+            var (invSummaryNew, invDetailsNew) = await _ticketService.GenerateInventorySummaryAsync(t.TicketInventories?.ToList() ?? new List<TicketInventory>(), workspaceId);
             await hub.Clients.Group(group).SendCoreAsync("ticketCreated", new object[] {
                 new {
                     id = t.Id,
@@ -546,22 +291,7 @@ public class TicketsDetailsModel : PageModel
         }
         else
         {
-            var invsUpd = t.TicketInventories?.ToList() ?? new List<TicketInventory>();
-            var invCountUpd = invsUpd.Count;
-            var invTotalUpd = invsUpd.Sum(iv => iv.UnitPrice * iv.Quantity);
-            var invSummaryUpd = invCountUpd > 0 ? $"{invCountUpd} item{(invCountUpd == 1 ? string.Empty : "s")} · ${invTotalUpd:F2}" : "—";
-            var detailsUpd = new List<string>();
-            foreach (var iv in invsUpd)
-            {
-                var name = iv.Inventory?.Name;
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    var inv = await _inventoryRepo.FindAsync(workspaceId, iv.InventoryId);
-                    name = inv?.Name ?? $"Item #{iv.InventoryId}";
-                }
-                detailsUpd.Add($"{name} x{iv.Quantity}");
-            }
-            var invDetailsUpd = string.Join(", ", detailsUpd);
+            var (invSummaryUpd, invDetailsUpd) = await _ticketService.GenerateInventorySummaryAsync(t.TicketInventories?.ToList() ?? new List<TicketInventory>(), workspaceId);
             await hub.Clients.Group(group).SendCoreAsync("ticketUpdated", new object[] {
                 new {
                     id = t.Id,

@@ -5,6 +5,7 @@ using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Config;
+using Tickflo.Core.Services;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -15,14 +16,7 @@ public class WorkspaceModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
-    private readonly ITicketRepository _ticketRepo;
-    private readonly ITicketStatusRepository _statusRepo;
-    private readonly ITicketTypeRepository _typeRepo;
-    private readonly IUserRepository _userRepo;
-    private readonly ITeamRepository _teamRepo;
-    private readonly ITicketPriorityRepository _priorityRepo;
-    private readonly IRolePermissionRepository _rolePerms;
-    private readonly IUserWorkspaceRoleRepository _uwr;
+    private readonly IWorkspaceDashboardViewService _dashboardViewService;
     private readonly ITeamMemberRepository _teamMembers;
     private readonly SettingsConfig _settingsConfig;
 
@@ -75,27 +69,13 @@ public class WorkspaceModel : PageModel
     public WorkspaceModel(
         IWorkspaceRepository workspaceRepo,
         IUserWorkspaceRepository userWorkspaceRepo,
-        ITicketRepository ticketRepo,
-        ITicketStatusRepository statusRepo,
-        ITicketTypeRepository typeRepo,
-        IUserRepository userRepo,
-        ITicketPriorityRepository priorityRepo,
-        ITeamRepository teamRepo,
-        IRolePermissionRepository rolePerms,
-        IUserWorkspaceRoleRepository uwr,
+        IWorkspaceDashboardViewService dashboardViewService,
         ITeamMemberRepository teamMembers,
         SettingsConfig settingsConfig)
     {
         _workspaceRepo = workspaceRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
-        _ticketRepo = ticketRepo;
-        _statusRepo = statusRepo;
-        _typeRepo = typeRepo;
-        _userRepo = userRepo;
-        _priorityRepo = priorityRepo;
-        _teamRepo = teamRepo;
-        _rolePerms = rolePerms;
-        _uwr = uwr;
+        _dashboardViewService = dashboardViewService;
         _teamMembers = teamMembers;
         _settingsConfig = settingsConfig;
 
@@ -165,27 +145,11 @@ public class WorkspaceModel : PageModel
 
         if (Workspace != null && IsMember)
         {
-            // Permission gating: require dashboard view permission for workspace
-            var isAdmin = await _uwr.IsAdminAsync(userId, Workspace.Id);
-            if (isAdmin)
-            {
-                CanViewDashboard = true;
-                CanViewTickets = true;
-                TicketViewScope = "all";
-            }
-            else
-            {
-                var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, userId);
-                if (eff.TryGetValue("dashboard", out var dp)) CanViewDashboard = dp.CanView;
-                if (eff.TryGetValue("tickets", out var tp)) CanViewTickets = tp.CanView;
-                // Derive ticket scope label
-                TicketViewScope = await _rolePerms.GetTicketViewScopeForUserAsync(Workspace.Id, userId, isAdmin);
-            }
+            await LoadDashboardDataAsync(Workspace.Id, RangeDays, AssignmentFilter, userId);
             if (!CanViewDashboard)
             {
                 return Forbid();
             }
-            await LoadDashboardDataAsync(Workspace.Id, RangeDays, AssignmentFilter, userId);
         }
 
         return Page();
@@ -199,182 +163,66 @@ public class WorkspaceModel : PageModel
 
     private async Task LoadDashboardDataAsync(int workspaceId, int rangeDays, string assignmentFilter, int userId)
     {
-        // Load all members and teams for assignment filter
-        var acceptedUserIds = (await _userWorkspaceRepo.FindForWorkspaceAsync(workspaceId))
-            .Where(m => m.Accepted)
-            .Select(m => m.UserId)
-            .Distinct()
-            .ToList();
-        WorkspaceMembers = new List<User>();
-        foreach (var uid in acceptedUserIds)
-        {
-            var user = await _userRepo.FindByIdAsync(uid);
-            if (user != null)
-                WorkspaceMembers.Add(user);
-        }
-        WorkspaceTeams = await _teamRepo.ListForWorkspaceAsync(workspaceId);
+        // First pass: get scope to determine team IDs (use placeholder scope initially)
+        var view = await _dashboardViewService.BuildAsync(workspaceId, userId, "all", new List<int>(), rangeDays, assignmentFilter);
 
-        var tickets = await _ticketRepo.ListAsync(workspaceId);
-        // Apply role-based ticket scope filtering
-        IEnumerable<Tickflo.Core.Entities.Ticket> visibleTickets = tickets;
-        var isAdmin = await _uwr.IsAdminAsync(userId, workspaceId);
-        var scope = await _rolePerms.GetTicketViewScopeForUserAsync(workspaceId, userId, isAdmin);
-        if (scope == "mine")
-        {
-            visibleTickets = visibleTickets.Where(t => t.AssignedUserId == userId);
-        }
-        else if (scope == "team")
+        // Extract permissions from view
+        CanViewDashboard = view.CanViewDashboard;
+        CanViewTickets = view.CanViewTickets;
+        TicketViewScope = view.TicketViewScope;
+
+        // If scope is team, rebuild with actual team IDs
+        if (view.TicketViewScope == "team")
         {
             var myTeams = await _teamMembers.ListTeamsForUserAsync(workspaceId, userId);
-            var teamIds = myTeams.Select(t => t.Id).ToHashSet();
-            visibleTickets = visibleTickets.Where(t => t.AssignedTeamId.HasValue && teamIds.Contains(t.AssignedTeamId.Value));
+            var teamIds = myTeams.Select(t => t.Id).ToList();
+            view = await _dashboardViewService.BuildAsync(workspaceId, userId, view.TicketViewScope, teamIds, rangeDays, assignmentFilter);
         }
-        visibleTickets = visibleTickets.ToList();
-        TotalTickets = visibleTickets.Count();
-
-        StatusList = (await _statusRepo.ListAsync(workspaceId)).ToList();
-        var closedNames = new HashSet<string>(StatusList.Where(s => s.IsClosedState).Select(s => s.Name), System.StringComparer.OrdinalIgnoreCase);
-        var statusColor = StatusList.GroupBy(s => s.Name, System.StringComparer.OrdinalIgnoreCase)
-              .ToDictionary(g => g.Key, g => g.First().Color, System.StringComparer.OrdinalIgnoreCase);
-        
-        // Extract custom colors for dashboard KPI cards
-        var openStatus = StatusList.FirstOrDefault(s => !s.IsClosedState);
-        var closedStatus = StatusList.FirstOrDefault(s => s.IsClosedState);
-        
-        if (openStatus != null && !string.IsNullOrWhiteSpace(openStatus.Color))
+        else if (view.TicketViewScope != "all")
         {
-            PrimaryColor = openStatus.Color;
-            PrimaryIsHex = openStatus.Color.StartsWith("#");
-        }
-        
-        if (closedStatus != null && !string.IsNullOrWhiteSpace(closedStatus.Color))
-        {
-            SuccessColor = closedStatus.Color;
-            SuccessIsHex = closedStatus.Color.StartsWith("#");
+            // Re-fetch with correct scope if not "all"
+            view = await _dashboardViewService.BuildAsync(workspaceId, userId, view.TicketViewScope, new List<int>(), rangeDays, assignmentFilter);
         }
 
-        // Load custom ticket types and color map
-        TypeList = (await _typeRepo.ListAsync(workspaceId)).ToList();
-        var typeColor = TypeList.GroupBy(t => t.Name, System.StringComparer.OrdinalIgnoreCase)
-              .ToDictionary(g => g.Key, g => g.First().Color, System.StringComparer.OrdinalIgnoreCase);
+        TotalTickets = view.TotalTickets;
+        OpenTickets = view.OpenTickets;
+        ResolvedTickets = view.ResolvedTickets;
+        ActiveMembers = view.ActiveMembers;
 
-        ResolvedTickets = visibleTickets.Count(t => closedNames.Contains(t.Status));
-        // Open tickets: not closed (case-insensitive)
-        var openNames = new HashSet<string>(StatusList.Where(s => !s.IsClosedState).Select(s => s.Name), System.StringComparer.OrdinalIgnoreCase);
-        OpenTickets = visibleTickets.Count(t => openNames.Contains(t.Status));
+        StatusList = view.StatusList.ToList();
+        TypeList = view.TypeList.ToList();
+        PriorityList = view.PriorityList.ToList();
+        PriorityCounts = view.PriorityCounts.ToDictionary(k => k.Key, v => v.Value);
 
-        var memberships = await _userWorkspaceRepo.FindForWorkspaceAsync(workspaceId);
-        ActiveMembers = memberships.Count(m => m.Accepted);
+        PrimaryColor = view.PrimaryColor;
+        PrimaryIsHex = view.PrimaryIsHex;
+        SuccessColor = view.SuccessColor;
+        SuccessIsHex = view.SuccessIsHex;
 
-        // Activity series (created vs closed per day in range)
-        var startDate = DateTime.UtcNow.Date.AddDays(-rangeDays + 1);
-        var dateWindow = Enumerable.Range(0, rangeDays).Select(i => startDate.AddDays(i)).ToList();
-        ActivitySeries = dateWindow
-            .Select(d => new ActivityPoint
-            {
-                Label = d.ToString("MMM dd"),
-                Created = visibleTickets.Count(t => t.CreatedAt.Date == d.Date),
-                Closed = visibleTickets.Count(t => closedNames.Contains(t.Status) && (t.UpdatedAt ?? t.CreatedAt).Date == d.Date)
-            })
-            .ToList();
+        WorkspaceMembers = view.WorkspaceMembers.ToList();
+        WorkspaceTeams = view.WorkspaceTeams.ToList();
 
-        // Get custom priorities for this workspace
-        PriorityList = (await _priorityRepo.ListAsync(workspaceId)).ToList();
-        // Priority counts (all tickets, not filtered, using custom priorities)
-        PriorityCounts = PriorityList
-            .ToDictionary(
-                p => p.Name,
-                p => visibleTickets.Count(t => (t.Priority ?? "Normal") == p.Name)
-            );
-        // Add any tickets with priorities not in the custom list
-        foreach (var t in visibleTickets)
-        {
-            var p = string.IsNullOrWhiteSpace(t.Priority) ? "Normal" : t.Priority;
-            if (!PriorityCounts.ContainsKey(p))
-                PriorityCounts[p] = 1;
-            else if (!PriorityList.Any(x => x.Name == p))
-                PriorityCounts[p] += 1;
-        }
+        ActivitySeries = view.ActivitySeries.Select(a => new ActivityPoint { Label = a.Label, Created = a.Created, Closed = a.Closed }).ToList();
+        TopMembers = view.TopMembers.Select(m => new MemberStat { UserId = m.UserId, Name = m.Name, ResolvedCount = m.ResolvedCount }).ToList();
 
-        // Assignment filter logic
-        IEnumerable<Tickflo.Core.Entities.Ticket> filtered = visibleTickets;
-        if (assignmentFilter == "unassigned")
-        {
-            filtered = filtered.Where(t => !t.AssignedUserId.HasValue);
-        }
-        else if (assignmentFilter == "me")
-        {
-            filtered = filtered.Where(t => t.AssignedUserId == userId);
-        }
-        else if (assignmentFilter == "others")
-        {
-            filtered = filtered.Where(t => t.AssignedUserId.HasValue && t.AssignedUserId != userId);
-        }
-        // else "all" (no filter)
+        AvgResolutionLabel = view.AvgResolutionLabel;
+        AvgResolutionTime = null;
 
-        // Recent tickets list (latest 8)
-        var recent = filtered
-            .OrderByDescending(t => t.UpdatedAt ?? t.CreatedAt)
-            .Take(8)
-            .ToList();
-
-        // Map assignee names in one pass
-        var assigneeIds = recent.Where(t => t.AssignedUserId.HasValue).Select(t => t.AssignedUserId!.Value).Distinct().ToList();
-        var assigneeNames = new Dictionary<int, string>();
-        foreach (var uid in assigneeIds)
-        {
-            var u = await _userRepo.FindByIdAsync(uid);
-            if (u != null) assigneeNames[uid] = u.Name;
-        }
-
-        RecentTickets = recent.Select(t => new TicketListItem
+        RecentTickets = view.RecentTickets.Select(t => new TicketListItem
         {
             Id = t.Id,
             Subject = t.Subject,
             Type = t.Type,
             Status = t.Status,
-            StatusColor = statusColor.TryGetValue(t.Status, out var c) ? c : "neutral",
-            TypeColor = typeColor.TryGetValue(t.Type, out var tc) ? tc : "neutral",
+            StatusColor = t.StatusColor,
+            TypeColor = t.TypeColor,
             AssignedUserId = t.AssignedUserId,
-            AssigneeName = t.AssignedUserId.HasValue && assigneeNames.TryGetValue(t.AssignedUserId.Value, out var n) ? n : null,
-            UpdatedAt = t.UpdatedAt ?? t.CreatedAt
+            AssigneeName = t.AssigneeName,
+            UpdatedAt = t.UpdatedAt
         }).ToList();
-
-        // Top members by closed ticket count in selected range
-        var cutoff = DateTime.UtcNow.AddDays(-rangeDays);
-        var closedAssigned = visibleTickets
-            .Where(t => t.AssignedUserId.HasValue && closedNames.Contains(t.Status) && (t.UpdatedAt ?? t.CreatedAt) >= cutoff)
-            .GroupBy(t => t.AssignedUserId!.Value)
-            .Select(g => new { UserId = g.Key, Count = g.Count() })
-            .OrderByDescending(x => x.Count)
-            .Take(5)
-            .ToList();
-
-        foreach (var item in closedAssigned)
-        {
-            var user = await _userRepo.FindByIdAsync(item.UserId);
-            TopMembers.Add(new MemberStat
-            {
-                UserId = item.UserId,
-                Name = user?.Name ?? $"User #{item.UserId}",
-                ResolvedCount = item.Count
-            });
-        }
-
-        // Average resolution time for closed tickets (selected range)
-        var closedForAvg = visibleTickets.Where(t => closedNames.Contains(t.Status) && (t.UpdatedAt ?? t.CreatedAt) >= cutoff && (t.UpdatedAt.HasValue)).ToList();
-        if (closedForAvg.Count > 0)
-        {
-            var avgTicks = closedForAvg.Average(t => (t.UpdatedAt!.Value - t.CreatedAt).Ticks);
-            AvgResolutionTime = TimeSpan.FromTicks(Convert.ToInt64(avgTicks));
-            AvgResolutionLabel = FormatDuration(AvgResolutionTime.Value);
-        }
-        else
-        {
-            AvgResolutionTime = null;
-            AvgResolutionLabel = "—";
-        }
     }
+
+    // Removed local ticket filtering helpers; now handled by IWorkspaceDashboardViewService
 
     private static string FormatDuration(TimeSpan ts)
     {

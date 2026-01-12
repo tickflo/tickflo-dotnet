@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Microsoft.AspNetCore.Mvc;
+using Tickflo.Core.Services;
 using Tickflo.Core.Services.Email;
 using Tickflo.Core.Utils;
 using System.Security.Claims;
@@ -17,18 +18,22 @@ public class UsersModel : PageModel
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
     private readonly IEmailSender _emailSender;
+    private readonly IWorkspaceUsersViewService _viewService;
     private readonly IRolePermissionRepository _rolePerms;
+    private readonly IWorkspaceUsersManageViewService _manageViewService;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
-    public UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IEmailSender emailSender, IRolePermissionRepository rolePerms)
+    public UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IEmailSender emailSender, IWorkspaceUsersViewService viewService, IRolePermissionRepository rolePerms, IWorkspaceUsersManageViewService manageViewService)
     {
         _workspaceRepo = workspaceRepo;
         _userRepo = userRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
         _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
         _emailSender = emailSender;
+        _viewService = viewService;
         _rolePerms = rolePerms;
+        _manageViewService = manageViewService;
     }
 
     public bool CanCreateUsers { get; private set; }
@@ -41,28 +46,11 @@ public class UsersModel : PageModel
         {
             if (TryGetUserId(out var uid))
             {
-                IsWorkspaceAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, Workspace.Id);
-                var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, uid);
-                if (eff.TryGetValue("users", out var up))
-                {
-                    CanCreateUsers = up.CanCreate || IsWorkspaceAdmin;
-                    CanEditUsers = up.CanEdit || IsWorkspaceAdmin;
-                }
-            }
-            var memberships = await _userWorkspaceRepo.FindForWorkspaceAsync(Workspace.Id);
-            PendingInvites = new List<InviteView>();
-            foreach (var m in memberships.Where(m => !m.Accepted))
-            {
-                var u = await _userRepo.FindByIdAsync(m.UserId);
-                if (u == null) continue;
-                var roles = await _userWorkspaceRoleRepo.GetRoleNamesAsync(u.Id, Workspace.Id);
-                PendingInvites.Add(new InviteView
-                {
-                    UserId = u.Id,
-                    Email = u.Email,
-                    CreatedAt = m.CreatedAt,
-                    Roles = roles
-                });
+                var viewData = await _viewService.BuildAsync(Workspace.Id, uid);
+                IsWorkspaceAdmin = viewData.IsWorkspaceAdmin;
+                CanCreateUsers = viewData.CanCreateUsers;
+                CanEditUsers = viewData.CanEditUsers;
+                PendingInvites = viewData.PendingInvites;
             }
         }
     }
@@ -70,27 +58,16 @@ public class UsersModel : PageModel
     public List<InviteView> PendingInvites { get; set; } = new();
     public bool IsWorkspaceAdmin { get; set; }
 
-    public class InviteView
-    {
-        public int UserId { get; set; }
-        public string Email { get; set; } = string.Empty;
-        public DateTime CreatedAt { get; set; }
-        public List<string> Roles { get; set; } = new();
-    }
-
     public async Task<IActionResult> OnPostAcceptAsync(string slug, int userId)
     {
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
         if (!TryGetUserId(out var currentUserId)) return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(currentUserId, Workspace.Id);
-        if (!isAdmin)
-        {
-            var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, currentUserId);
-            var allowed = eff.TryGetValue("users", out var up) && up.CanEdit;
-            if (!allowed) return Forbid();
-        }
+        
+        var viewData = await _manageViewService.BuildAsync(Workspace.Id, currentUserId);
+        if (!viewData.CanEditUsers) return Forbid();
+        
         var uw = await _userWorkspaceRepo.FindAsync(userId, Workspace.Id);
         if (uw == null) return NotFound();
         uw.Accepted = true;
@@ -106,13 +83,10 @@ public class UsersModel : PageModel
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
         if (!TryGetUserId(out var currentUserId)) return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(currentUserId, Workspace.Id);
-        if (!isAdmin)
-        {
-            var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(Workspace.Id, currentUserId);
-            var allowed = eff.TryGetValue("users", out var up) && up.CanEdit;
-            if (!allowed) return Forbid();
-        }
+        
+        var viewData = await _manageViewService.BuildAsync(Workspace.Id, currentUserId);
+        if (!viewData.CanEditUsers) return Forbid();
+        
         var uw = await _userWorkspaceRepo.FindAsync(userId, Workspace.Id);
         if (uw == null || uw.Accepted) return NotFound();
         var user = await _userRepo.FindByIdAsync(userId);

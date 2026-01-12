@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
@@ -10,16 +11,12 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class ReportRunViewModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
-    private readonly IReportRepository _reportRepo;
-    private readonly IReportRunRepository _reportRunRepo;
-    private readonly IWebHostEnvironment _env;
+    private readonly IWorkspaceReportRunViewService _runViewService;
 
-    public ReportRunViewModel(IWorkspaceRepository workspaceRepo, IReportRepository reportRepo, IReportRunRepository reportRunRepo, IWebHostEnvironment env)
+    public ReportRunViewModel(IWorkspaceRepository workspaceRepo, IWorkspaceReportRunViewService runViewService)
     {
         _workspaceRepo = workspaceRepo;
-        _reportRepo = reportRepo;
-        _reportRunRepo = reportRunRepo;
-        _env = env;
+        _runViewService = runViewService;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -62,152 +59,35 @@ public class ReportRunViewModel : PageModel
         var ws = await _workspaceRepo.FindBySlugAsync(slug);
         if (ws == null) return NotFound();
         Workspace = ws;
-        var rep = await _reportRepo.FindAsync(ws.Id, reportId);
-        if (rep == null) return NotFound();
-        Report = rep;
-        var run = await _reportRunRepo.FindAsync(ws.Id, runId);
-        if (run == null) return NotFound();
-        Run = run;
-        TotalRows = run.RowCount;
-        TotalPages = Math.Max(1, (int)Math.Ceiling((double)TotalRows / Math.Max(1, Take)));
-        if (Page > TotalPages) Page = TotalPages;
-        if (Page < 1) Page = 1;
-
-        HasContent = run.FileBytes != null && run.FileBytes.Length > 0;
-        if (!HasContent)
-        {
-            // No content stored for this run (likely pre-DB storage). Render page with info message.
-            FromRow = 0;
-            ToRow = 0;
-            return Page();
-        }
-
-        if (run.FileBytes == null)
-        {
-            return Page();
-        }
-
-        await using var fs = new MemoryStream(run.FileBytes);
-        using var sr = new StreamReader(fs, System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-
-        // Read header record
-        var header = ReadCsvRecord(sr);
-        if (header == null)
-        {
-            return Page();
-        }
-        Headers = header;
-
-        // Skip rows for paging
-        var skip = (Page - 1) * Take;
-        for (int i = 0; i < skip; i++)
-        {
-            var skipped = ReadCsvRecord(sr);
-            if (skipped == null)
-            {
-                // Reached EOF before expected; adjust page metrics
-                FromRow = 0;
-                ToRow = 0;
-                return Page();
-            }
-        }
-
-        // Read up to Take rows
-        int count = 0;
-        while (count < Take)
-        {
-            var row = ReadCsvRecord(sr);
-            if (row == null) break; // EOF
-            Rows.Add(row);
-            count++;
-        }
-
-        FromRow = TotalRows == 0 ? 0 : (Page - 1) * Take + 1;
-        ToRow = Math.Min(Page * Take, TotalRows);
-
+        var uid = TryGetUserId(out var idVal) ? idVal : 0;
+        if (uid == 0) return Forbid();
+        var data = await _runViewService.BuildAsync(ws.Id, uid, reportId, runId, Page, Take);
+        if (!data.CanViewReports) return Forbid();
+        if (data.Report == null || data.Run == null || data.PageData == null) return NotFound();
+        Report = data.Report;
+        Run = data.Run;
+        var pageResult = data.PageData;
+        Page = pageResult.Page;
+        Take = pageResult.Take;
+        DisplayLimit = pageResult.Take;
+        TotalRows = pageResult.TotalRows;
+        TotalPages = pageResult.TotalPages;
+        FromRow = pageResult.FromRow;
+        ToRow = pageResult.ToRow;
+        HasContent = pageResult.HasContent;
+        Headers = pageResult.Headers.ToList();
+        Rows = pageResult.Rows.Select(r => r.ToList()).ToList();
         return Page();
     }
 
-    private static List<string>? ReadCsvRecord(StreamReader sr)
+    private bool TryGetUserId(out int userId)
     {
-        var result = new List<string>();
-        var sb = new System.Text.StringBuilder();
-        bool inQuotes = false;
-        bool started = false;
-
-        while (true)
+        var idValue = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
         {
-            int ci = sr.Read();
-            if (ci == -1)
-            {
-                if (!started && sb.Length == 0 && result.Count == 0)
-                {
-                    return null; // EOF, no record
-                }
-                // finalize last field at EOF
-                result.Add(sb.ToString());
-                return result;
-            }
-            char c = (char)ci;
-
-            if (c == '\r')
-            {
-                continue; // normalize newlines
-            }
-            if (c == '\n')
-            {
-                if (inQuotes)
-                {
-                    sb.Append('\n');
-                    started = true;
-                    continue;
-                }
-                // end of record
-                result.Add(sb.ToString());
-                return result;
-            }
-
-            if (c == '"')
-            {
-                if (!inQuotes)
-                {
-                    if (sb.Length == 0)
-                    {
-                        inQuotes = true;
-                        started = true;
-                    }
-                    else
-                    {
-                        sb.Append('"');
-                    }
-                }
-                else
-                {
-                    int peek = sr.Peek();
-                    if (peek == '"')
-                    {
-                        sb.Append('"');
-                        sr.Read(); // consume second quote
-                        started = true;
-                    }
-                    else
-                    {
-                        inQuotes = false;
-                    }
-                }
-                continue;
-            }
-
-            if (c == ',' && !inQuotes)
-            {
-                result.Add(sb.ToString());
-                sb.Clear();
-                started = false;
-                continue;
-            }
-
-            sb.Append(c);
-            started = true;
+            return true;
         }
+        userId = default;
+        return false;
     }
 }

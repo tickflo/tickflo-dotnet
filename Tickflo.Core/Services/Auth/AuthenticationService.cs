@@ -30,12 +30,10 @@ public class AuthenticationService(
             return result;
         }
 
-        // Check if user has NULL password - they need to set one first
+        // Reject logins where no password hash is set
         if (user.PasswordHash == null)
         {
-            result.Success = true;
-            result.UserId = user.Id;
-            result.RequiresPasswordSetup = true;
+            result.ErrorMessage = "Invalid username or password, please try again";
             return result;
         }
 

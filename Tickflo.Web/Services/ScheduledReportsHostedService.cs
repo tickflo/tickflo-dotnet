@@ -25,9 +25,7 @@ public class ScheduledReportsHostedService : BackgroundService
             {
                 using var scope = _sp.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<TickfloDbContext>();
-                var runRepo = scope.ServiceProvider.GetRequiredService<IReportRunRepository>();
-                var reportRepo = scope.ServiceProvider.GetRequiredService<IReportRepository>();
-                var exec = scope.ServiceProvider.GetRequiredService<IReportingService>();
+                var runSvc = scope.ServiceProvider.GetRequiredService<Tickflo.Core.Services.IReportRunService>();
 
                 var now = DateTime.UtcNow;
                 var due = await db.Reports.AsNoTracking()
@@ -37,27 +35,7 @@ public class ScheduledReportsHostedService : BackgroundService
                 foreach (var r in due)
                 {
                     if (!IsDue(r, now)) continue;
-                    // Create run record
-                    var run = await runRepo.CreateAsync(new ReportRun
-                    {
-                        WorkspaceId = r.WorkspaceId,
-                        ReportId = r.Id,
-                        Status = "Pending",
-                        StartedAt = DateTime.UtcNow
-                    });
-                    await runRepo.MarkRunningAsync(run.Id);
-                    try
-                    {
-                        var res = await exec.ExecuteAsync(r.WorkspaceId, r, stoppingToken);
-                        await runRepo.CompleteAsync(run.Id, "Succeeded", res.RowCount, null, res.Bytes, res.ContentType, res.FileName);
-                        r.LastRun = DateTime.UtcNow;
-                        await reportRepo.UpdateAsync(r);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Scheduled report {ReportId} failed", r.Id);
-                        await runRepo.CompleteAsync(run.Id, "Failed", 0, null);
-                    }
+                    await runSvc.RunReportAsync(r.WorkspaceId, r.Id, stoppingToken);
                 }
             }
             catch (Exception ex)

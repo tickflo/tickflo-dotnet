@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
@@ -11,12 +12,8 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class TeamsEditModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaces;
-    private readonly IUserWorkspaceRoleRepository _uwr;
-    private readonly ITeamRepository _teams;
-    private readonly IUserWorkspaceRepository _userWorkspaces;
-    private readonly IUserRepository _users;
-    private readonly ITeamMemberRepository _teamMembers;
-    private readonly IRolePermissionRepository _rolePerms;
+    private readonly ITeamManagementService _teamService;
+    private readonly IWorkspaceTeamsEditViewService _teamsEditViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -34,20 +31,12 @@ public class TeamsEditModel : PageModel
 
     public TeamsEditModel(
         IWorkspaceRepository workspaces,
-        IUserWorkspaceRoleRepository uwr,
-        ITeamRepository teams,
-        IUserWorkspaceRepository userWorkspaces,
-        IUserRepository users,
-        ITeamMemberRepository teamMembers,
-        IRolePermissionRepository rolePerms)
+        ITeamManagementService teamService,
+        IWorkspaceTeamsEditViewService teamsEditViewService)
     {
         _workspaces = workspaces;
-        _uwr = uwr;
-        _teams = teams;
-        _userWorkspaces = userWorkspaces;
-        _users = users;
-        _teamMembers = teamMembers;
-        _rolePerms = rolePerms;
+        _teamService = teamService;
+        _teamsEditViewService = teamsEditViewService;
     }
     public bool CanViewTeams { get; private set; }
     public bool CanEditTeams { get; private set; }
@@ -55,29 +44,26 @@ public class TeamsEditModel : PageModel
 
     public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
     {
-        var access = await EnsureAccessAsync(slug);
-        if (access.failure != null) return access.failure;
-
-        var ws = access.workspace;
+        WorkspaceSlug = slug;
+        var ws = await _workspaces.FindBySlugAsync(slug);
         if (ws == null) return NotFound();
-
+        if (!TryGetUserId(out var uid)) return Forbid();
         Workspace = ws;
-        var uid = access.userId;
-        CanViewTeams = access.canView;
-        CanEditTeams = access.canEdit;
-        CanCreateTeams = access.canCreate;
+        var data = await _teamsEditViewService.BuildAsync(ws.Id, uid, id);
+        CanViewTeams = data.CanViewTeams;
+        CanEditTeams = data.CanEditTeams;
+        CanCreateTeams = data.CanCreateTeams;
+        if (!CanViewTeams) return Forbid();
 
         Id = id;
-        await LoadWorkspaceUsersAsync();
+        WorkspaceUsers = data.WorkspaceUsers ?? new();
         if (id > 0)
         {
-            var team = await _teams.FindByIdAsync(id);
+            var team = data.ExistingTeam;
             if (team == null || team.WorkspaceId != ws.Id) return NotFound();
             Name = team.Name;
             Description = team.Description;
-            // Preselect existing members for edit
-            var members = await _teamMembers.ListMembersAsync(team.Id);
-            SelectedMemberIds = members.Select(m => m.Id).ToList();
+            SelectedMemberIds = (data.ExistingMemberIds ?? new()).ToList();
         }
         else
         {
@@ -89,23 +75,20 @@ public class TeamsEditModel : PageModel
 
     public async Task<IActionResult> OnPostAsync(string slug, int id = 0)
     {
-        var access = await EnsureAccessAsync(slug);
-        if (access.failure != null) return access.failure;
-
-        var ws = access.workspace;
+        WorkspaceSlug = slug;
+        var ws = await _workspaces.FindBySlugAsync(slug);
         if (ws == null) return NotFound();
-
+        if (!TryGetUserId(out var uid)) return Forbid();
         Workspace = ws;
-        var uid = access.userId;
-        CanViewTeams = access.canView;
-        CanEditTeams = access.canEdit;
-        CanCreateTeams = access.canCreate;
-
+        var data = await _teamsEditViewService.BuildAsync(ws.Id, uid, id);
+        CanViewTeams = data.CanViewTeams;
+        CanEditTeams = data.CanEditTeams;
+        CanCreateTeams = data.CanCreateTeams;
         var allowed = id == 0 ? CanCreateTeams : CanEditTeams;
         if (!allowed) return Forbid();
 
         // Ensure users list is available even if we return Page() on validation errors
-        await LoadWorkspaceUsersAsync();
+        WorkspaceUsers = data.WorkspaceUsers ?? new();
 
         var nameTrim = Name?.Trim() ?? string.Empty;
         var descTrim = string.IsNullOrWhiteSpace(Description) ? null : Description.Trim();
@@ -114,75 +97,28 @@ public class TeamsEditModel : PageModel
             ModelState.AddModelError(nameof(Name), "Team name is required");
             return Page();
         }
-        var existingByName = await _teams.FindByNameAsync(ws.Id, nameTrim);
-        if (id == 0)
+        try
         {
-            if (existingByName != null)
+            if (id == 0)
             {
-                ModelState.AddModelError(nameof(Name), "A team with that name already exists");
-                return Page();
+                var created = await _teamService.CreateTeamAsync(ws.Id, nameTrim, descTrim);
+                // Persist selected members via service validation/sync
+                var selectedIds = (SelectedMemberIds ?? new()).Distinct().ToList();
+                await _teamService.SyncTeamMembersAsync(created.Id, ws.Id, selectedIds);
             }
-            var created = await _teams.AddAsync(ws.Id, nameTrim, descTrim, uid);
-            // Persist selected members only on create
-            if (SelectedMemberIds?.Count > 0)
+            else
             {
-                // Validate users belong to this workspace (accepted)
-                var acceptedUws = await _userWorkspaces.FindForWorkspaceAsync(ws.Id);
-                var validUserIds = acceptedUws.Where(uw => uw.Accepted).Select(uw => uw.UserId).ToHashSet();
-                foreach (var memberId in SelectedMemberIds.Distinct())
-                {
-                    if (validUserIds.Contains(memberId))
-                    {
-                        await _teamMembers.AddAsync(created.Id, memberId);
-                    }
-                }
+                var updated = await _teamService.UpdateTeamAsync(id, nameTrim, descTrim);
+                var selectedIds = (SelectedMemberIds ?? new()).Distinct().ToList();
+                await _teamService.SyncTeamMembersAsync(updated.Id, ws.Id, selectedIds);
             }
         }
-        else
+        catch (InvalidOperationException ex)
         {
-            var team = await _teams.FindByIdAsync(id);
-            if (team == null || team.WorkspaceId != ws.Id) return NotFound();
-            if (existingByName != null && existingByName.Id != team.Id)
-            {
-                ModelState.AddModelError(nameof(Name), "A team with that name already exists");
-                return Page();
-            }
-            team.Name = nameTrim;
-            team.Description = descTrim;
-            team.UpdatedAt = DateTime.UtcNow;
-            team.UpdatedBy = uid;
-            await _teams.UpdateAsync(team);
-            // Sync membership to match SelectedMemberIds on edit
-            var currentMembers = await _teamMembers.ListMembersAsync(team.Id);
-            var currentIds = currentMembers.Select(m => m.Id).ToHashSet();
-            var desiredIds = (SelectedMemberIds ?? new()).ToHashSet();
-
-            // Validate desired IDs belong to this workspace (accepted)
-            var acceptedUws = await _userWorkspaces.FindForWorkspaceAsync(ws.Id);
-            var validUserIds = acceptedUws.Where(uw => uw.Accepted).Select(uw => uw.UserId).ToHashSet();
-            desiredIds.IntersectWith(validUserIds);
-
-            var toAdd = desiredIds.Except(currentIds).ToList();
-            var toRemove = currentIds.Except(desiredIds).ToList();
-            foreach (var addId in toAdd)
-            {
-                await _teamMembers.AddAsync(team.Id, addId);
-            }
-            foreach (var removeId in toRemove)
-            {
-                await _teamMembers.RemoveAsync(team.Id, removeId);
-            }
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return Page();
         }
         return RedirectToPage("/Workspaces/Teams", new { slug });
-    }
-
-    private async Task LoadWorkspaceUsersAsync()
-    {
-        if (Workspace == null) { WorkspaceUsers = new(); return; }
-        var uws = await _userWorkspaces.FindForWorkspaceAsync(Workspace.Id);
-        var accepted = uws.Where(uw => uw.Accepted).Select(uw => uw.UserId).ToList();
-        var allUsers = await _users.ListAsync();
-        WorkspaceUsers = allUsers.Where(u => accepted.Contains(u.Id)).OrderBy(u => u.Name).ToList();
     }
 
     private bool TryGetUserId(out int userId)
@@ -197,27 +133,4 @@ public class TeamsEditModel : PageModel
         return false;
     }
 
-    private async Task<(Workspace? workspace, int userId, bool canView, bool canEdit, bool canCreate, IActionResult? failure)> EnsureAccessAsync(string slug)
-    {
-        WorkspaceSlug = slug;
-        var ws = await _workspaces.FindBySlugAsync(slug);
-        if (ws == null) return (null, 0, false, false, false, NotFound());
-
-        if (!TryGetUserId(out var userId)) return (ws, 0, false, false, false, Forbid());
-
-        var isAdmin = await _uwr.IsAdminAsync(userId, ws.Id);
-        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(ws.Id, userId);
-
-        if (isAdmin)
-        {
-            return (ws, userId, true, true, true, null);
-        }
-
-        if (!eff.TryGetValue("teams", out var tp))
-        {
-            return (ws, userId, false, false, false, Forbid());
-        }
-
-        return (ws, userId, tp.CanView, tp.CanEdit, tp.CanCreate, tp.CanView ? null : Forbid());
-    }
 }

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
@@ -11,10 +12,9 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class ContactsEditModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
+    private readonly IWorkspaceContactsEditViewService _viewService;
     private readonly IContactRepository _contactRepo;
-    private readonly ITicketPriorityRepository _priorityRepo;
-    private readonly IRolePermissionRepository _rolePerms;
+    private readonly IContactService _contactService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -33,13 +33,12 @@ public class ContactsEditModel : PageModel
     [BindProperty] public string? PreferredChannel { get; set; }
     [BindProperty] public string? Priority { get; set; }
 
-    public ContactsEditModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IContactRepository contactRepo, ITicketPriorityRepository priorityRepo, IRolePermissionRepository rolePerms)
+    public ContactsEditModel(IWorkspaceRepository workspaceRepo, IWorkspaceContactsEditViewService viewService, IContactRepository contactRepo, IContactService contactService)
     {
         _workspaceRepo = workspaceRepo;
-        _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
+        _viewService = viewService;
         _contactRepo = contactRepo;
-        _priorityRepo = priorityRepo;
-        _rolePerms = rolePerms;
+        _contactService = contactService;
     }
 
     public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
@@ -50,34 +49,25 @@ public class ContactsEditModel : PageModel
         if (Workspace == null) return NotFound();
         if (!TryGetUserId(out var uid)) return Forbid();
         var workspaceId = Workspace.Id;
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
-        // Compute effective permissions for contacts
-        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, uid);
-        if (isAdmin)
-        {
-            CanViewContacts = CanEditContacts = CanCreateContacts = true;
-        }
-        else if (eff.TryGetValue("contacts", out var cp))
-        {
-            CanViewContacts = cp.CanView;
-            CanEditContacts = cp.CanEdit;
-            CanCreateContacts = cp.CanCreate;
-        }
-        // Restrict page view if lacking view permission
+        
+        var viewData = await _viewService.BuildAsync(workspaceId, uid, id);
+        CanViewContacts = viewData.CanViewContacts;
+        CanEditContacts = viewData.CanEditContacts;
+        CanCreateContacts = viewData.CanCreateContacts;
+        
         if (!CanViewContacts) return Forbid();
-        if (id > 0)
+        
+        if (viewData.ExistingContact != null)
         {
-            var contact = await _contactRepo.FindAsync(workspaceId, id);
-            if (contact == null) return NotFound();
-            Name = contact.Name ?? string.Empty;
-            Email = contact.Email ?? string.Empty;
-            Phone = contact.Phone;
-            Company = contact.Company;
-            Title = contact.Title;
-            Notes = contact.Notes;
-            Tags = contact.Tags;
-            PreferredChannel = contact.PreferredChannel;
-            Priority = contact.Priority;
+            Name = viewData.ExistingContact.Name ?? string.Empty;
+            Email = viewData.ExistingContact.Email ?? string.Empty;
+            Phone = viewData.ExistingContact.Phone;
+            Company = viewData.ExistingContact.Company;
+            Title = viewData.ExistingContact.Title;
+            Notes = viewData.ExistingContact.Notes;
+            Tags = viewData.ExistingContact.Tags;
+            PreferredChannel = viewData.ExistingContact.PreferredChannel;
+            Priority = viewData.ExistingContact.Priority;
         }
         else
         {
@@ -92,7 +82,7 @@ public class ContactsEditModel : PageModel
             PreferredChannel = null;
             Priority = null;
         }
-        ViewData["Priorities"] = await _priorityRepo.ListAsync(workspaceId);
+        ViewData["Priorities"] = viewData.Priorities;
         return Page();
     }
 
@@ -104,17 +94,16 @@ public class ContactsEditModel : PageModel
         if (Workspace == null) return NotFound();
         if (!TryGetUserId(out var uid)) return Forbid();
         var workspaceId = Workspace.Id;
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
-        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, uid);
-        bool allowed = isAdmin;
-        if (!allowed && eff.TryGetValue("contacts", out var cp))
-        {
-            allowed = (id == 0) ? cp.CanCreate : cp.CanEdit;
-        }
+        
+        var viewData = await _viewService.BuildAsync(workspaceId, uid, id);
+        bool allowed = viewData.CanCreateContacts || viewData.CanEditContacts;
         if (!allowed) return Forbid();
+        if (id > 0 && !viewData.CanEditContacts) return Forbid();
+        if (id == 0 && !viewData.CanCreateContacts) return Forbid();
+        
         if (!ModelState.IsValid)
         {
-            ViewData["Priorities"] = await _priorityRepo.ListAsync(workspaceId);
+            ViewData["Priorities"] = viewData.Priorities;
             return Page();
         }
         var nameTrim = Name?.Trim() ?? string.Empty;
@@ -126,38 +115,51 @@ public class ContactsEditModel : PageModel
         var tagsTrim = string.IsNullOrWhiteSpace(Tags) ? null : Tags!.Trim();
         var channelTrim = string.IsNullOrWhiteSpace(PreferredChannel) ? null : PreferredChannel!.Trim();
         var priorityTrim = string.IsNullOrWhiteSpace(Priority) ? null : Priority!.Trim();
-        if (id == 0)
+        try
         {
-            var created = await _contactRepo.CreateAsync(new Contact
+            if (id == 0)
             {
-                WorkspaceId = workspaceId,
-                Name = nameTrim,
-                Email = emailTrim,
-                Phone = phoneTrim,
-                Company = companyTrim,
-                Title = titleTrim,
-                Notes = notesTrim,
-                Tags = tagsTrim,
-                PreferredChannel = channelTrim,
-                Priority = priorityTrim
-            });
-            TempData["Success"] = $"Contact '{Name}' created.";
+                var created = await _contactService.CreateContactAsync(workspaceId, new CreateContactRequest
+                {
+                    Name = nameTrim,
+                    Email = string.IsNullOrEmpty(emailTrim) ? null : emailTrim,
+                    Phone = phoneTrim,
+                    Company = companyTrim,
+                    Notes = notesTrim
+                });
+                // Set additional fields not covered by service
+                created.Title = titleTrim;
+                created.Tags = tagsTrim;
+                created.PreferredChannel = channelTrim;
+                created.Priority = priorityTrim;
+                await _contactRepo.UpdateAsync(created);
+                TempData["Success"] = $"Contact '{created.Name}' created.";
+            }
+            else
+            {
+                var updated = await _contactService.UpdateContactAsync(workspaceId, id, new UpdateContactRequest
+                {
+                    Name = nameTrim,
+                    Email = string.IsNullOrEmpty(emailTrim) ? null : emailTrim,
+                    Phone = phoneTrim,
+                    Company = companyTrim,
+                    Notes = notesTrim
+                });
+                // Update additional fields not covered by service
+                updated.Title = titleTrim;
+                updated.Tags = tagsTrim;
+                updated.PreferredChannel = channelTrim;
+                updated.Priority = priorityTrim;
+                await _contactRepo.UpdateAsync(updated);
+                TempData["Success"] = $"Contact '{updated.Name}' updated.";
+            }
         }
-        else
+        catch (InvalidOperationException ex)
         {
-            var existing = await _contactRepo.FindAsync(workspaceId, id);
-            if (existing == null) return NotFound();
-            existing.Name = nameTrim;
-            existing.Email = emailTrim;
-            existing.Phone = phoneTrim;
-            existing.Company = companyTrim;
-            existing.Title = titleTrim;
-            existing.Notes = notesTrim;
-            existing.Tags = tagsTrim;
-            existing.PreferredChannel = channelTrim;
-            existing.Priority = priorityTrim;
-            await _contactRepo.UpdateAsync(existing);
-            TempData["Success"] = $"Contact '{Name}' updated.";
+            TempData["Error"] = ex.Message;
+            var errorViewData = await _viewService.BuildAsync(workspaceId, uid, id);
+            ViewData["Priorities"] = errorViewData.Priorities;
+            return Page();
         }
         var priorityQ = Request.Query["Priority"].ToString();
         var queryQ = Request.Query["Query"].ToString();

@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Web.Services;
+using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
@@ -12,10 +12,9 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class ReportsEditModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
-    private readonly IReportRepository _reportRepo;
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePerms;
-    private readonly IReportingService _reportingService;
+    private readonly IReportCommandService _reportCommandService;
+    private readonly IReportDefinitionValidator _defValidator;
+    private readonly IWorkspaceReportsEditViewService _reportsEditViewService;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
@@ -26,13 +25,12 @@ public class ReportsEditModel : PageModel
     [BindProperty]
     public bool Ready { get; set; }
 
-    public ReportsEditModel(IWorkspaceRepository workspaceRepo, IReportRepository reportRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IRolePermissionRepository rolePerms, IReportingService reportingService)
+    public ReportsEditModel(IWorkspaceRepository workspaceRepo, IReportCommandService reportCommandService, IReportDefinitionValidator defValidator, IWorkspaceReportsEditViewService reportsEditViewService)
     {
         _workspaceRepo = workspaceRepo;
-        _reportRepo = reportRepo;
-        _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-        _rolePerms = rolePerms;
-        _reportingService = reportingService;
+        _reportCommandService = reportCommandService;
+        _defValidator = defValidator;
+        _reportsEditViewService = reportsEditViewService;
     }
     public bool CanViewReports { get; private set; }
     public bool CanEditReports { get; private set; }
@@ -58,7 +56,7 @@ public class ReportsEditModel : PageModel
     [BindProperty]
     public int? ScheduleDayOfMonth { get; set; }
 
-    public IReadOnlyDictionary<string, string[]> Sources => _reportingService.GetAvailableSources();
+    public IReadOnlyDictionary<string, string[]> Sources { get; private set; } = new Dictionary<string, string[]>();
 
     public async Task<IActionResult> OnGetAsync(string slug, int reportId = 0)
     {
@@ -67,32 +65,25 @@ public class ReportsEditModel : PageModel
         if (Workspace == null) return NotFound();
         if (!TryGetUserId(out var uid)) return Forbid();
         var workspaceId = Workspace.Id;
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
-        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, uid);
-        if (isAdmin)
-        {
-            CanViewReports = CanEditReports = CanCreateReports = true;
-        }
-        else if (eff.TryGetValue("reports", out var rp))
-        {
-            CanViewReports = rp.CanView;
-            CanEditReports = rp.CanEdit;
-            CanCreateReports = rp.CanCreate;
-        }
+        var data = await _reportsEditViewService.BuildAsync(workspaceId, uid, reportId);
+        CanViewReports = data.CanViewReports;
+        CanEditReports = data.CanEditReports;
+        CanCreateReports = data.CanCreateReports;
+        Sources = data.Sources;
         if (!CanViewReports) return Forbid();
 
         if (reportId > 0)
         {
-            var rep = await _reportRepo.FindAsync(workspaceId, reportId);
+            var rep = data.ExistingReport;
             if (rep == null) return NotFound();
             ReportId = rep.Id;
             Name = rep.Name;
             Ready = rep.Ready;
             // Parse definition
-            var def = ParseDefinition(rep.DefinitionJson);
-            Source = def.source ?? "tickets";
-            FieldsCsv = string.Join(",", def.fields ?? Array.Empty<string>());
-            FiltersJson = def.filtersJson;
+            var def = _defValidator.Parse(rep.DefinitionJson);
+            Source = def.Source;
+            FieldsCsv = string.Join(",", def.Fields);
+            FiltersJson = def.FiltersJson;
             ScheduleEnabled = rep.ScheduleEnabled;
             ScheduleType = rep.ScheduleType ?? "none";
             ScheduleTime = rep.ScheduleTime.HasValue ? new DateTime(rep.ScheduleTime.Value.Ticks).ToString("HH:mm") : null;
@@ -123,31 +114,26 @@ public class ReportsEditModel : PageModel
         if (Workspace == null) return NotFound();
         if (!TryGetUserId(out var uid)) return Forbid();
         var workspaceId = Workspace.Id;
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, workspaceId);
-        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, uid);
-        bool allowed = isAdmin;
-        if (!allowed && eff.TryGetValue("reports", out var rp))
-        {
-            allowed = (ReportId == 0) ? rp.CanCreate : rp.CanEdit;
-        }
+        var data = await _reportsEditViewService.BuildAsync(workspaceId, uid, ReportId);
+        bool allowed = (ReportId == 0) ? data.CanCreateReports : data.CanEditReports;
         if (!allowed) return Forbid();
         if (!ModelState.IsValid) return Page();
 
         var nameTrim = Name?.Trim() ?? string.Empty;
-        var defJson = BuildDefinitionJson(Source, FieldsCsv, FiltersJson);
+        var defJson = _defValidator.BuildJson(Source, FieldsCsv, FiltersJson);
         TimeSpan? schedTime = null;
         if (!string.IsNullOrWhiteSpace(ScheduleTime) && TimeSpan.TryParse(ScheduleTime, out var ts)) schedTime = ts;
 
         if (ReportId == 0)
         {
-            await _reportRepo.CreateAsync(new Report { WorkspaceId = workspaceId, Name = nameTrim, Ready = Ready,
+            await _reportCommandService.CreateAsync(new Report { WorkspaceId = workspaceId, Name = nameTrim, Ready = Ready,
                 DefinitionJson = defJson, ScheduleEnabled = ScheduleEnabled, ScheduleType = ScheduleType, ScheduleTime = schedTime,
                 ScheduleDayOfWeek = ScheduleDayOfWeek, ScheduleDayOfMonth = ScheduleDayOfMonth });
             TempData["Success"] = $"Report '{Name}' created successfully.";
         }
         else
         {
-            var updated = await _reportRepo.UpdateAsync(new Report { Id = ReportId, WorkspaceId = workspaceId, Name = nameTrim, Ready = Ready,
+            var updated = await _reportCommandService.UpdateAsync(new Report { Id = ReportId, WorkspaceId = workspaceId, Name = nameTrim, Ready = Ready,
                 DefinitionJson = defJson, ScheduleEnabled = ScheduleEnabled, ScheduleType = ScheduleType, ScheduleTime = schedTime,
                 ScheduleDayOfWeek = ScheduleDayOfWeek, ScheduleDayOfMonth = ScheduleDayOfMonth });
             if (updated == null) return NotFound();
@@ -156,39 +142,6 @@ public class ReportsEditModel : PageModel
         var queryQ = Request.Query["Query"].ToString();
         var pageQ = Request.Query["PageNumber"].ToString();
         return RedirectToPage("/Workspaces/Reports", new { slug, Query = queryQ, PageNumber = pageQ });
-    }
-
-    private (string source, string[] fields, string? filtersJson) ParseDefinition(string? json)
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(json)) return ("tickets", new []{"Id","Subject","Status","CreatedAt"}, null);
-            using var doc = System.Text.Json.JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            var src = root.TryGetProperty("source", out var s) ? s.GetString() ?? "tickets" : "tickets";
-            string[] fields = Array.Empty<string>();
-            if (root.TryGetProperty("fields", out var f) && f.ValueKind == System.Text.Json.JsonValueKind.Array)
-            {
-                fields = f.EnumerateArray().Where(e => e.ValueKind == System.Text.Json.JsonValueKind.String).Select(e => e.GetString() ?? "").Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
-            }
-            string? filtersJson = null;
-            if (root.TryGetProperty("filters", out var fl))
-            {
-                filtersJson = fl.GetRawText();
-            }
-            return (src, fields, filtersJson);
-        }
-        catch { return ("tickets", new []{"Id","Subject","Status","CreatedAt"}, null); }
-    }
-
-    private string BuildDefinitionJson(string source, string fieldsCsv, string? filtersJson)
-    {
-        var fields = (fieldsCsv ?? string.Empty)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .ToArray();
-        var filtersPart = string.IsNullOrWhiteSpace(filtersJson) ? "\"filters\":[]" : $"\"filters\":{filtersJson}";
-        var json = $"{{\"source\":\"{(source ?? "tickets").ToLowerInvariant()}\",\"fields\":[{string.Join(',', fields.Select(f => $"\"{f}\""))}],{filtersPart}}}";
-        return json;
     }
 
     private bool TryGetUserId(out int userId)

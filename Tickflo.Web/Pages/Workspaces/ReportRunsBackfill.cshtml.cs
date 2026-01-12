@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
+using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
@@ -9,18 +10,12 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class ReportRunsBackfillModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
-    private readonly IReportRunRepository _reportRunRepo;
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePerms;
-    private readonly IWebHostEnvironment _env;
+    private readonly IWorkspaceReportRunsBackfillViewService _backfillViewService;
 
-    public ReportRunsBackfillModel(IWorkspaceRepository workspaceRepo, IReportRunRepository reportRunRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IRolePermissionRepository rolePerms, IWebHostEnvironment env)
+    public ReportRunsBackfillModel(IWorkspaceRepository workspaceRepo, IWorkspaceReportRunsBackfillViewService backfillViewService)
     {
         _workspaceRepo = workspaceRepo;
-        _reportRunRepo = reportRunRepo;
-        _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-        _rolePerms = rolePerms;
-        _env = env;
+        _backfillViewService = backfillViewService;
     }
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
@@ -32,9 +27,44 @@ public class ReportRunsBackfillModel : PageModel
     public BackfillSummary? Summary { get; private set; }
     public record BackfillSummary(int TotalMissing, int Imported, int MissingOnDisk, int Errors);
 
-    public Task<IActionResult> OnGetAsync(string slug)
-        => Task.FromResult<IActionResult>(NotFound());
+    public async Task<IActionResult> OnGetAsync(string slug)
+    {
+        WorkspaceSlug = slug;
+        var ws = await _workspaceRepo.FindBySlugAsync(slug);
+        if (ws == null) return NotFound();
+        Workspace = ws;
+        var uid = TryGetUserId(out var idVal) ? idVal : 0;
+        if (uid == 0) return Forbid();
+        var data = await _backfillViewService.BuildAsync(ws.Id, uid);
+        if (!data.CanEditReports) return Forbid();
+        Message = null;
+        Success = false;
+        Summary = null;
+        return Page();
+    }
 
-    public Task<IActionResult> OnPostAsync(string slug)
-        => Task.FromResult<IActionResult>(NotFound());
+    public async Task<IActionResult> OnPostAsync(string slug)
+    {
+        WorkspaceSlug = slug;
+        var ws = await _workspaceRepo.FindBySlugAsync(slug);
+        if (ws == null) return NotFound();
+        Workspace = ws;
+        var uid = TryGetUserId(out var idVal) ? idVal : 0;
+        if (uid == 0) return Forbid();
+        var data = await _backfillViewService.BuildAsync(ws.Id, uid);
+        if (!data.CanEditReports) return Forbid();
+        // Backfill operation not yet implemented; preserve behavior
+        return NotFound();
+    }
+
+    private bool TryGetUserId(out int userId)
+    {
+        var idValue = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(idValue, out userId))
+        {
+            return true;
+        }
+        userId = default;
+        return false;
+    }
 }

@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Security.Claims;
 using Tickflo.Core.Data;
+using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
@@ -12,17 +12,20 @@ public class ReportDeleteModel : PageModel
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IReportRepository _reportRepo;
     private readonly IReportRunRepository _reportRunRepo;
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePerms;
+    private readonly IWorkspaceReportDeleteViewService _deleteViewService;
     private readonly IWebHostEnvironment _env;
 
-    public ReportDeleteModel(IWorkspaceRepository workspaceRepo, IReportRepository reportRepo, IReportRunRepository reportRunRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IRolePermissionRepository rolePerms, IWebHostEnvironment env)
+    public ReportDeleteModel(
+        IWorkspaceRepository workspaceRepo,
+        IReportRepository reportRepo,
+        IReportRunRepository reportRunRepo,
+        IWorkspaceReportDeleteViewService deleteViewService,
+        IWebHostEnvironment env)
     {
         _workspaceRepo = workspaceRepo;
         _reportRepo = reportRepo;
         _reportRunRepo = reportRunRepo;
-        _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-        _rolePerms = rolePerms;
+        _deleteViewService = deleteViewService;
         _env = env;
     }
 
@@ -30,11 +33,10 @@ public class ReportDeleteModel : PageModel
     {
         var ws = await _workspaceRepo.FindBySlugAsync(slug);
         if (ws == null) return NotFound();
-        if (!TryGetUserId(out var uid)) return Forbid();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(uid, ws.Id);
-        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(ws.Id, uid);
-        var allowed = isAdmin || (eff.TryGetValue("reports", out var rp) && rp.CanEdit);
-        if (!allowed) return Forbid();
+        var uid = TryGetUserId(out var idVal) ? idVal : 0;
+        if (uid == 0) return Forbid();
+        var data = await _deleteViewService.BuildAsync(ws.Id, uid);
+        if (!data.CanEditReports) return Forbid();
 
         // Attempt legacy file cleanup for older runs (best-effort)
         try
@@ -70,7 +72,7 @@ public class ReportDeleteModel : PageModel
 
     private bool TryGetUserId(out int userId)
     {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var idValue = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (int.TryParse(idValue, out userId))
         {
             return true;
