@@ -62,7 +62,9 @@ public class LoginModel(ILogger<LoginModel> logger, IAuthenticationService authS
             return Redirect($"/workspaces/{result.WorkspaceSlug}");
         }
 
-        return Redirect("/workspace");
+        // Fallback: user doesn't have a workspace assigned
+        ErrorMessage = "No workspace found for your account. Please contact support.";
+        return Page();
     }
 }
 
