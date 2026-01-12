@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
@@ -9,7 +7,7 @@ using Tickflo.Core.Services;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class TeamsAssignModel : PageModel
+public class TeamsAssignModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaces;
     private readonly ITeamRepository _teams;
@@ -43,12 +41,12 @@ public class TeamsAssignModel : PageModel
     {
         WorkspaceSlug = slug;
         var ws = await _workspaces.FindBySlugAsync(slug);
-        if (ws == null) return NotFound();
+        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
         if (!TryGetUserId(out var uid)) return Forbid();
         var data = await _teamsAssignViewService.BuildAsync(ws.Id, uid, teamId);
         CanViewTeams = data.CanViewTeams;
         CanEditTeams = data.CanEditTeams;
-        if (!CanViewTeams) return Forbid();
+        if (EnsurePermissionOrForbid(CanEditTeams) is IActionResult editCheck) return editCheck;
         Workspace = ws;
         Team = data.Team;
         TeamId = teamId;
@@ -61,7 +59,7 @@ public class TeamsAssignModel : PageModel
     {
         WorkspaceSlug = slug;
         var ws = await _workspaces.FindBySlugAsync(slug);
-        if (ws == null) return NotFound();
+        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
         if (!TryGetUserId(out var uid)) return Forbid();
         var data = await _teamsAssignViewService.BuildAsync(ws.Id, uid, TeamId);
         Workspace = ws;
@@ -75,7 +73,7 @@ public class TeamsAssignModel : PageModel
             return await OnGetAsync(slug, TeamId);
         }
         // Use service to validate and sync single add
-        if (Team == null) return NotFound();
+        if (EnsureEntityExistsOrNotFound(Team) is IActionResult teamCheck) return teamCheck;
         var currentMembers = await _members.ListMembersAsync(TeamId);
         var desired = currentMembers.Select(m => m.Id).ToList();
         desired.Add(SelectedUserId);
@@ -85,7 +83,7 @@ public class TeamsAssignModel : PageModel
         }
         catch (InvalidOperationException ex)
         {
-            TempData["Error"] = ex.Message;
+            SetErrorMessage(ex.Message);
         }
         return RedirectToPage("/Workspaces/TeamsAssign", new { slug, teamId = TeamId });
     }
@@ -94,13 +92,13 @@ public class TeamsAssignModel : PageModel
     {
         WorkspaceSlug = slug;
         var ws = await _workspaces.FindBySlugAsync(slug);
-        if (ws == null) return NotFound();
+        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
         if (!TryGetUserId(out var uid)) return Forbid();
         var data = await _teamsAssignViewService.BuildAsync(ws.Id, uid, TeamId);
         Workspace = ws;
         Team = data.Team;
         CanEditTeams = data.CanEditTeams;
-        if (!CanEditTeams) return Forbid();
+        if (EnsurePermissionOrForbid(CanEditTeams) is IActionResult editCheck) return editCheck;
 
         // Use service to validate and sync single remove
         var currentMembers = await _members.ListMembersAsync(TeamId);
@@ -111,21 +109,9 @@ public class TeamsAssignModel : PageModel
         }
         catch (InvalidOperationException ex)
         {
-            TempData["Error"] = ex.Message;
+            SetErrorMessage(ex.Message);
         }
         return RedirectToPage("/Workspaces/TeamsAssign", new { slug, teamId = TeamId });
-    }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-
-        userId = default;
-        return false;
     }
 
 }

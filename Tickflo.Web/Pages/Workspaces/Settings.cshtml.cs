@@ -10,7 +10,7 @@ using Tickflo.Core.Services;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class SettingsModel : PageModel
+public class SettingsModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
@@ -47,17 +47,6 @@ public class SettingsModel : PageModel
         if (!TryGetUserId(out var uid)) return (0, false);
         // isAdmin is computed via view service; return uid and false placeholder
         return (uid, false);
-    }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-        userId = default;
-        return false;
     }
 
     private async Task<bool> EnsurePermissionsAsync(int userId)
@@ -145,11 +134,11 @@ public class SettingsModel : PageModel
         var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
         await EnsurePermissionsAsync(uid);
-        if (!CanEditSettings) return Forbid();
+        if (EnsurePermissionOrForbid(CanEditSettings) is IActionResult permCheck) return permCheck;
         
         if (!ModelState.IsValid)
         {
-            TempData["ErrorMessage"] = "Please fix the validation errors.";
+            SetErrorMessage("Please fix the validation errors.");
             await EnsurePermissionsAsync(uid);
             return Page();
         }
@@ -166,7 +155,7 @@ public class SettingsModel : PageModel
             await EnsurePermissionsAsync(uid);
             return Page();
         }
-        TempData["SuccessMessage"] = "Workspace settings saved successfully!";
+        SetSuccessMessage("Workspace settings saved successfully!");
         return RedirectToPage("/Workspaces/Settings", new { slug = Workspace.Slug });
     }
 
@@ -185,7 +174,7 @@ public class SettingsModel : PageModel
         var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
         await EnsurePermissionsAsync(uid);
-        if (!CanViewSettings) return Forbid();
+        if (EnsurePermissionOrForbid(CanViewSettings) is IActionResult permCheck) return permCheck;
         // lists already populated by EnsurePermissionsAsync
         return Page();
     }
@@ -198,18 +187,18 @@ public class SettingsModel : PageModel
         var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
         await EnsurePermissionsAsync(uid);
-        if (!CanCreateSettings) return Forbid();
+        if (EnsurePermissionOrForbid(CanCreateSettings) is IActionResult permCheck) return permCheck;
         var name = (NewStatusName ?? string.Empty).Trim();
         var color = (NewStatusColor ?? "neutral").Trim();
         if (string.IsNullOrWhiteSpace(name))
         {
-            TempData["ErrorMessage"] = "Status name is required.";
+            SetErrorMessage("Status name is required.");
             return RedirectToPage("/Workspaces/Settings", new { slug });
         }
         try
         {
             await _settingsService.AddStatusAsync(Workspace.Id, name, color, false);
-            TempData["SuccessMessage"] = $"Status '{name}' added successfully!";
+            SetSuccessMessage($"Status '{name}' added successfully!");
         }
         catch (InvalidOperationException ex)
         {
@@ -231,17 +220,17 @@ public class SettingsModel : PageModel
         var color = (NewPriorityColor ?? "neutral").Trim();
         if (string.IsNullOrWhiteSpace(name))
         {
-            TempData["ErrorMessage"] = "Priority name is required.";
+            SetErrorMessage("Priority name is required.");
             return RedirectToPage("/Workspaces/Settings", new { slug });
         }
         try
         {
             await _settingsService.AddPriorityAsync(Workspace.Id, name, color);
-            TempData["SuccessMessage"] = $"Priority '{name}' added successfully!";
+            SetSuccessMessage($"Priority '{name}' added successfully!");
         }
         catch (InvalidOperationException ex)
         {
-            TempData["ErrorMessage"] = ex.Message;
+            SetErrorMessage(ex.Message);
         }
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
@@ -259,17 +248,17 @@ public class SettingsModel : PageModel
         var color = (NewTypeColor ?? "neutral").Trim();
         if (string.IsNullOrWhiteSpace(name))
         {
-            TempData["ErrorMessage"] = "Type name is required.";
+            SetErrorMessage("Type name is required.");
             return RedirectToPage("/Workspaces/Settings", new { slug });
         }
         try
         {
             await _settingsService.AddTypeAsync(Workspace.Id, name, color);
-            TempData["SuccessMessage"] = $"Type '{name}' added successfully!";
+            SetSuccessMessage($"Type '{name}' added successfully!");
         }
         catch (InvalidOperationException ex)
         {
-            TempData["ErrorMessage"] = ex.Message;
+            SetErrorMessage(ex.Message);
         }
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
@@ -282,17 +271,17 @@ public class SettingsModel : PageModel
         var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
         await EnsurePermissionsAsync(uid);
-        if (!CanEditSettings) return Forbid();
+        if (EnsurePermissionOrForbid(CanEditSettings) is IActionResult permCheck) return permCheck;
         var isClosedStateStr = Request.Form["isClosedState"];
         var isClosedState = !string.IsNullOrEmpty(isClosedStateStr) && (isClosedStateStr == "true" || isClosedStateStr == "on");
         try
         {
             var s = await _settingsService.UpdateStatusAsync(Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder, isClosedState);
-            TempData["SuccessMessage"] = $"Status '{s.Name}' updated successfully!";
+            SetSuccessMessage($"Status '{s.Name}' updated successfully!");
         }
         catch (InvalidOperationException ex)
         {
-            TempData["ErrorMessage"] = ex.Message;
+            SetErrorMessage(ex.Message);
         }
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
@@ -305,15 +294,15 @@ public class SettingsModel : PageModel
         var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
         await EnsurePermissionsAsync(uid);
-        if (!CanEditSettings) return Forbid();
+        if (EnsurePermissionOrForbid(CanEditSettings) is IActionResult permCheck) return permCheck;
         try
         {
             var p = await _settingsService.UpdatePriorityAsync(Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
-            TempData["SuccessMessage"] = $"Priority '{p.Name}' updated successfully!";
+            SetSuccessMessage($"Priority '{p.Name}' updated successfully!");
         }
         catch (InvalidOperationException ex)
         {
-            TempData["ErrorMessage"] = ex.Message;
+            SetErrorMessage(ex.Message);
         }
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
@@ -326,15 +315,15 @@ public class SettingsModel : PageModel
         var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
         await EnsurePermissionsAsync(uid);
-        if (!CanEditSettings) return Forbid();
+        if (EnsurePermissionOrForbid(CanEditSettings) is IActionResult permCheck) return permCheck;
         try
         {
             var t = await _settingsService.UpdateTypeAsync(Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
-            TempData["SuccessMessage"] = $"Type '{t.Name}' updated successfully!";
+            SetSuccessMessage($"Type '{t.Name}' updated successfully!");
         }
         catch (InvalidOperationException ex)
         {
-            TempData["ErrorMessage"] = ex.Message;
+            SetErrorMessage(ex.Message);
         }
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
@@ -347,9 +336,9 @@ public class SettingsModel : PageModel
         var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
         await EnsurePermissionsAsync(uid);
-        if (!CanEditSettings) return Forbid();
+        if (EnsurePermissionOrForbid(CanEditSettings) is IActionResult permCheck) return permCheck;
         await _settingsService.DeleteStatusAsync(Workspace.Id, id);
-        TempData["SuccessMessage"] = "Status deleted successfully!";
+        SetSuccessMessage("Status deleted successfully!");
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
@@ -361,9 +350,9 @@ public class SettingsModel : PageModel
         var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
         await EnsurePermissionsAsync(uid);
-        if (!CanEditSettings) return Forbid();
+        if (EnsurePermissionOrForbid(CanEditSettings) is IActionResult permCheck) return permCheck;
         await _settingsService.DeletePriorityAsync(Workspace.Id, id);
-        TempData["SuccessMessage"] = "Priority deleted successfully!";
+        SetSuccessMessage("Priority deleted successfully!");
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
@@ -375,9 +364,9 @@ public class SettingsModel : PageModel
         var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
         await EnsurePermissionsAsync(uid);
-        if (!CanEditSettings) return Forbid();
+        if (EnsurePermissionOrForbid(CanEditSettings) is IActionResult permCheck) return permCheck;
         await _settingsService.DeleteTypeAsync(Workspace.Id, id);
-        TempData["SuccessMessage"] = "Type deleted successfully!";
+        SetSuccessMessage("Type deleted successfully!");
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
@@ -389,7 +378,7 @@ public class SettingsModel : PageModel
         var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
         await EnsurePermissionsAsync(uid);
-        if (!CanEditSettings) return Forbid();
+        if (EnsurePermissionOrForbid(CanEditSettings) is IActionResult permCheck) return permCheck;
         
         // TODO: Save notification settings to workspace_settings table or workspace metadata
         // For now, this would just redirect back
@@ -414,7 +403,7 @@ public class SettingsModel : PageModel
         var (uid, _) = await ResolveUserAsync();
         if (uid == 0) return Forbid();
         await EnsurePermissionsAsync(uid);
-        if (!CanEditSettings) return Forbid();
+        if (EnsurePermissionOrForbid(CanEditSettings) is IActionResult permCheck) return permCheck;
 
         int changedCount = 0;
 
@@ -439,7 +428,7 @@ public class SettingsModel : PageModel
                     var existing = await _workspaceRepo.FindBySlugAsync(newSlug);
                     if (existing != null)
                     {
-                        TempData["ErrorMessage"] = "Slug is already in use. Please choose a different one.";
+                        SetErrorMessage("Slug is already in use. Please choose a different one.");
                         await LoadDataAsync(Workspace);
                         return Page();
                     }
@@ -514,7 +503,7 @@ public class SettingsModel : PageModel
                 }
                 else
                 {
-                    TempData["ErrorMessage"] = $"Status '{newStatusName}' already exists.";
+                    SetErrorMessage($"Status '{newStatusName}' already exists.");
                 }
             }
 
@@ -582,7 +571,7 @@ public class SettingsModel : PageModel
                 }
                 else
                 {
-                    TempData["ErrorMessage"] = $"Priority '{newPriorityName}' already exists.";
+                    SetErrorMessage($"Priority '{newPriorityName}' already exists.");
                 }
             }
 
@@ -648,7 +637,7 @@ public class SettingsModel : PageModel
                 }
                 else
                 {
-                    TempData["ErrorMessage"] = $"Type '{newTypeName}' already exists.";
+                    SetErrorMessage($"Type '{newTypeName}' already exists.");
                 }
             }
 
@@ -664,15 +653,15 @@ public class SettingsModel : PageModel
             TicketAssignmentNotificationsHigh = form["TicketAssignmentNotificationsHigh"] == "true" || form["TicketAssignmentNotificationsHigh"] == "on";
             changedCount++;
 
-            TempData["SuccessMessage"] = changedCount > 0
+            SetSuccessMessage(changedCount > 0
                 ? $"Saved {changedCount} change(s) successfully."
-                : "Nothing to update.";
+                : "Nothing to update.");
 
             return RedirectToPage("/Workspaces/Settings", new { slug = Workspace.Slug });
         }
         catch (Exception ex)
         {
-            TempData["ErrorMessage"] = $"Error saving settings: {ex.Message}";
+            SetErrorMessage($"Error saving settings: {ex.Message}");
             await LoadDataAsync(Workspace);
             return Page();
         }

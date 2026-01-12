@@ -8,7 +8,7 @@ using Tickflo.Core.Services;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class LocationsModel : PageModel
+public class LocationsModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly ILocationRepository _locationRepo;
@@ -39,10 +39,12 @@ public class LocationsModel : PageModel
     public async Task<IActionResult> OnGetAsync(string slug)
     {
         WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-
-        if (!_currentUserService.TryGetUserId(User, out var uid)) return Forbid();
+        
+        var result = await LoadWorkspaceAndUserOrExitAsync(_workspaceRepo, slug);
+        if (result is IActionResult actionResult) return actionResult;
+        
+        var (workspace, uid) = (WorkspaceUserLoadResult)result;
+        Workspace = workspace;
 
         var viewData = await _viewService.BuildAsync(Workspace.Id, uid);
         Locations = viewData.Locations;
@@ -56,7 +58,7 @@ public class LocationsModel : PageModel
     {
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
+        if (EnsureWorkspaceExistsOrNotFound(Workspace) is IActionResult result) return result;
 
         if (!_currentUserService.TryGetUserId(User, out var uid)) return Forbid();
 
@@ -66,7 +68,7 @@ public class LocationsModel : PageModel
         if (!canDelete) return Forbid();
 
         var ok = await _locationRepo.DeleteAsync(Workspace.Id, locationId);
-        TempData["Success"] = ok ? $"Location #{locationId} deleted." : "Location not found.";
+        SetSuccessMessage(ok ? $"Location #{locationId} deleted." : "Location not found.");
         return RedirectToPage("/Workspaces/Locations", new { slug });
     }
 }

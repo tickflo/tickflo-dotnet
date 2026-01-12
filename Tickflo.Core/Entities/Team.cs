@@ -1,6 +1,6 @@
 namespace Tickflo.Core.Entities;
 
-public class Team
+public class Team : IWorkspaceEntity
 {
     public int Id { get; set; }
     public int WorkspaceId { get; set; }

@@ -16,7 +16,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class UsersInviteModel : PageModel
+public class UsersInviteModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IUserRepository _userRepo;
@@ -57,11 +57,11 @@ public class UsersInviteModel : PageModel
     {
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
+        if (EnsureWorkspaceExistsOrNotFound(Workspace) is IActionResult result) return result;
 
         if (!TryGetUserId(out var userId)) return Forbid();
         var viewData = await _viewService.BuildAsync(Workspace.Id, userId);
-        if (!viewData.CanViewUsers || !viewData.CanCreateUsers) return Forbid();
+        if (EnsurePermissionOrForbid(viewData.CanViewUsers && viewData.CanCreateUsers) is IActionResult permCheck) return permCheck;
 
         CanViewUsers = viewData.CanViewUsers;
         CanCreateUsers = viewData.CanCreateUsers;
@@ -76,7 +76,7 @@ public class UsersInviteModel : PageModel
 
         if (!TryGetUserId(out var currentUserId)) return Forbid();
         var viewData = await _viewService.BuildAsync(Workspace.Id, currentUserId);
-        if (!viewData.CanViewUsers || !viewData.CanCreateUsers) return Forbid();
+        if (EnsurePermissionOrForbid(viewData.CanViewUsers && viewData.CanCreateUsers) is IActionResult permCheck) return permCheck;
 
         CanViewUsers = viewData.CanViewUsers;
         CanCreateUsers = viewData.CanCreateUsers;
@@ -127,25 +127,13 @@ public class UsersInviteModel : PageModel
                         $"</div>";
             await _emailSender.SendAsync(result.User.Email!, subject, body);
 
-            TempData["Success"] = $"Invite created for '{Email}'" + (!string.IsNullOrWhiteSpace(Role) ? $" as {Role}" : "") + ".";
+            SetSuccessMessage($"Invite created for '{Email}'" + (!string.IsNullOrWhiteSpace(Role) ? $" as {Role}" : "") + ".");
         }
         catch (InvalidOperationException ex)
         {
-            TempData["Error"] = ex.Message;
+            SetErrorMessage(ex.Message);
             return Page();
         }
         return RedirectToPage("/Workspaces/Users", new { slug });
-    }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-
-        userId = default;
-        return false;
     }
 }

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
@@ -8,7 +7,7 @@ using Tickflo.Core.Services;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class FilesModel : PageModel
+public class FilesModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepository;
     private readonly IWorkspaceFilesViewService _filesViewService;
@@ -26,27 +25,15 @@ public class FilesModel : PageModel
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {
-        var uid = TryGetUserId(out var idVal) ? idVal : 0;
-        if (uid == 0) return Forbid();
+        var result = await LoadWorkspaceAndUserOrExitAsync(_workspaceRepository, slug);
+        if (result is IActionResult actionResult) return actionResult;
+        
+        var (workspace, uid) = (WorkspaceUserLoadResult)result;
+        var data = await _filesViewService.BuildAsync(workspace.Id, uid);
+        if (EnsurePermissionOrForbid(data.CanViewFiles) is IActionResult permCheck) return permCheck;
 
-        var ws = await _workspaceRepository.FindBySlugAsync(slug);
-        if (ws == null) return NotFound();
-        var data = await _filesViewService.BuildAsync(ws.Id, uid);
-        if (!data.CanViewFiles) return Forbid();
-
-        Workspace = ws;
-        WorkspaceId = ws.Id;
+        Workspace = workspace;
+        WorkspaceId = workspace.Id;
         return Page();
-    }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-        userId = default;
-        return false;
     }
 }

@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
@@ -9,7 +7,7 @@ using Tickflo.Core.Services;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class ReportsEditModel : PageModel
+public class ReportsEditModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IReportCommandService _reportCommandService;
@@ -70,12 +68,12 @@ public class ReportsEditModel : PageModel
         CanEditReports = data.CanEditReports;
         CanCreateReports = data.CanCreateReports;
         Sources = data.Sources;
-        if (!CanViewReports) return Forbid();
+        if (EnsurePermissionOrForbid(CanViewReports) is IActionResult permCheck) return permCheck;
 
         if (reportId > 0)
         {
             var rep = data.ExistingReport;
-            if (rep == null) return NotFound();
+            if (EnsureEntityExistsOrNotFound(rep) is IActionResult result) return result;
             ReportId = rep.Id;
             Name = rep.Name;
             Ready = rep.Ready;
@@ -110,10 +108,13 @@ public class ReportsEditModel : PageModel
     public async Task<IActionResult> OnPostAsync(string slug)
     {
         WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        if (!TryGetUserId(out var uid)) return Forbid();
-        var workspaceId = Workspace.Id;
+        
+        var loadResult = await LoadWorkspaceAndUserOrExitAsync(_workspaceRepo, slug);
+        if (loadResult is IActionResult actionResult) return actionResult;
+        
+        var (workspace, uid) = (WorkspaceUserLoadResult)loadResult;
+        Workspace = workspace;
+        var workspaceId = workspace.Id;
         var data = await _reportsEditViewService.BuildAsync(workspaceId, uid, ReportId);
         bool allowed = (ReportId == 0) ? data.CanCreateReports : data.CanEditReports;
         if (!allowed) return Forbid();
@@ -129,29 +130,20 @@ public class ReportsEditModel : PageModel
             await _reportCommandService.CreateAsync(new Report { WorkspaceId = workspaceId, Name = nameTrim, Ready = Ready,
                 DefinitionJson = defJson, ScheduleEnabled = ScheduleEnabled, ScheduleType = ScheduleType, ScheduleTime = schedTime,
                 ScheduleDayOfWeek = ScheduleDayOfWeek, ScheduleDayOfMonth = ScheduleDayOfMonth });
-            TempData["Success"] = $"Report '{Name}' created successfully.";
+            SetSuccessMessage($"Report '{Name}' created successfully.");
         }
         else
         {
             var updated = await _reportCommandService.UpdateAsync(new Report { Id = ReportId, WorkspaceId = workspaceId, Name = nameTrim, Ready = Ready,
                 DefinitionJson = defJson, ScheduleEnabled = ScheduleEnabled, ScheduleType = ScheduleType, ScheduleTime = schedTime,
                 ScheduleDayOfWeek = ScheduleDayOfWeek, ScheduleDayOfMonth = ScheduleDayOfMonth });
-            if (updated == null) return NotFound();
-            TempData["Success"] = $"Report '{Name}' updated successfully.";
+            if (EnsureEntityExistsOrNotFound(updated) is IActionResult result) return result;
+            SetSuccessMessage($"Report '{Name}' updated successfully.");
         }
         var queryQ = Request.Query["Query"].ToString();
         var pageQ = Request.Query["PageNumber"].ToString();
         return RedirectToPage("/Workspaces/Reports", new { slug, Query = queryQ, PageNumber = pageQ });
     }
 
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-        userId = default;
-        return false;
-    }
+
 }

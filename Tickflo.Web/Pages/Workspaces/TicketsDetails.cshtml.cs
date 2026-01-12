@@ -10,7 +10,7 @@ using Tickflo.Core.Services;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class TicketsDetailsModel : PageModel
+public class TicketsDetailsModel : WorkspacePageModel
 {
     [BindProperty]
     public string? TicketInventoriesJson { get; set; }
@@ -104,7 +104,7 @@ public class TicketsDetailsModel : PageModel
     {
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
+        if (EnsureWorkspaceExistsOrNotFound(Workspace) is IActionResult result) return result;
         var currentUserId = TryGetUserId(out var uid) ? uid : 0;
 
         // Load view data - this handles permissions, scope, metadata
@@ -224,14 +224,14 @@ public class TicketsDetailsModel : PageModel
             }
             catch (InvalidOperationException ex)
             {
-                TempData["ErrorMessage"] = ex.Message;
+                SetErrorMessage(ex.Message);
                 return RedirectToPage("/Workspaces/Tickets", new { slug });
             }
         }
         else
         {
             existing = await _ticketRepo.FindAsync(workspaceId, resolvedId);
-            if (existing == null) return NotFound();
+            if (EnsureEntityExistsOrNotFound(existing) is IActionResult ticketCheck) return ticketCheck;
 
             var updateReq = new UpdateTicketRequest
             {
@@ -255,7 +255,7 @@ public class TicketsDetailsModel : PageModel
             }
             catch (InvalidOperationException ex)
             {
-                TempData["ErrorMessage"] = ex.Message;
+                SetErrorMessage(ex.Message);
                 return RedirectToPage("/Workspaces/Tickets", new { slug });
             }
         }
@@ -310,7 +310,7 @@ public class TicketsDetailsModel : PageModel
                 }
             });
         }
-        TempData["Success"] = "Ticket saved.";
+        SetSuccessMessage("Ticket saved.");
         // Preserve common filters when returning
         var statusQ = Request.Query["Status"].ToString();
         var priorityQ = Request.Query["Priority"].ToString();
@@ -328,16 +328,5 @@ public class TicketsDetailsModel : PageModel
     private static string DefaultOrTrim(string? value, string defaultValue)
     {
         return string.IsNullOrWhiteSpace(value) ? defaultValue : value!.Trim();
-    }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-        userId = default;
-        return false;
     }
 }

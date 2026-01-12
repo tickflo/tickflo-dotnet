@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
@@ -8,7 +7,7 @@ using Tickflo.Core.Services;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class RolesAssignModel : PageModel
+public class RolesAssignModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaces;
     private readonly IRoleManagementService _roleManagementService;
@@ -39,7 +38,7 @@ public class RolesAssignModel : PageModel
     {
         WorkspaceSlug = slug;
         var ws = await _workspaces.FindBySlugAsync(slug);
-        if (ws == null) return NotFound();
+        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
         var uid = TryGetUserId(out var idVal) ? idVal : 0;
         if (uid == 0) return Forbid();
         var data = await _rolesAssignViewService.BuildAsync(ws.Id, uid);
@@ -54,7 +53,7 @@ public class RolesAssignModel : PageModel
     {
         WorkspaceSlug = slug;
         var ws = await _workspaces.FindBySlugAsync(slug);
-        if (ws == null) return NotFound();
+        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
         var uid = TryGetUserId(out var idVal) ? idVal : 0;
         if (uid == 0) return Forbid();
         var data = await _rolesAssignViewService.BuildAsync(ws.Id, uid);
@@ -92,7 +91,7 @@ public class RolesAssignModel : PageModel
     {
         WorkspaceSlug = slug;
         var ws = await _workspaces.FindBySlugAsync(slug);
-        if (ws == null) return NotFound();
+        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
         var uid = TryGetUserId(out var idVal) ? idVal : 0;
         if (uid == 0) return Forbid();
         var data = await _rolesAssignViewService.BuildAsync(ws.Id, uid);
@@ -104,16 +103,4 @@ public class RolesAssignModel : PageModel
         var queryQ = Request.Query["Query"].ToString();
         return Redirect($"/workspaces/{slug}/users/roles/assign?Query={Uri.EscapeDataString(queryQ ?? string.Empty)}");
     }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-        userId = default;
-        return false;
-    }
-
 }

@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
@@ -9,7 +7,7 @@ using Tickflo.Core.Services;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class TeamsEditModel : PageModel
+public class TeamsEditModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaces;
     private readonly ITeamManagementService _teamService;
@@ -46,21 +44,22 @@ public class TeamsEditModel : PageModel
     {
         WorkspaceSlug = slug;
         var ws = await _workspaces.FindBySlugAsync(slug);
-        if (ws == null) return NotFound();
+        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
         if (!TryGetUserId(out var uid)) return Forbid();
         Workspace = ws;
         var data = await _teamsEditViewService.BuildAsync(ws.Id, uid, id);
         CanViewTeams = data.CanViewTeams;
         CanEditTeams = data.CanEditTeams;
         CanCreateTeams = data.CanCreateTeams;
-        if (!CanViewTeams) return Forbid();
+        if (EnsurePermissionOrForbid(CanViewTeams) is IActionResult permCheck) return permCheck;
 
         Id = id;
         WorkspaceUsers = data.WorkspaceUsers ?? new();
         if (id > 0)
         {
             var team = data.ExistingTeam;
-            if (team == null || team.WorkspaceId != ws.Id) return NotFound();
+            var teamCheck = EnsureEntityBelongsToWorkspace(team, ws.Id);
+            if (teamCheck is not null) return teamCheck;
             Name = team.Name;
             Description = team.Description;
             SelectedMemberIds = (data.ExistingMemberIds ?? new()).ToList();
@@ -77,7 +76,7 @@ public class TeamsEditModel : PageModel
     {
         WorkspaceSlug = slug;
         var ws = await _workspaces.FindBySlugAsync(slug);
-        if (ws == null) return NotFound();
+        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
         if (!TryGetUserId(out var uid)) return Forbid();
         Workspace = ws;
         var data = await _teamsEditViewService.BuildAsync(ws.Id, uid, id);
@@ -119,18 +118,6 @@ public class TeamsEditModel : PageModel
             return Page();
         }
         return RedirectToPage("/Workspaces/Teams", new { slug });
-    }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-
-        userId = default;
-        return false;
     }
 
 }

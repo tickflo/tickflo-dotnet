@@ -8,7 +8,7 @@ using Tickflo.Core.Services;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class RolesModel : PageModel
+public class RolesModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly ICurrentUserService _currentUserService;
@@ -32,10 +32,12 @@ public class RolesModel : PageModel
     public async Task<IActionResult> OnGetAsync(string slug)
     {
         WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-
-        if (!_currentUserService.TryGetUserId(User, out var uid)) return Forbid();
+        
+        var result = await LoadWorkspaceAndUserOrExitAsync(_workspaceRepo, slug);
+        if (result is IActionResult actionResult) return actionResult;
+        
+        var (workspace, uid) = (WorkspaceUserLoadResult)result;
+        Workspace = workspace;
 
         var viewData = await _viewService.BuildAsync(Workspace.Id, uid);
         

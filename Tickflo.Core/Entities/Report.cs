@@ -1,6 +1,6 @@
 namespace Tickflo.Core.Entities;
 
-public class Report
+public class Report : IWorkspaceEntity
 {
     public int Id { get; set; }
     public int WorkspaceId { get; set; }

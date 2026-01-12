@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
@@ -9,7 +7,7 @@ using Tickflo.Core.Services;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class RolesEditModel : PageModel
+public class RolesEditModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaces;
     private readonly IRoleRepository _roles;
@@ -52,7 +50,7 @@ public class RolesEditModel : PageModel
     {
         WorkspaceSlug = slug;
         var ws = await _workspaces.FindBySlugAsync(slug);
-        if (ws == null) return NotFound();
+        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
         if (!TryGetUserId(out var uid)) return Forbid();
         var workspaceId = ws.Id;
         var data = await _rolesEditViewService.BuildAsync(workspaceId, uid, id);
@@ -60,7 +58,8 @@ public class RolesEditModel : PageModel
         if (id > 0)
         {
             var role = data.ExistingRole;
-            if (role == null || role.WorkspaceId != workspaceId) return NotFound();
+            var roleCheck = EnsureEntityBelongsToWorkspace(role, workspaceId);
+            if (roleCheck is not null) return roleCheck;
             Role = role;
             Name = role.Name ?? string.Empty;
             Admin = role.Admin;
@@ -121,7 +120,8 @@ public class RolesEditModel : PageModel
             else
             {
                 var role = data.ExistingRole ?? await _roles.FindByIdAsync(id);
-                if (role == null || role.WorkspaceId != workspaceId) return NotFound();
+                var roleCheck = EnsureEntityBelongsToWorkspace(role, workspaceId);
+                if (roleCheck is not null) return roleCheck;
                 // Ensure name uniqueness for update
                 var existing = await _roles.FindByNameAsync(workspaceId, nameTrim);
                 if (existing != null && existing.Id != role.Id)
@@ -172,14 +172,5 @@ public class RolesEditModel : PageModel
         });
     }
 
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-        userId = default;
-        return false;
-    }
+
 }

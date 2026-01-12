@@ -1,13 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
 using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class ReportRunDownloadModel : PageModel
+public class ReportRunDownloadModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IWorkspaceReportRunDownloadViewService _downloadViewService;
@@ -25,7 +24,7 @@ public class ReportRunDownloadModel : PageModel
         var uid = TryGetUserId(out var idVal) ? idVal : 0;
         if (uid == 0) return Forbid();
         var data = await _downloadViewService.BuildAsync(ws.Id, uid, reportId, runId);
-        if (!data.CanViewReports) return Forbid();
+        if (EnsurePermissionOrForbid(data.CanViewReports) is IActionResult permCheck) return permCheck;
         var run = data.Run;
         if (run == null || run.FileBytes == null || run.FileBytes.Length == 0) return NotFound();
         var ct = string.IsNullOrWhiteSpace(run.ContentType) ? "text/csv" : run.ContentType!;
@@ -33,14 +32,4 @@ public class ReportRunDownloadModel : PageModel
         return File(run.FileBytes, ct, name);
     }
 
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-        userId = default;
-        return false;
-    }
 }

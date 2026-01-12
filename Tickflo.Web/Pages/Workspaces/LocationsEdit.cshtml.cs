@@ -1,15 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
- [Authorize]
-public class LocationsEditModel : PageModel
+[Authorize]
+public class LocationsEditModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly ILocationRepository _locationRepo;
@@ -47,17 +45,20 @@ public class LocationsEditModel : PageModel
     public async Task<IActionResult> OnGetAsync(string slug, int locationId = 0)
     {
         WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        if (!TryGetUserId(out var uid)) return Forbid();
-        var workspaceId = Workspace.Id;
+        
+        var result = await LoadWorkspaceAndUserOrExitAsync(_workspaceRepo, slug);
+        if (result is IActionResult actionResult) return actionResult;
+        
+        var (workspace, uid) = (WorkspaceUserLoadResult)result;
+        Workspace = workspace;
+        var workspaceId = workspace.Id;
         
         var viewData = await _viewService.BuildAsync(workspaceId, uid, locationId);
         CanViewLocations = viewData.CanViewLocations;
         CanEditLocations = viewData.CanEditLocations;
         CanCreateLocations = viewData.CanCreateLocations;
         
-        if (!CanViewLocations) return Forbid();
+        if (EnsurePermissionOrForbid(CanViewLocations) is IActionResult permCheck) return permCheck;
 
         MemberOptions = viewData.MemberOptions;
         ContactOptions = viewData.ContactOptions;
@@ -87,14 +88,16 @@ public class LocationsEditModel : PageModel
     public async Task<IActionResult> OnPostAsync(string slug)
     {
         WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        if (!TryGetUserId(out var uid)) return Forbid();
-        var workspaceId = Workspace.Id;
+        
+        var result = await LoadWorkspaceAndUserOrExitAsync(_workspaceRepo, slug);
+        if (result is IActionResult actionResult) return actionResult;
+        
+        var (workspace, uid) = (WorkspaceUserLoadResult)result;
+        Workspace = workspace;
+        var workspaceId = workspace.Id;
         
         var viewData = await _viewService.BuildAsync(workspaceId, uid, LocationId);
-        if (LocationId == 0 && !viewData.CanCreateLocations) return Forbid();
-        if (LocationId > 0 && !viewData.CanEditLocations) return Forbid();
+        if (EnsureCreateOrEditPermission(LocationId, viewData.CanCreateLocations, viewData.CanEditLocations) is IActionResult permCheck) return permCheck;
         
         if (!ModelState.IsValid) return Page();
 
@@ -115,7 +118,7 @@ public class LocationsEditModel : PageModel
                 created.Active = Active;
                 await _locationRepo.UpdateAsync(created);
                 effectiveLocationId = created.Id;
-                TempData["Success"] = $"Location '{created.Name}' created successfully.";
+                SetSuccessMessage($"Location '{created.Name}' created successfully.");
             }
             else
             {
@@ -129,12 +132,12 @@ public class LocationsEditModel : PageModel
                 updated.Active = Active;
                 await _locationRepo.UpdateAsync(updated);
                 effectiveLocationId = updated.Id;
-                TempData["Success"] = $"Location '{updated.Name}' updated successfully.";
+                SetSuccessMessage($"Location '{updated.Name}' updated successfully.");
             }
         }
         catch (InvalidOperationException ex)
         {
-            TempData["Error"] = ex.Message;
+            SetErrorMessage(ex.Message);
             return Page();
         }
         // Persist contact assignments
@@ -142,17 +145,5 @@ public class LocationsEditModel : PageModel
         var queryQ = Request.Query["Query"].ToString();
         var pageQ = Request.Query["PageNumber"].ToString();
         return RedirectToPage("/Workspaces/Locations", new { slug, Query = queryQ, PageNumber = pageQ });
-    }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-
-        userId = default;
-        return false;
     }
 }

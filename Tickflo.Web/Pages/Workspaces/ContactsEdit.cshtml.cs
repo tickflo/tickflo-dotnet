@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
@@ -9,7 +7,7 @@ using Tickflo.Core.Services;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class ContactsEditModel : PageModel
+public class ContactsEditModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IWorkspaceContactsEditViewService _viewService;
@@ -45,17 +43,20 @@ public class ContactsEditModel : PageModel
     {
         WorkspaceSlug = slug;
         Id = id;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        if (!TryGetUserId(out var uid)) return Forbid();
-        var workspaceId = Workspace.Id;
+        
+        var result = await LoadWorkspaceAndUserOrExitAsync(_workspaceRepo, slug);
+        if (result is IActionResult actionResult) return actionResult;
+        
+        var (workspace, uid) = (WorkspaceUserLoadResult)result;
+        Workspace = workspace;
+        var workspaceId = workspace.Id;
         
         var viewData = await _viewService.BuildAsync(workspaceId, uid, id);
         CanViewContacts = viewData.CanViewContacts;
         CanEditContacts = viewData.CanEditContacts;
         CanCreateContacts = viewData.CanCreateContacts;
         
-        if (!CanViewContacts) return Forbid();
+        if (EnsurePermissionOrForbid(CanViewContacts) is IActionResult permCheck) return permCheck;
         
         if (viewData.ExistingContact != null)
         {
@@ -90,16 +91,18 @@ public class ContactsEditModel : PageModel
     {
         WorkspaceSlug = slug;
         Id = id;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        if (!TryGetUserId(out var uid)) return Forbid();
-        var workspaceId = Workspace.Id;
+        
+        var result = await LoadWorkspaceAndUserOrExitAsync(_workspaceRepo, slug);
+        if (result is IActionResult actionResult) return actionResult;
+        
+        var (workspace, uid) = (WorkspaceUserLoadResult)result;
+        Workspace = workspace;
+        var workspaceId = workspace.Id;
         
         var viewData = await _viewService.BuildAsync(workspaceId, uid, id);
         bool allowed = viewData.CanCreateContacts || viewData.CanEditContacts;
         if (!allowed) return Forbid();
-        if (id > 0 && !viewData.CanEditContacts) return Forbid();
-        if (id == 0 && !viewData.CanCreateContacts) return Forbid();
+        if (EnsureCreateOrEditPermission(id, viewData.CanCreateContacts, viewData.CanEditContacts) is IActionResult permCheck) return permCheck;
         
         if (!ModelState.IsValid)
         {
@@ -133,7 +136,7 @@ public class ContactsEditModel : PageModel
                 created.PreferredChannel = channelTrim;
                 created.Priority = priorityTrim;
                 await _contactRepo.UpdateAsync(created);
-                TempData["Success"] = $"Contact '{created.Name}' created.";
+                SetSuccessMessage($"Contact '{created.Name}' created.");
             }
             else
             {
@@ -151,12 +154,12 @@ public class ContactsEditModel : PageModel
                 updated.PreferredChannel = channelTrim;
                 updated.Priority = priorityTrim;
                 await _contactRepo.UpdateAsync(updated);
-                TempData["Success"] = $"Contact '{updated.Name}' updated.";
+                SetSuccessMessage($"Contact '{updated.Name}' updated.");
             }
         }
         catch (InvalidOperationException ex)
         {
-            TempData["Error"] = ex.Message;
+            SetErrorMessage(ex.Message);
             var errorViewData = await _viewService.BuildAsync(workspaceId, uid, id);
             ViewData["Priorities"] = errorViewData.Priorities;
             return Page();
@@ -165,17 +168,5 @@ public class ContactsEditModel : PageModel
         var queryQ = Request.Query["Query"].ToString();
         var pageQ = Request.Query["PageNumber"].ToString();
         return RedirectToPage("/Workspaces/Contacts", new { slug, Priority = priorityQ, Query = queryQ, PageNumber = pageQ });
-    }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-
-        userId = default;
-        return false;
     }
 }

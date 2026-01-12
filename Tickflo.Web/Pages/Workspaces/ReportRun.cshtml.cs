@@ -9,7 +9,7 @@ using Tickflo.Core.Services;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class ReportRunModel : PageModel
+public class ReportRunModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IReportRunService _reportRunService;
@@ -29,21 +29,12 @@ public class ReportRunModel : PageModel
 
         if (!TryGetUserId(out var userId)) return Forbid();
         var viewData = await _viewService.BuildAsync(ws.Id, userId);
-        if (!viewData.CanEditReports) return Forbid();
+        if (EnsurePermissionOrForbid(viewData.CanEditReports) is IActionResult permCheck) return permCheck;
 
         var run = await _reportRunService.RunReportAsync(ws.Id, reportId);
-        TempData["Success"] = run?.Status == "Succeeded" ? "Report run completed." : "Report run failed.";
+        SetSuccessMessage(run?.Status == "Succeeded" ? "Report run completed." : "Report run failed.");
         return RedirectToPage("/Workspaces/ReportRuns", new { slug, reportId });
     }
 
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-        userId = default;
-        return false;
-    }
+
 }

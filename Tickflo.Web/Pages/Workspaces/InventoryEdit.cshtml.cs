@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Security.Claims;
 using System.Threading.Tasks;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
@@ -10,7 +8,7 @@ using Tickflo.Core.Services;
 namespace Tickflo.Web.Pages.Workspaces
 {
     [Authorize]
-    public class InventoryEditModel : PageModel
+    public class InventoryEditModel : WorkspacePageModel
     {
 private readonly IWorkspaceRepository _workspaces;
     private readonly IWorkspaceInventoryEditViewService _viewService;
@@ -40,7 +38,7 @@ private readonly IWorkspaceRepository _workspaces;
     {
         WorkspaceSlug = slug;
         Workspace = await _workspaces.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
+        if (EnsureWorkspaceExistsOrNotFound(Workspace) is IActionResult result) return result;
 
         var workspaceId = Workspace.Id;
         if (!TryGetUserId(out var uid)) return Forbid();
@@ -50,7 +48,7 @@ private readonly IWorkspaceRepository _workspaces;
         CanEditInventory = viewData.CanEditInventory;
         CanCreateInventory = viewData.CanCreateInventory;
         
-        if (!CanViewInventory) return Forbid();
+        if (EnsurePermissionOrForbid(CanViewInventory) is IActionResult permCheck) return permCheck;
 
         Item = viewData.ExistingItem ?? new Inventory { WorkspaceId = workspaceId, Status = "active" };
         LocationOptions = viewData.LocationOptions;
@@ -61,14 +59,13 @@ private readonly IWorkspaceRepository _workspaces;
         {
             WorkspaceSlug = slug;
             Workspace = await _workspaces.FindBySlugAsync(slug);
-            if (Workspace == null) return NotFound();
+            if (EnsureWorkspaceExistsOrNotFound(Workspace) is IActionResult result) return result;
 
             var workspaceId = Workspace.Id;
             if (!TryGetUserId(out var uid)) return Forbid();
             
             var viewData = await _viewService.BuildAsync(workspaceId, uid, id);
-            if (id == 0 && !viewData.CanCreateInventory) return Forbid();
-            if (id > 0 && !viewData.CanEditInventory) return Forbid();
+            if (EnsureCreateOrEditPermission(id, viewData.CanCreateInventory, viewData.CanEditInventory) is IActionResult permCheck) return permCheck;
 
             if (!ModelState.IsValid)
             {
@@ -110,7 +107,7 @@ private readonly IWorkspaceRepository _workspaces;
             }
             catch (InvalidOperationException ex)
             {
-                TempData["Error"] = ex.Message;
+                SetErrorMessage(ex.Message);
                 var errorViewData = await _viewService.BuildAsync(workspaceId, uid, id);
                 LocationOptions = errorViewData.LocationOptions;
                 return Page();
@@ -121,18 +118,6 @@ private readonly IWorkspaceRepository _workspaces;
             var pageQ = Request.Query["PageNumber"].ToString();
             var slugSafe = WorkspaceSlug;
             return Redirect($"/workspaces/{slugSafe}/inventory?Query={Uri.EscapeDataString(queryQ ?? string.Empty)}&LocationId={Uri.EscapeDataString(locationQ ?? string.Empty)}&PageNumber={Uri.EscapeDataString(pageQ ?? string.Empty)}");
-        }
-
-        private bool TryGetUserId(out int userId)
-        {
-            var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (int.TryParse(idValue, out userId))
-            {
-                return true;
-            }
-
-            userId = default;
-            return false;
         }
     }
 }

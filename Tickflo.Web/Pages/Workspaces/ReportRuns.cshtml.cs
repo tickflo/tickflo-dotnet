@@ -9,7 +9,7 @@ using Tickflo.Core.Services;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class ReportRunsModel : PageModel
+public class ReportRunsModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IWorkspaceReportRunsViewService _viewService;
@@ -34,23 +34,12 @@ public class ReportRunsModel : PageModel
 
         if (!TryGetUserId(out var userId)) return Forbid();
         var viewData = await _viewService.BuildAsync(Workspace.Id, userId, reportId);
-        if (!viewData.CanViewReports) return Forbid();
+        if (EnsurePermissionOrForbid(viewData.CanViewReports) is IActionResult permCheck) return permCheck;
         if (viewData.Report == null) return NotFound();
 
         ReportId = viewData.Report.Id;
         Report = viewData.Report;
         Runs = viewData.Runs;
         return Page();
-    }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-        userId = default;
-        return false;
     }
 }

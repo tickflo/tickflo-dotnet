@@ -8,7 +8,7 @@ using Tickflo.Core.Services;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class InventoryModel : PageModel
+public class InventoryModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaces;
     private readonly IInventoryRepository _inventoryRepo;
@@ -46,10 +46,12 @@ public class InventoryModel : PageModel
     public async Task<IActionResult> OnGetAsync(string slug)
     {
         WorkspaceSlug = slug;
-        Workspace = await _workspaces.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-
-        if (!_currentUserService.TryGetUserId(User, out var uid)) return Forbid();
+        
+        var result = await LoadWorkspaceAndUserOrExitAsync(_workspaces, slug);
+        if (result is IActionResult actionResult) return actionResult;
+        
+        var (workspace, uid) = (WorkspaceUserLoadResult)result;
+        Workspace = workspace;
 
         var viewData = await _viewService.BuildAsync(Workspace.Id, uid);
         IsWorkspaceAdmin = viewData.IsWorkspaceAdmin;
@@ -100,7 +102,7 @@ public class InventoryModel : PageModel
         item.Status = "archived";
         await _inventoryRepo.UpdateAsync(item);
 
-        TempData["Success"] = "Inventory item archived.";
+        SetSuccessMessage("Inventory item archived.");
         return Redirect($"/workspaces/{Workspace.Slug}/inventory");
     }
 
@@ -134,7 +136,7 @@ public class InventoryModel : PageModel
         item.Status = "active";
         await _inventoryRepo.UpdateAsync(item);
 
-        TempData["Success"] = "Inventory item restored.";
+        SetSuccessMessage("Inventory item restored.");
         return Redirect($"/workspaces/{Workspace.Slug}/inventory");
     }
 }

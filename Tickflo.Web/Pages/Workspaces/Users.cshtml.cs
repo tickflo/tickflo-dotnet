@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class UsersModel : PageModel
+public class UsersModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IUserRepository _userRepo;
@@ -62,18 +62,18 @@ public class UsersModel : PageModel
     {
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
+        if (EnsureWorkspaceExistsOrNotFound(Workspace) is IActionResult result) return result;
         if (!TryGetUserId(out var currentUserId)) return Forbid();
         
         var viewData = await _manageViewService.BuildAsync(Workspace.Id, currentUserId);
-        if (!viewData.CanEditUsers) return Forbid();
+        if (EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck) return permCheck;
         
         var uw = await _userWorkspaceRepo.FindAsync(userId, Workspace.Id);
         if (uw == null) return NotFound();
         uw.Accepted = true;
         uw.UpdatedAt = DateTime.UtcNow;
         await _userWorkspaceRepo.UpdateAsync(uw);
-        TempData["Success"] = "Invite accepted.";
+        SetSuccessMessage("Invite accepted.");
         return RedirectToPage("/Workspaces/Users", new { slug });
     }
 
@@ -81,16 +81,16 @@ public class UsersModel : PageModel
     {
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
+        if (EnsureWorkspaceExistsOrNotFound(Workspace) is IActionResult result) return result;
         if (!TryGetUserId(out var currentUserId)) return Forbid();
         
         var viewData = await _manageViewService.BuildAsync(Workspace.Id, currentUserId);
-        if (!viewData.CanEditUsers) return Forbid();
+        if (EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck) return permCheck;
         
         var uw = await _userWorkspaceRepo.FindAsync(userId, Workspace.Id);
         if (uw == null || uw.Accepted) return NotFound();
         var user = await _userRepo.FindByIdAsync(userId);
-        if (user == null) return NotFound();
+        if (EnsureEntityExistsOrNotFound(user) is IActionResult userCheck) return userCheck;
         var newCode = TokenGenerator.GenerateToken(16);
         user.EmailConfirmationCode = newCode;
         await _userRepo.UpdateAsync(user);
@@ -100,17 +100,5 @@ public class UsersModel : PageModel
         await _emailSender.SendAsync(user.Email, subject, body);
         TempData["Success"] = "Invite email resent.";
         return RedirectToPage("/Workspaces/Users", new { slug });
-    }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-
-        userId = default;
-        return false;
     }
 }

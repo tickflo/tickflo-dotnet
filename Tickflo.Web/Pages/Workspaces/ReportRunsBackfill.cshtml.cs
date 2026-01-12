@@ -7,7 +7,7 @@ using Tickflo.Core.Services;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class ReportRunsBackfillModel : PageModel
+public class ReportRunsBackfillModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IWorkspaceReportRunsBackfillViewService _backfillViewService;
@@ -31,12 +31,12 @@ public class ReportRunsBackfillModel : PageModel
     {
         WorkspaceSlug = slug;
         var ws = await _workspaceRepo.FindBySlugAsync(slug);
-        if (ws == null) return NotFound();
+        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
         Workspace = ws;
         var uid = TryGetUserId(out var idVal) ? idVal : 0;
         if (uid == 0) return Forbid();
         var data = await _backfillViewService.BuildAsync(ws.Id, uid);
-        if (!data.CanEditReports) return Forbid();
+        if (EnsurePermissionOrForbid(data.CanEditReports) is IActionResult permCheck) return permCheck;
         Message = null;
         Success = false;
         Summary = null;
@@ -47,24 +47,13 @@ public class ReportRunsBackfillModel : PageModel
     {
         WorkspaceSlug = slug;
         var ws = await _workspaceRepo.FindBySlugAsync(slug);
-        if (ws == null) return NotFound();
+        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
         Workspace = ws;
         var uid = TryGetUserId(out var idVal) ? idVal : 0;
         if (uid == 0) return Forbid();
         var data = await _backfillViewService.BuildAsync(ws.Id, uid);
-        if (!data.CanEditReports) return Forbid();
+        if (EnsurePermissionOrForbid(data.CanEditReports) is IActionResult permCheck) return permCheck;
         // Backfill operation not yet implemented; preserve behavior
         return NotFound();
-    }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-        userId = default;
-        return false;
     }
 }

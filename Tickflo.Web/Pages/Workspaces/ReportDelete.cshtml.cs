@@ -1,13 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
 using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class ReportDeleteModel : PageModel
+public class ReportDeleteModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IReportRepository _reportRepo;
@@ -36,7 +35,7 @@ public class ReportDeleteModel : PageModel
         var uid = TryGetUserId(out var idVal) ? idVal : 0;
         if (uid == 0) return Forbid();
         var data = await _deleteViewService.BuildAsync(ws.Id, uid);
-        if (!data.CanEditReports) return Forbid();
+        if (EnsurePermissionOrForbid(data.CanEditReports) is IActionResult permCheck) return permCheck;
 
         // Attempt legacy file cleanup for older runs (best-effort)
         try
@@ -65,19 +64,9 @@ public class ReportDeleteModel : PageModel
         }
         else
         {
-            TempData["Success"] = "Report not found.";
+            SetSuccessMessage("Report not found.");
         }
         return RedirectToPage("/Workspaces/Reports", new { slug });
     }
 
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-        userId = default;
-        return false;
-    }
 }
