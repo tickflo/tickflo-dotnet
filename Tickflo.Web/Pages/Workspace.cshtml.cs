@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Config;
@@ -19,6 +18,7 @@ public class WorkspaceModel : PageModel
     private readonly IWorkspaceDashboardViewService _dashboardViewService;
     private readonly ITeamMemberRepository _teamMembers;
     private readonly SettingsConfig _settingsConfig;
+    private readonly ICurrentUserService _currentUserService;
 
     public Workspace? Workspace { get; set; }
     public bool IsMember { get; set; }
@@ -71,13 +71,15 @@ public class WorkspaceModel : PageModel
         IUserWorkspaceRepository userWorkspaceRepo,
         IWorkspaceDashboardViewService dashboardViewService,
         ITeamMemberRepository teamMembers,
-        SettingsConfig settingsConfig)
+        SettingsConfig settingsConfig,
+        ICurrentUserService currentUserService)
     {
         _workspaceRepo = workspaceRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
         _dashboardViewService = dashboardViewService;
         _teamMembers = teamMembers;
         _settingsConfig = settingsConfig;
+        _currentUserService = currentUserService;
 
         // Initialize theme from settings
         InitializeTheme();
@@ -98,7 +100,7 @@ public class WorkspaceModel : PageModel
         RangeDays = NormalizeRange(range);
         AssignmentFilter = string.IsNullOrEmpty(assignment) ? "all" : assignment.ToLowerInvariant();
         
-        if (!TryGetUserId(out var userId))
+        if (!_currentUserService.TryGetUserId(User, out var userId))
             return Challenge();
 
         if (string.IsNullOrEmpty(slug))
@@ -235,17 +237,6 @@ public class WorkspaceModel : PageModel
         return $"{ts.Seconds}s";
 
     // Close LoadDashboardDataAsync method
-    }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-        userId = default;
-        return false;
     }
     
     public static string HexToRgba(string hex, double opacity)

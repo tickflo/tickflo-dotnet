@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Users;
 
@@ -10,17 +10,19 @@ namespace Tickflo.Web.Pages.Users;
 public class IndexModel : PageModel
 {
     private readonly IUserRepository _users;
+    private readonly ICurrentUserService _currentUserService;
 
-    public IndexModel(IUserRepository users)
+    public IndexModel(IUserRepository users, ICurrentUserService currentUserService)
     {
         _users = users;
+        _currentUserService = currentUserService;
     }
 
     public List<User> Users { get; set; } = new();
 
     public async Task OnGetAsync()
     {
-        if (!TryGetUserId(out var userId))
+        if (!_currentUserService.TryGetUserId(User, out var userId))
         {
             Response.StatusCode = StatusCodes.Status403Forbidden;
             return;
@@ -32,16 +34,5 @@ public class IndexModel : PageModel
             return;
         }
         Users = await _users.ListAsync();
-    }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-        userId = default;
-        return false;
     }
 }

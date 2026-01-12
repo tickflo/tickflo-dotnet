@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Services;
 using System.IO;
@@ -14,23 +13,25 @@ public class ProfileAvatarUploadModel : PageModel
 {
     private readonly IUserRepository _userRepo;
     private readonly IImageStorageService _imageStorageService;
+    private readonly ICurrentUserService _currentUserService;
     public string UserId { get; set; } = "";
     public string Message { get; set; } = "";
 
-    public ProfileAvatarUploadModel(IUserRepository userRepo, IImageStorageService imageStorageService)
+    public ProfileAvatarUploadModel(IUserRepository userRepo, IImageStorageService imageStorageService, ICurrentUserService currentUserService)
     {
         _userRepo = userRepo;
         _imageStorageService = imageStorageService;
+        _currentUserService = currentUserService;
     }
 
     public void OnGet()
     {
-        UserId = TryGetUserId(out var uid) ? uid.ToString() : "";
+        UserId = _currentUserService.TryGetUserId(User, out var uid) ? uid.ToString() : "";
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (!TryGetUserId(out var uid))
+        if (!_currentUserService.TryGetUserId(User, out var uid))
             return Challenge();
         UserId = uid.ToString();
         var file = Request.Form.Files["AvatarImage"];
@@ -65,16 +66,5 @@ public class ProfileAvatarUploadModel : PageModel
             Message = "No file selected.";
         }
         return Page();
-    }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-        userId = default;
-        return false;
     }
 }

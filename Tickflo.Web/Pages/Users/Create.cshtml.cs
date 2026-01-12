@@ -2,10 +2,10 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Auth;
+using Tickflo.Core.Services;
 
 namespace Tickflo.Web.Pages.Users;
 
@@ -14,11 +14,13 @@ public class CreateModel : PageModel
 {
     private readonly IUserRepository _users;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly ICurrentUserService _currentUserService;
 
-    public CreateModel(IUserRepository users, IPasswordHasher passwordHasher)
+    public CreateModel(IUserRepository users, IPasswordHasher passwordHasher, ICurrentUserService currentUserService)
     {
         _users = users;
         _passwordHasher = passwordHasher;
+        _currentUserService = currentUserService;
     }
 
     [BindProperty]
@@ -56,7 +58,7 @@ public class CreateModel : PageModel
 
     public void OnGet()
     {
-        if (!TryGetUserId(out var userId))
+        if (!_currentUserService.TryGetUserId(User, out var userId))
         {
             Response.StatusCode = StatusCodes.Status403Forbidden;
             return;
@@ -73,7 +75,7 @@ public class CreateModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (!TryGetUserId(out var userId))
+        if (!_currentUserService.TryGetUserId(User, out var userId))
             return Forbid();
         var me = await _users.FindByIdAsync(userId);
         if (me?.SystemAdmin != true)
@@ -105,16 +107,5 @@ public class CreateModel : PageModel
 
         TempData["Message"] = "User created.";
         return RedirectToPage("/Workspace");
-    }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var idValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(idValue, out userId))
-        {
-            return true;
-        }
-        userId = default;
-        return false;
     }
 }

@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -26,6 +25,7 @@ public class FilesController : ControllerBase
     private readonly IWorkspaceRepository _workspaceRepository;
     private readonly TickfloConfig _config;
     private readonly ILogger<FilesController> _logger;
+    private readonly ICurrentUserService _currentUserService;
 
     private const long MaxFileSize = 50 * 1024 * 1024; // 50 MB
     private const long MaxImageSize = 10 * 1024 * 1024; // 10 MB
@@ -36,7 +36,8 @@ public class FilesController : ControllerBase
         IFileStorageRepository fileRepository,
         IWorkspaceRepository workspaceRepository,
         TickfloConfig config,
-        ILogger<FilesController> logger)
+        ILogger<FilesController> logger,
+        ICurrentUserService currentUserService)
     {
         _fileStorageService = fileStorageService;
         _imageStorageService = imageStorageService;
@@ -44,6 +45,7 @@ public class FilesController : ControllerBase
         _workspaceRepository = workspaceRepository;
         _config = config;
         _logger = logger;
+        _currentUserService = currentUserService;
     }
 
     /// <summary>
@@ -54,7 +56,7 @@ public class FilesController : ControllerBase
     {
         try
         {
-            if (!TryGetUserId(out var userId)) return Unauthorized();
+            if (!_currentUserService.TryGetUserId(User, out var userId)) return Unauthorized();
 
             // Verify workspace access
             var workspace = await _workspaceRepository.FindByIdAsync(workspaceId);
@@ -108,7 +110,7 @@ public class FilesController : ControllerBase
     {
         try
         {
-            if (!TryGetUserId(out var userId)) return Unauthorized();
+            if (!_currentUserService.TryGetUserId(User, out var userId)) return Unauthorized();
 
             // Verify workspace access
             var workspace = await _workspaceRepository.FindByIdAsync(workspaceId);
@@ -170,7 +172,7 @@ public class FilesController : ControllerBase
     {
         try
         {
-            if (!TryGetUserId(out var userId)) return Unauthorized();
+            if (!_currentUserService.TryGetUserId(User, out var userId)) return Unauthorized();
 
             var file = await _fileRepository.FindByIdAsync(fileId);
             if (file == null) return NotFound();
@@ -221,7 +223,7 @@ public class FilesController : ControllerBase
     {
         try
         {
-            if (!TryGetUserId(out var userId)) return Unauthorized();
+            if (!_currentUserService.TryGetUserId(User, out var userId)) return Unauthorized();
 
             var files = await _fileRepository.ListAsync(workspaceId, take, skip, category);
             var total = await _fileRepository.GetWorkspaceFileCountAsync(workspaceId);
@@ -259,7 +261,7 @@ public class FilesController : ControllerBase
     {
         try
         {
-            if (!TryGetUserId(out var userId)) return Unauthorized();
+            if (!_currentUserService.TryGetUserId(User, out var userId)) return Unauthorized();
 
             var usedBytes = await _fileRepository.GetWorkspaceStorageUsedAsync(workspaceId);
             var fileCount = await _fileRepository.GetWorkspaceFileCountAsync(workspaceId);
@@ -278,17 +280,5 @@ public class FilesController : ControllerBase
             _logger.LogError(ex, $"Error getting storage info for workspace {workspaceId}");
             return StatusCode(500, "Error getting storage info");
         }
-    }
-
-    private bool TryGetUserId(out int userId)
-    {
-        var id = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (int.TryParse(id, out userId))
-        {
-            return true;
-        }
-
-        userId = default;
-        return false;
     }
 }
