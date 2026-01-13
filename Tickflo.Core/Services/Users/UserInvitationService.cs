@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Auth;
+using Tickflo.Core.Services.Authentication;
 
 namespace Tickflo.Core.Services.Users;
 
@@ -168,5 +168,6 @@ public class UserInvitationService : IUserInvitationService
         return Guid.NewGuid().ToString("N");
     }
 }
+
 
 

@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using Tickflo.Core.Data;
 
-namespace Tickflo.Core.Services.Auth;
+namespace Tickflo.Core.Services.Authentication;
 
 public class WorkspaceRoleBootstrapper(IRoleRepository roles, IUserWorkspaceRoleRepository userWorkspaceRoles) : IWorkspaceRoleBootstrapper
 {
@@ -15,3 +15,5 @@ public class WorkspaceRoleBootstrapper(IRoleRepository roles, IUserWorkspaceRole
         await _userWorkspaceRoles.AddAsync(creatorUserId, workspaceId, adminRole.Id, creatorUserId);
     }
 }
+
+

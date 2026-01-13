@@ -1,4 +1,4 @@
-namespace Tickflo.Core.Services.Auth;
+namespace Tickflo.Core.Services.Authentication;
 
 public class AuthenticationResult
 {
@@ -9,3 +9,4 @@ public class AuthenticationResult
     public string? WorkspaceSlug { get; set; }
     public bool RequiresPasswordSetup { get; set; }
 }
+

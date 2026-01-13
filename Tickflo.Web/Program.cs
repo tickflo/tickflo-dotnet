@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Config;
 using Tickflo.Core.Data;
 using Tickflo.Core.Services;
-using Tickflo.Core.Services.Auth;
+using Tickflo.Core.Services.Authentication;
 using Tickflo.Core.Services.Email;
 using Tickflo.Core.Services.Notifications;
 using Tickflo.Core.Services.Contacts;
@@ -19,8 +19,8 @@ using Tickflo.Core.Services.Users;
 using Tickflo.Core.Services.Workspace;
 using Tickflo.Core.Services.Reporting;
 using Tickflo.Core.Services.Views;
-using AuthenticationService = Tickflo.Core.Services.Auth.AuthenticationService;
-using IAuthenticationService = Tickflo.Core.Services.Auth.IAuthenticationService;
+using AuthenticationService = Tickflo.Core.Services.Authentication.AuthenticationService;
+using IAuthenticationService = Tickflo.Core.Services.Authentication.IAuthenticationService;
 using Amazon.S3;
 using Amazon;
 
@@ -239,5 +239,6 @@ app.MapControllers();
 app.MapHub<Tickflo.Web.Realtime.TicketsHub>("/hubs/tickets");
 
 app.Run();
+
 
 

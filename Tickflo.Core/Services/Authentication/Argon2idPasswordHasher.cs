@@ -1,6 +1,6 @@
 using Isopoh.Cryptography.Argon2;
 
-namespace Tickflo.Core.Services.Auth;
+namespace Tickflo.Core.Services.Authentication;
 
 public class Argon2idPasswordHasher : IPasswordHasher
 {
@@ -14,3 +14,4 @@ public class Argon2idPasswordHasher : IPasswordHasher
         return Argon2.Verify(hash, input);
     }
 }
+

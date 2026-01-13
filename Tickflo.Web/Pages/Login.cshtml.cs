@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Services;
 
-using Tickflo.Core.Services.Auth;
+using Tickflo.Core.Services.Authentication;
 namespace Tickflo.Web.Pages;
 
 [AllowAnonymous]
@@ -77,5 +77,6 @@ public class LoginInput
 
     public string Password { get; set; } = "";
 }
+
 
 

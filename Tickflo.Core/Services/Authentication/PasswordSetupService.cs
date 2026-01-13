@@ -1,7 +1,7 @@
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
-namespace Tickflo.Core.Services.Auth;
+namespace Tickflo.Core.Services.Authentication;
 
 public class PasswordSetupService : IPasswordSetupService
 {
@@ -131,3 +131,5 @@ public class PasswordSetupService : IPasswordSetupService
         return new SetPasswordResult(true, null, loginToken.Value, workspaceSlug, user.Id, user.Email);
     }
 }
+
+

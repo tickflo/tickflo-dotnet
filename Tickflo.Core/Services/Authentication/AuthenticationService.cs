@@ -1,9 +1,9 @@
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Auth;
+
 using WorkspaceEntity = Tickflo.Core.Entities.Workspace;
 
-namespace Tickflo.Core.Services.Auth;
+namespace Tickflo.Core.Services.Authentication;
 
 public class AuthenticationService(
     IUserRepository userRepository,
@@ -164,3 +164,6 @@ public class AuthenticationService(
         return result;
     }
 }
+
+
+
