@@ -1,4 +1,4 @@
-\restrict aXDbebmcqGeUoetdAUZgIghzzeyO0kaQr7iuDBgiuQzad0jAhmGY8xqa9ji2oAc
+-- migrate:up
 
 -- Dumped from database version 17.2 (Debian 17.2-1.pgdg120+1)
 -- Dumped by pg_dump version 18.1
@@ -459,15 +459,6 @@ ALTER TABLE public.roles ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     NO MINVALUE
     NO MAXVALUE
     CACHE 1
-);
-
-
---
--- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.schema_migrations (
-    version character varying NOT NULL
 );
 
 
@@ -1009,14 +1000,6 @@ ALTER TABLE ONLY public.role_permissions
 
 ALTER TABLE ONLY public.roles
     ADD CONSTRAINT roles_pkey PRIMARY KEY (id);
-
-
---
--- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.schema_migrations
-    ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
 
 
 --
@@ -1780,12 +1763,4 @@ ALTER TABLE ONLY public.workspaces
 -- PostgreSQL database dump complete
 --
 
-\unrestrict aXDbebmcqGeUoetdAUZgIghzzeyO0kaQr7iuDBgiuQzad0jAhmGY8xqa9ji2oAc
-
-
---
--- Dbmate schema migrations
---
-
-INSERT INTO public.schema_migrations (version) VALUES
-    ('20260113162007');
+-- migrate:down
