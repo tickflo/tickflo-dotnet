@@ -1,8 +1,7 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
 using Xunit;
 
 namespace Tickflo.CoreTest.Services;
@@ -101,3 +100,4 @@ public class ReportRunServiceTests
         Assert.Equal(3, run.WorkspaceId);
     }
 }
+

@@ -1,8 +1,7 @@
-using Moq;
+﻿using Moq;
 using System.Threading;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
 using Xunit;
 
 namespace Tickflo.CoreTest.Services;
@@ -304,3 +303,4 @@ public class WorkspaceTicketDetailsViewServiceTests
         Assert.Equal(ticketId, view.Ticket?.Id);
     }
 }
+

@@ -1,4 +1,4 @@
-using Moq;
+﻿using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Authentication;
@@ -203,4 +203,5 @@ public class PasswordSetupServiceTests
             workspaceRepository);
     }
 }
+
 

@@ -1,6 +1,5 @@
-using Moq;
+﻿using Moq;
 using Xunit;
-using Tickflo.Core.Services;
 using Tickflo.Core.Data;
 
 namespace Tickflo.CoreTest.Services;
@@ -31,3 +30,4 @@ public class WorkspaceFilesViewServiceTests
         Assert.False(result.CanViewFiles);
     }
 }
+

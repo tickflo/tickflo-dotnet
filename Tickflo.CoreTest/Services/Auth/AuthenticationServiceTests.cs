@@ -1,7 +1,6 @@
-using Moq;
+﻿using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
 using Tickflo.Core.Services.Authentication;
 using Xunit;
 
@@ -109,3 +108,4 @@ public class AuthenticationServiceTests
         Assert.Equal("Invalid username or password, please try again", result.ErrorMessage);
     }
 }
+

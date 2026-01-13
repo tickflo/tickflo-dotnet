@@ -1,6 +1,5 @@
-using Moq;
+﻿using Moq;
 using Xunit;
-using Tickflo.Core.Services;
 using Tickflo.Core.Data;
 
 namespace Tickflo.CoreTest.Services;
@@ -79,3 +78,4 @@ public class WorkspaceUsersInviteViewServiceTests
         Assert.False(result.CanCreateUsers);
     }
 }
+

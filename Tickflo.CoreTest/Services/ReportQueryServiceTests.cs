@@ -1,7 +1,6 @@
-using Moq;
+﻿using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
 using Xunit;
 
 namespace Tickflo.CoreTest.Services;
@@ -28,3 +27,4 @@ public class ReportQueryServiceTests
         Assert.Equal(new DateTime(2024,1,1), item.LastRun);
     }
 }
+

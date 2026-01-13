@@ -1,7 +1,6 @@
-using Moq;
+﻿using Moq;
 using Xunit;
 using Tickflo.Core.Data;
-using Tickflo.Core.Services;
 
 namespace Tickflo.CoreTest.Services;
 
@@ -104,3 +103,4 @@ public class WorkspaceReportsViewServiceTests
         Assert.Empty(result.Reports);
     }
 }
+
