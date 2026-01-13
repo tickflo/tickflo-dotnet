@@ -33,8 +33,10 @@ public class TicketsDetailsModel : WorkspacePageModel
     private readonly ITeamRepository _teamRepo;
     private readonly IUserWorkspaceRoleRepository _roles;
     private readonly IWorkspaceTicketsSaveViewService _savingViewService;
+    private readonly ITicketCommentService _commentService;
+    private readonly IUserRepository _userRepo;
 
-    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, ITicketManagementService ticketService, IWorkspaceTicketDetailsViewService viewService, IRolePermissionRepository rolePerms, ITeamRepository teamRepo, IUserWorkspaceRoleRepository roles, IWorkspaceTicketsSaveViewService savingViewService)
+    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, ITicketManagementService ticketService, IWorkspaceTicketDetailsViewService viewService, IRolePermissionRepository rolePerms, ITeamRepository teamRepo, IUserWorkspaceRoleRepository roles, IWorkspaceTicketsSaveViewService savingViewService, ITicketCommentService commentService, IUserRepository userRepo)
     {
         _workspaceRepo = workspaceRepo;
         _ticketRepo = ticketRepo;
@@ -44,6 +46,8 @@ public class TicketsDetailsModel : WorkspacePageModel
         _teamRepo = teamRepo;
         _roles = roles;
         _savingViewService = savingViewService;
+        _commentService = commentService;
+        _userRepo = userRepo;
     }
     public List<Inventory> InventoryItems { get; private set; } = new();
 
@@ -101,6 +105,13 @@ public class TicketsDetailsModel : WorkspacePageModel
     public string? EditInventoryRef { get; set; }
     [BindProperty]
     public int? EditContactId { get; set; }
+    
+    // Comment properties
+    public IReadOnlyList<TicketComment> Comments { get; private set; } = Array.Empty<TicketComment>();
+    [BindProperty]
+    public string? NewCommentContent { get; set; }
+    [BindProperty]
+    public bool NewCommentIsVisibleToClient { get; set; } = false;
 
     public async Task<IActionResult> OnGetAsync(string slug, int id)
     {
@@ -135,7 +146,73 @@ public class TicketsDetailsModel : WorkspacePageModel
         TicketViewScope = viewData.TicketViewScope;
         LocationId = Ticket?.LocationId;
 
+        // Load comments for the ticket if it exists
+        if (Ticket != null && Ticket.Id > 0)
+        {
+            Comments = await _commentService.GetCommentsAsync(Workspace.Id, Ticket.Id, isClientView: false);
+        }
+
         return Page();
+    }
+
+    // Add a new comment to the ticket
+    public async Task<IActionResult> OnPostAddCommentAsync(string slug, int id, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub)
+    {
+        WorkspaceSlug = slug;
+        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
+        if (Workspace == null) return NotFound();
+
+        var currentUserId = TryGetUserId(out var uid) ? uid : 0;
+        if (currentUserId == 0) return Forbid();
+
+        // Validate comment content
+        if (string.IsNullOrWhiteSpace(NewCommentContent))
+        {
+            SetErrorMessage("Comment cannot be empty.");
+            return RedirectToPage("/Workspaces/TicketsDetails", new { slug, id });
+        }
+
+        // Verify user can edit tickets (permission to add comments)
+        var saveViewData = await _savingViewService.BuildAsync(Workspace.Id, uid, false, null);
+        if (!saveViewData.CanEditTickets)
+        {
+            return Forbid();
+        }
+
+        try
+        {
+            // Add the comment
+            var comment = await _commentService.AddCommentAsync(
+                Workspace.Id,
+                id,
+                currentUserId,
+                NewCommentContent.Trim(),
+                NewCommentIsVisibleToClient
+            );
+
+            // Broadcast comment creation to workspace clients
+            var group = Tickflo.Web.Realtime.TicketsHub.WorkspaceGroup(WorkspaceSlug ?? string.Empty);
+            
+            await hub.Clients.Group(group).SendCoreAsync("commentAdded", new object[] {
+                new {
+                    id = comment.Id,
+                    ticketId = comment.TicketId,
+                    content = comment.Content,
+                    isVisibleToClient = comment.IsVisibleToClient,
+                    createdByUserId = comment.CreatedByUserId,
+                    createdByUserName = comment.CreatedByUser?.Name ?? comment.CreatedByUser?.Email ?? "Unknown",
+                    createdAt = comment.CreatedAt
+                }
+            });
+
+            SetSuccessMessage("Comment added successfully.");
+        }
+        catch (Exception ex)
+        {
+            SetErrorMessage($"Failed to add comment: {ex.Message}");
+        }
+
+        return RedirectToPage("/Workspaces/TicketsDetails", new { slug, id });
     }
 
     // Consolidated save: updates subject, description, priority, status, and assignment

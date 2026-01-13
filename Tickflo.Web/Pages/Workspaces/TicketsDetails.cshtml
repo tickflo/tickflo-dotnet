@@ -829,6 +829,94 @@
           })();
         </script>
 
+        <!-- Comments Section -->
+        @if ((Model.Ticket?.Id ?? 0) > 0)
+        {
+          <div class="divider my-6"></div>
+          <div class="bg-neutral-950/50 rounded-xl p-5 border border-white/5">
+            <h3 class="text-sm uppercase tracking-wider font-semibold text-white/60 mb-4">
+              <i class="fa fa-comments mr-2"></i>Comments
+            </h3>
+            
+            <!-- Add Comment Form (only if user can edit) -->
+            @if (Model.CanEditTickets)
+            {
+              <form method="post" asp-page-handler="AddComment" class="mb-4">
+                <div class="space-y-3">
+                  <textarea 
+                    name="NewCommentContent" 
+                    placeholder="Add a comment..." 
+                    class="w-full p-3 rounded-lg bg-neutral-900 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 resize-none"
+                    rows="3"></textarea>
+                  <div class="flex items-center gap-3">
+                    <label class="flex items-center gap-2 cursor-pointer text-sm text-white/70 hover:text-white/90">
+                      <input type="checkbox" name="NewCommentIsVisibleToClient" class="checkbox checkbox-sm" />
+                      <span><i class="fa fa-eye mr-1"></i>Visible to client</span>
+                    </label>
+                    <button type="submit" class="btn btn-sm btn-primary ml-auto">
+                      <i class="fa fa-paper-plane mr-1"></i>Post Comment
+                    </button>
+                  </div>
+                </div>
+              </form>
+            }
+
+            <!-- Comments List -->
+            <div class="space-y-3">
+              @if (Model.Comments != null && Model.Comments.Count > 0)
+              {
+                foreach (var comment in Model.Comments)
+                {
+                  var commenter = Model.Members.FirstOrDefault(m => m.Id == comment.CreatedByUserId);
+                  var commenterName = commenter != null ? (string.IsNullOrWhiteSpace(commenter.Name) ? commenter.Email : commenter.Name) : $"User #{comment.CreatedByUserId}";
+                  <div class="p-3 rounded-lg bg-neutral-900/30 hover:bg-neutral-900/50 transition-colors border border-white/5">
+                    <div class="flex items-start gap-3">
+                      <div class="flex-shrink-0">
+                        <div class="avatar" id="avatar-comment-@comment.Id" style="display:none;">
+                          <div class="w-10 h-10 rounded-full">
+                            <img src="/users/@comment.CreatedByUserId/avatar" alt="@commenterName" onload="document.getElementById('avatar-comment-@comment.Id').style.display='';" onerror="document.getElementById('avatar-comment-@comment.Id').style.display='none';" />
+                          </div>
+                        </div>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                          <span class="font-semibold text-white">@commenterName</span>
+                          @if (comment.IsVisibleToClient)
+                          {
+                            <span class="badge badge-soft badge-xs">
+                              <i class="fa fa-eye mr-1"></i>Client Visible
+                            </span>
+                          }
+                          else
+                          {
+                            <span class="badge badge-ghost badge-xs">
+                              <i class="fa fa-lock mr-1"></i>Internal Only
+                            </span>
+                          }
+                          <span class="text-xs text-white/40">•</span>
+                          <span class="text-xs text-white/50">@comment.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy h:mm tt")</span>
+                          @if (comment.UpdatedAt.HasValue)
+                          {
+                            <span class="text-xs text-white/40">(edited)</span>
+                          }
+                        </div>
+                        <div class="text-sm text-white/80 whitespace-pre-wrap break-words">@comment.Content</div>
+                      </div>
+                    </div>
+                  </div>
+                }
+              }
+              else
+              {
+                <div class="text-center py-6 text-white/40">
+                  <i class="fa fa-comment text-2xl mb-2"></i>
+                  <div>No comments yet</div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
         <!-- History Section -->
         @if ((Model.Ticket?.Id ?? 0) > 0)
         {

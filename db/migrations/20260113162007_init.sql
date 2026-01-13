@@ -1,4 +1,4 @@
--- migrate:up
+\restrict VM2MG3Kr99CXcekhrmDKzDE4bKdDQLqRoxgKHrdxdz1X6Tqe6RKtJz6oEq7nnhs
 
 -- Dumped from database version 17.2 (Debian 17.2-1.pgdg120+1)
 -- Dumped by pg_dump version 18.1
@@ -504,6 +504,43 @@ ALTER TABLE public.teams ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
 
 
 --
+-- Name: ticket_comments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ticket_comments (
+    id integer NOT NULL,
+    workspace_id integer NOT NULL,
+    ticket_id integer NOT NULL,
+    created_by_user_id integer NOT NULL,
+    content text NOT NULL,
+    is_visible_to_client boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone,
+    updated_by_user_id integer
+);
+
+
+--
+-- Name: ticket_comments_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.ticket_comments_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: ticket_comments_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.ticket_comments_id_seq OWNED BY public.ticket_comments.id;
+
+
+--
 -- Name: ticket_history; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -827,6 +864,13 @@ ALTER TABLE ONLY public.file_storage ALTER COLUMN id SET DEFAULT nextval('public
 
 
 --
+-- Name: ticket_comments id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_comments ALTER COLUMN id SET DEFAULT nextval('public.ticket_comments_id_seq'::regclass);
+
+
+--
 -- Name: contact_locations contact_locations_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1019,6 +1063,14 @@ ALTER TABLE ONLY public.teams
 
 
 --
+-- Name: ticket_comments ticket_comments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_comments
+    ADD CONSTRAINT ticket_comments_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: ticket_history ticket_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1200,6 +1252,27 @@ CREATE INDEX idx_inventory_ws_status ON public.inventory USING btree (workspace_
 --
 
 CREATE INDEX idx_priorities_ws_order_name ON public.priorities USING btree (workspace_id, sort_order, name);
+
+
+--
+-- Name: idx_ticket_comments_created_by; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ticket_comments_created_by ON public.ticket_comments USING btree (created_by_user_id);
+
+
+--
+-- Name: idx_ticket_comments_ticket_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ticket_comments_ticket_id ON public.ticket_comments USING btree (ticket_id);
+
+
+--
+-- Name: idx_ticket_comments_workspace_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ticket_comments_workspace_id ON public.ticket_comments USING btree (workspace_id);
 
 
 --
@@ -1560,6 +1633,38 @@ ALTER TABLE ONLY public.teams
 
 
 --
+-- Name: ticket_comments ticket_comments_created_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_comments
+    ADD CONSTRAINT ticket_comments_created_by_user_id_fkey FOREIGN KEY (created_by_user_id) REFERENCES public.users(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: ticket_comments ticket_comments_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_comments
+    ADD CONSTRAINT ticket_comments_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.tickets(id) ON DELETE CASCADE;
+
+
+--
+-- Name: ticket_comments ticket_comments_updated_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_comments
+    ADD CONSTRAINT ticket_comments_updated_by_user_id_fkey FOREIGN KEY (updated_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: ticket_comments ticket_comments_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_comments
+    ADD CONSTRAINT ticket_comments_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+
+
+--
 -- Name: ticket_history ticket_history_workspace_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1763,7 +1868,7 @@ ALTER TABLE ONLY public.workspaces
 -- PostgreSQL database dump complete
 --
 
--- migrate:down
+\unrestrict VM2MG3Kr99CXcekhrmDKzDE4bKdDQLqRoxgKHrdxdz1X6Tqe6RKtJz6oEq7nnhs
 
 DO $$
 DECLARE
@@ -1788,47 +1893,7 @@ BEGIN
     EXECUTE format('DROP VIEW IF EXISTS public.%I CASCADE', r.viewname);
   END LOOP;
 
-  -- Drop materialized views
-  FOR r IN
-    SELECT matviewname
-    FROM pg_matviews
-    WHERE schemaname = 'public'
-  LOOP
-    EXECUTE format('DROP MATERIALIZED VIEW IF EXISTS public.%I CASCADE', r.matviewname);
-  END LOOP;
-
-  -- Drop sequences
-  FOR r IN
-    SELECT sequencename
-    FROM pg_sequences
-    WHERE schemaname = 'public'
-  LOOP
-    EXECUTE format('DROP SEQUENCE IF EXISTS public.%I CASCADE', r.sequencename);
-  END LOOP;
-
-  -- Drop functions
-  FOR r IN
-    SELECT p.proname,
-           pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON n.oid = p.pronamespace
-    WHERE n.nspname = 'public'
-  LOOP
-    EXECUTE format(
-      'DROP FUNCTION IF EXISTS public.%I(%s) CASCADE',
-      r.proname,
-      r.args
-    );
-  END LOOP;
-
-  -- Drop enums
-  FOR r IN
-    SELECT t.typname
-    FROM pg_type t
-    JOIN pg_namespace n ON n.oid = t.typnamespace
-    WHERE n.nspname = 'public'
-      AND t.typtype = 'e'
-  LOOP
-    EXECUTE format('DROP TYPE IF EXISTS public.%I CASCADE', r.typname);
-  END LOOP;
-END $$;
+INSERT INTO public.schema_migrations (version) VALUES
+    ('20250113'),
+    ('20250822124430'),
+    ('20250823');

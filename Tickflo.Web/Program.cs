@@ -56,6 +56,7 @@ builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IReportRunRepository, ReportRunRepository>();
 builder.Services.AddScoped<IContactRepository, ContactRepository>();
 builder.Services.AddScoped<ITicketRepository, TicketRepository>();
+builder.Services.AddScoped<ITicketCommentRepository, TicketCommentRepository>();
 builder.Services.AddScoped<ITicketStatusRepository, TicketStatusRepository>();
 builder.Services.AddScoped<ITicketPriorityRepository, TicketPriorityRepository>();
 builder.Services.AddScoped<ITicketTypeRepository, TicketTypeRepository>();
@@ -128,6 +129,7 @@ builder.Services.AddScoped<IInventoryAllocationService, InventoryAllocationServi
 builder.Services.AddScoped<IInventoryAdjustmentService, InventoryAdjustmentService>();
 builder.Services.AddScoped<ILocationSetupService, LocationSetupService>();
 builder.Services.AddScoped<ITicketAssignmentService, TicketAssignmentService>();
+builder.Services.AddScoped<ITicketCommentService, TicketCommentService>();
 builder.Services.AddScoped<ITicketClosingService, TicketClosingService>();
 builder.Services.AddScoped<ITicketCreationService, TicketCreationService>();
 builder.Services.AddScoped<ITicketUpdateService, TicketUpdateService>();
