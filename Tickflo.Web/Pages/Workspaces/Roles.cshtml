@@ -1,0 +1,103 @@
+@page "/workspaces/{slug}/users/roles"
+@model Tickflo.Web.Pages.Workspaces.RolesModel
+@{
+    ViewData["Title"] = "Roles";
+}
+
+<div class="flex flex-row gap-4">
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+    <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "User Roles", NewActionLabel = "New Role", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/users/roles/0/edit" })
+        @if (TempData["Error"] is string err && !string.IsNullOrWhiteSpace(err))
+        {
+            <div class="alert alert-error rounded-2xl border border-white/10 mt-3">
+                <span>@err</span>
+            </div>
+        }
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+            <div class="card-body space-y-4">
+                <h2 class="card-title">Roles</h2>
+                <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
+                @{ var roleCount = Model.Roles?.Count ?? 0; var assignedTotal = (Model.RoleAssignmentCounts != null ? Model.RoleAssignmentCounts.Values.Sum() : 0); }
+                <div class="grid grid-cols-2 gap-4 mt-4">
+                    <div class="rounded-2xl bg-white/5 p-4 border border-white/10">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-slate-400">Total Roles</div>
+                        <div class="text-3xl font-bold text-primary mt-1">@roleCount</div>
+                    </div>
+                    <div class="rounded-2xl bg-white/5 p-4 border border-white/10">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-slate-400">Assigned Users</div>
+                        <div class="text-3xl font-bold text-secondary mt-1">@assignedTotal</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+            <div class="card-body">
+                <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
+                    <table class="table table-sm table-zebra">
+                        <thead class="bg-white/5">
+                            <tr>
+                                <th>Name</th>
+                                <th>Admin</th>
+                                <th>Assigned Users</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Roles == null || !Model.Roles.Any())
+                            {
+                                <tr>
+                                    <td colspan="3">
+                                        <div class="alert alert-info">No roles yet.</div>
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                foreach (var r in Model.Roles)
+                                {
+                                    <tr>
+                                        @{ var assignedCount = 0; if (Model.RoleAssignmentCounts != null && Model.RoleAssignmentCounts.TryGetValue(r.Id, out var tmp)) { assignedCount = tmp; } }
+                                        <td>@r.Name</td>
+                                        <td>
+                                            @if (r.Admin)
+                                            {
+                                                <span class="badge badge-soft badge-primary rounded-full">Admin</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge badge-soft rounded-full">Member</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-soft badge-info rounded-full">@assignedCount</span>
+                                        </td>
+                                        <td>
+                                            <div class="flex flex-wrap gap-2">
+                                                @await Html.PartialAsync("_ActionRow", new Tickflo.Web.Pages.Shared.ActionRowView {
+                                                    Actions = new List<Tickflo.Web.Pages.Shared.ActionItem> {
+                                                        new Tickflo.Web.Pages.Shared.ActionItem { Label = "Edit", Href = $"/workspaces/{Model.WorkspaceSlug}/users/roles/{r.Id}/edit", Disabled = false, ButtonClass = "btn btn-ghost btn-sm" }
+                                                    }
+                                                })
+                                                <form method="post" action="/workspaces/@Model.WorkspaceSlug/users/roles/@r.Id/delete" onsubmit="return confirm('Delete role @r.Name?');">
+                                                    <button class="btn btn-error btn-sm" type="submit" @(assignedCount > 0 ? "disabled" : null)>Delete</button>
+                                                </form>
+                                                @if (assignedCount > 0)
+                                                {
+                                                    <span class="text-xs text-base-content/70">Unassign users before deleting.</span>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="alert alert-soft mt-2">
+                    <span>Note: Unassign users from a role before deleting it.</span>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>

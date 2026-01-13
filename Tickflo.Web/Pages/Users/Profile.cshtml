@@ -1,0 +1,94 @@
+@page "/profile"
+@model Tickflo.Web.Pages.Users.ProfileModel
+@{
+    ViewData["Title"] = "Profile";
+}
+<div class="max-w-4xl mx-auto p-8">
+    <h1 class="text-2xl font-bold mb-4">User Profile</h1>
+    <form method="post" class="flex flex-col gap-6">
+        <div class="flex items-center gap-6">
+            <div class="avatar">
+                <div class="w-24 rounded-full ring ring-primary ring-offset-2 ring-offset-base-100">
+                    <img src="/users/@Model.UserId/avatar" alt="Avatar" onerror="this.parentElement.parentElement.style.display='none';" />
+                </div>
+                <a href="/profile/avatar" class="btn btn-sm btn-soft mt-4">Change Avatar</a>
+            </div>
+            <div>
+                <label class="block mb-2 font-semibold">Name</label>
+                <input asp-for="UserName" class="input input-bordered w-full max-w-xs" />
+                <label class="block mt-4 mb-2 font-semibold">Email</label>
+                <input asp-for="Email" class="input input-bordered w-full max-w-xs" />
+            </div>
+        </div>
+        <div class="card bg-base-100 shadow-sm rounded-3xl p-6 rounded-3xl">
+            <h2 class="card-title mb-2">Details</h2>
+            <div><strong>User ID:</strong> @Model.UserId</div>
+            <div><strong>Name:</strong> @Model.UserName</div>
+            <div><strong>Email:</strong> @Model.Email</div>
+        </div>
+
+        <div class="card bg-base-100 shadow-sm rounded-3xl p-6 rounded-3xl">
+            <h2 class="card-title mb-4">Notification Preferences</h2>
+            <p class="text-sm text-base-content/70 mb-4">Choose how you want to receive notifications for different events.</p>
+            
+            <div class="overflow-x-auto">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Notification Type</th>
+                            <th class="text-center">Email</th>
+                            <th class="text-center">In-App</th>
+                            <th class="text-center">SMS</th>
+                            <th class="text-center">Push</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var pref in Model.NotificationPreferences)
+                        {
+                            <tr>
+                                <td class="font-medium">@pref.Label</td>
+                                <td class="text-center">
+                                    <input type="checkbox" 
+                                           name="EmailPrefs[@pref.Type]" 
+                                           value="true" 
+                                           checked="@Model.EmailPrefs[pref.Type]" 
+                                           class="checkbox checkbox-sm checkbox-primary" />
+                                </td>
+                                <td class="text-center">
+                                    <input type="checkbox" 
+                                           name="InAppPrefs[@pref.Type]" 
+                                           value="true" 
+                                           checked="@Model.InAppPrefs[pref.Type]" 
+                                           class="checkbox checkbox-sm checkbox-primary" />
+                                </td>
+                                <td class="text-center">
+                                    <input type="checkbox" 
+                                           name="SmsPrefs[@pref.Type]" 
+                                           value="true" 
+                                           checked="@Model.SmsPrefs[pref.Type]" 
+                                           class="checkbox checkbox-sm checkbox-primary" />
+                                </td>
+                                <td class="text-center">
+                                    <input type="checkbox" 
+                                           name="PushPrefs[@pref.Type]" 
+                                           value="true" 
+                                           checked="@Model.PushPrefs[pref.Type]" 
+                                           class="checkbox checkbox-sm checkbox-primary" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="alert alert-info mt-4">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span class="text-sm">If all delivery methods are disabled for a notification type, you won't receive that notification. At least one method should be enabled.</span>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-40">Save Changes</button>
+    </form>
+</div>

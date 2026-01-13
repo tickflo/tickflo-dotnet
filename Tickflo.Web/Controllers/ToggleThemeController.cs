@@ -20,7 +20,9 @@ namespace Tickflo.Web.Controllers
                 SameSite = SameSiteMode.Lax
             });
 
-            return Redirect(Request.Headers.Referer.ToString() ?? "/");
+            var referer = Request.Headers.Referer.ToString();
+            var redirectUrl = string.IsNullOrWhiteSpace(referer) ? "/" : referer;
+            return Redirect(redirectUrl);
         }
     }
 }

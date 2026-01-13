@@ -2,25 +2,23 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Tickflo.Core.Services;
+
 
 namespace Tickflo.Web.Pages;
 
 [AllowAnonymous]
-public class SignupModel : PageModel
+public class SignupModel(ILogger<SignupModel> logger, IAuthenticationService authService) : PageModel
 {
-    private readonly ILogger<SignupModel> _logger;
-
-    public SignupModel(ILogger<SignupModel> logger)
-    {
-        _logger = logger;
-    }
+    private readonly ILogger<SignupModel> _logger = logger;
+    private readonly IAuthenticationService _authService = authService;
 
     [BindProperty]
     public SignupInput Input { get; set; } = new();
 
     public string? ErrorMessage { get; set; }
 
-    public IActionResult OnPost()
+    public async Task<IActionResult> OnPostAsync()
     {
         // Custom validation: Recovery email must be different from login email
         if (!string.IsNullOrEmpty(Input.Email) && !string.IsNullOrEmpty(Input.RecoveryEmail) &&
@@ -33,20 +31,33 @@ public class SignupModel : PageModel
         {
             return Page();
         }
+        var name = Input.Name?.Trim() ?? string.Empty;
+        var email = Input.Email?.Trim() ?? string.Empty;
+        var recoveryEmail = Input.RecoveryEmail?.Trim() ?? string.Empty;
+        var workspaceName = Input.WorkspaceName?.Trim() ?? string.Empty;
+        var password = Input.Password ?? string.Empty;
 
-        // TODO: Implement signup logic
-        // This is a stub method - implement the actual signup logic here
-        // 1. Validate that recovery email is different from login email
-        // 2. Check if email already exists
-        // 3. Hash password
-        // 4. Create user account
-        // 5. Create workspace
-        // 6. Generate authentication token
-        // 7. Set cookie and redirect
+        var result = await _authService.SignupAsync(name, email, recoveryEmail, workspaceName, password);
+        if (!result.Success)
+        {
+            ErrorMessage = result.ErrorMessage;
+            return Page();
+        }
 
-        // For now, just return an error message
-        ErrorMessage = "Signup functionality not yet implemented";
-        return Page();
+        Response.Cookies.Append("user_token", result.Token!, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Lax,
+            Expires = DateTimeOffset.UtcNow.AddDays(30)
+        });
+
+        if (!string.IsNullOrEmpty(result.WorkspaceSlug))
+        {
+            return Redirect($"/workspaces/{result.WorkspaceSlug}");
+        }
+
+        return Redirect("/workspaces");
     }
 }
 

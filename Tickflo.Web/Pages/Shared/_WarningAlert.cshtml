@@ -1,6 +1,9 @@
-@model Microsoft.AspNetCore.Html.IHtmlContent
+@using System
+@using System.Text.Encodings.Web
+@using Microsoft.AspNetCore.Html
+@model object
 
-<div role="alert" class="alert alert-warning alert-soft my-2">
+<div role="alert" class="alert alert-warning alert-soft my-2 rounded-2xl">
     <svg xmlns="http://www.w3.org/2000/svg"
          class="h-6 w-6 shrink-0 stroke-current"
          fill="none"
@@ -11,5 +14,15 @@
               stroke-width="2"
               d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
     </svg>
-    <span>@Model</span>
+    @{
+        IHtmlContent output;
+        if (Model is IHtmlContent html) {
+            output = html;
+        } else {
+            var text = Convert.ToString(Model);
+            var encoded = HtmlEncoder.Default.Encode(text ?? String.Empty);
+            output = new HtmlString(encoded);
+        }
+    }
+    <span>@output</span>
 </div>

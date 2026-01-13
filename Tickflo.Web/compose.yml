@@ -15,7 +15,7 @@ services:
       - "9000:9000"
       - "9001:9001"
     environment:
-      RUSTFS_ACCESS_KEY: admin
-      RUSTFS_SECRET_KEY: password
+      RUSTFS_ACCESS_KEY: GfNXQtK2aJgjhlm9ECZd
+      RUSTFS_SECRET_KEY: Q1hSZ0kGCTnoumwWx7yEcfaYqjJ6d289v5VXglKt
     volumes:
       - "./rustfs-data:/data"

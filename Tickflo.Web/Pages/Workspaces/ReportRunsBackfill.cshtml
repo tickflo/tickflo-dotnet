@@ -1,0 +1,37 @@
+@page "/workspaces/{slug}/reports/backfill"
+@model Tickflo.Web.Pages.Workspaces.ReportRunsBackfillModel
+@{
+    ViewData["Title"] = "Backfill Report Runs";
+}
+<div class="flex flex-row gap-4">
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+    <section class="p-6 flex-1">
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Backfill Legacy Report Runs", AllowNewAction = false })
+        <div class="card bg-base-100 shadow-sm rounded-3xl">
+            <div class="card-body">
+                @if (!string.IsNullOrWhiteSpace(Model.Message))
+                {
+                    <div class="alert @(Model.Success ? "alert-success" : "alert-warning")">@Model.Message</div>
+                }
+                <p class="text-sm opacity-80">This will import CSV files from disk into the database for legacy runs that predate DB storage. Safe to run multiple times.</p>
+                <div class="mt-4 flex items-center gap-2">
+                    <form method="post">
+                        <button type="submit" class="btn btn-primary btn-soft">Backfill All Missing</button>
+                    </form>
+                </div>
+                @if (Model.Summary != null)
+                {
+                    <div class="mt-4">
+                        <h3 class="font-semibold">Summary</h3>
+                        <ul class="list-disc ml-6 text-sm">
+                            <li>Total missing: @Model.Summary.TotalMissing</li>
+                            <li>Imported: @Model.Summary.Imported</li>
+                            <li>Missing files on disk: @Model.Summary.MissingOnDisk</li>
+                            <li>Errors: @Model.Summary.Errors</li>
+                        </ul>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+</div>

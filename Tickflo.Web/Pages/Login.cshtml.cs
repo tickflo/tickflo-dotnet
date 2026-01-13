@@ -27,7 +27,17 @@ public class LoginModel(ILogger<LoginModel> logger, IAuthenticationService authS
             return Page();
         }
 
-        var result = await _authService.AuthenticateAsync(Input.Email, Input.Password);
+        var email = Input.Email?.Trim() ?? string.Empty;
+        // Ensure password is never null, use empty string
+        var password = Input.Password ?? string.Empty;
+        var result = await _authService.AuthenticateAsync(email, password);
+        
+        // Check if user needs to set password first
+        if (result.RequiresPasswordSetup && result.UserId.HasValue)
+        {
+            return Redirect($"/setpassword?userId={result.UserId}");
+        }
+        
         if (!result.Success)
         {
             ErrorMessage = result.ErrorMessage;
@@ -37,17 +47,24 @@ public class LoginModel(ILogger<LoginModel> logger, IAuthenticationService authS
         Response.Cookies.Append("user_token", result.Token!, new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
+            Secure = Request.IsHttps,
             SameSite = SameSiteMode.Lax,
             Expires = DateTimeOffset.UtcNow.AddDays(30)
         });
 
-        if (ReturnUrl != null)
+        if (!string.IsNullOrWhiteSpace(ReturnUrl) && Url.IsLocalUrl(ReturnUrl))
         {
             return Redirect(ReturnUrl);
         }
 
-        return Redirect("/workspaces");
+        if (!string.IsNullOrEmpty(result.WorkspaceSlug))
+        {
+            return Redirect($"/workspaces/{result.WorkspaceSlug}");
+        }
+
+        // Fallback: user doesn't have a workspace assigned
+        ErrorMessage = "No workspace found for your account. Please contact support.";
+        return Page();
     }
 }
 
@@ -57,7 +74,6 @@ public class LoginInput
     [EmailAddress]
     public string Email { get; set; } = "";
 
-    [Required]
     public string Password { get; set; } = "";
 }
 

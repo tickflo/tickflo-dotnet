@@ -1,8 +1,382 @@
 @import "tailwindcss";
 @plugin "daisyui" {
-    themes: light --default, dark;
+    themes: dark --default, light;
 }
 
 .input-validation-error {
     @apply input-error;
+}
+
+/* Sidebar menu color tweaks for consistency */
+.menu :where(li > a).menu-active {
+    @apply bg-base-300 text-primary;
+}
+.menu :where(li > a):hover {
+    @apply bg-base-300/50;
+}
+.menu .menu-title {
+    @apply text-base-content/70;
+}
+
+/* Tickets submenu: ensure summary and nested items match hover/active colors */
+.menu details > summary {
+    @apply text-base-content;
+}
+.menu details > summary:hover {
+    @apply bg-base-300/50;
+}
+.menu details > ul li > a {
+    @apply text-base-content;
+}
+.menu details > ul li > a.menu-active {
+    @apply bg-base-300 text-primary;
+}
+.menu details > ul li > a:hover {
+    @apply bg-base-300/50;
+}
+
+/* Global Nexus-inspired surface styling (brand accent pulls from --p / New Ticket btn) */
+.shell-outer {
+    @apply min-h-screen text-slate-100;
+    background: radial-gradient(circle at 15% 20%, rgba(255,255,255,0.04), transparent 35%),
+                radial-gradient(circle at 80% 10%, rgba(255,255,255,0.03), transparent 32%),
+                linear-gradient(135deg, #0c1220, #0b101b 40%, #0a0f18);
+}
+
+.glass-panel {
+    @apply rounded-3xl backdrop-blur shadow-2xl;
+    background: rgba(12, 16, 26, 0.9);
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* App-wide shell and spacing */
+.app-shell {
+    @apply min-h-screen;
+    background: linear-gradient(145deg, #0c1220, #0b101b);
+}
+
+.app-main {
+    @apply max-w-7xl mx-auto space-y-6;
+}
+
+/* Card and table polish for consistent look */
+.card {
+    @apply rounded-3xl backdrop-blur shadow-2xl border;
+    background: rgba(12, 16, 26, 0.9);
+    border-color: rgba(255,255,255,0.05);
+}
+
+.card .card-body {
+    @apply space-y-4;
+}
+
+.badge {
+    @apply rounded-2xl;
+    display: inline-block;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #e2e8f0;
+    /* Prevent text wrapping inside the badge */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* Keep multi-line text contained visually */
+    text-align: center;
+    line-height: 1.2;
+    padding: 0.25rem 0.5rem;
+    width: auto;
+    max-width: 100%;
+    flex-shrink: 0;
+}
+
+/* Avoid fully-rounded pills for multi-line badges */
+.badge.rounded-full {
+    border-radius: var(--radius-2xl);
+}
+ 
+
+.table :where(th, td) {
+    @apply align-middle px-4 py-3;
+    color: #e2e8f0;
+    word-break: break-word;
+}
+
+.table tbody tr {
+    border-color: rgba(255,255,255,0.08);
+}
+
+.table tbody tr:hover {
+    background: rgba(255,255,255,0.03);
+}
+
+.table :where(tbody td) {
+    @apply text-sm;
+}
+
+.table :where(thead th:first-child) {
+    @apply rounded-tl-2xl;
+}
+
+.table :where(thead th:last-child) {
+    @apply rounded-tr-2xl;
+}
+
+.table-zebra tbody tr:nth-child(even) {
+    background: rgba(255,255,255,0.02);
+}
+
+/* Section title helpers */
+.section-title-eyebrow {
+    @apply text-xs uppercase tracking-wide text-base-content/60;
+}
+
+.section-title {
+    @apply text-lg font-semibold;
+}
+
+.section-subtitle {
+    @apply text-sm text-base-content/70;
+}
+
+/* Rounded elements for modern look */
+.btn {
+    @apply rounded-2xl transition-all duration-200;
+}
+
+.btn-primary {
+    @apply bg-purple-600 hover:bg-purple-700 text-white border-0 shadow-md hover:shadow-lg transition-all;
+}
+
+.btn-secondary {
+    @apply bg-purple-500 hover:bg-purple-600 text-white border-0 shadow-md hover:shadow-lg transition-all;
+}
+
+.btn-outline {
+    @apply border-base-300 text-base-content hover:border-purple-500 hover:text-purple-400;
+}
+
+.btn-ghost {
+    @apply text-slate-200/80 hover:text-slate-100;
+    background: transparent;
+}
+
+.btn-soft {
+    @apply shadow-sm text-slate-100 hover:bg-purple-600/20 hover:border-purple-500/30 transition-all;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.btn-error {
+    @apply bg-red-600/80 hover:bg-red-600 text-white border-0 shadow-md hover:shadow-lg transition-all;
+}
+
+.input,
+.select,
+.textarea {
+    @apply rounded-2xl bg-base-100/80 border border-base-200 text-base-content focus:border-primary focus:ring-2 focus:ring-primary/30 focus:outline-none;
+}
+
+.label,
+.label-text {
+    @apply text-sm font-medium text-base-content/80;
+}
+
+ 
+
+/* Ensure hex color badges display properly */
+.badge[style*="background-color"] {
+    @apply border-none;
+}
+
+/* Prevent badge wrapping in table cells */
+.table .badge,
+.table .badge * {
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    display: inline-block !important;
+}
+
+
+.badge-soft {
+    @apply bg-purple-600/20 border border-purple-500/40 text-slate-100 hover:bg-purple-600/30 transition-colors;
+}
+
+.alert {
+    @apply rounded-2xl backdrop-blur;
+    background: rgba(12,16,26,0.92);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #e2e8f0;
+}
+
+.modal-box {
+    @apply rounded-3xl;
+}
+
+.dropdown-content {
+    @apply rounded-2xl;
+}
+
+.menu {
+    @apply rounded-2xl backdrop-blur;
+    background: rgba(12,16,26,0.9);
+    border: 1px solid rgba(255,255,255,0.05);
+    color: #e2e8f0;
+}
+
+.navbar {
+    @apply rounded-2xl shadow-xl backdrop-blur;
+    background: rgba(12,16,26,0.9);
+    border: 1px solid rgba(255,255,255,0.05);
+    z-index: 1000;
+}
+
+.progress {
+    @apply rounded-full;
+    background: rgba(255,255,255,0.08);
+}
+
+.avatar {
+    @apply rounded-2xl;
+}
+
+.avatar-group .avatar {
+    @apply rounded-2xl;
+}
+
+.form-control,
+.form-control .input,
+.form-control .select,
+.form-control .textarea {
+    @apply rounded-2xl shadow-sm;
+    background: rgba(12,16,26,0.9);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #e2e8f0;
+}
+
+.divider {
+    @apply text-base-content/60;
+}
+
+.stat {
+    @apply rounded-3xl shadow-lg;
+    background: rgba(12,16,26,0.9);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #e2e8f0;
+}
+
+.stat .stat-value {
+    @apply text-3xl font-semibold;
+}
+
+/* Form and control polish */
+.input-group {
+    @apply rounded-2xl overflow-hidden border border-base-200 bg-base-100/90 shadow-sm;
+}
+
+.form-hint {
+    @apply text-xs text-base-content/60 mt-1;
+}
+
+.checkbox,
+.radio,
+.toggle {
+    @apply border-base-300 bg-base-100/90;
+}
+
+/* Tabs */
+.tabs-boxed {
+    @apply bg-base-100/80 border border-base-200 rounded-2xl p-1;
+}
+
+.tab {
+    @apply rounded-2xl px-4 py-2 text-sm font-medium text-base-content/70;
+}
+
+.tab-active {
+    @apply bg-base-200 text-base-content shadow-sm;
+}
+
+/* Breadcrumbs */
+.breadcrumbs {
+    @apply bg-base-100/80 border border-base-200 rounded-2xl px-4 py-2 text-sm shadow-sm;
+}
+
+.breadcrumbs > ul > li > a,
+.breadcrumbs > ul > li {
+    @apply text-base-content/80 font-medium;
+}
+
+/* Pagination joins */
+.pagination {
+    @apply inline-flex items-center gap-2;
+}
+
+.pagination .btn {
+    @apply btn-sm rounded-full;
+}
+
+/* Badges */
+.badge-ghost {
+    @apply bg-transparent border border-base-300 text-base-content/70;
+}
+
+/* Timeline and steps */
+.step {
+    @apply rounded-full border-base-300 bg-base-100/80;
+}
+
+.steps .step:before {
+    @apply bg-base-300;
+}
+
+/* Collapses */
+.collapse {
+    @apply rounded-2xl border border-base-200 bg-base-100/80 shadow-sm;
+}
+
+/* Header user menu styling for consistent glass look */
+.user-menu-panel {
+    @apply rounded-2xl shadow-2xl;
+    background: rgba(12, 16, 26, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 14px 48px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+    color: #e2e8f0;
+    z-index: 1200;
+    opacity: 1;
+    visibility: visible;
+}
+
+.user-menu-panel li > a {
+    @apply rounded-xl text-sm font-medium text-slate-100;
+    padding: 0.65rem 0.9rem;
+}
+
+.user-menu-panel li > a:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.user-menu-panel form .btn {
+    @apply w-full justify-start text-sm font-medium text-slate-100 rounded-xl;
+    background: transparent;
+}
+
+/* Light theme adjustments for header user menu */
+html[data-theme="light"] .user-menu-panel {
+    background: rgba(246, 248, 252, 0.98);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    color: #0f172a;
+    box-shadow: 0 14px 48px rgba(0, 0, 0, 0.18), 0 1px 0 rgba(0, 0, 0, 0.04) inset;
+}
+
+html[data-theme="light"] .user-menu-panel li > a {
+    @apply text-slate-800;
+}
+
+html[data-theme="light"] .user-menu-panel li > a:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+html[data-theme="light"] .user-menu-panel form .btn {
+    @apply text-slate-800;
 }

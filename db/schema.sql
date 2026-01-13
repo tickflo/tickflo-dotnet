@@ -1,3 +1,18 @@
+-- Custom ticket types
+CREATE TABLE IF NOT EXISTS public.ticket_types (
+    id integer NOT NULL,
+    workspace_id integer NOT NULL,
+    name text NOT NULL,
+    color text NOT NULL DEFAULT 'neutral',
+    sort_order integer NOT NULL DEFAULT 0
+);
+ALTER TABLE public.ticket_types ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_ticket_types_workspace_name ON public.ticket_types(workspace_id, name);
+\restrict ZsODsT1oM4Jghrm8AS7CnRzhnc45V9E9P9mP5grWevQT01kIbgJ1JuABoHdskOa
+
+-- Dumped from database version 17.2 (Debian 17.2-1.pgdg120+1)
+-- Dumped by pg_dump version 18.1
+
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -143,6 +158,38 @@ CREATE TABLE public.roles (
     admin boolean DEFAULT false NOT NULL
 );
 
+--
+-- Name: locations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.locations (
+    id integer NOT NULL,
+    workspace_id integer NOT NULL,
+    name character varying(100) NOT NULL,
+    address text,
+    active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by integer,
+    updated_at timestamp with time zone,
+    updated_by integer
+);
+
+--
+-- Name: reports; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.reports (
+    id integer NOT NULL,
+    workspace_id integer NOT NULL,
+    name character varying(100) NOT NULL,
+    ready boolean DEFAULT false NOT NULL,
+    last_run timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by integer,
+    updated_at timestamp with time zone,
+    updated_by integer
+);
+
 
 --
 -- Name: roles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
@@ -150,6 +197,32 @@ CREATE TABLE public.roles (
 
 ALTER TABLE public.roles ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     SEQUENCE NAME public.roles_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+--
+-- Name: locations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.locations ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.locations_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+--
+-- Name: reports_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.reports ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.reports_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -222,7 +295,8 @@ CREATE TABLE public.user_workspaces (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     created_by integer NOT NULL,
     updated_at timestamp with time zone,
-    updated_by integer
+    updated_by integer,
+    role character varying(30) DEFAULT 'Member'::character varying NOT NULL
 );
 
 
@@ -352,6 +426,20 @@ ALTER TABLE ONLY public.role_permissions
 ALTER TABLE ONLY public.roles
     ADD CONSTRAINT roles_pkey PRIMARY KEY (id);
 
+--
+-- Name: locations locations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.locations
+    ADD CONSTRAINT locations_pkey PRIMARY KEY (id);
+
+--
+-- Name: reports reports_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reports
+    ADD CONSTRAINT reports_pkey PRIMARY KEY (id);
+
 
 --
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -415,6 +503,20 @@ ALTER TABLE ONLY public.workspaces
 
 ALTER TABLE ONLY public.workspaces
     ADD CONSTRAINT workspaces_slug_unique UNIQUE (slug);
+
+--
+-- Name: locations locations_workspace_id_name_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.locations
+    ADD CONSTRAINT locations_workspace_id_name_unique UNIQUE (workspace_id, name);
+
+--
+-- Name: reports reports_workspace_id_name_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reports
+    ADD CONSTRAINT reports_workspace_id_name_unique UNIQUE (workspace_id, name);
 
 
 --
@@ -519,6 +621,20 @@ ALTER TABLE ONLY public.roles
 
 ALTER TABLE ONLY public.roles
     ADD CONSTRAINT roles_workspace_id_workspaces_id_fk FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id);
+
+--
+-- Name: locations locations_workspace_id_workspaces_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.locations
+    ADD CONSTRAINT locations_workspace_id_workspaces_id_fk FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id);
+
+--
+-- Name: reports reports_workspace_id_workspaces_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reports
+    ADD CONSTRAINT reports_workspace_id_workspaces_id_fk FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id);
 
 
 --
@@ -629,10 +745,15 @@ ALTER TABLE ONLY public.workspaces
 -- PostgreSQL database dump complete
 --
 
+\unrestrict ZsODsT1oM4Jghrm8AS7CnRzhnc45V9E9P9mP5grWevQT01kIbgJ1JuABoHdskOa
+
 
 --
 -- Dbmate schema migrations
 --
 
 INSERT INTO public.schema_migrations (version) VALUES
-    ('20250822124430');
+    ('20250822124430'),
+    ('20251215104500'),
+    ('20251216110000'),
+    ('20251216110100');

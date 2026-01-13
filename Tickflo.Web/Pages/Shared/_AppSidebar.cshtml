@@ -1,0 +1,62 @@
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@inject Tickflo.Core.Data.IUserRepository UserRepo
+@{
+    var path = ViewContext?.HttpContext?.Request?.Path.Value ?? string.Empty;
+    bool IsActive(string segment) => path.Contains(segment, StringComparison.OrdinalIgnoreCase);
+    var uidStr = HttpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    bool isAdmin = false;
+    if (int.TryParse(uidStr, out var uid))
+    {
+        var meTask = UserRepo.FindByIdAsync(uid);
+        meTask.Wait();
+        var me = meTask.Result;
+        isAdmin = me?.SystemAdmin == true;
+    }
+}
+<aside class="block sticky top-6 h-[calc(100vh-2rem)] w-64 shrink-0 overflow-y-auto px-3">
+    <div class="glass-panel p-4 h-full">
+        <div class="flex items-center justify-between mb-3 px-1">
+            <div class="text-[11px] font-semibold text-base-content/70 uppercase tracking-wide">Navigation</div>
+            <span class="badge badge-outline badge-sm rounded-full">App</span>
+        </div>
+        <nav id="app-nav" aria-label="App navigation" class="p-1">
+            <ul class="menu menu-sm w-full gap-1 text-sm font-medium">
+                <li>
+                    <a href="/" class="@(path.Equals("/", StringComparison.OrdinalIgnoreCase) ? "active menu-active" : null) rounded-2xl flex items-center gap-2">
+                        <i class="fa fa-house"></i>
+                        <span>Home</span>
+                    </a>
+                </li>
+                <li class="menu-title px-2 text-[11px]">General</li>
+                <li>
+                    <a class="@(IsActive("/workspaces/") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" href="/workspaces">
+                        <i class="fa fa-layer-group"></i>
+                        <span>Workspaces</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="@(IsActive("/login") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" href="/login">
+                        <i class="fa fa-right-to-bracket"></i>
+                        <span>Login</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="@(IsActive("/signup") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" href="/signup">
+                        <i class="fa fa-user-plus"></i>
+                        <span>Sign Up</span>
+                    </a>
+                </li>
+                @if (isAdmin)
+                {
+                    <li class="menu-title px-2 text-[11px]">Admin</li>
+                    <li>
+                        <a class="@(IsActive("/Users/") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" asp-page="/Users/Index">
+                            <i class="fa fa-users"></i>
+                            <span>Users</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    </div>
+</aside>

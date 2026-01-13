@@ -1,0 +1,901 @@
+@page "/workspaces/{slug}/tickets/{id:int}"
+@model Tickflo.Web.Pages.Workspaces.TicketsDetailsModel
+@{
+    ViewData["Title"] = "Ticket Details";
+}
+
+<div class="flex flex-row gap-6">
+  @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+  <section class="relative overflow-hidden p-6 flex-1 space-y-6 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
+@{
+  var sectionTitle = (Model.Ticket == null || Model.Ticket.Id == 0) ? "New Ticket" : "Ticket Details";
+}
+@await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = sectionTitle })
+
+<div class="space-y-6">
+<!-- Ticket Overview Card -->
+<div class="card bg-neutral-900/75 backdrop-blur rounded-2xl border border-white/5 shadow-xl">
+  <div class="card-body">
+    <!-- Header Section -->
+    <div class="flex flex-col gap-4">
+      <!-- Title and Actions Row -->
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="flex-1 min-w-0">
+          <div class="text-xs uppercase tracking-wider font-semibold text-white/40 mb-2">
+            <i class="fa fa-ticket-alt mr-1"></i>Ticket #@((Model.Ticket?.Id ?? 0) > 0 ? Model.Ticket!.Id.ToString() : "New")
+          </div>
+          <h1 class="text-3xl font-bold text-white mb-3 break-words">
+            @((Model.Ticket?.Subject?.Length ?? 0) > 0 ? Model.Ticket!.Subject : "Untitled Ticket")
+          </h1>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <a class="btn btn-ghost btn-sm" asp-page="/Workspaces/Tickets" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>
+            <i class="fa fa-arrow-left mr-1"></i> Back
+          </a>
+          @if(Model.Ticket != null && Model.Ticket.Id > 0 && Model.Contact?.Id > 0)
+          {
+            <a class="btn btn-soft btn-sm" href="/workspaces/@Model.WorkspaceSlug/tickets/0?contactId=@Model.Contact.Id">
+              <i class="fa fa-copy mr-1"></i> Clone
+            </a>
+          }
+        </div>
+      </div>
+      
+      <!-- Status Badges -->
+      <div class="flex flex-wrap gap-2">
+        @{
+          var tColor = (Model.Ticket != null && Model.TypeColorByName.TryGetValue(Model.Ticket.Type, out var tc)) ? tc : "neutral";
+          var tIsHex = tColor.StartsWith("#");
+          var tCls = tIsHex ? "badge badge-lg" : $"badge badge-lg badge-{tColor}";
+          var tStyle = tIsHex ? $"background-color: {tColor}; color: #fff;" : null;
+        }
+        <span class="@tCls rounded-full font-medium" style="@tStyle">
+          <i class="fa fa-tag mr-1"></i>@Model.Ticket?.Type
+        </span>
+        @{
+          var pColor = (Model.Ticket != null && Model.PriorityColorByName.TryGetValue(Model.Ticket.Priority, out var pc)) ? pc : "neutral";
+          var pIsHex = pColor.StartsWith("#");
+          var pCls = pIsHex ? "badge badge-lg" : $"badge badge-lg badge-{pColor}";
+          var pStyle = pIsHex ? $"background-color: {pColor}; color: #fff;" : null;
+        }
+        <span class="@pCls rounded-full font-medium" style="@pStyle">
+          <i class="fa fa-exclamation-circle mr-1"></i>@Model.Ticket?.Priority
+        </span>
+        @{
+          var sColor = (Model.Ticket != null && Model.StatusColorByName.TryGetValue(Model.Ticket.Status, out var c)) ? c : "neutral";
+          var isHex = sColor.StartsWith("#");
+          var sCls = isHex ? "badge badge-lg" : $"badge badge-lg badge-{sColor}";
+          var sStyle = isHex ? $"background-color: {sColor}; color: #fff;" : null;
+        }
+        <span class="@sCls rounded-full font-medium" style="@sStyle">
+          <i class="fa fa-circle mr-1"></i>@Model.Ticket?.Status
+        </span>
+      </div>
+      
+      <!-- Description Preview (if exists and not empty) -->
+      @if(!string.IsNullOrWhiteSpace(Model.Ticket?.Description))
+      {
+        <div class="bg-neutral-950/40 rounded-lg p-4 border border-white/5">
+          <div class="text-xs uppercase tracking-wider font-semibold text-white/40 mb-2">
+            <i class="fa fa-align-left mr-1"></i>Description
+          </div>
+          <div class="text-sm text-white/80 whitespace-pre-wrap line-clamp-3">@Model.Ticket.Description</div>
+        </div>
+      }
+    </div>
+
+    <!-- Ticket Metadata -->
+    <div class="divider my-2"></div>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="bg-neutral-950/30 rounded-lg p-3 space-y-1">
+        <div class="text-xs uppercase tracking-wider font-semibold text-white/40">
+          <i class="fa fa-clock mr-1"></i>Created
+        </div>
+        <div class="text-sm text-white/90 font-medium">
+          @Model.Ticket?.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")
+        </div>
+        <div class="text-xs text-white/60">
+          @Model.Ticket?.CreatedAt.ToLocalTime().ToString("h:mm tt")
+        </div>
+      </div>
+      <div class="bg-neutral-950/30 rounded-lg p-3 space-y-1">
+        <div class="text-xs uppercase tracking-wider font-semibold text-white/40">
+          <i class="fa fa-address-book mr-1"></i>Contact
+        </div>
+        @if(Model.Contact != null)
+        {
+          <div class="text-sm font-semibold text-white/90">@Model.Contact.Name</div>
+          <a href="mailto:@Model.Contact.Email" class="text-xs text-white/60 hover:text-white/80 truncate block">@Model.Contact.Email</a>
+        }
+        else
+        {
+          <div class="text-sm text-white/50 italic">No contact assigned</div>
+        }
+      </div>
+      <div class="bg-neutral-950/30 rounded-lg p-3 space-y-1">
+        <div class="text-xs uppercase tracking-wider font-semibold text-white/40">
+          <i class="fa fa-user-check mr-1"></i>Assigned To
+        </div>
+        @if(Model.Ticket?.AssignedUserId != null)
+        {
+          var assignedUser = Model.Members.FirstOrDefault(m => m.Id == Model.Ticket.AssignedUserId);
+          if (assignedUser != null)
+          {
+            <div class="text-sm font-semibold text-white/90">@(string.IsNullOrWhiteSpace(assignedUser.Name) ? assignedUser.Email : assignedUser.Name)</div>
+            <a class="link link-hover text-xs" href="/workspaces/@Model.WorkspaceSlug/tickets?AssigneeUserId=@Model.Ticket!.AssignedUserId">
+              View all assigned tickets
+            </a>
+          }
+          else
+          {
+            <div class="text-sm text-white/90">User #@Model.Ticket.AssignedUserId</div>
+          }
+        }
+        else if(Model.Ticket?.AssignedTeamId != null)
+        {
+          var team = Model.Teams.FirstOrDefault(t => t.Id == Model.Ticket!.AssignedTeamId);
+          if (team != null)
+          {
+            <div class="badge badge-soft badge-sm rounded-full">
+              <i class="fa fa-users mr-1"></i>@team.Name
+            </div>
+          }
+        }
+        else
+        {
+          <div class="text-sm text-white/50 italic">Unassigned</div>
+        }
+      </div>
+      <div class="bg-neutral-950/30 rounded-lg p-3 space-y-1">
+        <div class="text-xs uppercase tracking-wider font-semibold text-white/40">
+          <i class="fa fa-map-marker-alt mr-1"></i>Location
+        </div>
+        @if(Model.LocationId.HasValue)
+        {
+          var loc = Model.LocationOptions.FirstOrDefault(l => l.Id == Model.LocationId.Value);
+          if (loc != null)
+          {
+            <div class="text-sm font-medium text-white/90">@loc.Name</div>
+            <a class="link link-hover text-xs" href="/workspaces/@Model.WorkspaceSlug/tickets?LocationId=@loc.Id">
+              View all at this location
+            </a>
+          }
+        }
+        else
+        {
+          <div class="text-sm text-white/50 italic">No location</div>
+        }
+      </div>
+    </div>
+  </div>
+</div>
+
+  @{
+    var isNewTicket = (Model.Ticket == null || Model.Ticket.Id == 0);
+    var canSubmit = isNewTicket ? Model.CanCreateTickets : Model.CanEditTickets;
+  }
+  @if(Model.CanViewTickets)
+  {
+    <!-- Edit Form Card -->
+    <div class="card bg-neutral-900/80 backdrop-blur rounded-2xl border border-white/5 shadow-xl">
+      <div class="card-body">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-bold text-white">
+            <i class="fa fa-edit mr-2"></i>@(isNewTicket ? "Create New Ticket" : "Edit Ticket Details")
+          </h2>
+          <span class="badge @(canSubmit ? "badge-success" : "badge-warning") badge-lg">
+            <i class="fa @(canSubmit ? "fa-unlock" : "fa-lock") mr-1"></i>
+            @(canSubmit ? "Editable" : "Read Only")
+          </span>
+        </div>
+
+        <form method="post" asp-page-handler="Save" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@(@Model.Ticket?.Id ?? 0)" asp-route-locationId="@Model.LocationId" class="space-y-6" id="ticket-save-form" data-can-submit="@canSubmit.ToString().ToLower()">
+          <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
+          <input type="hidden" name="id" value="@Model.Ticket?.Id ?? 0" />
+          <input type="hidden" name="locationId" value="@Model.LocationId" />
+
+          <!-- Ticket Details Section -->
+          <div class="bg-neutral-950/50 rounded-xl p-5 border border-white/5">
+            <h3 class="text-sm uppercase tracking-wider font-semibold text-white/60 mb-4">
+              <i class="fa fa-file-alt mr-2"></i>Ticket Details
+            </h3>
+            <div class="space-y-4">
+              <!-- Subject Field -->
+              <div>
+                <label class="label">
+                  <span class="label-text text-white/80 font-medium">Subject *</span>
+                  <span class="label-text-alt text-white/40">Required</span>
+                </label>
+                <input name="EditSubject" value="@Model.Ticket!.Subject" class="input input-bordered w-full bg-neutral-900/70 focus:bg-neutral-900" placeholder="Brief description of the issue" required />
+              </div>
+              
+              <!-- Type, Status, Priority in a row -->
+              <div class="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <label class="label">
+                    <span class="label-text text-white/80 font-medium">
+                      <i class="fa fa-tag mr-1"></i>Type
+                    </span>
+                  </label>
+                  <select name="EditType" class="select select-bordered w-full bg-neutral-900/70 focus:bg-neutral-900">
+                    @foreach (var t in Model.Types)
+                    {
+                      if (Model.Ticket!.Type == t.Name) {<option value="@t.Name" selected>@t.Name</option>} else {<option value="@t.Name">@t.Name</option>}
+                    }
+                  </select>
+                </div>
+                <div>
+                  <label class="label">
+                    <span class="label-text text-white/80 font-medium">
+                      <i class="fa fa-circle mr-1"></i>Status
+                    </span>
+                  </label>
+                  <select name="EditStatus" class="select select-bordered w-full bg-neutral-900/70 focus:bg-neutral-900">
+                    @foreach (var s in Model.Statuses)
+                    {
+                      if (Model.Ticket!.Status == s.Name) {<option value="@s.Name" selected>@s.Name</option>} else {<option value="@s.Name">@s.Name</option>}
+                    }
+                  </select>
+                </div>
+                <div>
+                  <label class="label">
+                    <span class="label-text text-white/80 font-medium">
+                      <i class="fa fa-exclamation-circle mr-1"></i>Priority
+                    </span>
+                  </label>
+                  <select name="EditPriority" class="select select-bordered w-full bg-neutral-900/70 focus:bg-neutral-900">
+                    @foreach (var p in Model.Priorities)
+                    {
+                      if (Model.Ticket!.Priority == p.Name) {<option value="@p.Name" selected>@p.Name</option>} else {<option value="@p.Name">@p.Name</option>}
+                    }
+                  </select>
+                </div>
+              </div>
+              
+              <!-- Description Field -->
+              <div>
+                <label class="label">
+                  <span class="label-text text-white/80 font-medium">Description</span>
+                  <span class="label-text-alt text-white/40">Optional</span>
+                </label>
+                <textarea name="EditDescription" class="textarea textarea-bordered w-full bg-neutral-900/70 focus:bg-neutral-900 min-h-[150px]" placeholder="Provide detailed context, steps to reproduce, or additional notes...">@Model.Ticket!.Description</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Assignment & Location Section -->
+          <div class="bg-neutral-950/50 rounded-xl p-5 border border-white/5">
+            <h3 class="text-sm uppercase tracking-wider font-semibold text-white/60 mb-4">
+              <i class="fa fa-users mr-2"></i>Assignment & Location
+            </h3>
+            <div class="grid gap-4 lg:grid-cols-2">
+              <div class="space-y-4">
+                <div>
+                  <label class="label">
+                    <span class="label-text text-white/80 font-medium">
+                      <i class="fa fa-user mr-1"></i>Assignee
+                    </span>
+                  </label>
+                  <input type="hidden" id="assignedUserId" name="assignedUserId" value="@Model.Ticket!.AssignedUserId" />
+                  <input id="assignee-search" class="input input-bordered w-full bg-neutral-900/70 focus:bg-neutral-900" list="assignees-list" placeholder="Search by name or email..." />
+                  <datalist id="assignees-list">
+                    <option value="Unassigned" data-id=""></option>
+                    @foreach (var u in Model.Members)
+                    {
+                      <option value="@u.Name (@u.Email)" data-id="@u.Id"></option>
+                    }
+                  </datalist>
+                </div>
+                <div>
+                  <label class="label">
+                    <span class="label-text text-white/80 font-medium">
+                      <i class="fa fa-users mr-1"></i>Team
+                    </span>
+                  </label>
+                  <input type="hidden" id="assignedTeamId" name="assignedTeamId" value="@Model.Ticket!.AssignedTeamId" />
+                  <input id="team-search" class="input input-bordered w-full bg-neutral-900/70 focus:bg-neutral-900" list="teams-list" placeholder="Search team..." />
+                  <datalist id="teams-list">
+                    <option value="None" data-id=""></option>
+                    @foreach (var t in Model.Teams)
+                    {
+                      <option value="@t.Name" data-id="@t.Id"></option>
+                    }
+                  </datalist>
+                </div>
+              </div>
+              <div class="space-y-4">
+                <div>
+                <div>
+                  <label class="label">
+                    <span class="label-text text-white/80 font-medium">
+                      <i class="fa fa-user mr-1"></i>Contact
+                    </span>
+                  </label>
+                  <input type="hidden" name="EditContactId" id="editContactId" value="@Model.Ticket!.ContactId" />
+                  <input id="contact-search" class="input input-bordered w-full bg-neutral-900/70 focus:bg-neutral-900" list="contacts-list" placeholder="Search contacts..." />
+                  <datalist id="contacts-list">
+                    @foreach (var c in Model.Contacts)
+                    {
+                      <option value="@c.Name (@c.Email)" data-id="@c.Id"></option>
+                    }
+                  </datalist>
+                </div>
+                <div>
+                  <label class="label">
+                    <span class="label-text text-white/80 font-medium">
+                      <i class="fa fa-map-marker-alt mr-1"></i>Location
+                    </span>
+                  </label>
+                  <select name="locationId" class="select select-bordered w-full bg-neutral-900/70 focus:bg-neutral-900">
+                    <option value="">None</option>
+                    @foreach (var l in Model.LocationOptions)
+                    {
+                        var selected = Model.LocationId.HasValue && Model.LocationId.Value == l.Id ? "selected" : null;
+                        <option value="@l.Id" selected="@selected">@l.Name</option>
+                    }
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Parts / Inventory Section -->
+          <div class="bg-neutral-950/50 rounded-xl p-5 border border-white/5">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-sm uppercase tracking-wider font-semibold text-white/60">
+                <i class="fa fa-boxes mr-2"></i>Parts & Inventory
+              </h3>
+              <span class="text-xs text-white/40">Add items and quantities automatically calculate</span>
+            </div>
+            
+            <div id="inventory-products-section" class="space-y-3">
+              <!-- Add Inventory Controls -->
+              <div class="flex flex-wrap gap-2 items-center p-3 bg-neutral-900/60 rounded-lg border border-white/5">
+                <input id="inventory-search" class="input input-bordered flex-1 min-w-[200px] bg-neutral-900 focus:bg-neutral-950" list="inventory-list" placeholder="Search by name or SKU..." />
+                <div class="flex items-center gap-2">
+                  <label class="text-xs text-white/60">Qty:</label>
+                  <input id="inventory-qty" type="number" min="1" value="1" class="input input-bordered w-20 bg-neutral-900 focus:bg-neutral-950" />
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" id="add-inventory-btn">
+                  <i class="fa fa-plus mr-1"></i>Add Item
+                </button>
+                <div class="ml-auto flex items-center gap-2">
+                  <span id="invoice-count" class="badge badge-ghost">0 items</span>
+                  <button type="button" class="btn btn-ghost btn-xs" id="clear-invoice-btn">
+                    <i class="fa fa-trash mr-1"></i>Clear All
+                  </button>
+                </div>
+              </div>
+              
+              <datalist id="inventory-list">
+                @foreach (var i in Model.InventoryItems)
+                {
+                  <option value="@i.Name (@i.Sku)" data-id="@i.Id" data-sku="@i.Sku" data-name="@i.Name" data-price="@((i.Price ?? i.Cost).ToString(System.Globalization.CultureInfo.InvariantCulture))" />
+                }
+              </datalist>
+
+              <!-- Inventory Table -->
+              <div class="overflow-x-auto bg-neutral-900/40 rounded-lg border border-white/5">
+                <table class="table table-sm w-full" id="invoice-table">
+                  <thead>
+                    <tr class="border-b border-white/5">
+                      <th class="bg-neutral-950/50 text-white/60">SKU</th>
+                      <th class="bg-neutral-950/50 text-white/60">Item Name</th>
+                      <th class="bg-neutral-950/50 text-white/60 text-center">Quantity</th>
+                      <th class="bg-neutral-950/50 text-white/60 text-right">Unit Price</th>
+                      <th class="bg-neutral-950/50 text-white/60 text-right">Total</th>
+                      <th class="bg-neutral-950/50 text-white/60 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="invoice-body">
+                    <tr class="text-white/40 text-center">
+                      <td colspan="6" class="py-8">
+                        <i class="fa fa-inbox text-3xl mb-2"></i>
+                        <div>No items added yet</div>
+                      </td>
+                    </tr>
+                  </tbody>
+                  <tfoot class="border-t border-white/10">
+                    <tr class="font-bold">
+                      <td colspan="4" class="text-right text-white/80 bg-neutral-950/50">Grand Total:</td>
+                      <td id="invoice-total" class="text-right text-white bg-neutral-950/50">$0.00</td>
+                      <td class="bg-neutral-950/50"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+            <input type="hidden" name="TicketInventoriesJson" id="TicketInventoriesJson" />
+          </div>
+
+          <!-- Form Actions -->
+          <div class="flex flex-wrap gap-3 justify-end pt-4 border-t border-white/10">
+            @{ var saveLabel = (Model.Ticket != null && Model.Ticket.Id > 0) ? "Update Ticket" : "Create Ticket"; }
+            <a class="btn btn-ghost" asp-page="/Workspaces/Tickets" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>
+              <i class="fa fa-times mr-1"></i>Cancel
+            </a>
+            <button class="btn btn-primary" type="submit" id="ticket-save-btn" @(canSubmit ? "" : "disabled")>
+              <i class="fa @(isNewTicket ? "fa-plus" : "fa-save") mr-1"></i>@saveLabel
+            </button>
+          </div>
+        </form>
+
+        <!-- Toast Notifications -->
+        <div class="toast toast-top toast-end" id="save-toast" style="display:none;">
+          <div class="alert alert-success shadow-lg">
+            <i class="fa fa-check-circle"></i>
+            <span id="save-toast-msg">Saved successfully!</span>
+          </div>
+        </div>
+        <div class="toast toast-top toast-end" id="save-error-toast" style="display:none;">
+          <div class="alert alert-error shadow-lg">
+            <i class="fa fa-exclamation-triangle"></i>
+            <span id="save-error-toast-msg">Save failed.</span>
+          </div>
+        </div>
+
+        <script>
+          (function(){
+            @{ var statusDict = new System.Collections.Generic.Dictionary<string, string>();
+               foreach (var s in Model.Statuses)
+               {
+                 var key = s.Name ?? string.Empty;
+                 var val = string.IsNullOrWhiteSpace(s.Color) ? "neutral" : s.Color!;
+                 statusDict[key] = val;
+               }
+               var priorityDict = new System.Collections.Generic.Dictionary<string, string>();
+               foreach (var p in Model.Priorities)
+               {
+                 var key = p.Name ?? string.Empty;
+                 var val = string.IsNullOrWhiteSpace(p.Color) ? "neutral" : p.Color!;
+                 priorityDict[key] = val;
+               }
+               var statusJson = System.Text.Json.JsonSerializer.Serialize(statusDict);
+               var priorityJson = System.Text.Json.JsonSerializer.Serialize(priorityDict);
+            }
+            const statusColors = @Html.Raw(statusJson);
+            const priorityColors = @Html.Raw(priorityJson);
+            // Multi-inventory invoice logic
+            /* inventoryList server emission disabled
+            const inventoryListFromServer = [
+              @foreach (var i in Model.InventoryItems)
+              {
+                @:{ sku: "@((i.Sku ?? string.Empty).Replace("\"","\\\"").Replace("\\","\\\\"))", name: "@((i.Name ?? string.Empty).Replace("\"","\\\"").Replace("\\","\\\\"))", id: @i.Id, price: @((i.Price ?? i.Cost).ToString(System.Globalization.CultureInfo.InvariantCulture)) }
+                  @:{ sku: "@((i.Sku ?? string.Empty).Replace("\"","\\\"").Replace("\\","\\\\").Replace("\r"," ").Replace("\n"," "))", name: "@((i.Name ?? string.Empty).Replace("\"","\\\"").Replace("\\","\\\\").Replace("\r"," ").Replace("\n"," "))", id: @i.Id, price: @((i.Price ?? i.Cost).ToString(System.Globalization.CultureInfo.InvariantCulture)) }
+                @:(Model.InventoryItems.Last() == i ? "" : ",")
+              }
+            ];
+            */
+            const inventoryList = (function(){
+              const options = Array.from(document.querySelectorAll('#inventory-list option'));
+              return options.map(opt => ({
+                sku: opt.getAttribute('data-sku') || '',
+                name: opt.getAttribute('data-name') || '',
+                id: parseInt(opt.getAttribute('data-id') || '0', 10),
+                price: (parseFloat(opt.getAttribute('data-price') || '0') || 0)
+              }));
+            })();
+            const invoiceBody = document.getElementById('invoice-body');
+            const invoiceTotal = document.getElementById('invoice-total');
+            const ticketInventoriesJson = document.getElementById('TicketInventoriesJson');
+            let invoiceItems = [];
+
+            function renderInvoice() {
+              invoiceBody.innerHTML = '';
+              let total = 0;
+              
+              if (invoiceItems.length === 0) {
+                const emptyRow = document.createElement('tr');
+                emptyRow.className = 'text-white/40 text-center';
+                emptyRow.innerHTML = `<td colspan='6' class='py-8'>
+                  <i class='fa fa-inbox text-3xl mb-2 block'></i>
+                  <div>No items added yet</div>
+                </td>`;
+                invoiceBody.appendChild(emptyRow);
+              } else {
+                invoiceItems.forEach((item, idx) => {
+                  const row = document.createElement('tr');
+                  row.className = 'hover:bg-neutral-900/40';
+                  row.innerHTML = `<td class='font-mono text-xs'>${item.sku}</td>
+                                   <td class='font-medium'>${item.name}</td>
+                                   <td>
+                                     <div class='flex items-center justify-center gap-1'>
+                                       <button type='button' class='btn btn-xs btn-ghost' data-action='dec' data-idx='${idx}'>
+                                         <i class='fa fa-minus'></i>
+                                       </button>
+                                       <input type='number' min='1' value='${item.quantity}' class='input input-bordered input-xs w-16 text-center qty-input' data-idx='${idx}' />
+                                       <button type='button' class='btn btn-xs btn-ghost' data-action='inc' data-idx='${idx}'>
+                                         <i class='fa fa-plus'></i>
+                                       </button>
+                                     </div>
+                                   </td>
+                                   <td>
+                                     <div class='flex items-center justify-end gap-1'>
+                                       <span class='text-white/60'>$</span>
+                                       <input type='number' min='0' step='0.01' value='${item.unitPrice.toFixed(2)}' class='input input-bordered input-xs w-24 text-right price-input' data-idx='${idx}' />
+                                     </div>
+                                   </td>
+                                   <td class='text-right font-semibold'>$${(item.unitPrice * item.quantity).toFixed(2)}</td>
+                                   <td class='text-center'>
+                                     <button type='button' class='btn btn-error btn-xs remove-btn' data-idx='${idx}'>
+                                       <i class='fa fa-trash'></i>
+                                     </button>
+                                   </td>`;
+                  invoiceBody.appendChild(row);
+                  total += item.unitPrice * item.quantity;
+                });
+              }
+              
+              invoiceTotal.textContent = `$${total.toFixed(2)}`;
+              ticketInventoriesJson.value = JSON.stringify(invoiceItems);
+              const cnt = invoiceItems.reduce((a,b)=>a+b.quantity,0);
+              const countBadge = document.getElementById('invoice-count');
+              if (countBadge) countBadge.textContent = `${cnt} item${cnt===1?'':'s'}`;
+            }
+
+            function addItemResolved(item, qty){
+              if (!item) return false;
+              const existing = invoiceItems.find(ii => ii.id === item.id);
+              if (existing){
+                existing.quantity += qty;
+              } else {
+                invoiceItems.push({ sku: item.sku, name: item.name, id: item.id, quantity: qty, unitPrice: item.price });
+              }
+              renderInvoice();
+              return true;
+            }
+
+            function handleAddClick(){
+              const searchInput = document.getElementById('inventory-search');
+              const qtyInput = document.getElementById('inventory-qty');
+              const listEl = document.getElementById('inventory-list');
+              const searchRaw = (searchInput?.value || '').trim();
+              const search = searchRaw.toLowerCase();
+              const qty = parseInt(qtyInput?.value || '1', 10) || 1;
+              let item = null;
+              // Prefer an exact match from datalist options to get canonical id/sku/name/price
+              if (listEl && searchRaw !== '') {
+                const opts = Array.from(listEl.querySelectorAll('option'));
+                const matched = opts.find(o => (o.getAttribute('value') || '').toLowerCase() === search);
+                if (matched) {
+                  const id = parseInt(matched.getAttribute('data-id') || '0', 10);
+                  const sku = matched.getAttribute('data-sku') || '';
+                  const name = matched.getAttribute('data-name') || searchRaw;
+                  const priceStr = matched.getAttribute('data-price') || '0';
+                  const price = parseFloat(priceStr);
+                  item = { id, sku, name, price: isNaN(price) ? 0 : price };
+                }
+              }
+              // Fallback: case-insensitive, partial, and exact matches on local list
+              if (!item) {
+                item = inventoryList.find(i =>
+                  search === `${i.name.toLowerCase()} (${i.sku.toLowerCase()})` ||
+                  search === i.sku.toLowerCase() ||
+                  search === i.name.toLowerCase()
+                ) || inventoryList.find(i =>
+                  i.name.toLowerCase().includes(search) || i.sku.toLowerCase().includes(search)
+                );
+              }
+              if (addItemResolved(item, qty)){
+                if (searchInput) searchInput.value = '';
+                if (qtyInput) qtyInput.value = '1';
+              } else {
+                alert('No matching inventory item found.');
+              }
+            }
+            function bindAddButton(){
+              const addBtn = document.getElementById('add-inventory-btn');
+              if (addBtn) {
+                addBtn.addEventListener('click', handleAddClick);
+              } else {
+                // Fallback for dynamic render: delegate on document
+                document.addEventListener('click', function(e){
+                  const t = e.target;
+                  if (t && (t.id === 'add-inventory-btn' || (t.closest && t.closest('#add-inventory-btn')))){
+                    handleAddClick();
+                  }
+                });
+              }
+            }
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', bindAddButton);
+            } else {
+              bindAddButton();
+            }
+
+            // Allow Enter key to add when focused in inventory-search
+            document.getElementById('inventory-search').addEventListener('keydown', function(e){
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                const btn = document.getElementById('add-inventory-btn');
+                if (btn) btn.click();
+              }
+            });
+
+            const clearBtn = document.getElementById('clear-invoice-btn');
+            if (clearBtn){
+              clearBtn.addEventListener('click', function(){
+                invoiceItems = [];
+                renderInvoice();
+              });
+            }
+
+            invoiceBody.addEventListener('click', function(e) {
+              const btn = e.target && e.target.closest ? e.target.closest('button') : null;
+              if (!btn) return;
+              const idx = parseInt(btn.getAttribute('data-idx') || '-1', 10);
+              const action = btn.getAttribute('data-action');
+              if (action){
+                if (!isNaN(idx) && invoiceItems[idx]){
+                  if (action === 'inc') invoiceItems[idx].quantity += 1;
+                  if (action === 'dec') invoiceItems[idx].quantity = Math.max(1, invoiceItems[idx].quantity - 1);
+                  renderInvoice();
+                }
+                return;
+              }
+              if (btn.classList.contains('remove-btn')){
+                if (!isNaN(idx)){
+                  invoiceItems.splice(idx, 1);
+                  renderInvoice();
+                }
+              }
+            });
+
+            // Handle inline quantity changes
+            invoiceBody.addEventListener('input', function(e){
+              const el = e.target;
+              if (el && el.classList.contains('qty-input')){
+                const idx = parseInt(el.getAttribute('data-idx') || '-1', 10);
+                const qty = Math.max(1, parseInt(el.value || '1', 10));
+                if (!isNaN(idx) && invoiceItems[idx]){
+                  invoiceItems[idx].quantity = qty;
+                  renderInvoice();
+                }
+              }
+              if (el && el.classList.contains('price-input')){
+                const idx = parseInt(el.getAttribute('data-idx') || '-1', 10);
+                let price = parseFloat(el.value || '0');
+                if (isNaN(price) || price < 0) price = 0;
+                if (!isNaN(idx) && invoiceItems[idx]){
+                  invoiceItems[idx].unitPrice = price;
+                  renderInvoice();
+                }
+              }
+            });
+
+            // On page load, populate invoiceItems from Model.Ticket.TicketInventories if editing
+            @{ var preItems = (Model.Ticket?.TicketInventories ?? new List<Tickflo.Core.Entities.TicketInventory>())
+                  .Select(ti => new {
+                    sku = ti.Inventory?.Sku ?? string.Empty,
+                    name = ti.Inventory?.Name ?? string.Empty,
+                    id = ti.InventoryId,
+                    quantity = ti.Quantity,
+                    unitPrice = ti.UnitPrice
+                  }).ToList();
+               var preJson = System.Text.Json.JsonSerializer.Serialize(preItems);
+            }
+            invoiceItems = @Html.Raw(preJson);
+            renderInvoice();
+            const form = document.getElementById('ticket-save-form');
+            if (!form) return;
+            form.addEventListener('submit', async function(e){
+              e.preventDefault();
+              // Block if user lacks create/edit permission
+              const canSubmitAttr = form.getAttribute('data-can-submit');
+              const canSubmit = (canSubmitAttr === 'true');
+              if (!canSubmit) {
+                const toast = document.getElementById('save-error-toast');
+                const msg = document.getElementById('save-error-toast-msg');
+                if (toast && msg){
+                  msg.textContent = 'You do not have permission to save this ticket.';
+                  toast.style.display = '';
+                  setTimeout(()=>{ toast.style.display = 'none'; }, 3000);
+                }
+                return;
+              }
+              // Ensure hidden JSON reflects latest invoiceItems
+              try { ticketInventoriesJson.value = JSON.stringify(invoiceItems); } catch {}
+              const btn = document.getElementById('ticket-save-btn');
+              const fd = new FormData(form);
+              let action = form.getAttribute('action');
+              if (!action || action.trim() === '') {
+                const qs = window.location.search;
+                const hasHandler = qs.includes('handler=');
+                const handlerParam = hasHandler ? '' : (qs && qs.length > 1 ? '&handler=Save' : '?handler=Save');
+                action = window.location.pathname + qs + handlerParam;
+              }
+              try {
+                if (btn){ btn.disabled = true; btn.classList.add('btn-disabled'); }
+                const res = await fetch(action, { method: 'POST', body: fd, credentials: 'same-origin' });
+                if (res.ok){
+                  // Navigate back to list, preserving filters from current query string
+                  const qs = window.location.search || '';
+                  window.location.href = `/workspaces/@Model.WorkspaceSlug/tickets${qs}`;
+                } else {
+                  const toast = document.getElementById('save-error-toast');
+                  const msg = document.getElementById('save-error-toast-msg');
+                  if (toast && msg){
+                    msg.textContent = `Save failed (status ${res.status}).`;
+                    toast.style.display = '';
+                    setTimeout(()=>{ toast.style.display = 'none'; }, 3000);
+                  }
+                }
+              } catch(err){
+                const toast = document.getElementById('save-error-toast');
+                const msg = document.getElementById('save-error-toast-msg');
+                if (toast && msg){
+                  msg.textContent = 'Save error. Please try again.';
+                  toast.style.display = '';
+                  setTimeout(()=>{ toast.style.display = 'none'; }, 3000);
+                }
+                console.error('Save error', err);
+              } finally {
+                if (btn){ btn.disabled = false; btn.classList.remove('btn-disabled'); }
+              }
+            });
+            // Wire assignee datalist to hidden field
+            const hidden = document.getElementById('assignedUserId');
+            const input = document.getElementById('assignee-search');
+            const list = document.getElementById('assignees-list');
+            if (hidden && input && list){
+              function setFromText(){
+                const val = input.value;
+                const opts = Array.from(list.querySelectorAll('option'));
+                const matched = opts.find(o => o.value === val);
+                if (matched) {
+                  hidden.value = matched.getAttribute('data-id') || '';
+                } else if (val === '' || val.toLowerCase() === 'unassigned') {
+                  hidden.value = '';
+                }
+              }
+              input.addEventListener('change', setFromText);
+              input.addEventListener('blur', function(){
+                setFromText();
+                if ((hidden.value ?? '') === '' && (input.value === '' || input.value.toLowerCase() === 'unassigned')){
+                  input.value = 'Unassigned';
+                  input.setAttribute('placeholder', 'Pick from list');
+                }
+              });
+              input.addEventListener('focus', function(){
+                if (input.value.toLowerCase() === 'unassigned') {
+                  input.value = '';
+                }
+              });
+              const preset = hidden.value ?? '';
+              if (preset !== ''){
+                const opt = Array.from(list.querySelectorAll('option')).find(o => o.getAttribute('data-id') === preset);
+                if (opt) input.value = opt.value;
+              } else {
+                input.value = 'Unassigned';
+              }
+            }
+            // Wire team datalist to hidden field
+            const th = document.getElementById('assignedTeamId');
+            const ti = document.getElementById('team-search');
+            const tl = document.getElementById('teams-list');
+            if (th && ti && tl){
+              function setTeam(){
+                const val = ti.value;
+                const opts = Array.from(tl.querySelectorAll('option'));
+                const matched = opts.find(o => o.value === val);
+                if (matched) {
+                  th.value = matched.getAttribute('data-id') || '';
+                } else if (val === '' || val.toLowerCase() === 'none') {
+                  th.value = '';
+                }
+              }
+              ti.addEventListener('change', setTeam);
+              ti.addEventListener('blur', function(){
+                setTeam();
+                if ((th.value ?? '') === '' && (ti.value === '' || ti.value.toLowerCase() === 'none')){
+                  ti.value = 'None';
+                  ti.setAttribute('placeholder', 'Pick from list');
+                }
+              });
+              ti.addEventListener('focus', function(){
+                if (ti.value.toLowerCase() === 'none') {
+                  ti.value = '';
+                }
+              });
+              const tpreset = th.value ?? '';
+              if (tpreset !== ''){
+                const opt = Array.from(tl.querySelectorAll('option')).find(o => o.getAttribute('data-id') === tpreset);
+                if (opt) ti.value = opt.value;
+              } else {
+                ti.value = 'None';
+              }
+            }
+            // Wire contact datalist to hidden field
+            const ch = document.getElementById('editContactId');
+            const ci = document.getElementById('contact-search');
+            const cl = document.getElementById('contacts-list');
+            if (ch && ci && cl){
+              function setContact(){
+                const val = ci.value;
+                const opts = Array.from(cl.querySelectorAll('option'));
+                const matched = opts.find(o => o.value === val);
+                if (matched) {
+                  ch.value = matched.getAttribute('data-id') || '';
+                }
+              }
+              ci.addEventListener('change', setContact);
+              // Prefill display from current contact
+              const preset = ch.value ?? '';
+              if (preset !== ''){
+                const opt = Array.from(cl.querySelectorAll('option')).find(o => o.getAttribute('data-id') === preset);
+                if (opt) ci.value = opt.value;
+              }
+            }
+          })();
+        </script>
+
+        <!-- History Section -->
+        @if ((Model.Ticket?.Id ?? 0) > 0)
+        {
+          <div class="divider my-6"></div>
+          <div class="bg-neutral-950/50 rounded-xl p-5 border border-white/5">
+            <h3 class="text-sm uppercase tracking-wider font-semibold text-white/60 mb-4">
+              <i class="fa fa-history mr-2"></i>Activity History
+            </h3>
+            <div class="space-y-3">
+              @if (Model.History != null && Model.History.Count > 0)
+              {
+                foreach (var h in Model.History)
+                {
+                  var actor = Model.Members.FirstOrDefault(m => m.Id == h.CreatedByUserId);
+                  var actorName = actor != null ? (string.IsNullOrWhiteSpace(actor.Name) ? actor.Email : actor.Name) : $"User #{h.CreatedByUserId}";
+                  <div class="flex items-start gap-3 p-3 rounded-lg bg-neutral-900/30 hover:bg-neutral-900/50 transition-colors">
+                    <div class="flex-shrink-0">
+                      <div class="avatar" id="avatar-history-@h.Id" style="display:none;">
+                        <div class="w-10 h-10 rounded-full">
+                          <img src="/users/@h.CreatedByUserId/avatar" alt="@actorName" onload="document.getElementById('avatar-history-@h.Id').style.display='';" onerror="document.getElementById('avatar-history-@h.Id').style.display='none';" />
+                        </div>
+                      </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="font-semibold text-white">@actorName</span>
+                        <span class="text-xs text-white/40">•</span>
+                        <span class="text-xs text-white/50">@h.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy h:mm tt")</span>
+                      </div>
+                      <div class="text-sm text-white/80">
+                        @if ((h.Action ?? string.Empty) == "created")
+                        {
+                          <span><i class="fa fa-plus-circle text-success mr-1"></i>Created the ticket</span>
+                        }
+                        else if ((h.Action ?? string.Empty) == "field_changed")
+                        {
+                          <div>
+                            <i class="fa fa-edit text-info mr-1"></i>Changed <span class="font-medium text-white">@h.Field</span>
+                            <div class="mt-1 text-xs">
+                              <span class="text-white/50">From:</span> <span class="badge badge-ghost badge-xs">@((h.OldValue ?? "(empty)"))</span>
+                              <i class="fa fa-arrow-right mx-1 text-white/30"></i>
+                              <span class="text-white/50">To:</span> <span class="badge badge-ghost badge-xs">@((h.NewValue ?? "(empty)"))</span>
+                            </div>
+                          </div>
+                        }
+                        else
+                        {
+                          <span><i class="fa fa-info-circle text-warning mr-1"></i>@h.Action @h.Note</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+              }
+              else
+              {
+                <div class="text-center py-8 text-white/40">
+                  <i class="fa fa-history text-3xl mb-2"></i>
+                  <div>No activity history yet</div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
+  </section>
+</div>

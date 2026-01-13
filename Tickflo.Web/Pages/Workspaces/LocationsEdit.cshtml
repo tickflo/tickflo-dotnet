@@ -1,0 +1,59 @@
+@page "/workspaces/{slug}/locations/{locationId:int}/edit"
+@model Tickflo.Web.Pages.Workspaces.LocationsEditModel
+@{
+    ViewData["Title"] = Model.LocationId == 0 ? "New Location" : "Edit Location";
+}
+<div class="flex flex-row gap-4">
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+    <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = (Model.LocationId == 0 ? "New Location" : "Edit Location"), AllowNewAction = Model.CanCreateLocations, NewActionLabel = "New Location", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/locations/0/edit" })
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+            <div class="card-body">
+                <form method="post" class="grid gap-4">
+                    <div class="form-control">
+                        <label class="label" for="Name"><span class="label-text">Name</span></label>
+                        <input class="input input-bordered validator w-full" asp-for="Name" />
+                        <span asp-validation-for="Name" class="validator-hint text-xs text-error"></span>
+                    </div>
+                    <div class="form-control">
+                        <label class="label" for="Address"><span class="label-text">Address</span></label>
+                        <input class="input input-bordered validator w-full" asp-for="Address" />
+                        <span asp-validation-for="Address" class="validator-hint text-xs text-error"></span>
+                    </div>
+                    <div class="form-control">
+                        <label class="label" for="SelectedContactIds"><span class="label-text">Contacts at this Location</span></label>
+                        <select asp-for="SelectedContactIds" class="select select-bordered w-full" multiple size="8">
+                            @foreach (var c in Model.ContactOptions)
+                            {
+                                var isSelected = Model.SelectedContactIds != null && Model.SelectedContactIds.Contains(c.Id);
+                                <option value="@c.Id" selected="@(isSelected ? "selected" : null)">@((c.Name ?? string.Empty).Trim()) @((string.IsNullOrWhiteSpace(c.Email) ? string.Empty : $"({c.Email})"))</option>
+                            }
+                        </select>
+                        <div class="text-xs opacity-70 mt-1">Hold Ctrl/Command to select multiple.</div>
+                    </div>
+                    <div class="form-control">
+                        <label class="label" for="DefaultAssigneeUserId"><span class="label-text">Default Assignee (auto-assign new tickets)</span></label>
+                        <select class="select select-bordered w-full" asp-for="DefaultAssigneeUserId">
+                            <option value="">-- None --</option>
+                            @foreach (var u in Model.MemberOptions)
+                            {
+                                <option value="@u.Id" selected="@(Model.DefaultAssigneeUserId == u.Id ? "selected" : null)">@((u.Name ?? "").Trim()) @((string.IsNullOrWhiteSpace(u.Email) ? string.Empty : $"({u.Email})"))</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-3">
+                            <input type="checkbox" class="toggle toggle-primary" asp-for="Active" />
+                            <span class="label-text">Active</span>
+                        </label>
+                    </div>
+                    <div class="join md:join">
+                        @{ var saveLabel = (Model.LocationId == 0) ? "Create" : "Update"; }
+                        <button type="submit" class="btn btn-primary join-item btn-sm w-full md:w-auto" @( (Model.LocationId == 0 ? Model.CanCreateLocations : Model.CanEditLocations) ? "" : "disabled")>@saveLabel</button>
+                        <a class="btn btn-soft join-item btn-sm" asp-page="/Workspaces/Locations" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+    </div>

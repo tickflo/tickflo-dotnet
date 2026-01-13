@@ -1,0 +1,61 @@
+@page "/workspaces/{slug}/users"
+@model Tickflo.Web.Pages.Workspaces.UsersModel
+@{
+    ViewData["Title"] = "Users";
+}
+
+<div class="flex flex-row gap-4">
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+    <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Users", NewActionLabel = "Invite User", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/users/invite", AllowNewAction = (Model.CanCreateUsers || Model.IsWorkspaceAdmin) })
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+            <div class="card-body">
+                <h2 class="card-title">Users</h2>
+                <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
+            </div>
+        </div>
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+            <div class="card-body space-y-4">
+                <h2 class="card-title">Pending Invites</h2>
+            @if (!Model.PendingInvites.Any())
+            {
+                <div class="alert alert-info rounded-2xl border border-white/10">No pending invites.</div>
+            }
+            else
+            {
+                <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
+                <table class="table table-sm table-zebra">
+                    <thead class="bg-white/5">
+                        <tr>
+                            <th>Email</th>
+                            <th>Invited</th>
+                            <th>Roles</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var inv in Model.PendingInvites)
+                    {
+                        <tr>
+                            <td>@inv.Email</td>
+                            <td>@inv.CreatedAt.ToString("u")</td>
+                            <td>@(inv.Roles != null && inv.Roles.Any() ? string.Join(", ", inv.Roles) : "—")</td>
+                            <td>
+                                <div class="flex flex-wrap gap-2 md:join">
+                                <form method="post" asp-page-handler="Accept" asp-route-slug="@Model.WorkspaceSlug" asp-route-userId="@inv.UserId">
+                                    <button class="btn btn-primary btn-sm md:join-item" type="submit" @(Model.CanEditUsers ? "" : "disabled")>Accept</button>
+                                </form>
+                                <form method="post" asp-page-handler="Resend" asp-route-slug="@Model.WorkspaceSlug" asp-route-userId="@inv.UserId">
+                                    <button class="btn btn-ghost btn-sm md:join-item" type="submit" @(Model.CanEditUsers ? "" : "disabled")>Resend</button>
+                                </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+                </div>
+            }
+        </div>
+    </section>
+</div>

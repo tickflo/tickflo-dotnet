@@ -1,0 +1,25 @@
+@using Tickflo.Core.Entities
+@model Tickflo.Web.Pages.Shared.WorkspaceHeaderView
+<header class="glass-panel px-6 py-2 mb-2 shadow-2xl">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div class="space-y-1 text-slate-100">
+            <p class="section-title-eyebrow">Workspace</p>
+            <div class="flex flex-wrap items-center gap-2">
+                <h1 class="text-xl font-semibold">@Model.Name</h1>
+                @if (!string.IsNullOrWhiteSpace(Model.SectionTitle))
+                {
+                    <span class="badge badge-outline rounded-full">@Model.SectionTitle</span>
+                }
+            </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2 justify-end md:ml-auto md:join">
+            @if (Model.AllowNewAction && !string.IsNullOrEmpty(Model.NewActionHref) && !string.IsNullOrEmpty(Model.NewActionLabel))
+            {
+                <a class="btn btn-sm btn-primary md:join-item rounded-full" href="@Model.NewActionHref"><i class="fa fa-plus"></i> @Model.NewActionLabel</a>
+            }
+            <a class="btn btn-soft btn-sm md:join-item rounded-full" asp-page="/Workspace" asp-route-slug="@Model.Slug"><i class="fa fa-house"></i> Dashboard</a>
+            <a class="btn btn-soft btn-sm md:join-item rounded-full" asp-page="/Workspaces/Settings" asp-route-slug="@Model.Slug"><i class="fa fa-cog"></i> Settings</a>
+        </div>
+    </div>
+</header>

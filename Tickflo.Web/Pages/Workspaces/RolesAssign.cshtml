@@ -1,0 +1,89 @@
+@page "/workspaces/{slug}/users/roles/assign"
+@model Tickflo.Web.Pages.Workspaces.RolesAssignModel
+@{
+    ViewData["Title"] = "Assign User Roles";
+}
+
+<div class="flex flex-row gap-4">
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+    <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Assign Roles" })
+
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100 max-w-3xl">
+            <div class="card-body">
+                <h2 class="card-title">Assign Roles</h2>
+                <form method="post" asp-page-handler="Assign" class="space-y-4">
+                    <div class="grid gap-4 md:grid-cols-3">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">User</span></label>
+                        <select asp-for="SelectedUserId" class="select select-bordered select-sm w-full bg-neutral-900/80 border border-white/10 text-slate-100">
+                            <option value="">Select a user</option>
+                            @foreach (var m in Model.Members)
+                            {
+                                <option value="@m.Id">@m.Name (@m.Email)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Role</span></label>
+                        <select asp-for="SelectedRoleId" class="select select-bordered select-sm w-full bg-neutral-900/80 border border-white/10 text-slate-100">
+                            <option value="">Select a role</option>
+                            @foreach (var r in Model.Roles)
+                            {
+                                <option value="@r.Id">@r.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="join md:join">
+                        <button type="submit" class="btn btn-primary btn-sm join-item w-full md:w-auto">Assign</button>
+                        <a class="btn btn-ghost join-item" href="/workspaces/@Model.WorkspaceSlug/users/roles" asp-preserve-query>Back</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card bg-base-100 shadow-sm rounded-3xl mt-8 rounded-3xl">
+            <div class="card-body p-0">
+                <div class="overflow-x-auto rounded-box bg-base-100">
+                    <table class="table table-zebra table-md">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Roles</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var m in Model.Members)
+                            {
+                                var roles = Model.UserRoles.ContainsKey(m.Id) ? Model.UserRoles[m.Id] : new List<Tickflo.Core.Entities.Role>();
+                                <tr>
+                                    <td>@m.Name (@m.Email)</td>
+                                    <td>
+                                        @if (roles.Any())
+                                        {
+                                            foreach (var r in roles)
+                                            {
+                                                <span class="inline-flex items-center mr-2">
+                                                    <span class="badge badge-soft badge-secondary rounded-full">@r.Name</span>
+                                                    <form method="post" asp-page-handler="Remove" class="inline ml-2">
+                                                        <input type="hidden" name="userId" value="@m.Id" />
+                                                        <input type="hidden" name="roleId" value="@r.Id" />
+                                                        <button type="submit" class="btn btn-error btn-sm">Remove</button>
+                                                    </form>
+                                                </span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span>—</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>

@@ -1,0 +1,108 @@
+@page "/workspaces/{slug}/inventory"
+@model Tickflo.Web.Pages.Workspaces.InventoryModel
+@{
+    ViewData["Title"] = "Inventory";
+}
+
+<div class="flex flex-row gap-4">
+  @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+  <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
+@await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Inventory", NewActionLabel = "New Item", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/inventory/0/edit", AllowNewAction = Model.CanCreateInventory })
+
+<div class="space-y-8">
+  <div class="flex items-center justify-between">
+    @await Html.PartialAsync("_FilterBar", new Tickflo.Web.Pages.Shared.FilterBarView {
+      QueryParamName = "Query",
+      QueryValue = Model.Query,
+      Placeholder = "Search name or SKU",
+      SubmitLabel = "Filter",
+      Selects = new List<Tickflo.Web.Pages.Shared.FilterSelect> {
+        new Tickflo.Web.Pages.Shared.FilterSelect {
+          Name = "Status",
+          Options = new List<Tickflo.Web.Pages.Shared.FilterOption> {
+            new Tickflo.Web.Pages.Shared.FilterOption { Value = "", Label = "All", Selected = string.IsNullOrEmpty(Model.Status) },
+            new Tickflo.Web.Pages.Shared.FilterOption { Value = "active", Label = "Active", Selected = (Model.Status ?? string.Empty) == "active" },
+            new Tickflo.Web.Pages.Shared.FilterOption { Value = "archived", Label = "Archived", Selected = (Model.Status ?? string.Empty) == "archived" }
+          }
+        }
+      }
+    })
+
+    @await Html.PartialAsync("_ActionRow", new Tickflo.Web.Pages.Shared.ActionRowView {
+      Actions = new List<Tickflo.Web.Pages.Shared.ActionItem> {
+        new Tickflo.Web.Pages.Shared.ActionItem { Label = "New Item", Href = Model.CanCreateInventory ? $"/workspaces/{Model.Workspace?.Slug}/inventory/0/edit" : null, Disabled = !Model.CanCreateInventory, ButtonClass = "btn btn-primary" }
+      }
+    })
+  </div>
+
+  <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+    <div class="card-body">
+      <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
+        <table class="table table-sm table-zebra">
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Name</th>
+          <th>Qty</th>
+          <th class="hidden sm:table-cell">Min</th>
+          <th class="hidden md:table-cell">Cost</th>
+          <th class="hidden md:table-cell">Price</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      @foreach (var i in Model.Items)
+      {
+        var low = i.MinStock.HasValue && i.Quantity < i.MinStock.Value;
+        <tr class="@(low ? "bg-warning/10" : "")">
+          <td class="break-all">@i.Sku</td>
+          <td>@i.Name</td>
+          <td class="@(low ? "text-warning font-medium" : "")">@i.Quantity</td>
+          <td class="hidden sm:table-cell">@(i.MinStock ?? 0)</td>
+          <td class="hidden md:table-cell">$@i.Cost.ToString("0.00")</td>
+          <td class="hidden md:table-cell">@(i.Price.HasValue ? "$" + i.Price.Value.ToString("0.00") : "-")</td>
+          <td>
+            <div class="flex gap-2 items-center">
+              <span class="badge badge-soft rounded-full">@i.Status</span>
+              @if (low)
+              {
+                <span class="badge badge-warning badge-soft rounded-full">Low</span>
+              }
+            </div>
+          </td>
+          <td>
+            <div class="join">
+              @if (Model.CanEditInventory) {
+                <a class="btn btn-soft join-item btn-sm" href="/workspaces/@Model.Workspace?.Slug/inventory/@i.Id/edit">Edit</a>
+              } else {
+                <button class="btn btn-soft join-item btn-sm" disabled>Edit</button>
+              }
+              @if(Model.CanEditInventory)
+              {
+                if (i.Status != "archived")
+                {
+                  <form method="post" asp-page-handler="Archive" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@i.Id" class="join-item">
+                    <button type="submit" class="btn btn-soft btn-sm">Archive</button>
+                  </form>
+                }
+                else
+                {
+                  <form method="post" asp-page-handler="Restore" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@i.Id" class="join-item">
+                    <button type="submit" class="btn btn-soft btn-sm">Restore</button>
+                  </form>
+                }
+              }
+            </div>
+          </td>
+        </tr>
+      }
+      </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  </div>
+  </section>
+</div>
+ 

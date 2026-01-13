@@ -1,0 +1,51 @@
+@page "/workspaces/{slug}/users/teams"
+@model Tickflo.Web.Pages.Workspaces.TeamsModel
+@{
+    ViewData["Title"] = "Teams";
+}
+
+<div class="flex flex-row gap-4">
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+    <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Teams", NewActionLabel = "New Team", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/users/teams/0/edit", AllowNewAction = Model.CanCreateTeams })
+
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+            <div class="card-body">
+                <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
+                    <table class="table table-sm table-zebra">
+                        <thead class="bg-white/5">
+                            <tr>
+                                <th>Name</th>
+                                <th class="hidden sm:table-cell">Description</th>
+                                <th class="hidden sm:table-cell">Members</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var t in Model.Teams)
+                            {
+                                var count = Model.MemberCounts.TryGetValue(t.Id, out var c) ? c : 0;
+                                <tr>
+                                    <td>@t.Name</td>
+                                    <td class="hidden sm:table-cell">@t.Description</td>
+                                    <td class="hidden sm:table-cell">@count</td>
+                                    <td>
+                                        <div class="join md:join">
+                                            @if (Model.CanEditTeams) {
+                                                <a class="btn btn-soft join-item btn-sm" asp-page="/Workspaces/TeamsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@t.Id">Edit</a>
+                                                <a class="btn btn-soft join-item btn-sm" asp-page="/Workspaces/TeamsAssign" asp-route-slug="@Model.WorkspaceSlug" asp-route-teamId="@t.Id">Members</a>
+                                            } else {
+                                                <button class="btn btn-soft join-item btn-sm" disabled>Edit</button>
+                                                <button class="btn btn-soft join-item btn-sm" disabled>Members</button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>

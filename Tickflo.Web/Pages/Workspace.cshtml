@@ -1,0 +1,395 @@
+﻿@page "/workspaces/{slug}"
+@using System.Text.Json
+@model Tickflo.Web.Pages.WorkspaceModel
+@{
+    ViewData["Title"] = Model.Workspace?.Name ?? "Workspaces";
+    var primary = Model.PrimaryColor;
+    var success = Model.SuccessColor;
+    var info = Model.InfoColor;
+    var warning = Model.WarningColor;
+    var error = Model.ErrorColor;
+    var openPercent = Model.TotalTickets == 0 ? 0 : Math.Round((double)Model.OpenTickets / Model.TotalTickets * 100);
+    var resolvedPercent = Model.TotalTickets == 0 ? 0 : Math.Round((double)Model.ResolvedTickets / Model.TotalTickets * 100);
+}
+
+<div class="flex flex-row gap-4">
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.Workspace?.Slug ?? "")
+    <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
+        <div role="alert" class="alert alert-info rounded-3xl shadow-md border border-base-200/70">
+            <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <span class="flex items-center gap-2 text-sm"><i class="fa fa-envelope-open-text"></i> You have not yet confirmed your email address</span>
+                <div class="join join-horizontal">
+                    <form class="join-item" data-discover="true" action="/email-confirmation/dismiss" method="post">
+                        <button type="submit" class="btn btn-ghost btn-sm">Dismiss</button>
+                    </form>
+                    <form class="join-item" data-discover="true" action="/email-confirmation/resend" method="post">
+                        <button type="submit" class="btn btn-primary btn-sm">Resend Email</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.Workspace == null)
+        {
+            <div class="card bg-base-100 shadow-sm mb-6 rounded-3xl">
+                <div class="card-body">
+                    <h2 class="card-title">Dashboard</h2>
+                    <p class="text-sm text-base-content/70">Overview of your account and activity</p>
+                </div>
+            </div>
+            <div class="stats stats-horizontal bg-base-100 shadow-sm mb-6">
+                <div class="stat">
+                    <div class="stat-title">Revenue</div>
+                    <div class="stat-value">$24,600</div>
+                    <div class="stat-desc">+12% from last month</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-title">Orders</div>
+                    <div class="stat-value">1,284</div>
+                    <div class="stat-desc">+4% this week</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-title">Customers</div>
+                    <div class="stat-value">3,721</div>
+                    <div class="stat-desc">+156 new</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-title">Conversion</div>
+                    <div class="stat-value">3.7%</div>
+                    <div class="stat-desc">-0.2% this week</div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Header Card -->
+            <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+                <div class="card-body">
+                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div class="space-y-1">
+                            <p class="text-xs uppercase tracking-wide text-base-content/60">Workspace</p>
+                            <h1 class="text-2xl font-bold">Ticket Dashboard</h1>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            @if (Model.CanViewTickets)
+                            {
+                                <a class="btn btn-primary btn-sm rounded-full" href="/workspaces/@Model.Workspace.Slug/tickets/new"><i class="fa fa-plus"></i> New Ticket</a>
+                            }
+                            <a class="btn btn-outline btn-sm rounded-full" href="/workspaces/@Model.Workspace.Slug/settings"><i class="fa fa-cog"></i> Settings</a>
+                            <div class="join join-sm rounded-full overflow-hidden bg-neutral-900/70 border border-white/10">
+                                <a class="btn btn-ghost btn-sm join-item @(Model.RangeDays == 7 ? "btn-active" : "")" href="/workspaces/@Model.Workspace.Slug?range=7">7d</a>
+                                <a class="btn btn-ghost btn-sm join-item @(Model.RangeDays == 30 ? "btn-active" : "")" href="/workspaces/@Model.Workspace.Slug?range=30">30d</a>
+                                <a class="btn btn-ghost btn-sm join-item @(Model.RangeDays == 90 ? "btn-active" : "")" href="/workspaces/@Model.Workspace.Slug?range=90">90d</a>
+                                <a class="btn btn-ghost btn-sm join-item @(Model.RangeDays == 365 ? "btn-active" : "")" href="/workspaces/@Model.Workspace.Slug?range=365">1y</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPI Section Card -->
+            <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+                <div class="card-body">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    @if (Model.CanViewTickets)
+                    {
+                        var primaryGlow = Model.PrimaryIsHex ? WorkspaceModel.HexToRgba(primary, 0.15) : null;
+                        var primaryBg = Model.PrimaryIsHex ? WorkspaceModel.HexToRgba(primary, 0.2) : null;
+                        <a href="/workspaces/@Model.Workspace.Slug/tickets?status=Open&range=@Model.RangeDays" style="text-decoration:none">
+                            <div class="card bg-neutral-900/80 backdrop-blur text-slate-100 shadow-xl cursor-pointer hover:shadow-2xl transition-all hover:-translate-y-0.5 rounded-3xl overflow-hidden group">
+                                <div class="card-body relative">
+                                    @if (Model.PrimaryIsHex)
+                                    {
+                                        <div class="absolute top-0 right-0 w-28 h-28 blur-2xl rounded-full -mr-12 -mt-10 group-hover:scale-110 transition-transform" style="background-color: @primaryGlow;"></div>
+                                    }
+                                    else
+                                    {
+                                        <div class="absolute top-0 right-0 w-28 h-28 bg-@(primary)/15 blur-2xl rounded-full -mr-12 -mt-10 group-hover:scale-110 transition-transform"></div>
+                                    }
+                                    <div class="flex items-center justify-between mb-3">
+                                        @if (Model.PrimaryIsHex)
+                                        {
+                                            <div class="p-3 rounded-2xl" style="background-color: @primaryBg; color: @primary;"><i class="fa fa-ticket-alt text-xl"></i></div>
+                                        }
+                                        else
+                                        {
+                                            <div class="p-3 bg-@(primary)/20 text-@(primary) rounded-2xl"><i class="fa fa-ticket-alt text-xl"></i></div>
+                                        }
+                                        <span class="badge badge-outline badge-sm rounded-full">@Model.RangeDays d</span>
+                                    </div>
+                                    <div class="text-sm opacity-80">Open Tickets</div>
+                                    <div class="text-4xl font-bold mt-2">@Model.OpenTickets</div>
+                                    <div class="text-xs opacity-70 mt-1">@openPercent% of @Model.TotalTickets</div>
+                                </div>
+                            </div>
+                        </a>
+                    }
+                    @if (Model.CanViewTickets)
+                    {
+                        var successGlow = Model.SuccessIsHex ? WorkspaceModel.HexToRgba(success, 0.15) : null;
+                        var successBg = Model.SuccessIsHex ? WorkspaceModel.HexToRgba(success, 0.2) : null;
+                        <a href="/workspaces/@Model.Workspace.Slug/tickets?status=Closed&range=@Model.RangeDays" style="text-decoration:none">
+                            <div class="card bg-neutral-900/80 backdrop-blur text-slate-100 shadow-xl cursor-pointer hover:shadow-2xl transition-all hover:-translate-y-0.5 rounded-3xl overflow-hidden group">
+                                <div class="card-body relative">
+                                    @if (Model.SuccessIsHex)
+                                    {
+                                        <div class="absolute top-0 right-0 w-28 h-28 blur-2xl rounded-full -mr-12 -mt-10 group-hover:scale-110 transition-transform" style="background-color: @successGlow;"></div>
+                                    }
+                                    else
+                                    {
+                                        <div class="absolute top-0 right-0 w-28 h-28 bg-@(success)/15 blur-2xl rounded-full -mr-12 -mt-10 group-hover:scale-110 transition-transform"></div>
+                                    }
+                                    <div class="flex items-center justify-between mb-3">
+                                        @if (Model.SuccessIsHex)
+                                        {
+                                            <div class="p-3 rounded-2xl" style="background-color: @successBg; color: @success;"><i class="fa fa-check-circle text-xl"></i></div>
+                                        }
+                                        else
+                                        {
+                                            <div class="p-3 bg-@(success)/20 text-@(success) rounded-2xl"><i class="fa fa-check-circle text-xl"></i></div>
+                                        }
+                                        <span class="badge badge-outline badge-sm rounded-full">@Model.RangeDays d</span>
+                                    </div>
+                                    <div class="text-sm opacity-80">Resolved</div>
+                                    <div class="text-4xl font-bold mt-2">@Model.ResolvedTickets</div>
+                                    <div class="text-xs opacity-70 mt-1">@resolvedPercent% closed</div>
+                                </div>
+                            </div>
+                        </a>
+                    }
+                    <div class="card bg-neutral-900/80 backdrop-blur text-slate-100 shadow-xl rounded-3xl overflow-hidden group">
+                        <div class="card-body relative">
+                            <div class="absolute top-0 right-0 w-24 h-24 bg-@(info)/15 blur-2xl rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform"></div>
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="p-3 bg-@(info)/15 text-@(info) rounded-2xl">
+                                    <i class="fa fa-layer-group text-xl"></i>
+                                </div>
+                                <span class="badge badge-outline badge-sm rounded-full">Total</span>
+                            </div>
+                            <div class="text-sm opacity-80">Total Tickets</div>
+                            <div class="text-4xl font-bold mt-2">@Model.TotalTickets</div>
+                            <div class="text-xs opacity-70 mt-1">in current window</div>
+                        </div>
+                    </div>
+                    @if (Model.CanViewTickets)
+                    {
+                    <div class="card bg-neutral-900/80 backdrop-blur text-slate-100 shadow-xl rounded-3xl overflow-hidden group">
+                        <div class="card-body relative">
+                            <div class="absolute top-0 right-0 w-24 h-24 bg-@(warning)/15 blur-2xl rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform"></div>
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="p-3 bg-@(warning)/15 text-@(warning) rounded-2xl">
+                                    <i class="fa fa-hourglass-half text-xl"></i>
+                                </div>
+                                <span class="badge badge-outline badge-sm rounded-full">Avg</span>
+                            </div>
+                            <div class="text-sm opacity-80">Avg Resolution</div>
+                            <div class="text-4xl font-bold mt-2">@Model.AvgResolutionLabel</div>
+                            <div class="text-xs opacity-70 mt-1">time to close</div>
+                        </div>
+                    </div>
+                    }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Overview Card -->
+            @if (Model.CanViewTickets && Model.StatusList.Count > 0)
+            {
+            <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+                        <div class="card-body">
+                            <div class="card-title text-lg">Status Overview</div>
+                            <div class="space-y-4 mt-4">
+                                @foreach (var s in Model.StatusList.OrderBy(x => x.SortOrder))
+                                {
+                                    var count = Model.RecentTickets.Count(t => t.Status == s.Name);
+                                    var percentage = Model.RecentTickets.Count > 0 ? Math.Round((double)count / Model.RecentTickets.Count * 100) : 0;
+                                    var sColor = string.IsNullOrWhiteSpace(s.Color) ? "neutral" : s.Color;
+                                    var sIsHex = sColor.StartsWith("#");
+                                    var badgeCls = sIsHex ? "badge badge-soft" : $"badge badge-soft badge-{sColor}";
+                                    var badgeStyle = sIsHex ? $"background-color: {sColor}; color: #fff;" : null;
+                                    var progressCls = sIsHex ? "progress" : $"progress progress-{sColor}";
+                                    var progressStyle = sIsHex ? $"background-color: {sColor};" : null;
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex-1">
+                                            <div class="flex items-center justify-between mb-1">
+                                                <span class="text-sm font-medium truncate mr-2">@s.Name</span>
+                                                <span class="@badgeCls" style="@badgeStyle">@count</span>
+                                            </div>
+                                            <progress class="@progressCls progress-sm" value="@percentage" max="100" @(sIsHex ? $"style=\"{progressStyle}\"" : null)></progress>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    }
+
+                    <!-- Priority Distribution Card -->
+                    @if (Model.CanViewTickets && Model.PriorityCounts.Count > 0)
+                    {
+                    <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+                        <div class="card-body">
+                            <div class="card-title text-lg">Priority Distribution</div>
+                            <div class="space-y-4 mt-4">
+                                @foreach (var p in Model.PriorityCounts.OrderByDescending(x => x.Value))
+                                {
+                                    var prio = Model.PriorityList.FirstOrDefault(x => x.Name == p.Key);
+                                    var percentage = Model.RecentTickets.Count > 0 ? Math.Round((double)p.Value / Model.RecentTickets.Count * 100) : 0;
+                                    var pColor = string.IsNullOrWhiteSpace(prio?.Color) ? "neutral" : prio!.Color;
+                                    var pIsHex = pColor.StartsWith("#");
+                                    var badgeCls = pIsHex ? "badge badge-soft" : $"badge badge-soft badge-{pColor}";
+                                    var badgeStyle = pIsHex ? $"background-color: {pColor}; color: #fff;" : null;
+                                    var progressCls = pIsHex ? "progress" : $"progress progress-{pColor}";
+                                    var progressStyle = pIsHex ? $"background-color: {pColor};" : null;
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex-1">
+                                            <div class="flex items-center justify-between mb-1">
+                                                <span class="text-sm font-medium truncate mr-2">@p.Key</span>
+                                                <span class="@badgeCls" style="@badgeStyle">@p.Value</span>
+                                            </div>
+                                            <progress class="@progressCls progress-sm" value="@percentage" max="100" @(pIsHex ? $"style=\"{progressStyle}\"" : null)></progress>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    }
+
+                    <!-- Recent Activity Card -->
+                    @if (Model.CanViewTickets)
+                    {
+                    <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+                            <div class="card-body">
+                                <div class="flex items-center justify-between mb-6">
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Stream</p>
+                                        <div class="card-title text-lg">Recent Activity</div>
+                                    </div>
+                                    <div class="flex gap-2 flex-wrap">
+                                        <div class="join join-sm border border-base-200 rounded-full overflow-hidden bg-base-100">
+                                            <a class="btn btn-ghost btn-sm join-item @(Model.RangeDays == 7 ? "btn-active" : "")" href="/workspaces/@Model.Workspace.Slug?range=7">7d</a>
+                                            <a class="btn btn-ghost btn-sm join-item @(Model.RangeDays == 30 ? "btn-active" : "")" href="/workspaces/@Model.Workspace.Slug?range=30">30d</a>
+                                            <a class="btn btn-ghost btn-sm join-item @(Model.RangeDays == 90 ? "btn-active" : "")" href="/workspaces/@Model.Workspace.Slug?range=90">90d</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="overflow-x-auto rounded-2xl bg-neutral-900/80 backdrop-blur shadow-inner">
+                                    <table class="table table-sm table-zebra">
+                                        <thead>
+                                            <tr class="border-b border-base-200">
+                                                <th>Ticket</th>
+                                                <th>Type</th>
+                                                <th>Status</th>
+                                                <th>Assignee</th>
+                                                <th>Updated</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        @foreach (var t in Model.RecentTickets.Take(8))
+                                        {
+                                            <tr class="hover">
+                                                <td>
+                                                    <a class="link link-hover font-semibold text-primary" href="/workspaces/@Model.Workspace!.Slug/tickets/@t.Id?range=@Model.RangeDays">
+                                                        #@t.Id <span class="text-base-content/70">@t.Subject</span>
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    @{ var typeColor = string.IsNullOrWhiteSpace(t.TypeColor) ? "neutral" : t.TypeColor; var typeIsHex = typeColor.StartsWith("#"); var typeCls = typeIsHex ? "badge badge-outline" : $"badge badge-outline badge-{typeColor}"; var typeStyle = typeIsHex ? $"--badge-color: {typeColor};" : null; }
+                                                    <a class="@typeCls" style="@typeStyle" href="/workspaces/@Model.Workspace!.Slug/tickets?type=@Uri.EscapeDataString(t.Type)&range=@Model.RangeDays">@t.Type</a>
+                                                </td>
+                                                <td>
+                                                    @{ var statusColor = string.IsNullOrWhiteSpace(t.StatusColor) ? "neutral" : t.StatusColor; var sIsHex2 = statusColor.StartsWith("#"); var statusCls = sIsHex2 ? "badge badge-soft" : $"badge badge-outline badge-{statusColor}"; var statusStyle2 = sIsHex2 ? $"background-color: {statusColor}; color: #fff;" : null; }
+                                                    <a class="@statusCls" style="@statusStyle2" href="/workspaces/@Model.Workspace!.Slug/tickets?status=@Uri.EscapeDataString(t.Status)&range=@Model.RangeDays">@t.Status</a>
+                                                </td>
+                                                <td>
+                                                    @if (!string.IsNullOrWhiteSpace(t.AssigneeName)) {
+                                                        <div class="flex items-center gap-2">
+                                                            <div class="avatar" id="avatar-assignee-@t.Id" style="display:none;">
+                                                                <div class="w-7 h-7 rounded-full">
+                                                                    <img src="/users/@(t.AssignedUserId ?? 0)/avatar" alt="@t.AssigneeName" onload="document.getElementById('avatar-assignee-@t.Id').style.display='';" onerror="document.getElementById('avatar-assignee-@t.Id').style.display='none';" />
+                                                                </div>
+                                                            </div>
+                                                            <span class="text-sm">@t.AssigneeName</span>
+                                                        </div>
+                                                    } else {
+                                                        <span class="text-base-content/50 text-sm">Unassigned</span>
+                                                    }
+                                                </td>
+                                                <td class="text-sm text-base-content/70">@t.UpdatedAt.ToLocalTime().ToString("MMM dd, HH:mm")</td>
+                                                <td>
+                                                    <a class="btn btn-sm btn-ghost" href="/workspaces/@Model.Workspace!.Slug/tickets/@t.Id?range=@Model.RangeDays">
+                                                        <i class="fa fa-arrow-right"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        }
+                                        </tbody>
+                                    </table>
+                                </div>
+                                @if (Model.RecentTickets.Count > 8)
+                                {
+                                <div class="mt-4 text-center">
+                                    <a href="/workspaces/@Model.Workspace.Slug/tickets?range=@Model.RangeDays" class="btn btn-sm btn-outline">
+                                        View All Tickets
+                                    </a>
+                                </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Top Performers Card -->
+                    @if (Model.CanViewTickets && Model.TopMembers.Count > 0)
+                    {
+                    <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+                        <div class="card-body">
+                            <div class="card-title text-lg mb-6">Top Performers</div>
+                            <ul class="space-y-4">
+                            @foreach (var m in Model.TopMembers.Take(5))
+                            {
+                                <li class="flex items-center gap-3 p-3 rounded-2xl hover:bg-white/5 transition cursor-pointer">
+                                        <div class="avatar flex-shrink-0" id="avatar-performer-@m.UserId" style="display:none;">
+                                            <div class="w-10 h-10 rounded-full">
+                                                <img src="/users/@m.UserId/avatar" alt="@m.Name" onload="document.getElementById('avatar-performer-@m.UserId').style.display='';\" onerror="document.getElementById('avatar-performer-@m.UserId').style.display='none';" />
+                                            </div>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="font-semibold text-sm">@m.Name</div>
+                                            <div class="text-xs text-base-content/60">@m.ResolvedCount resolved</div>
+                                        </div>
+                                        <div class="badge badge-sm badge-outline">+@m.ResolvedCount</div>
+                                    </li>
+                                }
+                                </ul>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Quick Actions Card -->
+                    <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+                        <div class="card-body">
+                            <div class="card-title text-lg mb-4">Quick Actions</div>
+                            <div class="flex flex-col gap-2">
+                                @if (Model.CanViewTickets)
+                                {
+                                <a href="/workspaces/@Model.Workspace.Slug/tickets/new" class="btn btn-primary btn-sm rounded-2xl">
+                                    <i class="fa fa-plus"></i>
+                                    New Ticket
+                                </a>
+                                }
+                                <a href="/workspaces/@Model.Workspace.Slug/users" class="btn btn-outline btn-sm rounded-2xl">
+                                    <i class="fa fa-users"></i>
+                                    Manage Team
+                                </a>
+                                <a href="/workspaces/@Model.Workspace.Slug/settings" class="btn btn-outline btn-sm rounded-2xl">
+                                    <i class="fa fa-cog"></i>
+                                    Workspace Settings
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+        }
+    </section>
+</div>

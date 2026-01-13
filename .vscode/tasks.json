@@ -1,0 +1,211 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "build Tickflo.Web",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		},
+		{
+			"label": "rebuild Tickflo.Web",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		},
+		{
+			"label": "rebuild Tickflo.Web after stop",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		},
+		{
+			"label": "rebuild Tickflo.Web retry",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		},
+		{
+			"label": "build with active menu",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		},
+		{
+			"label": "build workspace header changes",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		},
+		{
+			"label": "build breadcrumbs + new actions",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		},
+		{
+			"label": "build new pages stubs",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		},
+		{
+			"label": "build new page POST handlers",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		},
+		{
+			"label": "rebuild POST handlers after imports",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$msbuild"
+			],
+			"group": "build"
+		},
+		{
+			"label": "build roles bootstrapping",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "rebuild after bootstrapper",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "build roles CRUD",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "rebuild after fix rolesnew",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "rebuild roles pages",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "rebuild after route move",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "rebuild after sidebar update",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "build roles assign",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "rebuild assign fix",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "build remove assignment",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "rebuild with delete guard",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "rebuild with banner",
+			"type": "shell",
+			"command": "dotnet build Tickflo.Web/Tickflo.Web.csproj -c Debug",
+			"args": [],
+			"isBackground": false,
+			"group": "build"
+		}
+	]
+}

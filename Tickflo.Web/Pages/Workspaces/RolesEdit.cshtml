@@ -1,0 +1,94 @@
+@page "/workspaces/{slug}/users/roles/{id:int}/edit"
+@model Tickflo.Web.Pages.Workspaces.RolesEditModel
+@{
+    ViewData["Title"] = (Model.Role == null || Model.Role.Id == 0) ? "New Role" : "Edit Role";
+}
+
+<div class="flex flex-row gap-4">
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+    <section class="p-6 flex-1">
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.WorkspaceSlug, SectionTitle = ((Model.Role == null || Model.Role.Id == 0) ? "New User Role" : "Edit User Role") })
+
+        <div class="card bg-base-100 shadow-sm rounded-3xl mt-4 rounded-3xl">
+            <div class="card-body">
+                <h2 class="card-title">@((Model.Role == null || Model.Role.Id == 0) ? "New Role" : "Edit Role")</h2>
+                <form method="post" class="grid gap-4">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Name</span></label>
+                        <input asp-for="Name" class="input input-bordered w-full" />
+                        <span asp-validation-for="Name" class="text-xs text-error"></span>
+                    </div>
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-3">
+                            <input type="checkbox" asp-for="Admin" class="toggle toggle-primary" />
+                            <span class="label-text">Admin</span>
+                        </label>
+                    </div>
+
+                    <div class="divider">Security Items</div>
+                    <div class="text-sm opacity-70">Control view/edit/create access for each section. For Tickets, choose scope: All, Only Mine, or My Team.</div>
+
+                    <div class="overflow-x-auto rounded-box bg-base-100">
+                        <table class="table table-sm table-zebra w-full">
+                            <thead>
+                                <tr>
+                                    <th>Section</th>
+                                    <th class="text-center">View</th>
+                                    <th class="text-center">Edit</th>
+                                    <th class="text-center">Create</th>
+                                    <th>Ticket Scope</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @for (int i = 0; i < Model.Permissions.Count; i++)
+                            {
+                                var p = Model.Permissions[i];
+                                <tr>
+                                    <td class="capitalize">@p.Section</td>
+                                    <td class="text-center">
+                                        <input type="hidden" name="Permissions[@i].Section" value="@p.Section" />
+                                        <input type="checkbox" name="Permissions[@i].CanView" checked="@(p.CanView ? "checked" : null)" class="toggle toggle-sm" />
+                                    </td>
+                                    <td class="text-center">
+                                        <input type="checkbox" name="Permissions[@i].CanEdit" checked="@(p.CanEdit ? "checked" : null)" class="toggle toggle-sm" />
+                                    </td>
+                                    <td class="text-center">
+                                        <input type="checkbox" name="Permissions[@i].CanCreate" checked="@(p.CanCreate ? "checked" : null)" class="toggle toggle-sm" />
+                                    </td>
+                                    <td>
+                                        @if (string.Equals(p.Section, "tickets", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            var scope = string.IsNullOrWhiteSpace(p.TicketViewScope) ? "all" : p.TicketViewScope;
+                                            <div class="join">
+                                                <label class="btn btn-soft btn-xs join-item">
+                                                    <input type="radio" name="Permissions[@i].TicketViewScope" value="all" checked="@(scope == "all" ? "checked" : null)" class="radio" /> All
+                                                </label>
+                                                <label class="btn btn-soft btn-xs join-item">
+                                                    <input type="radio" name="Permissions[@i].TicketViewScope" value="mine" checked="@(scope == "mine" ? "checked" : null)" class="radio" /> Only Mine
+                                                </label>
+                                                <label class="btn btn-soft btn-xs join-item">
+                                                    <input type="radio" name="Permissions[@i].TicketViewScope" value="team" checked="@(scope == "team" ? "checked" : null)" class="radio" /> My Team
+                                                </label>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="opacity-40">—</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="join md:join">
+                        @{ var saveLabel = (Model.Role == null || Model.Role.Id == 0) ? "Create" : "Update"; }
+                        <button type="submit" class="btn btn-primary join-item btn-sm w-full md:w-auto">@saveLabel</button>
+                        <a class="btn btn-soft join-item btn-sm" href="/workspaces/@Model.WorkspaceSlug/users/roles" asp-preserve-query>Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>

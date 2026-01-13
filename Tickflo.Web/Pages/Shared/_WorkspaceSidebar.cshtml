@@ -1,0 +1,121 @@
+@model string
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@inject Tickflo.Core.Data.IUserRepository UserRepo
+@inject Tickflo.Core.Data.IWorkspaceRepository WorkspaceRepo
+@inject Tickflo.Core.Data.IRolePermissionRepository RolePermsRepo
+@{
+    var slug = Model ?? string.Empty;
+    var path = ViewContext?.HttpContext?.Request?.Path.Value ?? "";
+    bool IsActive(string segment) => path.Contains(segment, StringComparison.OrdinalIgnoreCase);
+    var query = ViewContext?.HttpContext?.Request?.Query;
+    var statusFilter = query? ["status"].ToString() ?? string.Empty;
+    var uidStr = HttpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    bool isAdmin = false;
+    int workspaceId = 0;
+    var perms = new Dictionary<string, Tickflo.Core.Data.EffectiveSectionPermission>(StringComparer.OrdinalIgnoreCase);
+    if (int.TryParse(uidStr, out var uid))
+    {
+        var meTask = UserRepo.FindByIdAsync(uid);
+        meTask.Wait();
+        var me = meTask.Result;
+        isAdmin = me?.SystemAdmin == true;
+
+        if (!string.IsNullOrWhiteSpace(slug))
+        {
+            var wsTask = WorkspaceRepo.FindBySlugAsync(slug);
+            wsTask.Wait();
+            var ws = wsTask.Result;
+            if (ws != null)
+            {
+                workspaceId = ws.Id;
+                var pTask = RolePermsRepo.GetEffectivePermissionsForUserAsync(workspaceId, uid);
+                pTask.Wait();
+                perms = pTask.Result ?? perms;
+            }
+        }
+    }
+    bool Can(string section)
+    {
+        return perms.TryGetValue(section, out var p) ? p.CanView : true;
+    }
+    var canDashboard = Can("dashboard");
+    var canContacts = Can("contacts");
+    var canTickets = Can("tickets");
+    var canReports = Can("reports");
+    var canLocations = Can("locations");
+    var canInventory = Can("inventory");
+    var canUsers = Can("users");
+    var canRoles = Can("roles");
+    var canTeams = Can("teams");
+    var canSettings = Can("settings");
+}
+<aside class="block sticky top-6 h-[calc(100vh-2rem)] w-64 shrink-0 overflow-y-auto px-3 mr-3" aria-labelledby="workspace-nav">
+    <div class="glass-panel p-4 h-full">
+        <div class="flex items-center justify-between mb-3 px-1">
+            <div class="text-[11px] font-semibold text-base-content/70 uppercase tracking-wide">Workspace</div>
+            <span class="badge badge-outline badge-sm rounded-full">Nav</span>
+        </div>
+        <nav id="workspace-nav" aria-label="Workspace navigation" class="p-1">
+            <ul class="menu menu-sm w-full gap-1 text-sm font-medium">
+                <li class="menu-title px-2 text-[11px]">Overview</li>
+                @if (canDashboard)
+                {
+                    var isDashboard = IsActive($"/workspaces/{slug}") && !IsActive("/contacts") && !IsActive("/tickets") && !IsActive("/reports") && !IsActive("/locations") && !IsActive("/inventory") && !IsActive("/users") && !IsActive("/settings");
+                    <li><a class="@(isDashboard ? "active menu-active" : null) rounded-2xl flex items-center gap-2" asp-page="/Workspace" asp-route-slug="@slug"><i class="fa fa-house"></i><span>Dashboard</span></a></li>
+                }
+                @if (canContacts)
+                {
+                    <li><a class="@(IsActive("/contacts") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" asp-page="/Workspaces/Contacts" asp-route-slug="@slug"><i class="fa fa-address-book"></i><span>Contacts</span></a></li>
+                }
+                @if (canTickets)
+                {
+                    var ticketsActive = IsActive("/tickets");
+                    <li><a class="@(ticketsActive ? "active menu-active" : null) rounded-2xl flex items-center gap-2" asp-page="/Workspaces/Tickets" asp-route-slug="@slug"><i class="fa fa-ticket"></i><span>Tickets</span></a></li>
+                }
+                @if (canReports)
+                {
+                    <li><a class="@(IsActive("/reports") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" asp-page="/Workspaces/Reports" asp-route-slug="@slug"><i class="fa fa-file-alt"></i><span>Reports</span></a></li>
+                }
+                @if (canLocations)
+                {
+                    <li><a class="@(IsActive("/locations") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" asp-page="/Workspaces/Locations" asp-route-slug="@slug"><i class="fa fa-map-marker-alt"></i><span>Locations</span></a></li>
+                }
+                @if (canInventory)
+                {
+                    <li><a class="@(IsActive("/inventory") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" asp-page="/Workspaces/Inventory" asp-route-slug="@slug"><i class="fa fa-boxes"></i><span>Inventory</span></a></li>
+                }
+                @if (canUsers || canRoles || canTeams || isAdmin)
+                {
+                    var membersActive = IsActive("/users") || IsActive("/users/roles") || IsActive("/users/teams") || IsActive("/Users/Index");
+                    <li>
+                        <details class="rounded-2xl" @(membersActive ? "open" : string.Empty)>
+                            <summary class="flex items-center gap-2"><i class="fa fa-users"></i><span>Members</span></summary>
+                            <ul>
+                                @if (canUsers)
+                                {
+                                    <li><a class="@(IsActive("/users") && !IsActive("/users/roles") && !IsActive("/users/teams") ? "active menu-active" : null) rounded-2xl" asp-page="/Workspaces/Users" asp-route-slug="@slug">Users</a></li>
+                                }
+                                @if (canRoles)
+                                {
+                                    <li><a class="@(IsActive("/users/roles") ? "active menu-active" : null) rounded-2xl" asp-page="/Workspaces/Roles" asp-route-slug="@slug">Roles</a></li>
+                                }
+                                @if (canTeams)
+                                {
+                                    <li><a class="@(IsActive("/users/teams") ? "active menu-active" : null) rounded-2xl" asp-page="/Workspaces/Teams" asp-route-slug="@slug">Teams</a></li>
+                                }
+                                @if (isAdmin)
+                                {
+                                    <li><a class="@(IsActive("/Users/Index") ? "active menu-active" : null) rounded-2xl" asp-page="/Users/Index">All Users (Admin)</a></li>
+                                }
+                            </ul>
+                        </details>
+                    </li>
+                }
+                @if (canSettings)
+                {
+                    <li><a class="@(IsActive("/settings") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" asp-page="/Workspaces/Settings" asp-route-slug="@slug"><i class="fa fa-cog"></i><span>Settings</span></a></li>
+                }
+            </ul>
+        </nav>
+    </div>
+</aside>
