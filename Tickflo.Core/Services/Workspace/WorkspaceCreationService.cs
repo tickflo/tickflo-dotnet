@@ -97,12 +97,14 @@ public class WorkspaceCreationService : IWorkspaceCreationService
     private static string GenerateSlug(string name)
     {
         // Convert to lowercase and replace spaces with hyphens
-        return System.Text.RegularExpressions.Regex.Replace(
+        var slug = System.Text.RegularExpressions.Regex.Replace(
             name.ToLowerInvariant().Trim(),
             @"[^\w\-]",
             string.Empty)
-            .Replace(" ", "-")
-            .Substring(0, Math.Min(30, name.Length));
+            .Replace(" ", "-");
+
+        // Trim to 30 characters based on the processed slug length to avoid out-of-range errors when characters are removed.
+        return slug.Substring(0, Math.Min(30, slug.Length));
     }
 }
 
