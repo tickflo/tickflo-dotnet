@@ -2,7 +2,7 @@ using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
-using Tickflo.Core.Services.Auth;
+using Tickflo.Core.Services.Authentication;
 using Xunit;
 
 namespace Tickflo.CoreTest.Services.Auth;

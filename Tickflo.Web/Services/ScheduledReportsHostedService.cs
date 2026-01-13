@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Services.Reporting;
 
 namespace Tickflo.Web.Services;
 
@@ -25,7 +26,7 @@ public class ScheduledReportsHostedService : BackgroundService
             {
                 using var scope = _sp.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<TickfloDbContext>();
-                var runSvc = scope.ServiceProvider.GetRequiredService<Tickflo.Core.Services.IReportRunService>();
+                var runSvc = scope.ServiceProvider.GetRequiredService<IReportRunService>();
 
                 var now = DateTime.UtcNow;
                 var due = await db.Reports.AsNoTracking()
@@ -77,3 +78,4 @@ public class ScheduledReportsHostedService : BackgroundService
         return false;
     }
 }
+

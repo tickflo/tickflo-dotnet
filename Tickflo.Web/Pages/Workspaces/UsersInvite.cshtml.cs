@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Tickflo.Core.Entities;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
-using Tickflo.Core.Services.Auth;
+using Tickflo.Core.Services.Authentication;
 using Tickflo.Core.Services.Email;
 using Tickflo.Core.Utils;
 using System.Security.Cryptography;
@@ -13,6 +13,8 @@ using Tickflo.Core.Data;
 using Tickflo.Core.Services;
 using Microsoft.AspNetCore.Authorization;
 
+using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Users;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
@@ -137,3 +139,5 @@ public class UsersInviteModel : WorkspacePageModel
         return RedirectToPage("/Workspaces/Users", new { slug });
     }
 }
+
+

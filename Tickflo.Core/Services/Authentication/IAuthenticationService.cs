@@ -1,0 +1,9 @@
+namespace Tickflo.Core.Services.Authentication;
+
+public interface IAuthenticationService
+{
+    public Task<AuthenticationResult> AuthenticateAsync(string email, string password);
+    public Task<AuthenticationResult> SignupAsync(string name, string email, string recoveryEmail, string workspaceName, string password);
+}
+
+

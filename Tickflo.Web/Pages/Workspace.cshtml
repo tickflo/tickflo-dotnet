@@ -73,7 +73,7 @@
                         <div class="flex flex-wrap gap-2">
                             @if (Model.CanViewTickets)
                             {
-                                <a class="btn btn-primary btn-sm rounded-full" href="/workspaces/@Model.Workspace.Slug/tickets/new"><i class="fa fa-plus"></i> New Ticket</a>
+                                <a class="btn btn-primary btn-sm rounded-full" href="/workspaces/@Model.Workspace.Slug/tickets/0"><i class="fa fa-plus"></i> New Ticket</a>
                             }
                             <a class="btn btn-outline btn-sm rounded-full" href="/workspaces/@Model.Workspace.Slug/settings"><i class="fa fa-cog"></i> Settings</a>
                             <div class="join join-sm rounded-full overflow-hidden bg-neutral-900/70 border border-white/10">
@@ -374,7 +374,7 @@
                             <div class="flex flex-col gap-2">
                                 @if (Model.CanViewTickets)
                                 {
-                                <a href="/workspaces/@Model.Workspace.Slug/tickets/new" class="btn btn-primary btn-sm rounded-2xl">
+                                <a href="/workspaces/@Model.Workspace.Slug/tickets/0" class="btn btn-primary btn-sm rounded-2xl">
                                     <i class="fa fa-plus"></i>
                                     New Ticket
                                 </a>

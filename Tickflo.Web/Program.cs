@@ -5,11 +5,22 @@ using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Config;
 using Tickflo.Core.Data;
 using Tickflo.Core.Services;
-using Tickflo.Core.Services.Auth;
+using Tickflo.Core.Services.Authentication;
 using Tickflo.Core.Services.Email;
 using Tickflo.Core.Services.Notifications;
-using AuthenticationService = Tickflo.Core.Services.AuthenticationService;
-using IAuthenticationService = Tickflo.Core.Services.IAuthenticationService;
+using Tickflo.Core.Services.Contacts;
+using Tickflo.Core.Services.Common;
+using Tickflo.Core.Services.Locations;
+using Tickflo.Core.Services.Inventory;
+using Tickflo.Core.Services.Roles;
+using Tickflo.Core.Services.Teams;
+using Tickflo.Core.Services.Tickets;
+using Tickflo.Core.Services.Users;
+using Tickflo.Core.Services.Workspace;
+using Tickflo.Core.Services.Reporting;
+using Tickflo.Core.Services.Views;
+using AuthenticationService = Tickflo.Core.Services.Authentication.AuthenticationService;
+using IAuthenticationService = Tickflo.Core.Services.Authentication.IAuthenticationService;
 using Amazon.S3;
 using Amazon;
 
@@ -123,8 +134,8 @@ builder.Services.AddScoped<ILocationListingService, LocationListingService>();
 builder.Services.AddScoped<ITeamListingService, TeamListingService>();
 
 // RustFS file and image storage services (Web implementations)
-builder.Services.AddScoped<IFileStorageService, Tickflo.Web.Services.RustFSStorageService>();
-builder.Services.AddScoped<IImageStorageService, Tickflo.Web.Services.RustFSImageStorageService>();
+builder.Services.AddScoped<Tickflo.Core.Services.Storage.IFileStorageService, Tickflo.Web.Services.RustFSStorageService>();
+builder.Services.AddScoped<Tickflo.Core.Services.Storage.IImageStorageService, Tickflo.Web.Services.RustFSImageStorageService>();
 
 var useSmtp = !string.IsNullOrWhiteSpace(appConfig.EMAIL.SMTP_HOST);
 if (useSmtp)
@@ -146,7 +157,7 @@ builder.Services.AddRazorPages(options =>
 builder.Services.AddControllers();
 
 // Reporting services (moved to Core)
-builder.Services.AddScoped<Tickflo.Core.Services.IReportingService, Tickflo.Core.Services.ReportingService>();
+builder.Services.AddScoped<Tickflo.Core.Services.Reporting.IReportingService, Tickflo.Core.Services.Reporting.ReportingService>();
 builder.Services.AddHostedService<Tickflo.Web.Services.ScheduledReportsHostedService>();
 
 builder.Services.AddDistributedMemoryCache();
@@ -228,3 +239,6 @@ app.MapControllers();
 app.MapHub<Tickflo.Web.Realtime.TicketsHub>("/hubs/tickets");
 
 app.Run();
+
+
+

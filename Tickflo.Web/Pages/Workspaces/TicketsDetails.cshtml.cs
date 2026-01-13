@@ -6,6 +6,8 @@ using System.Security.Claims;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
+using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Tickets;
 
 namespace Tickflo.Web.Pages.Workspaces;
 

@@ -1,5 +1,5 @@
 
-using Tickflo.Core.Services.Auth;
+using Tickflo.Core.Services.Authentication;
 using Xunit;
 
 namespace Tickflo.CoreTest.Services.Auth;

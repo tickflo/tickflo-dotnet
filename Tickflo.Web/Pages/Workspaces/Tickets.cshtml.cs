@@ -5,6 +5,8 @@ using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
 
+using Tickflo.Core.Services.Tickets;
+using Tickflo.Core.Services.Views;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
@@ -151,3 +153,4 @@ public class TicketsModel : WorkspacePageModel
         }
     }
 }
+

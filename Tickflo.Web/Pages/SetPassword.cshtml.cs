@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Tickflo.Core.Services.Auth;
+using Tickflo.Core.Services.Authentication;
 
 namespace Tickflo.Web.Pages;
 
@@ -87,3 +87,4 @@ public class SetPasswordInput
     [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
     public string ConfirmPassword { get; set; } = "";
 }
+

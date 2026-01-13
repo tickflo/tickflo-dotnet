@@ -5,6 +5,7 @@ using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
 
+using Tickflo.Core.Services.Common;
 namespace Tickflo.Web.Pages.Users;
 
 [Authorize]
@@ -35,3 +36,4 @@ public class DetailsModel : PageModel
         return Page();
     }
 }
+

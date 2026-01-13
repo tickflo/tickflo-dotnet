@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Tickflo.Core.Services.Auth;
+using Tickflo.Core.Services.Authentication;
 
 namespace Tickflo.Web.Pages.Account;
 
@@ -63,3 +63,4 @@ public class SetPasswordModel : PageModel
         return Redirect("/login");
     }
 }
+
