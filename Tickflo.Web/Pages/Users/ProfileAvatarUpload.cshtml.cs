@@ -6,6 +6,8 @@ using Tickflo.Core.Services;
 using System.IO;
 using System.Threading.Tasks;
 
+using Tickflo.Core.Services.Common;
+using Tickflo.Core.Services.Storage;
 namespace Tickflo.Web.Pages.Users;
 
 [Authorize]
@@ -68,3 +70,5 @@ public class ProfileAvatarUploadModel : PageModel
         return Page();
     }
 }
+
+

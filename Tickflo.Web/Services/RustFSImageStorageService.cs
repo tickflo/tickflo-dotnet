@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Tickflo.Core.Services;
 
+using Tickflo.Core.Services.Storage;
 namespace Tickflo.Web.Services;
 
 /// <summary>
@@ -194,3 +195,4 @@ public class RustFSImageStorageService : IImageStorageService
         return new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
     }
 }
+

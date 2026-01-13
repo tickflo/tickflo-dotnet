@@ -1,8 +1,9 @@
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Auth;
+using WorkspaceEntity = Tickflo.Core.Entities.Workspace;
 
-namespace Tickflo.Core.Services;
+namespace Tickflo.Core.Services.Auth;
 
 public class AuthenticationService(
     IUserRepository userRepository,
@@ -115,7 +116,7 @@ public class AuthenticationService(
             i++;
         }
 
-        var workspace = new Workspace
+        var workspace = new WorkspaceEntity
         {
             Name = workspaceName,
             Slug = slug,

@@ -1,9 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Services;
 
+using Tickflo.Core.Services.Auth;
 namespace Tickflo.Web.Pages;
 
 [AllowAnonymous]
@@ -76,4 +77,5 @@ public class LoginInput
 
     public string Password { get; set; } = "";
 }
+
 

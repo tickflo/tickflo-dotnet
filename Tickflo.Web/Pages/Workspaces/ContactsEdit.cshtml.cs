@@ -4,6 +4,8 @@ using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
 
+using Tickflo.Core.Services.Contacts;
+using Tickflo.Core.Services.Views;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]

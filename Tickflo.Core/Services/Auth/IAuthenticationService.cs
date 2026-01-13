@@ -1,6 +1,6 @@
 using Tickflo.Core.Services.Auth;
 
-namespace Tickflo.Core.Services;
+namespace Tickflo.Core.Services.Auth;
 
 public interface IAuthenticationService
 {

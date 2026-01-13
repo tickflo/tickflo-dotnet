@@ -5,6 +5,8 @@ using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
 
+using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Inventory;
 namespace Tickflo.Web.Pages.Workspaces
 {
     [Authorize]
@@ -121,3 +123,4 @@ private readonly IWorkspaceRepository _workspaces;
         }
     }
 }
+

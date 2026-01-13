@@ -8,6 +8,7 @@ using Tickflo.Core.Utils;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 
+using Tickflo.Core.Services.Views;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
@@ -102,3 +103,4 @@ public class UsersModel : WorkspacePageModel
         return RedirectToPage("/Workspaces/Users", new { slug });
     }
 }
+

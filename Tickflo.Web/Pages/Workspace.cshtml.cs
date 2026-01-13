@@ -8,6 +8,8 @@ using Tickflo.Core.Services;
 using System.Collections.Generic;
 using System.Linq;
 
+using Tickflo.Core.Services.Common;
+using Tickflo.Core.Services.Views;
 namespace Tickflo.Web.Pages;
 
 [Authorize]
@@ -305,4 +307,5 @@ public class ActivityPoint
     public int Created { get; set; }
     public int Closed { get; set; }
 }
+
 

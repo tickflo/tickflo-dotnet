@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Services;
 
 
+using Tickflo.Core.Services.Auth;
 namespace Tickflo.Web.Pages;
 
 [AllowAnonymous]
@@ -93,3 +94,4 @@ public class SignupInput
     [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
     public string ConfirmPassword { get; set; } = "";
 }
+
