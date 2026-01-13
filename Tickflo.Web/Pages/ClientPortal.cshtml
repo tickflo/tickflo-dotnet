@@ -1,0 +1,206 @@
+@page "/portal/{token}"
+@model Tickflo.Web.Pages.ClientPortalModel
+@{
+    ViewData["Title"] = $"{Model.Contact?.Name ?? "Client"} - Support Portal";
+}
+
+<div class="min-h-screen p-6">
+    <div class="max-w-6xl mx-auto space-y-6">
+        <!-- Header Card -->
+        <section class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+            <div class="card-body">
+                <div class="flex items-center gap-3 mb-4">
+                    <i class="fa fa-lock text-primary"></i>
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Client Portal</span>
+                </div>
+                <div>
+                    <h1 class="card-title text-3xl font-bold mb-1">Welcome, @Model.Contact?.Name</h1>
+                    <p class="text-sm text-slate-400">@Model.Workspace?.Name</p>
+                </div>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Main Content - Tickets List -->
+            <div class="lg:col-span-2 space-y-6">
+                <section class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+                    <div class="card-body">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="card-title flex items-center gap-2">
+                                <i class="fa fa-ticket"></i>
+                                Your Tickets
+                            </h2>
+                            <span class="badge badge-primary rounded-full">@Model.Tickets.Count</span>
+                        </div>
+
+                        @if (Model.Tickets.Any())
+                        {
+                            <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
+                                <table class="table table-sm table-zebra">
+                                    <thead class="bg-white/5">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Subject</th>
+                                            <th class="text-center">Priority</th>
+                                            <th class="text-center">Status</th>
+                                            <th class="text-right">Created</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var ticket in Model.Tickets.OrderByDescending(t => t.CreatedAt))
+                                        {
+                                            <tr class="hover">
+                                                <td class="font-mono text-sm text-slate-400">
+                                                    #@ticket.Id
+                                                </td>
+                                                <td class="font-medium">
+                                                    @ticket.Subject
+                                                </td>
+                                                <td class="text-center">
+                                                    @if (!string.IsNullOrEmpty(ticket.Priority) && Model.PriorityColorByName.ContainsKey(ticket.Priority))
+                                                    {
+                                                        <span class="badge badge-sm rounded-full" style="background-color: @Model.PriorityColorByName[ticket.Priority]20; color: @Model.PriorityColorByName[ticket.Priority]">
+                                                            @ticket.Priority
+                                                        </span>
+                                                    }
+                                                </td>
+                                                <td class="text-center">
+                                                    @if (!string.IsNullOrEmpty(ticket.Status) && Model.StatusColorByName.ContainsKey(ticket.Status))
+                                                    {
+                                                        <span class="badge badge-sm rounded-full" style="background-color: @Model.StatusColorByName[ticket.Status]20; color: @Model.StatusColorByName[ticket.Status]">
+                                                            @ticket.Status
+                                                        </span>
+                                                    }
+                                                </td>
+                                                <td class="text-right text-sm text-slate-400">
+                                                    @ticket.CreatedAt.ToString("MMM dd, yyyy")
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-12 text-slate-400">
+                                <i class="fa fa-inbox text-4xl mb-3 block opacity-50"></i>
+                                <p>No tickets yet</p>
+                            </div>
+                        }
+                    </div>
+                </section>
+            </div>
+
+            <!-- Sidebar - Create Ticket Form -->
+            <div class="lg:col-span-1">
+                <section class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100 sticky top-6">
+                    <div class="card-body">
+                        <h3 class="card-title flex items-center gap-2 mb-4">
+                            <i class="fa fa-plus"></i>
+                            Create Ticket
+                        </h3>
+
+                        <form method="post" class="space-y-4">
+                            <!-- Subject Field -->
+                            <div>
+                                <label class="label">
+                                    <span class="label-text text-slate-300 font-medium">Subject</span>
+                                    <span class="label-text-alt text-error">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="Subject"
+                                    value="@Model.Subject"
+                                    placeholder="Brief title..."
+                                    class="input input-bordered input-sm w-full bg-neutral-900/50 border-neutral-700 text-white placeholder-slate-600"
+                                    required />
+                                @if (ModelState["Subject"]?.Errors.Any() == true)
+                                {
+                                    <span class="text-error text-xs mt-1 block">
+                                        @ModelState["Subject"]?.Errors.FirstOrDefault()?.ErrorMessage
+                                    </span>
+                                }
+                            </div>
+
+                            <!-- Description Field -->
+                            <div>
+                                <label class="label">
+                                    <span class="label-text text-slate-300 font-medium">Description</span>
+                                    <span class="label-text-alt text-error">*</span>
+                                </label>
+                                <textarea
+                                    name="Description"
+                                    placeholder="Tell us more..."
+                                    rows="4"
+                                    class="textarea textarea-bordered textarea-sm w-full bg-neutral-900/50 border-neutral-700 text-white placeholder-slate-600"
+                                    required>@Model.Description</textarea>
+                                @if (ModelState["Description"]?.Errors.Any() == true)
+                                {
+                                    <span class="text-error text-xs mt-1 block">
+                                        @ModelState["Description"]?.Errors.FirstOrDefault()?.ErrorMessage
+                                    </span>
+                                }
+                            </div>
+
+                            <!-- Priority Dropdown -->
+                            <div>
+                                <label class="label">
+                                    <span class="label-text text-slate-300 font-medium">Priority</span>
+                                </label>
+                                <select
+                                    name="Priority"
+                                    class="select select-bordered select-sm w-full bg-neutral-900/50 border-neutral-700 text-white">
+                                    <option value="">Select priority...</option>
+                                    @foreach (var priority in Model.Priorities.OrderBy(p => p.SortOrder))
+                                    {
+                                        <option value="@priority.Name" selected="@(Model.Priority == priority.Name)">
+                                            @priority.Name
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- Type Dropdown -->
+                            <div>
+                                <label class="label">
+                                    <span class="label-text text-slate-300 font-medium">Type</span>
+                                </label>
+                                <select
+                                    name="TicketType"
+                                    class="select select-bordered select-sm w-full bg-neutral-900/50 border-neutral-700 text-white">
+                                    <option value="">Select type...</option>
+                                    @foreach (var type in Model.Types.OrderBy(t => t.SortOrder))
+                                    {
+                                        <option value="@type.Name" selected="@(Model.TicketType == type.Name)">
+                                            @type.Name
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <button
+                                type="submit"
+                                class="btn btn-primary btn-sm w-full rounded-full gap-2">
+                                <i class="fa fa-send"></i>
+                                Submit Ticket
+                            </button>
+                        </form>
+
+                        <!-- Info Box -->
+                        <div class="divider"></div>
+                        <div class="p-3 bg-white/5 rounded-lg text-xs text-slate-400 space-y-2">
+                            <p class="font-semibold text-slate-300 flex items-center gap-2">
+                                <i class="fa fa-info-circle"></i>
+                                Important
+                            </p>
+                            <p>This portal is restricted to your account. Only you and our support team can see your tickets.</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+</div>
+

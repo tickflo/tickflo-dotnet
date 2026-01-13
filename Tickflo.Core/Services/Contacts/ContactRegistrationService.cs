@@ -9,10 +9,12 @@ namespace Tickflo.Core.Services.Contacts;
 public class ContactRegistrationService : IContactRegistrationService
 {
     private readonly IContactRepository _contactRepo;
+    private readonly IAccessTokenService _tokenService;
 
-    public ContactRegistrationService(IContactRepository contactRepo)
+    public ContactRegistrationService(IContactRepository contactRepo, IAccessTokenService tokenService)
     {
         _contactRepo = contactRepo;
+        _tokenService = tokenService;
     }
 
     /// <summary>
@@ -43,6 +45,7 @@ public class ContactRegistrationService : IContactRegistrationService
             Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim(),
             Company = string.IsNullOrWhiteSpace(request.Company) ? null : request.Company.Trim(),
             Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
+            AccessToken = _tokenService.GenerateToken(), // Generate portal access token
             CreatedAt = DateTime.UtcNow
         };
 
