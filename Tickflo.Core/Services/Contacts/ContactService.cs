@@ -5,7 +5,10 @@ namespace Tickflo.Core.Services.Contacts;
 
 /// <summary>
 /// Service for managing contacts.
+/// DEPRECATED: Use ContactRegistrationService for behavior-focused operations instead.
+/// This service is a thin wrapper around the repository and will be removed in a future version.
 /// </summary>
+[Obsolete("Use ContactRegistrationService instead. This table-oriented service will be removed in a future version.")]
 public class ContactService : IContactService
 {
     private readonly IContactRepository _contactRepo;

@@ -4,7 +4,10 @@ namespace Tickflo.Core.Services.Locations;
 
 /// <summary>
 /// Service for managing locations.
+/// DEPRECATED: Use ILocationSetupService for behavior-focused operations instead.
+/// This service is a thin wrapper around the repository and will be removed in a future version.
 /// </summary>
+[Obsolete("Use ILocationSetupService instead. This table-oriented service will be removed in a future version.")]
 public interface ILocationService
 {
     /// <summary>

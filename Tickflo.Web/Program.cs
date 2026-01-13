@@ -18,6 +18,7 @@ using Tickflo.Core.Services.Tickets;
 using Tickflo.Core.Services.Users;
 using Tickflo.Core.Services.Workspace;
 using Tickflo.Core.Services.Reporting;
+using Tickflo.Core.Services.Export;
 using Tickflo.Core.Services.Views;
 using AuthenticationService = Tickflo.Core.Services.Authentication.AuthenticationService;
 using IAuthenticationService = Tickflo.Core.Services.Authentication.IAuthenticationService;
@@ -118,9 +119,22 @@ builder.Services.AddScoped<IWorkspaceTeamsEditViewService, WorkspaceTeamsEditVie
 // Phase 2 & 3: Domain entity services
 builder.Services.AddScoped<IWorkspaceSettingsService, WorkspaceSettingsService>();
 builder.Services.AddScoped<IUserInvitationService, UserInvitationService>();
-builder.Services.AddScoped<IContactService, ContactService>();
-builder.Services.AddScoped<ILocationService, LocationService>();
-builder.Services.AddScoped<IInventoryService, InventoryService>();
+
+// Behavior-focused services - organized by business workflow (Phase 3-5)
+builder.Services.AddScoped<IContactRegistrationService, ContactRegistrationService>();
+builder.Services.AddScoped<IInventoryAllocationService, InventoryAllocationService>();
+builder.Services.AddScoped<IInventoryAdjustmentService, InventoryAdjustmentService>();
+builder.Services.AddScoped<ILocationSetupService, LocationSetupService>();
+builder.Services.AddScoped<ITicketAssignmentService, TicketAssignmentService>();
+builder.Services.AddScoped<ITicketClosingService, TicketClosingService>();
+builder.Services.AddScoped<ITicketCreationService, TicketCreationService>();
+builder.Services.AddScoped<ITicketUpdateService, TicketUpdateService>();
+builder.Services.AddScoped<ITicketSearchService, TicketSearchService>();
+builder.Services.AddScoped<IUserOnboardingService, UserOnboardingService>();
+builder.Services.AddScoped<IWorkspaceCreationService, WorkspaceCreationService>();
+builder.Services.AddScoped<INotificationTriggerService, NotificationTriggerService>();
+builder.Services.AddScoped<IValidationService, ValidationService>();
+builder.Services.AddScoped<IExportService, ExportService>();
 builder.Services.AddScoped<ITeamManagementService, TeamManagementService>();
 builder.Services.AddScoped<IReportQueryService, ReportQueryService>();
 builder.Services.AddScoped<IReportRunService, ReportRunService>();

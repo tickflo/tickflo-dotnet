@@ -4,26 +4,30 @@ using System.Threading.Tasks;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
-
 using Tickflo.Core.Services.Views;
 using Tickflo.Core.Services.Inventory;
+
 namespace Tickflo.Web.Pages.Workspaces
 {
     [Authorize]
     public class InventoryEditModel : WorkspacePageModel
     {
-private readonly IWorkspaceRepository _workspaces;
-    private readonly IWorkspaceInventoryEditViewService _viewService;
-    private readonly IInventoryRepository _inventory;
-    private readonly IInventoryService _inventoryService;
+        private readonly IWorkspaceRepository _workspaces;
+        private readonly IWorkspaceInventoryEditViewService _viewService;
+        private readonly IInventoryRepository _inventory;
+        private readonly IInventoryAllocationService _inventoryAllocationService;
 
-    public InventoryEditModel(IWorkspaceRepository workspaces, IWorkspaceInventoryEditViewService viewService, IInventoryRepository inventory, IInventoryService inventoryService)
-    {
-        _workspaces = workspaces;
-        _viewService = viewService;
-        _inventory = inventory;
-        _inventoryService = inventoryService;
-    }
+        public InventoryEditModel(
+            IWorkspaceRepository workspaces, 
+            IWorkspaceInventoryEditViewService viewService, 
+            IInventoryRepository inventory, 
+            IInventoryAllocationService inventoryAllocationService)
+        {
+            _workspaces = workspaces;
+            _viewService = viewService;
+            _inventory = inventory;
+            _inventoryAllocationService = inventoryAllocationService;
+        }
 
     public bool CanViewInventory { get; private set; }
     public bool CanEditInventory { get; private set; }
@@ -80,29 +84,34 @@ private readonly IWorkspaceRepository _workspaces;
             {
                 if (id == 0)
                 {
-                    var created = await _inventoryService.CreateInventoryAsync(workspaceId, new CreateInventoryRequest
+                    // Use behavior-focused allocation service for registration
+                    var created = await _inventoryAllocationService.RegisterInventoryItemAsync(workspaceId, new InventoryRegistrationRequest
                     {
                         Sku = Item.Sku?.Trim() ?? string.Empty,
                         Name = Item.Name?.Trim() ?? string.Empty,
                         Description = Item.Description,
-                        Quantity = Item.Quantity,
-                        UnitPrice = Item.Cost,
+                        InitialQuantity = Item.Quantity,
+                        UnitCost = Item.Cost,
                         LocationId = Item.LocationId
-                    });
+                    }, uid);
                     created.Status = Item.Status;
                     await _inventory.UpdateAsync(created);
                 }
                 else
                 {
-                    var updated = await _inventoryService.UpdateInventoryAsync(workspaceId, id, new UpdateInventoryRequest
+                    // Use behavior-focused service for updates
+                    var updated = await _inventoryAllocationService.UpdateInventoryDetailsAsync(workspaceId, id, new InventoryDetailsUpdateRequest
                     {
                         Sku = Item.Sku?.Trim() ?? string.Empty,
                         Name = Item.Name?.Trim() ?? string.Empty,
                         Description = Item.Description,
-                        Quantity = Item.Quantity,
-                        UnitPrice = Item.Cost,
-                        LocationId = Item.LocationId
-                    });
+                        UnitCost = Item.Cost
+                    }, uid);
+                    
+                    // Handle quantity and location separately (they require different business rules)
+                    // For now, directly update via repository - ideally use InventoryAdjustmentService for quantity
+                    updated.Quantity = Item.Quantity;
+                    updated.LocationId = Item.LocationId;
                     updated.Status = Item.Status;
                     await _inventory.UpdateAsync(updated);
                 }

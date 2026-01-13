@@ -6,7 +6,10 @@ namespace Tickflo.Core.Services.Inventory;
 
 /// <summary>
 /// Service for managing inventory items.
+/// DEPRECATED: Use InventoryAllocationService and InventoryAdjustmentService for behavior-focused operations instead.
+/// This service is a thin wrapper around the repository and will be removed in a future version.
 /// </summary>
+[Obsolete("Use InventoryAllocationService and InventoryAdjustmentService instead. This table-oriented service will be removed in a future version.")]
 public class InventoryService : IInventoryService
 {
     private readonly IInventoryRepository _inventoryRepo;
