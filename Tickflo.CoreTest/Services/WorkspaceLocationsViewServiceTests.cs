@@ -1,7 +1,6 @@
-using Moq;
+﻿using Moq;
 using Xunit;
 using Tickflo.Core.Data;
-using Tickflo.Core.Services;
 
 namespace Tickflo.CoreTest.Services;
 
@@ -69,3 +68,4 @@ public class WorkspaceLocationsViewServiceTests
         Assert.Empty(result.Locations);
     }
 }
+

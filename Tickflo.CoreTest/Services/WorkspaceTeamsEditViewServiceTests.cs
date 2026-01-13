@@ -1,8 +1,7 @@
-using Moq;
+﻿using Moq;
 using Xunit;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
 
 namespace Tickflo.CoreTest.Services;
 
@@ -80,3 +79,4 @@ public class WorkspaceTeamsEditViewServiceTests
         Assert.NotNull(result.WorkspaceUsers);
     }
 }
+

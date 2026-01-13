@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
-
 using Tickflo.Core.Services.Views;
 using Tickflo.Core.Services.Locations;
+
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
@@ -14,7 +14,7 @@ public class LocationsEditModel : WorkspacePageModel
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly ILocationRepository _locationRepo;
     private readonly IWorkspaceLocationsEditViewService _viewService;
-    private readonly ILocationService _locationService;
+    private readonly ILocationSetupService _locationSetupService;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
@@ -33,12 +33,16 @@ public class LocationsEditModel : WorkspacePageModel
     public List<int> SelectedContactIds { get; set; } = new();
     public List<Contact> ContactOptions { get; private set; } = new();
 
-    public LocationsEditModel(IWorkspaceRepository workspaceRepo, ILocationRepository locationRepo, IWorkspaceLocationsEditViewService viewService, ILocationService locationService)
+    public LocationsEditModel(
+        IWorkspaceRepository workspaceRepo, 
+        ILocationRepository locationRepo, 
+        IWorkspaceLocationsEditViewService viewService, 
+        ILocationSetupService locationSetupService)
     {
         _workspaceRepo = workspaceRepo;
         _locationRepo = locationRepo;
         _viewService = viewService;
-        _locationService = locationService;
+        _locationSetupService = locationSetupService;
     }
     public bool CanViewLocations { get; private set; }
     public bool CanEditLocations { get; private set; }
@@ -110,13 +114,15 @@ public class LocationsEditModel : WorkspacePageModel
         {
             if (LocationId == 0)
             {
-                var created = await _locationService.CreateLocationAsync(workspaceId, new CreateLocationRequest
+                // Use behavior-focused service for location creation
+                var created = await _locationSetupService.CreateLocationAsync(workspaceId, new LocationCreationRequest
                 {
                     Name = nameTrim,
-                    Address = addressTrim,
-                    DefaultAssigneeUserId = DefaultAssigneeUserId
-                });
-                // Persist Active flag if different from default
+                    Address = addressTrim
+                }, uid);
+                
+                // Set additional fields not in core service
+                created.DefaultAssigneeUserId = DefaultAssigneeUserId;
                 created.Active = Active;
                 await _locationRepo.UpdateAsync(created);
                 effectiveLocationId = created.Id;
@@ -124,13 +130,15 @@ public class LocationsEditModel : WorkspacePageModel
             }
             else
             {
-                var updated = await _locationService.UpdateLocationAsync(workspaceId, LocationId, new UpdateLocationRequest
+                // Use behavior-focused service for location updates
+                var updated = await _locationSetupService.UpdateLocationDetailsAsync(workspaceId, LocationId, new LocationUpdateRequest
                 {
                     Name = nameTrim,
-                    Address = addressTrim,
-                    DefaultAssigneeUserId = DefaultAssigneeUserId
-                });
-                // Persist Active flag
+                    Address = addressTrim
+                }, uid);
+                
+                // Set additional fields
+                updated.DefaultAssigneeUserId = DefaultAssigneeUserId;
                 updated.Active = Active;
                 await _locationRepo.UpdateAsync(updated);
                 effectiveLocationId = updated.Id;

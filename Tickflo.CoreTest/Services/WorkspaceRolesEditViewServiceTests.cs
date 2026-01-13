@@ -1,7 +1,6 @@
-using Moq;
+﻿using Moq;
 using Xunit;
 using Tickflo.Core.Data;
-using Tickflo.Core.Services;
 
 namespace Tickflo.CoreTest.Services;
 
@@ -65,3 +64,4 @@ public class WorkspaceRolesEditViewServiceTests
         Assert.Empty(result.ExistingPermissions);
     }
 }
+

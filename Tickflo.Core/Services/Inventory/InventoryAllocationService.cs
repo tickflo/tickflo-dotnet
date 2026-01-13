@@ -1,0 +1,195 @@
+using Tickflo.Core.Data;
+using Tickflo.Core.Entities;
+using InventoryEntity = Tickflo.Core.Entities.Inventory;
+
+namespace Tickflo.Core.Services.Inventory;
+
+/// <summary>
+/// Handles the business workflow of allocating inventory to locations and tracking inventory items.
+/// </summary>
+public class InventoryAllocationService : IInventoryAllocationService
+{
+    private readonly IInventoryRepository _inventoryRepo;
+    private readonly ILocationRepository _locationRepo;
+
+    public InventoryAllocationService(
+        IInventoryRepository inventoryRepo,
+        ILocationRepository locationRepo)
+    {
+        _inventoryRepo = inventoryRepo;
+        _locationRepo = locationRepo;
+    }
+
+    /// <summary>
+    /// Registers a new inventory item in the system.
+    /// </summary>
+    public async Task<InventoryEntity> RegisterInventoryItemAsync(
+        int workspaceId, 
+        InventoryRegistrationRequest request, 
+        int createdByUserId)
+    {
+        // Business rule: SKU must be unique and valid
+        if (string.IsNullOrWhiteSpace(request.Sku))
+            throw new InvalidOperationException("SKU is required");
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new InvalidOperationException("Item name is required");
+
+        var sku = request.Sku.Trim();
+
+        // Enforce uniqueness
+        var existingItems = await _inventoryRepo.ListAsync(workspaceId);
+        if (existingItems.Any(i => string.Equals(i.Sku, sku, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException($"SKU '{sku}' already exists in this workspace");
+
+        // Business rule: Quantity cannot be negative
+        if (request.InitialQuantity < 0)
+            throw new InvalidOperationException("Initial quantity cannot be negative");
+
+        // Validate location if specified
+        if (request.LocationId.HasValue)
+        {
+            var location = await _locationRepo.FindAsync(workspaceId, request.LocationId.Value);
+            if (location == null)
+                throw new InvalidOperationException("Specified location does not exist");
+            
+            if (!location.Active)
+                throw new InvalidOperationException("Cannot allocate inventory to inactive location");
+        }
+
+        var inventory = new InventoryEntity
+        {
+            WorkspaceId = workspaceId,
+            Sku = sku,
+            Name = request.Name.Trim(),
+            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+            Quantity = request.InitialQuantity,
+            Cost = request.UnitCost ?? 0,
+            LocationId = request.LocationId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _inventoryRepo.CreateAsync(inventory);
+
+        return inventory;
+    }
+
+    /// <summary>
+    /// Allocates inventory to a specific location.
+    /// </summary>
+    public async Task<InventoryEntity> AllocateToLocationAsync(
+        int workspaceId, 
+        int inventoryId, 
+        int locationId, 
+        int allocatedByUserId)
+    {
+        var inventory = await _inventoryRepo.FindAsync(workspaceId, inventoryId);
+        if (inventory == null)
+            throw new InvalidOperationException("Inventory item not found");
+
+        // Validate location
+        var location = await _locationRepo.FindAsync(workspaceId, locationId);
+        if (location == null)
+            throw new InvalidOperationException("Location not found");
+
+        if (!location.Active)
+            throw new InvalidOperationException("Cannot allocate to inactive location");
+
+        // Business rule: Track allocation changes
+        var previousLocationId = inventory.LocationId;
+
+        inventory.LocationId = locationId;
+        inventory.UpdatedAt = DateTime.UtcNow;
+
+        await _inventoryRepo.UpdateAsync(inventory);
+
+        // Could add: Log allocation change, notify location manager, etc.
+
+        return inventory;
+    }
+
+    /// <summary>
+    /// Updates inventory item details (not quantity - use InventoryAdjustmentService for that).
+    /// </summary>
+    public async Task<InventoryEntity> UpdateInventoryDetailsAsync(
+        int workspaceId, 
+        int inventoryId, 
+        InventoryDetailsUpdateRequest request, 
+        int updatedByUserId)
+    {
+        var inventory = await _inventoryRepo.FindAsync(workspaceId, inventoryId);
+        if (inventory == null)
+            throw new InvalidOperationException("Inventory item not found");
+
+        // Update SKU if changed
+        if (!string.IsNullOrWhiteSpace(request.Sku))
+        {
+            var sku = request.Sku.Trim();
+            
+            if (!string.Equals(inventory.Sku, sku, StringComparison.OrdinalIgnoreCase))
+            {
+                // Check uniqueness
+                var existingItems = await _inventoryRepo.ListAsync(workspaceId);
+                if (existingItems.Any(i => i.Id != inventoryId && 
+                    string.Equals(i.Sku, sku, StringComparison.OrdinalIgnoreCase)))
+                    throw new InvalidOperationException($"SKU '{sku}' already exists in this workspace");
+                
+                inventory.Sku = sku;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Name))
+            inventory.Name = request.Name.Trim();
+
+        if (request.Description != null)
+            inventory.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+
+        if (request.UnitCost.HasValue)
+            inventory.Cost = request.UnitCost.Value;
+
+        inventory.UpdatedAt = DateTime.UtcNow;
+
+        await _inventoryRepo.UpdateAsync(inventory);
+
+        return inventory;
+    }
+
+    /// <summary>
+    /// Removes an inventory item from the system.
+    /// </summary>
+    public async Task RemoveInventoryItemAsync(int workspaceId, int inventoryId)
+    {
+        var inventory = await _inventoryRepo.FindAsync(workspaceId, inventoryId);
+        if (inventory == null)
+            throw new InvalidOperationException("Inventory item not found");
+
+        // Business rule: Could check if item is referenced by tickets
+        // Business rule: Could require zero quantity before deletion
+        
+        await _inventoryRepo.DeleteAsync(workspaceId, inventoryId);
+    }
+}
+
+/// <summary>
+/// Request to register a new inventory item.
+/// </summary>
+public class InventoryRegistrationRequest
+{
+    public string Sku { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public int InitialQuantity { get; set; }
+    public decimal? UnitCost { get; set; }
+    public int? LocationId { get; set; }
+}
+
+/// <summary>
+/// Request to update inventory item details.
+/// </summary>
+public class InventoryDetailsUpdateRequest
+{
+    public string? Sku { get; set; }
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public decimal? UnitCost { get; set; }
+}

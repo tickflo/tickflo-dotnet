@@ -1,7 +1,6 @@
-using Moq;
+﻿using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
 using Xunit;
 
 namespace Tickflo.CoreTest.Services;
@@ -36,3 +35,4 @@ public class ReportCommandServiceTests
         repo.Verify(r => r.UpdateAsync(input), Times.Once);
     }
 }
+

@@ -1,7 +1,6 @@
-using System.Text;
+﻿using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
 using Xunit;
 
 namespace Tickflo.CoreTest.Services;
@@ -56,3 +55,4 @@ public class ReportingServiceTests
         return new Tickflo.Core.Data.TickfloDbContext(options);
     }
 }
+

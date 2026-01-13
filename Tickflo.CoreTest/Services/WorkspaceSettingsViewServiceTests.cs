@@ -1,6 +1,5 @@
-using Moq;
+﻿using Moq;
 using Xunit;
-using Tickflo.Core.Services;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
@@ -71,3 +70,4 @@ public class WorkspaceSettingsViewServiceTests
         settingsService.Verify(x => x.EnsureDefaultsExistAsync(10), Times.Once);
     }
 }
+

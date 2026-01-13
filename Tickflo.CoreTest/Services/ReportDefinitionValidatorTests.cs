@@ -1,5 +1,4 @@
-using Tickflo.Core.Services;
-using Xunit;
+﻿using Xunit;
 
 namespace Tickflo.CoreTest.Services;
 
@@ -56,3 +55,4 @@ public class ReportDefinitionValidatorTests
         Assert.Contains("inventory", sources.Keys);
     }
 }
+

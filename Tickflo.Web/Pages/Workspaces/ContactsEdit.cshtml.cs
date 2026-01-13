@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
-
 using Tickflo.Core.Services.Contacts;
 using Tickflo.Core.Services.Views;
+
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
@@ -14,7 +14,7 @@ public class ContactsEditModel : WorkspacePageModel
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IWorkspaceContactsEditViewService _viewService;
     private readonly IContactRepository _contactRepo;
-    private readonly IContactService _contactService;
+    private readonly IContactRegistrationService _contactRegistrationService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -33,12 +33,16 @@ public class ContactsEditModel : WorkspacePageModel
     [BindProperty] public string? PreferredChannel { get; set; }
     [BindProperty] public string? Priority { get; set; }
 
-    public ContactsEditModel(IWorkspaceRepository workspaceRepo, IWorkspaceContactsEditViewService viewService, IContactRepository contactRepo, IContactService contactService)
+    public ContactsEditModel(
+        IWorkspaceRepository workspaceRepo, 
+        IWorkspaceContactsEditViewService viewService, 
+        IContactRepository contactRepo, 
+        IContactRegistrationService contactRegistrationService)
     {
         _workspaceRepo = workspaceRepo;
         _viewService = viewService;
         _contactRepo = contactRepo;
-        _contactService = contactService;
+        _contactRegistrationService = contactRegistrationService;
     }
 
     public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
@@ -124,38 +128,44 @@ public class ContactsEditModel : WorkspacePageModel
         {
             if (id == 0)
             {
-                var created = await _contactService.CreateContactAsync(workspaceId, new CreateContactRequest
+                // Use behavior-focused service for registration
+                var created = await _contactRegistrationService.RegisterContactAsync(workspaceId, new ContactRegistrationRequest
                 {
                     Name = nameTrim,
                     Email = string.IsNullOrEmpty(emailTrim) ? null : emailTrim,
                     Phone = phoneTrim,
                     Company = companyTrim,
                     Notes = notesTrim
-                });
-                // Set additional fields not covered by service
+                }, uid);
+                
+                // Set additional fields not covered by core registration
                 created.Title = titleTrim;
                 created.Tags = tagsTrim;
                 created.PreferredChannel = channelTrim;
                 created.Priority = priorityTrim;
                 await _contactRepo.UpdateAsync(created);
+                
                 SetSuccessMessage($"Contact '{created.Name}' created.");
             }
             else
             {
-                var updated = await _contactService.UpdateContactAsync(workspaceId, id, new UpdateContactRequest
+                // Use behavior-focused service for updates
+                var updated = await _contactRegistrationService.UpdateContactInformationAsync(workspaceId, id, new ContactUpdateRequest
                 {
                     Name = nameTrim,
                     Email = string.IsNullOrEmpty(emailTrim) ? null : emailTrim,
                     Phone = phoneTrim,
                     Company = companyTrim,
                     Notes = notesTrim
-                });
-                // Update additional fields not covered by service
+                }, uid);
+                
+                // Update additional fields not covered by core update
                 updated.Title = titleTrim;
                 updated.Tags = tagsTrim;
                 updated.PreferredChannel = channelTrim;
                 updated.Priority = priorityTrim;
                 await _contactRepo.UpdateAsync(updated);
+                
                 SetSuccessMessage($"Contact '{updated.Name}' updated.");
             }
         }

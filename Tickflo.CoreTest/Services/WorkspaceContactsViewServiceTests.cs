@@ -1,8 +1,7 @@
-using Moq;
+﻿using Moq;
 using Xunit;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
 
 namespace Tickflo.CoreTest.Services;
 
@@ -118,3 +117,4 @@ public class WorkspaceContactsViewServiceTests
         Assert.Equal("neutral", result.PriorityColorByName["Minor"]);
     }
 }
+
