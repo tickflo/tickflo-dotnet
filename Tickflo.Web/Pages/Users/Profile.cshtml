@@ -2,14 +2,18 @@
 @model Tickflo.Web.Pages.Users.ProfileModel
 @{
     ViewData["Title"] = "Profile";
+    var initialChar = char.ToUpperInvariant((Model.UserName ?? Model.Email ?? "?").FirstOrDefault());
 }
 <div class="max-w-4xl mx-auto p-8">
     <h1 class="text-2xl font-bold mb-4">User Profile</h1>
     <form method="post" class="flex flex-col gap-6">
         <div class="flex items-center gap-6">
-            <div class="avatar">
-                <div class="w-24 rounded-full ring ring-primary ring-offset-2 ring-offset-base-100">
-                    <img src="/users/@Model.UserId/avatar" alt="Avatar" onerror="this.parentElement.parentElement.style.display='none';" />
+            <div class="flex flex-col items-center">
+                <div class="avatar placeholder">
+                    <div class="relative w-24 h-24 rounded-full ring ring-primary ring-offset-2 ring-offset-base-100 flex items-center justify-center bg-neutral-800 text-primary font-bold text-xl">
+                        <img src="/users/@Model.UserId/avatar" alt="Avatar" class="absolute inset-0 w-full h-full rounded-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');" />
+                        <span class="hidden">@initialChar</span>
+                    </div>
                 </div>
                 <a href="/profile/avatar" class="btn btn-sm btn-soft mt-4">Change Avatar</a>
             </div>
