@@ -1,5 +1,64 @@
+@inject Tickflo.Core.Data.INotificationRepository NotificationRepository
+@inject Tickflo.Core.Services.Common.ICurrentUserService CurrentUserService
+
 @{
     var theme = Context.Request.Cookies["theme"] ?? "dark";
+    var path = Context.Request.Path.Value ?? "";
+    var isAuthenticated = Context.User?.Identity?.IsAuthenticated == true;
+
+    const string lastWorkspaceCookieName = "last_workspace_slug";
+    var lastWorkspaceSlug = Context.Request.Cookies[lastWorkspaceCookieName];
+    string? currentWorkspaceSlug = null;
+
+    string logoHref = "/";
+    int unreadNotificationCount = 0;
+
+    if (isAuthenticated)
+    {
+        // Try to extract workspace slug from URL pattern: /workspaces/{slug}/...
+        if (path.Contains("/workspaces/"))
+        {
+            var parts = path.Split(new[] { "/workspaces/" }, StringSplitOptions.None);
+            if (parts.Length > 1)
+            {
+                var slugPart = parts[1];
+                var slug = slugPart.Split('/')[0]; // Get the slug before the next slash
+                if (!string.IsNullOrEmpty(slug))
+                {
+                    currentWorkspaceSlug = slug;
+                }
+            }
+        }
+
+        // Prefer the slug from the current path, then fall back to the remembered workspace
+        var targetSlug = !string.IsNullOrEmpty(currentWorkspaceSlug)
+            ? currentWorkspaceSlug
+            : (!string.IsNullOrEmpty(lastWorkspaceSlug) ? lastWorkspaceSlug : null);
+
+        logoHref = !string.IsNullOrEmpty(targetSlug) ? $"/workspaces/{targetSlug}" : "/workspaces";
+
+        // Refresh the last-workspace cookie whenever we are on a workspace route
+        if (!string.IsNullOrEmpty(currentWorkspaceSlug))
+        {
+            var cookieOptions = new Microsoft.AspNetCore.Http.CookieOptions
+            {
+                Path = "/",
+                HttpOnly = true,
+                Secure = Context.Request.IsHttps,
+                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddDays(30),
+                IsEssential = true
+            };
+
+            Context.Response.Cookies.Append(lastWorkspaceCookieName, currentWorkspaceSlug, cookieOptions);
+        }
+
+        // Get unread notification count
+        if (CurrentUserService.TryGetUserId(User, out var userId))
+        {
+            unreadNotificationCount = await NotificationRepository.CountUnreadForUserAsync(userId);
+        }
+    }
 }
 
 <!DOCTYPE html>
@@ -22,7 +81,7 @@
         <header class="navbar glass-panel shadow-xl rounded-3xl sticky top-4 max-w-6xl mx-auto px-4 md:px-6">
             <div class="w-full flex items-center gap-4">
                 <div class="flex-1">
-                    <a href="/" class="flex items-center gap-3">
+                    <a href="@logoHref" class="flex items-center gap-3">
                         <img src="~/img/logo.png" alt="Tickflo" class="h-8" />
                     </a>
                 </div>
@@ -34,7 +93,7 @@
         <header class="navbar glass-panel shadow-xl rounded-3xl sticky top-4 max-w-7xl mx-auto px-4 md:px-6">
             <div class="w-full flex items-center gap-4">
                 <div class="flex-1 flex items-center gap-3">
-                    <a href="/" class="flex items-center gap-3">
+                    <a href="@logoHref" class="flex items-center gap-3">
                         <img src="~/img/logo.png" alt="Tickflo" class="h-8" />
                     </a>
                 </div>
@@ -45,14 +104,11 @@
                     </a>
                     <a href="/notifications" class="btn btn-soft btn-sm rounded-full gap-2 relative">
                         <i class="fa fa-bell"></i>
-                        <span class="badge badge-xs badge-primary rounded-full absolute -top-1 -right-1">•</span>
+                        @if (unreadNotificationCount > 0)
+                        {
+                            <span class="badge badge-xs badge-primary rounded-full absolute -top-1 -right-1">@unreadNotificationCount</span>
+                        }
                     </a>
-                    <label class="btn btn-soft btn-sm rounded-full gap-2">
-                        <input type="checkbox" class="toggle theme-controller" value="dark"
-                            checked="@(theme == "dark" ? "checked" : null)"
-                            onchange="setThemeCookie(this.checked ? 'dark' : 'light')" />
-                        <span class="text-sm font-medium">@(theme == "dark" ? "Dark" : "Light")</span>
-                    </label>
                     @await Html.PartialAsync("_UserMenu")
                 </div>
             </div>

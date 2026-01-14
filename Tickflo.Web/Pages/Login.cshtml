@@ -4,23 +4,24 @@
     ViewData["Title"] = "Login";
 }
 
-<div class="flex min-h-screen flex-col items-center bg-base-200 pt-4">
-    <div class="card w-full max-w-sm flex-shrink-0 bg-base-100 shadow-2xl rounded-3xl">
+<div class="flex min-h-[calc(100vh-6rem)] flex-col items-center justify-center">
+    <div class="card w-full max-w-md bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl border border-white/5 text-slate-100">
         <div class="card-body">
-            <h2 class="card-title">Login</h2>
+            <h2 class="card-title text-2xl font-bold mb-2">Login</h2>
+            <p class="text-sm text-slate-400 mb-6">Sign in to your account to continue</p>
             <form method="post" novalidate>
                 <fieldset class="fieldset">
                     <label class="label" for="email">
-                        <span class="label-text">Email</span>
+                        <span class="label-text text-slate-300">Email</span>
                     </label>
-                    <input id="email" asp-for="Input.Email" type="email" class="input validator" placeholder="Email" value="" />
+                    <input id="email" asp-for="Input.Email" type="email" class="input validator bg-neutral-800/50 border-white/10 text-slate-100 focus:border-primary h-12 w-full" placeholder="Email" value="" />
                     <span asp-validation-for="Input.Email" class="validator-hint"></span>
                     <label class="label" for="password">
-                        <span class="label-text">Password</span>
+                        <span class="label-text text-slate-300">Password</span>
                     </label>
-                    <input id="password" asp-for="Input.Password" type="password" class="input"
+                    <input id="password" asp-for="Input.Password" type="password" class="input bg-neutral-800/50 border-white/10 text-slate-100 focus:border-primary h-12 w-full"
                         placeholder="Password" value=""/>
-                    <div>
+                    <div class="mt-2">
                         <a class="link link-primary link-hover text-sm" href="#forgot-password">
                             Forgot password?
                         </a>
@@ -29,13 +30,13 @@
                     {
                         @await Html.PartialAsync("_ErrorAlert", Model.ErrorMessage)
                     }
-                    <button type="submit" class="btn btn-primary mt-4">
+                    <button type="submit" class="btn btn-primary mt-6 w-full rounded-full h-12">
                         Login
                     </button>
-                    <div class="text-center">
+                    <div class="text-center mt-4 text-slate-400">
                         Need an account?
-                        <a href="/signup" class="link link-hover text-xs">
-                            Signup
+                        <a href="/signup" class="link link-primary link-hover text-sm ml-1">
+                            Sign up
                         </a>
                     </div>
                 </fieldset>

@@ -976,6 +976,40 @@
                 {
                   var actor = Model.Members.FirstOrDefault(m => m.Id == h.CreatedByUserId);
                   var actorName = actor != null ? (string.IsNullOrWhiteSpace(actor.Name) ? actor.Email : actor.Name) : $"User #{h.CreatedByUserId}";
+                  var actionDescription = Tickflo.Web.Utils.TicketHistoryFormatter.FormatActionDescription(h.Action, h.Field, h.Note);
+                  var showValueChange = Tickflo.Web.Utils.TicketHistoryFormatter.ShouldShowValueChange(h.Action);
+                  
+                  // Resolve user-friendly values
+                  var oldValueDisplay = h.OldValue;
+                  var newValueDisplay = h.NewValue;
+                  
+                  if (h.Field == "AssignedUserId")
+                  {
+                    if (int.TryParse(h.OldValue, out var oldUserId))
+                    {
+                      var oldUser = Model.Members.FirstOrDefault(m => m.Id == oldUserId);
+                      oldValueDisplay = oldUser != null ? (string.IsNullOrWhiteSpace(oldUser.Name) ? oldUser.Email : oldUser.Name) : h.OldValue;
+                    }
+                    if (int.TryParse(h.NewValue, out var newUserId))
+                    {
+                      var newUser = Model.Members.FirstOrDefault(m => m.Id == newUserId);
+                      newValueDisplay = newUser != null ? (string.IsNullOrWhiteSpace(newUser.Name) ? newUser.Email : newUser.Name) : h.NewValue;
+                    }
+                  }
+                  else if (h.Field == "ContactId")
+                  {
+                    if (int.TryParse(h.OldValue, out var oldContactId))
+                    {
+                      var oldContact = Model.Contacts.FirstOrDefault(c => c.Id == oldContactId);
+                      oldValueDisplay = oldContact?.Name ?? h.OldValue;
+                    }
+                    if (int.TryParse(h.NewValue, out var newContactId))
+                    {
+                      var newContact = Model.Contacts.FirstOrDefault(c => c.Id == newContactId);
+                      newValueDisplay = newContact?.Name ?? h.NewValue;
+                    }
+                  }
+                  
                   <div class="flex items-start gap-3 p-3 rounded-lg bg-neutral-900/30 hover:bg-neutral-900/50 transition-colors">
                     <div class="flex-shrink-0">
                       <div class="avatar" id="avatar-history-@h.Id" style="display:none;">
@@ -993,22 +1027,71 @@
                       <div class="text-sm text-white/80">
                         @if ((h.Action ?? string.Empty) == "created")
                         {
-                          <span><i class="fa fa-plus-circle text-success mr-1"></i>Created the ticket</span>
+                          <span><i class="fa fa-plus-circle text-success mr-1"></i>@actionDescription</span>
                         }
-                        else if ((h.Action ?? string.Empty) == "field_changed")
+                        else if ((h.Action ?? string.Empty) == "assigned")
+                        {
+                          <span><i class="fa fa-user-plus text-info mr-1"></i>@actionDescription</span>
+                        }
+                        else if ((h.Action ?? string.Empty) == "team_assigned")
+                        {
+                          <span><i class="fa fa-users text-info mr-1"></i>@actionDescription</span>
+                        }
+                        else if ((h.Action ?? string.Empty) == "unassigned")
+                        {
+                          <span><i class="fa fa-user-minus text-warning mr-1"></i>@actionDescription</span>
+                        }
+                        else if ((h.Action ?? string.Empty) == "closed")
+                        {
+                          <span><i class="fa fa-check-circle text-success mr-1"></i>@actionDescription</span>
+                        }
+                        else if ((h.Action ?? string.Empty) == "reopened")
+                        {
+                          <span><i class="fa fa-undo text-info mr-1"></i>@actionDescription</span>
+                        }
+                        else if ((h.Action ?? string.Empty) == "resolved")
+                        {
+                          <span><i class="fa fa-check-double text-success mr-1"></i>@actionDescription</span>
+                        }
+                        else if ((h.Action ?? string.Empty) == "cancelled")
+                        {
+                          <span><i class="fa fa-times-circle text-error mr-1"></i>@actionDescription</span>
+                        }
+                        else if ((h.Action ?? string.Empty) == "reassignment_note")
                         {
                           <div>
-                            <i class="fa fa-edit text-info mr-1"></i>Changed <span class="font-medium text-white">@h.Field</span>
-                            <div class="mt-1 text-xs">
-                              <span class="text-white/50">From:</span> <span class="badge badge-ghost badge-xs">@((h.OldValue ?? "(empty)"))</span>
-                              <i class="fa fa-arrow-right mx-1 text-white/30"></i>
-                              <span class="text-white/50">To:</span> <span class="badge badge-ghost badge-xs">@((h.NewValue ?? "(empty)"))</span>
-                            </div>
+                            <i class="fa fa-comment-dots text-info mr-1"></i>Added a note
+                            @if (!string.IsNullOrWhiteSpace(h.Note))
+                            {
+                              <div class="mt-1 pl-4 border-l-2 border-white/20 text-xs text-white/70 italic">
+                                "@h.Note"
+                              </div>
+                            }
+                          </div>
+                        }
+                        else if (showValueChange)
+                        {
+                          <div>
+                            <i class="fa fa-edit text-info mr-1"></i>@actionDescription
+                            @if (!string.IsNullOrWhiteSpace(oldValueDisplay) || !string.IsNullOrWhiteSpace(newValueDisplay))
+                            {
+                              <div class="mt-1 text-xs flex items-center gap-2 flex-wrap">
+                                <span class="inline-flex items-center gap-1">
+                                  <span class="text-white/50">from</span>
+                                  <span class="px-2 py-0.5 bg-neutral-800/50 rounded text-white/70">@Tickflo.Web.Utils.TicketHistoryFormatter.FormatValue(oldValueDisplay)</span>
+                                </span>
+                                <i class="fa fa-arrow-right text-white/30"></i>
+                                <span class="inline-flex items-center gap-1">
+                                  <span class="text-white/50">to</span>
+                                  <span class="px-2 py-0.5 bg-neutral-800/50 rounded text-white/70">@Tickflo.Web.Utils.TicketHistoryFormatter.FormatValue(newValueDisplay)</span>
+                                </span>
+                              </div>
+                            }
                           </div>
                         }
                         else
                         {
-                          <span><i class="fa fa-info-circle text-warning mr-1"></i>@h.Action @h.Note</span>
+                          <span><i class="fa fa-info-circle text-warning mr-1"></i>@actionDescription</span>
                         }
                       </div>
                     </div>

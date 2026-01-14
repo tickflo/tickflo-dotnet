@@ -12,7 +12,7 @@ public class NotificationTriggerServiceTests
     public async Task NotifyTicketAssignmentChangedAsync_Adds_Unassign_And_Assign()
     {
         var repo = new Mock<INotificationRepository>();
-        var svc = new NotificationTriggerService(repo.Object, Mock.Of<IUserRepository>(), Mock.Of<ITeamRepository>(), Mock.Of<ILocationRepository>(), Mock.Of<IUserWorkspaceRepository>());
+        var svc = new NotificationTriggerService(repo.Object, Mock.Of<IUserRepository>(), Mock.Of<ITeamRepository>(), Mock.Of<ILocationRepository>(), Mock.Of<IUserWorkspaceRepository>(), Mock.Of<IWorkspaceRepository>(), Mock.Of<IContactRepository>());
 
         var ticket = new Ticket { AssignedUserId = 7 };
         await svc.NotifyTicketAssignmentChangedAsync(1, ticket, previousUserId: 5, previousTeamId: null, changedByUserId: 3);

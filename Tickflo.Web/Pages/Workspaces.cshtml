@@ -1,0 +1,44 @@
+@page "/workspaces"
+@using System.Text.Json
+@model Tickflo.Web.Pages.WorkspaceModel
+@{
+    ViewData["Title"] = "Workspaces";
+}
+
+<div class="flex flex-row gap-4">
+    @await Html.PartialAsync("_AppSidebar")
+    <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
+        @if (!Model.Workspaces.Any())
+        {
+            <div role="alert" class="alert alert-info rounded-3xl shadow-md border border-base-200/70">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>You don't have access to any workspaces yet. Contact an administrator to be added to a workspace.</span>
+            </div>
+        }
+        else
+        {
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                @foreach (var workspace in Model.Workspaces)
+                {
+                    <div class="card bg-neutral-900/80 backdrop-blur text-slate-100 shadow-xl cursor-pointer hover:shadow-2xl transition-all hover:-translate-y-0.5 rounded-3xl overflow-hidden group">
+                        <div class="card-body">
+                            <h2 class="card-title text-lg">@workspace.Name</h2>
+                            <p class="text-sm text-slate-400">@workspace.Slug</p>
+                            @if (!workspace.Accepted)
+                            {
+                                <div class="badge badge-warning">Pending Acceptance</div>
+                            }
+                            <div class="card-actions justify-end mt-4">
+                                <a href="/workspaces/@workspace.Slug" class="btn btn-primary btn-sm rounded-full">
+                                    <i class="fa fa-arrow-right"></i> Open
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+</div>
