@@ -38,10 +38,17 @@ cd tickflo-dotnet
 cp .env.example .env
 cp Tickflo.Web/.env.example Tickflo.Web/.env
 
-# Start services (PostgreSQL + RustFS)
-cd Tickflo.Web
+# Start services
+# The provided compose.yml contains the following services:
+# - db (postgresql database)
+# - s3 (rustfs service)
+# - web (tickflo web app)
+#
+# You can choose to run all of these:
 docker compose up -d
-cd ..
+
+# Or if you prefer to run the app locally:
+docker compose up -d db s3
 
 # Run migrations
 dbmate up
