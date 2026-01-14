@@ -75,7 +75,7 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        const baseUrl = '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(Config.BASE_URL))' || 'http://localhost:3000';
+        const baseUrl = '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(string.IsNullOrEmpty(Config.BASE_URL) ? "http://localhost:3000" : Config.BASE_URL))';
         
         function slugify(text) {
             return text
