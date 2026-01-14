@@ -13,6 +13,7 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class TicketsModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly ITicketRepository _ticketRepo;
     private readonly ITicketFilterService _filterService;
     private readonly IWorkspaceTicketsViewService _viewService;
@@ -47,9 +48,10 @@ public class TicketsModel : WorkspacePageModel
     public bool CanCreateTickets { get; private set; }
     public bool CanEditTickets { get; private set; }
 
-    public TicketsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, ITicketFilterService filterService, IWorkspaceTicketsViewService viewService)
+    public TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketRepository ticketRepo, ITicketFilterService filterService, IWorkspaceTicketsViewService viewService)
     {
         _workspaceRepo = workspaceRepo;
+        _userWorkspaceRepo = userWorkspaceRepo;
         _ticketRepo = ticketRepo;
         _filterService = filterService;
         _viewService = viewService;
@@ -66,91 +68,92 @@ public class TicketsModel : WorkspacePageModel
     public List<Location> LocationOptions { get; private set; } = new();
     public Dictionary<int, Location> LocationsById { get; private set; } = new();
 
-    public async Task OnGetAsync(string slug)
+    public async Task<IActionResult> OnGetAsync(string slug)
     {
         WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace != null)
+        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
+        if (loadResult is IActionResult actionResult) return actionResult;
+        
+        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
+        Workspace = workspace;
+
+        // Load view data
+        var viewData = await _viewService.BuildAsync(Workspace.Id, currentUserId);
+        Statuses = viewData.Statuses;
+        StatusColorByName = viewData.StatusColorByName;
+        PrioritiesList = viewData.Priorities;
+        PriorityColorByName = viewData.PriorityColorByName;
+        TypesList = viewData.Types;
+        TypeColorByName = viewData.TypeColorByName;
+        TeamsById = viewData.TeamsById;
+        ContactsById = viewData.ContactsById;
+        UsersById = viewData.UsersById;
+        LocationOptions = viewData.LocationOptions;
+        LocationsById = viewData.LocationsById;
+        CanCreateTickets = viewData.CanCreateTickets;
+        CanEditTickets = viewData.CanEditTickets;
+
+        // Load and filter tickets
+        var all = await _ticketRepo.ListAsync(Workspace.Id);
+        var scoped = _filterService.ApplyScopeFilter(all, currentUserId, viewData.TicketViewScope, viewData.UserTeamIds);
+
+        // Apply filters
+        var criteria = new TicketFilterCriteria
         {
-            // Get user ID
-            var currentUserId = TryGetUserId(out var parsedId) ? parsedId : 0;
+            Query = Query?.Trim(),
+            Status = Status?.Trim(),
+            Priority = Priority?.Trim(),
+            Type = Type?.Trim(),
+            AssigneeUserId = AssigneeUserId,
+            LocationId = LocationId,
+            Mine = Mine,
+            CurrentUserId = currentUserId
+        };
+        var filteredList = _filterService.ApplyFilters(scoped, criteria);
 
-            // Load view data
-            var viewData = await _viewService.BuildAsync(Workspace.Id, currentUserId);
-            Statuses = viewData.Statuses;
-            StatusColorByName = viewData.StatusColorByName;
-            PrioritiesList = viewData.Priorities;
-            PriorityColorByName = viewData.PriorityColorByName;
-            TypesList = viewData.Types;
-            TypeColorByName = viewData.TypeColorByName;
-            TeamsById = viewData.TeamsById;
-            ContactsById = viewData.ContactsById;
-            UsersById = viewData.UsersById;
-            LocationOptions = viewData.LocationOptions;
-            LocationsById = viewData.LocationsById;
-            CanCreateTickets = viewData.CanCreateTickets;
-            CanEditTickets = viewData.CanEditTickets;
-
-            // Load and filter tickets
-            var all = await _ticketRepo.ListAsync(Workspace.Id);
-            var scoped = _filterService.ApplyScopeFilter(all, currentUserId, viewData.TicketViewScope, viewData.UserTeamIds);
-
-            // Apply filters
-            var criteria = new TicketFilterCriteria
-            {
-                Query = Query?.Trim(),
-                Status = Status?.Trim(),
-                Priority = Priority?.Trim(),
-                Type = Type?.Trim(),
-                AssigneeUserId = AssigneeUserId,
-                LocationId = LocationId,
-                Mine = Mine,
-                CurrentUserId = currentUserId
-            };
-            var filteredList = _filterService.ApplyFilters(scoped, criteria);
-
-            // Special case: Status == "Open" means non-closed statuses
-            if (!string.IsNullOrWhiteSpace(Status) && Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
-            {
-                var openStatusNames = Statuses.Where(s => !s.IsClosedState)
-                    .Select(s => s.Name)
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
-                filteredList = filteredList.Where(t => openStatusNames.Contains(t.Status)).ToList();
-            }
-
-            // ContactQuery filter (name/email)
-            if (!string.IsNullOrWhiteSpace(ContactQuery))
-            {
-                var cq = ContactQuery.Trim();
-                filteredList = filteredList.Where(t =>
-                    t.ContactId.HasValue && ContactsById.TryGetValue(t.ContactId.Value, out var c) && (
-                        (c.Name?.Contains(cq, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                        (c.Email?.Contains(cq, StringComparison.OrdinalIgnoreCase) ?? false)
-                    )
-                ).ToList();
-            }
-
-            // Team name filter
-            if (!string.IsNullOrWhiteSpace(AssigneeTeamName))
-            {
-                var team = TeamsById.Values.FirstOrDefault(t => string.Equals(t.Name, AssigneeTeamName.Trim(), StringComparison.OrdinalIgnoreCase));
-                if (team != null)
-                {
-                    filteredList = filteredList.Where(t => t.AssignedTeamId == team.Id).ToList();
-                }
-                else
-                {
-                    filteredList = new List<Ticket>();
-                }
-            }
-
-            // Pagination
-            MyCount = currentUserId > 0 ? _filterService.CountMyTickets(all, currentUserId) : 0;
-            Total = filteredList.Count();
-            var size = PageSize <= 0 ? 25 : Math.Min(PageSize, 200);
-            var page = PageNumber <= 0 ? 1 : PageNumber;
-            Tickets = filteredList.Skip((page - 1) * size).Take(size).ToList();
+        // Special case: Status == "Open" means non-closed statuses
+        if (!string.IsNullOrWhiteSpace(Status) && Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+        {
+            var openStatusNames = Statuses.Where(s => !s.IsClosedState)
+                .Select(s => s.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            filteredList = filteredList.Where(t => openStatusNames.Contains(t.Status)).ToList();
         }
+
+        // ContactQuery filter (name/email)
+        if (!string.IsNullOrWhiteSpace(ContactQuery))
+        {
+            var cq = ContactQuery.Trim();
+            filteredList = filteredList.Where(t =>
+                t.ContactId.HasValue && ContactsById.TryGetValue(t.ContactId.Value, out var c) && (
+                    (c.Name?.Contains(cq, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (c.Email?.Contains(cq, StringComparison.OrdinalIgnoreCase) ?? false)
+                )
+            ).ToList();
+        }
+
+        // Team name filter
+        if (!string.IsNullOrWhiteSpace(AssigneeTeamName))
+        {
+            var team = TeamsById.Values.FirstOrDefault(t => string.Equals(t.Name, AssigneeTeamName.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (team != null)
+            {
+                filteredList = filteredList.Where(t => t.AssignedTeamId == team.Id).ToList();
+            }
+            else
+            {
+                filteredList = new List<Ticket>();
+            }
+        }
+
+        // Pagination
+        MyCount = currentUserId > 0 ? _filterService.CountMyTickets(all, currentUserId) : 0;
+        Total = filteredList.Count();
+        var size = PageSize <= 0 ? 25 : Math.Min(PageSize, 200);
+        var page = PageNumber <= 0 ? 1 : PageNumber;
+        Tickets = filteredList.Skip((page - 1) * size).Take(size).ToList();
+        
+        return Page();
     }
 }
 

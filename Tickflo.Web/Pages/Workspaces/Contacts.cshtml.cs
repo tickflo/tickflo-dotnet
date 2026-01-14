@@ -13,6 +13,7 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class ContactsModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly ICurrentUserService _currentUserService;
     private readonly IWorkspaceContactsViewService _viewService;
 
@@ -33,10 +34,12 @@ public class ContactsModel : WorkspacePageModel
 
     public ContactsModel(
         IWorkspaceRepository workspaceRepo,
+        IUserWorkspaceRepository userWorkspaceRepo,
         ICurrentUserService currentUserService,
         IWorkspaceContactsViewService viewService)
     {
         _workspaceRepo = workspaceRepo;
+        _userWorkspaceRepo = userWorkspaceRepo;
         _currentUserService = currentUserService;
         _viewService = viewService;
     }
@@ -45,7 +48,7 @@ public class ContactsModel : WorkspacePageModel
     {
         WorkspaceSlug = slug;
         
-        var result = await LoadWorkspaceAndUserOrExitAsync(_workspaceRepo, slug);
+        var result = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
         if (result is IActionResult actionResult) return actionResult;
         
         var (workspace, uid) = (WorkspaceUserLoadResult)result;

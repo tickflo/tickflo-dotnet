@@ -26,6 +26,7 @@ public class TicketsDetailsModel : WorkspacePageModel
         public decimal unitPrice { get; set; }
     }
     private readonly IWorkspaceRepository _workspaceRepo;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly ITicketRepository _ticketRepo;
     private readonly ITicketManagementService _ticketService;
     private readonly IWorkspaceTicketDetailsViewService _viewService;
@@ -36,9 +37,10 @@ public class TicketsDetailsModel : WorkspacePageModel
     private readonly ITicketCommentService _commentService;
     private readonly IUserRepository _userRepo;
 
-    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, ITicketRepository ticketRepo, ITicketManagementService ticketService, IWorkspaceTicketDetailsViewService viewService, IRolePermissionRepository rolePerms, ITeamRepository teamRepo, IUserWorkspaceRoleRepository roles, IWorkspaceTicketsSaveViewService savingViewService, ITicketCommentService commentService, IUserRepository userRepo)
+    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketRepository ticketRepo, ITicketManagementService ticketService, IWorkspaceTicketDetailsViewService viewService, IRolePermissionRepository rolePerms, ITeamRepository teamRepo, IUserWorkspaceRoleRepository roles, IWorkspaceTicketsSaveViewService savingViewService, ITicketCommentService commentService, IUserRepository userRepo)
     {
         _workspaceRepo = workspaceRepo;
+        _userWorkspaceRepo = userWorkspaceRepo;
         _ticketRepo = ticketRepo;
         _ticketService = ticketService;
         _viewService = viewService;
@@ -116,9 +118,11 @@ public class TicketsDetailsModel : WorkspacePageModel
     public async Task<IActionResult> OnGetAsync(string slug, int id)
     {
         WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (EnsureWorkspaceExistsOrNotFound(Workspace) is IActionResult result) return result;
-        var currentUserId = TryGetUserId(out var uid) ? uid : 0;
+        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
+        if (loadResult is IActionResult actionResult) return actionResult;
+        
+        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
+        Workspace = workspace;
 
         // Load view data - this handles permissions, scope, metadata
         var viewData = await _viewService.BuildAsync(Workspace.Id, id, currentUserId, LocationId);

@@ -12,6 +12,7 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class ReportsEditModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly IReportCommandService _reportCommandService;
     private readonly IReportDefinitionValidator _defValidator;
     private readonly IWorkspaceReportsEditViewService _reportsEditViewService;
@@ -25,9 +26,10 @@ public class ReportsEditModel : WorkspacePageModel
     [BindProperty]
     public bool Ready { get; set; }
 
-    public ReportsEditModel(IWorkspaceRepository workspaceRepo, IReportCommandService reportCommandService, IReportDefinitionValidator defValidator, IWorkspaceReportsEditViewService reportsEditViewService)
+    public ReportsEditModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, IReportCommandService reportCommandService, IReportDefinitionValidator defValidator, IWorkspaceReportsEditViewService reportsEditViewService)
     {
         _workspaceRepo = workspaceRepo;
+        _userWorkspaceRepo = userWorkspaceRepo;
         _reportCommandService = reportCommandService;
         _defValidator = defValidator;
         _reportsEditViewService = reportsEditViewService;
@@ -61,9 +63,11 @@ public class ReportsEditModel : WorkspacePageModel
     public async Task<IActionResult> OnGetAsync(string slug, int reportId = 0)
     {
         WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        if (!TryGetUserId(out var uid)) return Forbid();
+        var workspaceLoadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
+        if (workspaceLoadResult is IActionResult actionResult) return actionResult;
+        
+        var (workspace, uid) = (WorkspaceUserLoadResult)workspaceLoadResult;
+        Workspace = workspace;
         var workspaceId = Workspace.Id;
         var data = await _reportsEditViewService.BuildAsync(workspaceId, uid, reportId);
         CanViewReports = data.CanViewReports;
@@ -111,7 +115,7 @@ public class ReportsEditModel : WorkspacePageModel
     {
         WorkspaceSlug = slug;
         
-        var loadResult = await LoadWorkspaceAndUserOrExitAsync(_workspaceRepo, slug);
+        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
         if (loadResult is IActionResult actionResult) return actionResult;
         
         var (workspace, uid) = (WorkspaceUserLoadResult)loadResult;

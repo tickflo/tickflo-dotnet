@@ -12,6 +12,7 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class ContactsEditModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly IWorkspaceContactsEditViewService _viewService;
     private readonly IContactRepository _contactRepo;
     private readonly IContactRegistrationService _contactRegistrationService;
@@ -40,11 +41,13 @@ public class ContactsEditModel : WorkspacePageModel
 
     public ContactsEditModel(
         IWorkspaceRepository workspaceRepo, 
+        IUserWorkspaceRepository userWorkspaceRepo,
         IWorkspaceContactsEditViewService viewService, 
         IContactRepository contactRepo, 
         IContactRegistrationService contactRegistrationService)
     {
         _workspaceRepo = workspaceRepo;
+        _userWorkspaceRepo = userWorkspaceRepo;
         _viewService = viewService;
         _contactRepo = contactRepo;
         _contactRegistrationService = contactRegistrationService;
@@ -55,7 +58,7 @@ public class ContactsEditModel : WorkspacePageModel
         WorkspaceSlug = slug;
         Id = id;
         
-        var result = await LoadWorkspaceAndUserOrExitAsync(_workspaceRepo, slug);
+        var result = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
         if (result is IActionResult actionResult) return actionResult;
         
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
@@ -104,7 +107,7 @@ public class ContactsEditModel : WorkspacePageModel
         WorkspaceSlug = slug;
         Id = id;
         
-        var result = await LoadWorkspaceAndUserOrExitAsync(_workspaceRepo, slug);
+        var result = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
         if (result is IActionResult actionResult) return actionResult;
         
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
@@ -199,7 +202,7 @@ public class ContactsEditModel : WorkspacePageModel
             return RedirectToPage(new { slug, id });
         }
         
-        var result = await LoadWorkspaceAndUserOrExitAsync(_workspaceRepo, slug);
+        var result = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
         if (result is IActionResult actionResult) return actionResult;
         
         var (workspace, uid) = (WorkspaceUserLoadResult)result;

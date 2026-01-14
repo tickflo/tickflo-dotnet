@@ -11,13 +11,16 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class FilesModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepository;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly IWorkspaceFilesViewService _filesViewService;
 
     public FilesModel(
         IWorkspaceRepository workspaceRepository,
+        IUserWorkspaceRepository userWorkspaceRepo,
         IWorkspaceFilesViewService filesViewService)
     {
         _workspaceRepository = workspaceRepository;
+        _userWorkspaceRepo = userWorkspaceRepo;
         _filesViewService = filesViewService;
     }
 
@@ -26,7 +29,7 @@ public class FilesModel : WorkspacePageModel
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {
-        var result = await LoadWorkspaceAndUserOrExitAsync(_workspaceRepository, slug);
+        var result = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepository, _userWorkspaceRepo, slug);
         if (result is IActionResult actionResult) return actionResult;
         
         var (workspace, uid) = (WorkspaceUserLoadResult)result;

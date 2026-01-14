@@ -15,6 +15,7 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class LocationsModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly ILocationRepository _locationRepo;
     private readonly ICurrentUserService _currentUserService;
     private readonly IWorkspaceAccessService _workspaceAccessService;
@@ -28,12 +29,14 @@ public class LocationsModel : WorkspacePageModel
 
     public LocationsModel(
         IWorkspaceRepository workspaceRepo,
+        IUserWorkspaceRepository userWorkspaceRepo,
         ILocationRepository locationRepo,
         ICurrentUserService currentUserService,
         IWorkspaceAccessService workspaceAccessService,
         IWorkspaceLocationsViewService viewService)
     {
         _workspaceRepo = workspaceRepo;
+        _userWorkspaceRepo = userWorkspaceRepo;
         _locationRepo = locationRepo;
         _currentUserService = currentUserService;
         _workspaceAccessService = workspaceAccessService;
@@ -44,7 +47,7 @@ public class LocationsModel : WorkspacePageModel
     {
         WorkspaceSlug = slug;
         
-        var result = await LoadWorkspaceAndUserOrExitAsync(_workspaceRepo, slug);
+        var result = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
         if (result is IActionResult actionResult) return actionResult;
         
         var (workspace, uid) = (WorkspaceUserLoadResult)result;

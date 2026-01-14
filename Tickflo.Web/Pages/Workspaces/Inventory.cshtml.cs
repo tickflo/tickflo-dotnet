@@ -14,6 +14,7 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class InventoryModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaces;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly IInventoryRepository _inventoryRepo;
     private readonly ICurrentUserService _currentUserService;
     private readonly IWorkspaceAccessService _workspaceAccessService;
@@ -21,12 +22,14 @@ public class InventoryModel : WorkspacePageModel
 
     public InventoryModel(
         IWorkspaceRepository workspaces,
+        IUserWorkspaceRepository userWorkspaceRepo,
         IInventoryRepository inventoryRepo,
         ICurrentUserService currentUserService,
         IWorkspaceAccessService workspaceAccessService,
         IWorkspaceInventoryViewService viewService)
     {
         _workspaces = workspaces;
+        _userWorkspaceRepo = userWorkspaceRepo;
         _inventoryRepo = inventoryRepo;
         _currentUserService = currentUserService;
         _workspaceAccessService = workspaceAccessService;
@@ -50,7 +53,7 @@ public class InventoryModel : WorkspacePageModel
     {
         WorkspaceSlug = slug;
         
-        var result = await LoadWorkspaceAndUserOrExitAsync(_workspaces, slug);
+        var result = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaces, _userWorkspaceRepo, slug);
         if (result is IActionResult actionResult) return actionResult;
         
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
