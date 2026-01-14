@@ -48,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Modern UI**: Responsive design with Tailwind CSS and DaisyUI
 
 ### Technical Stack
-- ASP.NET Core 8.0
+- ASP.NET Core 10.0
 - Entity Framework Core 9.0
 - PostgreSQL 17.2
 - RustFS for object storage

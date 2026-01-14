@@ -1,5 +1,5 @@
-ARG SDK_IMAGE=mcr.microsoft.com/dotnet/sdk:8.0-alpine3.23
-ARG RUNTIME_IMAGE=mcr.microsoft.com/dotnet/aspnet:8.0-alpine3.23
+ARG SDK_IMAGE=mcr.microsoft.com/dotnet/sdk:10.0-alpine3.23
+ARG RUNTIME_IMAGE=mcr.microsoft.com/dotnet/aspnet:10.0-alpine3.23
 ARG NODE_IMAGE=node:24-alpine3.23
 
 # Build the frontend assets

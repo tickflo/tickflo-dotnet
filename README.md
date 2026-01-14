@@ -2,8 +2,8 @@
 
 > A modern, multi-tenant ticketing and workspace management system
 
-[![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17.2-336791?logo=postgresql)](https://www.postgresql.org/)
+[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18.1-336791?logo=postgresql)](https://www.postgresql.org/)
 [![License](https://img.shields.io/github/license/tickflo/tickflo)](LICENSE.txt)
 
 Tickflo is a full-featured help desk and ticketing system designed for teams that need isolated workspaces, flexible permissions, and real-time collaboration.
@@ -23,7 +23,7 @@ Tickflo is a full-featured help desk and ticketing system designed for teams tha
 
 ### Prerequisites
 
-- [.NET 8.0 SDK](https://dotnet.microsoft.com/download)
+- [.NET 10.0 SDK](https://dotnet.microsoft.com/download)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop)
 - [dbmate](https://github.com/amacneil/dbmate#installation)
 
@@ -74,8 +74,8 @@ db/                  # Database schema & migrations
 ```
 
 **Tech Stack:**
-- ASP.NET Core 8.0 + Entity Framework Core 9.0
-- PostgreSQL 17.2
+- ASP.NET Core 10.0 + Entity Framework Core 9.0
+- PostgreSQL 18.1
 - RustFS (S3-compatible storage)
 - Tailwind CSS + DaisyUI
 - SignalR for real-time updates
