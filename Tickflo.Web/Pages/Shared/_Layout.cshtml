@@ -5,10 +5,14 @@
     var theme = Context.Request.Cookies["theme"] ?? "dark";
     var path = Context.Request.Path.Value ?? "";
     var isAuthenticated = Context.User?.Identity?.IsAuthenticated == true;
-    
+
+    const string lastWorkspaceCookieName = "last_workspace_slug";
+    var lastWorkspaceSlug = Context.Request.Cookies[lastWorkspaceCookieName];
+    string? currentWorkspaceSlug = null;
+
     string logoHref = "/";
     int unreadNotificationCount = 0;
-    
+
     if (isAuthenticated)
     {
         // Try to extract workspace slug from URL pattern: /workspaces/{slug}/...
@@ -21,19 +25,34 @@
                 var slug = slugPart.Split('/')[0]; // Get the slug before the next slash
                 if (!string.IsNullOrEmpty(slug))
                 {
-                    logoHref = $"/workspaces/{slug}";
-                }
-                else
-                {
-                    logoHref = "/workspaces";
+                    currentWorkspaceSlug = slug;
                 }
             }
         }
-        else
+
+        // Prefer the slug from the current path, then fall back to the remembered workspace
+        var targetSlug = !string.IsNullOrEmpty(currentWorkspaceSlug)
+            ? currentWorkspaceSlug
+            : (!string.IsNullOrEmpty(lastWorkspaceSlug) ? lastWorkspaceSlug : null);
+
+        logoHref = !string.IsNullOrEmpty(targetSlug) ? $"/workspaces/{targetSlug}" : "/workspaces";
+
+        // Refresh the last-workspace cookie whenever we are on a workspace route
+        if (!string.IsNullOrEmpty(currentWorkspaceSlug))
         {
-            logoHref = "/workspaces";
+            var cookieOptions = new Microsoft.AspNetCore.Http.CookieOptions
+            {
+                Path = "/",
+                HttpOnly = true,
+                Secure = Context.Request.IsHttps,
+                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddDays(30),
+                IsEssential = true
+            };
+
+            Context.Response.Cookies.Append(lastWorkspaceCookieName, currentWorkspaceSlug, cookieOptions);
         }
-        
+
         // Get unread notification count
         if (CurrentUserService.TryGetUserId(User, out var userId))
         {

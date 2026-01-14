@@ -2,6 +2,8 @@
 @inject Tickflo.Core.Data.IUserRepository UserRepo
 @{
     var path = ViewContext?.HttpContext?.Request?.Path.Value ?? string.Empty;
+    const string lastWorkspaceCookieName = "last_workspace_slug";
+    var lastWorkspaceSlug = HttpContextAccessor.HttpContext?.Request?.Cookies[lastWorkspaceCookieName];
     bool IsActive(string segment) => path.Contains(segment, StringComparison.OrdinalIgnoreCase);
     var uidStr = HttpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
     bool isAdmin = false;
@@ -15,11 +17,12 @@
     
     // Intelligent home navigation logic
     var isAuthenticated = ViewContext?.HttpContext?.User?.Identity?.IsAuthenticated == true;
+    string? currentWorkspaceSlug = null;
     string homeHref = "/";
     if (isAuthenticated)
     {
         // Try to extract workspace slug from URL pattern: /workspaces/{slug}/...
-        if (path.Contains("/workspaces/"))
+        if (path.Contains("/workspaces/", StringComparison.OrdinalIgnoreCase))
         {
             var parts = path.Split(new[] { "/workspaces/" }, StringSplitOptions.None);
             if (parts.Length > 1)
@@ -28,18 +31,16 @@
                 var slug = slugPart.Split('/')[0]; // Get the slug before the next slash
                 if (!string.IsNullOrEmpty(slug))
                 {
-                    homeHref = $"/workspaces/{slug}";
-                }
-                else
-                {
-                    homeHref = "/workspaces";
+                    currentWorkspaceSlug = slug;
                 }
             }
         }
-        else
-        {
-            homeHref = "/workspaces";
-        }
+
+        var targetSlug = !string.IsNullOrEmpty(currentWorkspaceSlug)
+            ? currentWorkspaceSlug
+            : (!string.IsNullOrEmpty(lastWorkspaceSlug) ? lastWorkspaceSlug : null);
+
+        homeHref = !string.IsNullOrEmpty(targetSlug) ? $"/workspaces/{targetSlug}" : "/workspaces";
     }
 }
 <aside class="block sticky top-6 h-[calc(100vh-2rem)] w-64 shrink-0 overflow-y-auto px-3">
