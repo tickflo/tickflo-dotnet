@@ -31,8 +31,8 @@ Tickflo is a full-featured help desk and ticketing system designed for teams tha
 
 ```bash
 # Clone the repository
-git clone <repository-url>
-cd tickflo-dotnet
+git clone https://github.com/tickflo/tickflo.git
+cd tickflo
 
 # Set up environment
 cp .env.example .env
@@ -57,11 +57,10 @@ dbmate up
 docker exec -i $(docker ps -qf name=db) psql -U $POSTGRES_USER -d $POSTGRES_DB -f /work/db/seed_data.sql
 
 # Run the app
-cd Tickflo.Web
-dotnet run
+dotnet run --project Tickflo.Web
 ```
 
-Open [https://localhost:5001](https://localhost:5001) in your browser.
+Open [https://localhost:5262](https://localhost:5262) in your browser.
 
 ## 🏗️ Architecture
 
