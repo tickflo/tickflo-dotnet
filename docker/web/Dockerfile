@@ -29,7 +29,7 @@ COPY Tickflo.Core/Tickflo.Core.csproj ./Tickflo.Core/
 COPY Tickflo.Web/Tickflo.Web.csproj ./Tickflo.Web/
 
 RUN --mount=type=cache,target=/root/.nuget/packages,sharing=locked \
-    dotnet restore Tickflo.Web/Tickflo.Web.csproj
+    dotnet restore --locked-mode Tickflo.Web/Tickflo.Web.csproj
 
 COPY Tickflo.Core/. ./Tickflo.Core/
 COPY Tickflo.Web/. ./Tickflo.Web/
