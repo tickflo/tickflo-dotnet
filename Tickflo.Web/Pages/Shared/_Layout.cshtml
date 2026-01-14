@@ -1,9 +1,14 @@
+@inject Tickflo.Core.Data.INotificationRepository NotificationRepository
+@inject Tickflo.Core.Services.Common.ICurrentUserService CurrentUserService
+
 @{
     var theme = Context.Request.Cookies["theme"] ?? "dark";
     var path = Context.Request.Path.Value ?? "";
     var isAuthenticated = Context.User?.Identity?.IsAuthenticated == true;
     
     string logoHref = "/";
+    int unreadNotificationCount = 0;
+    
     if (isAuthenticated)
     {
         // Try to extract workspace slug from URL pattern: /workspaces/{slug}/...
@@ -27,6 +32,12 @@
         else
         {
             logoHref = "/workspaces";
+        }
+        
+        // Get unread notification count
+        if (CurrentUserService.TryGetUserId(User, out var userId))
+        {
+            unreadNotificationCount = await NotificationRepository.CountUnreadForUserAsync(userId);
         }
     }
 }
@@ -74,7 +85,10 @@
                     </a>
                     <a href="/notifications" class="btn btn-soft btn-sm rounded-full gap-2 relative">
                         <i class="fa fa-bell"></i>
-                        <span class="badge badge-xs badge-primary rounded-full absolute -top-1 -right-1">•</span>
+                        @if (unreadNotificationCount > 0)
+                        {
+                            <span class="badge badge-xs badge-primary rounded-full absolute -top-1 -right-1">@unreadNotificationCount</span>
+                        }
                     </a>
                     @await Html.PartialAsync("_UserMenu")
                 </div>

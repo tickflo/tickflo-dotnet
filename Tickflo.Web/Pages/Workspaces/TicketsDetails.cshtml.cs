@@ -8,6 +8,7 @@ using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
 using Tickflo.Core.Services.Views;
 using Tickflo.Core.Services.Tickets;
+using Tickflo.Core.Services.Notifications;
 
 namespace Tickflo.Web.Pages.Workspaces;
 
@@ -36,8 +37,9 @@ public class TicketsDetailsModel : WorkspacePageModel
     private readonly IWorkspaceTicketsSaveViewService _savingViewService;
     private readonly ITicketCommentService _commentService;
     private readonly IUserRepository _userRepo;
+    private readonly INotificationTriggerService _notificationTrigger;
 
-    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketRepository ticketRepo, ITicketManagementService ticketService, IWorkspaceTicketDetailsViewService viewService, IRolePermissionRepository rolePerms, ITeamRepository teamRepo, IUserWorkspaceRoleRepository roles, IWorkspaceTicketsSaveViewService savingViewService, ITicketCommentService commentService, IUserRepository userRepo)
+    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketRepository ticketRepo, ITicketManagementService ticketService, IWorkspaceTicketDetailsViewService viewService, IRolePermissionRepository rolePerms, ITeamRepository teamRepo, IUserWorkspaceRoleRepository roles, IWorkspaceTicketsSaveViewService savingViewService, ITicketCommentService commentService, IUserRepository userRepo, INotificationTriggerService notificationTrigger)
     {
         _workspaceRepo = workspaceRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
@@ -50,6 +52,7 @@ public class TicketsDetailsModel : WorkspacePageModel
         _savingViewService = savingViewService;
         _commentService = commentService;
         _userRepo = userRepo;
+        _notificationTrigger = notificationTrigger;
     }
     public List<Inventory> InventoryItems { get; private set; } = new();
 
@@ -194,6 +197,19 @@ public class TicketsDetailsModel : WorkspacePageModel
                 NewCommentIsVisibleToClient
             );
 
+            // Get ticket for notification
+            var ticket = await _ticketRepo.FindAsync(Workspace.Id, id);
+            if (ticket != null)
+            {
+                // Send notification about new comment
+                await _notificationTrigger.NotifyTicketCommentAddedAsync(
+                    Workspace.Id,
+                    ticket,
+                    currentUserId,
+                    NewCommentIsVisibleToClient
+                );
+            }
+
             // Broadcast comment creation to workspace clients
             var group = Tickflo.Web.Realtime.TicketsHub.WorkspaceGroup(WorkspaceSlug ?? string.Empty);
             
@@ -304,6 +320,13 @@ public class TicketsDetailsModel : WorkspacePageModel
             try
             {
                 t = await _ticketService.CreateTicketAsync(createReq);
+                
+                // Send notification about new ticket
+                await _notificationTrigger.NotifyTicketCreatedAsync(
+                    workspaceId,
+                    t,
+                    uid
+                );
             }
             catch (InvalidOperationException ex)
             {
@@ -315,6 +338,11 @@ public class TicketsDetailsModel : WorkspacePageModel
         {
             existing = await _ticketRepo.FindAsync(workspaceId, resolvedId);
             if (EnsureEntityExistsOrNotFound(existing) is IActionResult ticketCheck) return ticketCheck;
+
+            // Track changes for notifications
+            var oldAssignedUserId = existing!.AssignedUserId;
+            var oldAssignedTeamId = existing.AssignedTeamId;
+            var oldStatus = existing.Status;
 
             var updateReq = new UpdateTicketRequest
             {
@@ -335,6 +363,29 @@ public class TicketsDetailsModel : WorkspacePageModel
             try
             {
                 t = await _ticketService.UpdateTicketAsync(updateReq);
+                
+                // Send notifications about changes
+                if (oldAssignedUserId != t.AssignedUserId || oldAssignedTeamId != t.AssignedTeamId)
+                {
+                    await _notificationTrigger.NotifyTicketAssignmentChangedAsync(
+                        workspaceId,
+                        t,
+                        oldAssignedUserId,
+                        oldAssignedTeamId,
+                        uid
+                    );
+                }
+                
+                if (oldStatus != t.Status)
+                {
+                    await _notificationTrigger.NotifyTicketStatusChangedAsync(
+                        workspaceId,
+                        t,
+                        oldStatus,
+                        t.Status,
+                        uid
+                    );
+                }
             }
             catch (InvalidOperationException ex)
             {

@@ -4,9 +4,10 @@ using System.Linq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
-
 using Tickflo.Core.Services.Tickets;
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Notifications;
+
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
@@ -17,6 +18,17 @@ public class TicketsModel : WorkspacePageModel
     private readonly ITicketRepository _ticketRepo;
     private readonly ITicketFilterService _filterService;
     private readonly IWorkspaceTicketsViewService _viewService;
+    private readonly INotificationTriggerService _notificationTrigger;
+
+    public TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketRepository ticketRepo, ITicketFilterService filterService, IWorkspaceTicketsViewService viewService, INotificationTriggerService notificationTrigger)
+    {
+        _workspaceRepo = workspaceRepo;
+        _userWorkspaceRepo = userWorkspaceRepo;
+        _ticketRepo = ticketRepo;
+        _filterService = filterService;
+        _viewService = viewService;
+        _notificationTrigger = notificationTrigger;
+    }
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
     public IReadOnlyList<Ticket> Tickets { get; private set; } = Array.Empty<Ticket>();
@@ -47,15 +59,6 @@ public class TicketsModel : WorkspacePageModel
     public Dictionary<string, string> PriorityColorByName { get; private set; } = new();
     public bool CanCreateTickets { get; private set; }
     public bool CanEditTickets { get; private set; }
-
-    public TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketRepository ticketRepo, ITicketFilterService filterService, IWorkspaceTicketsViewService viewService)
-    {
-        _workspaceRepo = workspaceRepo;
-        _userWorkspaceRepo = userWorkspaceRepo;
-        _ticketRepo = ticketRepo;
-        _filterService = filterService;
-        _viewService = viewService;
-    }
     public IReadOnlyList<Tickflo.Core.Entities.TicketType> TypesList { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketType>();
     public Dictionary<string, string> TypeColorByName { get; private set; } = new();
     [BindProperty(SupportsGet = true)]
@@ -155,5 +158,42 @@ public class TicketsModel : WorkspacePageModel
         
         return Page();
     }
-}
 
+    public async Task<IActionResult> OnPostAssignAsync(string slug, int id, int? assignedUserId)
+    {
+        WorkspaceSlug = slug;
+        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
+        if (loadResult is IActionResult actionResult) return actionResult;
+        
+        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
+        Workspace = workspace;
+
+        var ticket = await _ticketRepo.FindAsync(Workspace.Id, id);
+        if (ticket == null)
+        {
+            return NotFound();
+        }
+
+        // Track old assignment for notifications
+        var oldAssignedUserId = ticket.AssignedUserId;
+
+        // Update assignment
+        ticket.AssignedUserId = assignedUserId > 0 ? assignedUserId : null;
+        ticket.UpdatedAt = DateTime.UtcNow;
+        await _ticketRepo.UpdateAsync(ticket);
+
+        // Send notification if assignment changed
+        if (oldAssignedUserId != ticket.AssignedUserId)
+        {
+            await _notificationTrigger.NotifyTicketAssignmentChangedAsync(
+                Workspace.Id,
+                ticket,
+                oldAssignedUserId,
+                null,
+                currentUserId
+            );
+        }
+
+        return RedirectToPage(new { slug, Query, Status, Priority, Type, ContactQuery, Mine, AssigneeUserId, AssigneeTeamName, LocationId, PageNumber, PageSize });
+    }
+}

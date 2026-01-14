@@ -14,19 +14,25 @@ public class NotificationTriggerService : INotificationTriggerService
     private readonly ITeamRepository _teamRepo;
     private readonly ILocationRepository _locationRepo;
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
+    private readonly IWorkspaceRepository _workspaceRepo;
+    private readonly IContactRepository _contactRepo;
 
     public NotificationTriggerService(
         INotificationRepository notificationRepo,
         IUserRepository userRepo,
         ITeamRepository teamRepo,
         ILocationRepository locationRepo,
-        IUserWorkspaceRepository userWorkspaceRepo)
+        IUserWorkspaceRepository userWorkspaceRepo,
+        IWorkspaceRepository workspaceRepo,
+        IContactRepository contactRepo)
     {
         _notificationRepo = notificationRepo;
         _userRepo = userRepo;
         _teamRepo = teamRepo;
         _locationRepo = locationRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
+        _workspaceRepo = workspaceRepo;
+        _contactRepo = contactRepo;
     }
 
     public async Task NotifyTicketCreatedAsync(
@@ -35,17 +41,28 @@ public class NotificationTriggerService : INotificationTriggerService
         int createdByUserId)
     {
         var notifications = new List<Notification>();
+        var creator = await _userRepo.FindByIdAsync(createdByUserId);
+        var creatorName = creator?.Name ?? creator?.Email ?? "Someone";
+        
+        var workspace = await _workspaceRepo.FindByIdAsync(workspaceId);
+        var ticketData = System.Text.Json.JsonSerializer.Serialize(new { ticketId = ticket.Id, workspaceSlug = workspace?.Slug });
 
         // Notify assigned user
-        if (ticket.AssignedUserId.HasValue)
+        if (ticket.AssignedUserId.HasValue && ticket.AssignedUserId.Value != createdByUserId)
         {
             notifications.Add(new Notification
             {
                 UserId = ticket.AssignedUserId.Value,
                 WorkspaceId = workspaceId,
-                Type = "ticket_created",
-                DeliveryMethod = "email",
-                CreatedAt = DateTime.UtcNow
+                Type = "ticket_assigned",
+                DeliveryMethod = "in_app",
+                Priority = "normal",
+                Subject = "New Ticket Assigned",
+                Body = $"{creatorName} assigned you ticket #{ticket.Id}: {ticket.Subject}",
+                Data = ticketData,
+                Status = "sent",
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = createdByUserId
             });
         }
 
@@ -61,8 +78,13 @@ public class NotificationTriggerService : INotificationTriggerService
                 {
                     WorkspaceId = workspaceId,
                     Type = "ticket_created_team",
-                    DeliveryMethod = "email",
-                    CreatedAt = DateTime.UtcNow
+                    DeliveryMethod = "in_app",
+                    Priority = "normal",
+                    Subject = "New Ticket for Team",
+                    Body = $"{creatorName} created ticket #{ticket.Id} for team {team.Name}: {ticket.Subject}",
+                    Status = "sent",
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = createdByUserId
                 });
             }
         }
@@ -82,6 +104,11 @@ public class NotificationTriggerService : INotificationTriggerService
         int changedByUserId)
     {
         var notifications = new List<Notification>();
+        var changer = await _userRepo.FindByIdAsync(changedByUserId);
+        var changerName = changer?.Name ?? changer?.Email ?? "Someone";
+        
+        var workspace = await _workspaceRepo.FindByIdAsync(workspaceId);
+        var ticketData = System.Text.Json.JsonSerializer.Serialize(new { ticketId = ticket.Id, workspaceSlug = workspace?.Slug });
 
         // Notify previously assigned user (unassigned)
         if (previousUserId.HasValue && previousUserId != ticket.AssignedUserId)
@@ -91,21 +118,33 @@ public class NotificationTriggerService : INotificationTriggerService
                 UserId = previousUserId.Value,
                 WorkspaceId = workspaceId,
                 Type = "ticket_unassigned",
-                DeliveryMethod = "email",
-                CreatedAt = DateTime.UtcNow
+                DeliveryMethod = "in_app",
+                Priority = "normal",
+                Subject = "Ticket Unassigned",
+                Body = $"{changerName} unassigned you from ticket #{ticket.Id}: {ticket.Subject}",
+                Data = ticketData,
+                Status = "sent",
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = changedByUserId
             });
         }
 
         // Notify newly assigned user
-        if (ticket.AssignedUserId.HasValue)
+        if (ticket.AssignedUserId.HasValue && ticket.AssignedUserId.Value != changedByUserId)
         {
             notifications.Add(new Notification
             {
                 UserId = ticket.AssignedUserId.Value,
                 WorkspaceId = workspaceId,
                 Type = "ticket_assigned",
-                DeliveryMethod = "email",
-                CreatedAt = DateTime.UtcNow
+                DeliveryMethod = "in_app",
+                Priority = "normal",
+                Subject = "Ticket Assigned",
+                Body = $"{changerName} assigned you ticket #{ticket.Id}: {ticket.Subject}",
+                Data = ticketData,
+                Status = "sent",
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = changedByUserId
             });
         }
 
@@ -123,17 +162,28 @@ public class NotificationTriggerService : INotificationTriggerService
         int changedByUserId)
     {
         var notifications = new List<Notification>();
+        var changer = await _userRepo.FindByIdAsync(changedByUserId);
+        var changerName = changer?.Name ?? changer?.Email ?? "Someone";
+        
+        var workspace = await _workspaceRepo.FindByIdAsync(workspaceId);
+        var ticketData = System.Text.Json.JsonSerializer.Serialize(new { ticketId = ticket.Id, workspaceSlug = workspace?.Slug });
 
         // Notify assigned user/team about status change
-        if (ticket.AssignedUserId.HasValue)
+        if (ticket.AssignedUserId.HasValue && ticket.AssignedUserId.Value != changedByUserId)
         {
             notifications.Add(new Notification
             {
                 UserId = ticket.AssignedUserId.Value,
                 WorkspaceId = workspaceId,
                 Type = "ticket_status_changed",
-                DeliveryMethod = "email",
-                CreatedAt = DateTime.UtcNow
+                DeliveryMethod = "in_app",
+                Priority = "normal",
+                Subject = "Ticket Status Changed",
+                Body = $"{changerName} changed ticket #{ticket.Id} status from {previousStatus} to {newStatus}: {ticket.Subject}",
+                Data = ticketData,
+                Status = "sent",
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = changedByUserId
             });
         }
 
@@ -147,10 +197,96 @@ public class NotificationTriggerService : INotificationTriggerService
                 {
                     WorkspaceId = workspaceId,
                     Type = "ticket_status_changed_team",
-                    DeliveryMethod = "email",
-                    CreatedAt = DateTime.UtcNow
+                    DeliveryMethod = "in_app",
+                    Priority = "normal",
+                    Subject = "Ticket Status Changed",
+                    Body = $"{changerName} changed ticket #{ticket.Id} status from {previousStatus} to {newStatus} for team {team.Name}: {ticket.Subject}",
+                    Status = "sent",
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = changedByUserId
                 });
             }
+        }
+
+        foreach (var notif in notifications)
+        {
+            await _notificationRepo.AddAsync(notif);
+        }
+    }
+
+    public async Task NotifyTicketCommentAddedAsync(
+        int workspaceId,
+        Ticket ticket,
+        int commentedByUserId,
+        bool isVisibleToClient)
+    {
+        var notifications = new List<Notification>();
+        var commenter = await _userRepo.FindByIdAsync(commentedByUserId);
+        var commenterName = commenter?.Name ?? commenter?.Email ?? "Someone";
+        
+        var workspace = await _workspaceRepo.FindByIdAsync(workspaceId);
+        var ticketData = System.Text.Json.JsonSerializer.Serialize(new { ticketId = ticket.Id, workspaceSlug = workspace?.Slug });
+
+        // Collect recipients: assigned user and contact's assigned user (if any)
+        var recipientIds = new List<int?> { ticket.AssignedUserId };
+
+        if (ticket.ContactId.HasValue)
+        {
+            var contact = await _contactRepo.FindAsync(workspaceId, ticket.ContactId.Value);
+            if (contact?.AssignedUserId.HasValue == true)
+            {
+                recipientIds.Add(contact.AssignedUserId);
+            }
+        }
+
+        foreach (var recipientId in recipientIds)
+        {
+            if (!recipientId.HasValue) continue;
+
+            // Skip notifying the user who made the comment
+            if (recipientId.Value == commentedByUserId) continue;
+
+            // Skip notifying contact-assigned user if comment is internal-only (not visible to client)
+            if (!isVisibleToClient && ticket.ContactId.HasValue)
+            {
+                var contact = await _contactRepo.FindAsync(workspaceId, ticket.ContactId.Value);
+                if (contact?.AssignedUserId == recipientId.Value)
+                {
+                    continue;
+                }
+            }
+
+            // In-app notification (immediate)
+            notifications.Add(new Notification
+            {
+                UserId = recipientId.Value,
+                WorkspaceId = workspaceId,
+                Type = "ticket_comment",
+                DeliveryMethod = "in_app",
+                Priority = "normal",
+                Subject = "New Comment on Ticket",
+                Body = $"{commenterName} added a comment to ticket #{ticket.Id}: {ticket.Subject}",
+                Data = ticketData,
+                Status = "sent",
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = commentedByUserId
+            });
+
+            // Email notification (queued for batch send)
+            notifications.Add(new Notification
+            {
+                UserId = recipientId.Value,
+                WorkspaceId = workspaceId,
+                Type = "ticket_comment",
+                DeliveryMethod = "email",
+                Priority = "normal",
+                Subject = "New Comment on Ticket",
+                Body = $"{commenterName} added a comment to ticket #{ticket.Id}: {ticket.Subject}",
+                Data = ticketData,
+                Status = "pending", // queued for batch email sender
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = commentedByUserId
+            });
         }
 
         foreach (var notif in notifications)
@@ -164,14 +300,22 @@ public class NotificationTriggerService : INotificationTriggerService
         int userId,
         int addedByUserId)
     {
+        var adder = await _userRepo.FindByIdAsync(addedByUserId);
+        var adderName = adder?.Name ?? adder?.Email ?? "Someone";
+        
         // Notify the invited user
         var notification = new Notification
         {
             UserId = userId,
             WorkspaceId = workspaceId,
             Type = "workspace_invitation",
-            DeliveryMethod = "email",
-            CreatedAt = DateTime.UtcNow
+            DeliveryMethod = "in_app",
+            Priority = "normal",
+            Subject = "Added to Workspace",
+            Body = $"{adderName} added you to a workspace",
+            Status = "sent",
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = addedByUserId
         };
 
         await _notificationRepo.AddAsync(notification);

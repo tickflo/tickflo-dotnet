@@ -6,6 +6,7 @@ using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
 using Tickflo.Core.Services.Tickets;
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Notifications;
 
 namespace Tickflo.Web.Pages;
 
@@ -20,17 +21,20 @@ public class ClientPortalModel : PageModel
     private readonly ITicketRepository _ticketRepo;
     private readonly IClientPortalViewService _viewService;
     private readonly ITicketCommentService _commentService;
+    private readonly INotificationTriggerService _notificationTrigger;
 
     public ClientPortalModel(
         IContactRepository contactRepo,
         ITicketRepository ticketRepo,
         IClientPortalViewService viewService,
-        ITicketCommentService commentService)
+        ITicketCommentService commentService,
+        INotificationTriggerService notificationTrigger)
     {
         _contactRepo = contactRepo;
         _ticketRepo = ticketRepo;
         _viewService = viewService;
         _commentService = commentService;
+        _notificationTrigger = notificationTrigger;
     }
 
     // View Data Properties
@@ -139,6 +143,13 @@ public class ClientPortalModel : PageModel
 
         await _ticketRepo.CreateAsync(ticket, cancellationToken);
 
+        // Send notification about new ticket from client
+        await _notificationTrigger.NotifyTicketCreatedAsync(
+            contact.WorkspaceId,
+            ticket,
+            0 // Client created, no user ID
+        );
+
         // Clear form and reload data
         Subject = string.Empty;
         Description = string.Empty;
@@ -217,6 +228,14 @@ public class ClientPortalModel : PageModel
             contact.Id,
             NewCommentContent.Trim(),
             cancellationToken);
+
+        // Send notification about new comment from client
+        await _notificationTrigger.NotifyTicketCommentAddedAsync(
+            contact.WorkspaceId,
+            ticket,
+            0, // Client added comment, no user ID
+            true // Client comments are visible to client
+        );
 
         NewCommentContent = string.Empty;
         return await LoadTicketDetailsAsync(contact, SelectedTicketId.Value, cancellationToken);

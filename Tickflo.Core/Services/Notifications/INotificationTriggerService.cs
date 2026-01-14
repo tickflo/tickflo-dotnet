@@ -40,6 +40,16 @@ public interface INotificationTriggerService
         int changedByUserId);
 
     /// <summary>
+    /// Notify relevant parties when a comment is added to a ticket.
+    /// Notifies assigned user if they didn't create the comment.
+    /// </summary>
+    Task NotifyTicketCommentAddedAsync(
+        int workspaceId,
+        Ticket ticket,
+        int commentedByUserId,
+        bool isVisibleToClient);
+
+    /// <summary>
     /// Notify user when they are added to a workspace.
     /// Sends invitation/welcome notification.
     /// </summary>
