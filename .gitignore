@@ -490,3 +490,4 @@ rustfs-data
 .github/log.md
 .github/tasks.md
 .github/instructions/tasksync.instructions.md
+db/schema.sql
