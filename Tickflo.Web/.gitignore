@@ -1,0 +1,6 @@
+bin/
+minio-data/
+node_modules/
+obj/
+wwwroot/css/dist.css
+.env

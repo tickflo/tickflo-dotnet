@@ -4,7 +4,7 @@
 
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17.2-336791?logo=postgresql)](https://www.postgresql.org/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.txt)
+[![License](https://img.shields.io/github/license/tickflo/tickflo)](LICENSE.txt)
 
 Tickflo is a full-featured help desk and ticketing system designed for teams that need isolated workspaces, flexible permissions, and real-time collaboration.
 

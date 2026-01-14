@@ -11,7 +11,6 @@
     <title>@ViewData["Title"] - Tickflo</title>
     <link rel="icon" href="~/img/icon.png" />
     <link rel="stylesheet" href="~/css/dist.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/lib/font-awesome/css/fontawesome.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" asp-append-version="true" />
 </head>
@@ -49,7 +48,9 @@
                         <span class="badge badge-xs badge-primary rounded-full absolute -top-1 -right-1">•</span>
                     </a>
                     <label class="btn btn-soft btn-sm rounded-full gap-2">
-                        <input type="checkbox" class="toggle theme-controller" value="dark" checked="@(theme == "dark" ? "checked" : null)" onchange="setThemeCookie(this.checked ? 'dark' : 'light')" />
+                        <input type="checkbox" class="toggle theme-controller" value="dark"
+                            checked="@(theme == "dark" ? "checked" : null)"
+                            onchange="setThemeCookie(this.checked ? 'dark' : 'light')" />
                         <span class="text-sm font-medium">@(theme == "dark" ? "Dark" : "Light")</span>
                     </label>
                     @await Html.PartialAsync("_UserMenu")
@@ -69,7 +70,9 @@
             document.cookie = `theme=${value}; path=/; expires=${expires.toUTCString()}`;
         }
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js" integrity="sha512-7rhBJh1om/W5Ztx7WiYOR9h2wlSaTmPyQMoHFtbT/FVNIA12y6S6I8HY9mrBS1uJ3dSU/R3qaSAXsGYuRjMDxg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"
+        integrity="sha512-7rhBJh1om/W5Ztx7WiYOR9h2wlSaTmPyQMoHFtbT/FVNIA12y6S6I8HY9mrBS1uJ3dSU/R3qaSAXsGYuRjMDxg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 

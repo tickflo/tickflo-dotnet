@@ -1,7 +1,7 @@
 services:
   db:
     image: "postgres:17.2-bookworm"
-    restart: always
+    restart: unless-stopped
     ports:
       - "5432:5432"
     environment:
@@ -10,12 +10,24 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
   s3:
     image: "rustfs/rustfs:latest"
-    restart: always
+    restart: unless-stopped
     ports:
       - "9000:9000"
       - "9001:9001"
     environment:
-      RUSTFS_ACCESS_KEY: GfNXQtK2aJgjhlm9ECZd
-      RUSTFS_SECRET_KEY: Q1hSZ0kGCTnoumwWx7yEcfaYqjJ6d289v5VXglKt
+      RUSTFS_ACCESS_KEY: tickflo
+      RUSTFS_SECRET_KEY: password
     volumes:
       - "./rustfs-data:/data"
+  web:
+    build:
+      context: .
+      dockerfile: docker/web/Dockerfile
+    env_file:
+      - Tickflo.Web/.env
+    restart: unless-stopped
+    depends_on:
+      - db
+      - s3
+    ports:
+      - "8080:8080"
