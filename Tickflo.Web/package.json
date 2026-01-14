@@ -5,7 +5,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tailwindcss -i ./wwwroot/css/site.css -o ./wwwroot/css/dist.css",
+    "build": "tailwindcss --bundle --minify -i ./wwwroot/css/site.css -o ./wwwroot/css/dist.css",
     "dev": "tailwindcss -i ./wwwroot/css/site.css -o ./wwwroot/css/dist.css --watch",
     "format": "biome check --write",
     "test": "echo \"Error: no test specified\" && exit 1"
