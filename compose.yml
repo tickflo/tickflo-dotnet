@@ -1,6 +1,6 @@
 services:
   db:
-    image: "postgres:17.2-bookworm"
+    image: "postgres:18.1-bookworm"
     restart: unless-stopped
     ports:
       - "5432:5432"
@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
   s3:
-    image: "rustfs/rustfs:latest"
+    image: "rustfs/rustfs:1.0.0-alpha.79"
     restart: unless-stopped
     ports:
       - "9000:9000"

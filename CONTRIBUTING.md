@@ -183,7 +183,7 @@ What actually happens
 
 **Environment**
 - OS: [e.g., Windows 11]
-- .NET Version: [e.g., 8.0.1]
+- .NET Version: [e.g., 10.0.2]
 - Browser: [if applicable]
 
 **Screenshots**

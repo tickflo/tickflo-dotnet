@@ -1,5 +1,5 @@
-ARG SDK_IMAGE=mcr.microsoft.com/dotnet/sdk:8.0-alpine3.23
-ARG RUNTIME_IMAGE=mcr.microsoft.com/dotnet/aspnet:8.0-alpine3.23
+ARG SDK_IMAGE=mcr.microsoft.com/dotnet/sdk:10.0-alpine3.23
+ARG RUNTIME_IMAGE=mcr.microsoft.com/dotnet/aspnet:10.0-alpine3.23
 ARG NODE_IMAGE=node:24-alpine3.23
 
 # Build the frontend assets
@@ -29,7 +29,7 @@ COPY Tickflo.Core/Tickflo.Core.csproj ./Tickflo.Core/
 COPY Tickflo.Web/Tickflo.Web.csproj ./Tickflo.Web/
 
 RUN --mount=type=cache,target=/root/.nuget/packages,sharing=locked \
-    dotnet restore Tickflo.Web/Tickflo.Web.csproj
+    dotnet restore --locked-mode Tickflo.Web/Tickflo.Web.csproj
 
 COPY Tickflo.Core/. ./Tickflo.Core/
 COPY Tickflo.Web/. ./Tickflo.Web/
