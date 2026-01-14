@@ -30,7 +30,7 @@ COPY Tickflo.Core/packages.lock.json ./Tickflo.Core/
 COPY Tickflo.Web/Tickflo.Web.csproj ./Tickflo.Web/
 COPY Tickflo.Web/packages.lock.json ./Tickflo.Web/
 
-RUN --mount=type=cache,target=/root/.nuget/packages,sharing=locked \
+RUN --mount=type=cache,target=/root/.nuget,sharing=locked \
     dotnet restore --locked-mode Tickflo.Web/Tickflo.Web.csproj
 
 COPY Tickflo.Core/. ./Tickflo.Core/
@@ -38,7 +38,7 @@ COPY Tickflo.Web/. ./Tickflo.Web/
 
 WORKDIR /src/Tickflo.Web
 
-RUN --mount=type=cache,target=/root/.nuget/packages,sharing=locked \
+RUN --mount=type=cache,target=/root/.nuget,sharing=locked \
     dotnet publish -c Release --no-restore -o /app/publish
 
 # Create the runtime image
