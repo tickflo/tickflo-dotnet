@@ -32,4 +32,13 @@ public interface IContactRegistrationService
     /// <param name="workspaceId">The workspace context</param>
     /// <param name="contactId">Contact to remove</param>
     Task RemoveContactAsync(int workspaceId, int contactId);
+    
+    /// <summary>
+    /// Generates a portal access token for an existing contact.
+    /// </summary>
+    /// <param name="workspaceId">The workspace context</param>
+    /// <param name="contactId">Contact to generate token for</param>
+    /// <param name="generatedByUserId">User generating the token</param>
+    /// <returns>The updated contact with access token</returns>
+    Task<Contact> GeneratePortalAccessAsync(int workspaceId, int contactId, int generatedByUserId);
 }

@@ -3,85 +3,171 @@
 @{
     ViewData["Title"] = Model.Id == 0 ? "New Contact" : "Edit Contact";
 }
-<div class="flex flex-row gap-4">
-    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
-    <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
-        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = (Model.Id == 0 ? "New Contact" : "Edit Contact"), AllowNewAction = Model.CanCreateContacts, NewActionLabel = "New Contact", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/contacts/0/edit" })
-        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
-            <div class="card-body">
-                <form method="post" class="grid gap-4">
-                    <div class="form-control">
-                        <label class="label"><span class="label-text">Name</span></label>
-                        <input class="input input-bordered validator w-full" asp-for="Name" />
-                        <span class="validator-hint text-xs text-error" asp-validation-for="Name"></span>
-                    </div>
-                    <div class="form-control">
-                        <label class="label"><span class="label-text">Email</span></label>
-                        <input class="input input-bordered validator w-full" asp-for="Email" />
-                        <span class="validator-hint text-xs text-error" asp-validation-for="Email"></span>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="form-control">
-                            <label class="label"><span class="label-text">Phone</span></label>
-                            <input class="input input-bordered w-full" asp-for="Phone" />
-                        </div>
-                        <div class="form-control">
-                            <label class="label"><span class="label-text">Company</span></label>
-                            <input class="input input-bordered w-full" asp-for="Company" />
-                        </div>
-                        <div class="form-control">
-                            <label class="label"><span class="label-text">Title</span></label>
-                            <input class="input input-bordered w-full" asp-for="Title" />
-                        </div>
-                        <div class="form-control">
-                            <label class="label"><span class="label-text">Preferred Channel</span></label>
-                            <select class="select select-bordered w-full" asp-for="PreferredChannel">
-                                <option>Email</option>
-                                <option>Phone</option>
-                                <option>Chat</option>
-                            </select>
-                        </div>
-                        <div class="form-control">
-                            <label class="label"><span class="label-text">Priority</span></label>
-                            <select class="select select-bordered w-full" asp-for="Priority">
-                                @if (ViewData["Priorities"] is IReadOnlyList<Tickflo.Core.Entities.TicketPriority> plist)
-                                {
-                                    foreach (var p in plist)
-                                    {
-                                        if (string.Equals(Model.Priority, p.Name, StringComparison.OrdinalIgnoreCase))
-                                        {
-                                            <option selected>@p.Name</option>
-                                        }
-                                        else
-                                        {
-                                            <option>@p.Name</option>
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    <option>Low</option>
-                                    <option>Normal</option>
-                                    <option>High</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="md:col-span-2 form-control">
-                            <label class="label"><span class="label-text">Tags</span></label>
-                            <input class="input input-bordered w-full" asp-for="Tags" />
-                        </div>
-                        <div class="md:col-span-2 form-control">
-                            <label class="label"><span class="label-text">Notes</span></label>
-                            <textarea class="textarea textarea-bordered w-full" asp-for="Notes"></textarea>
-                        </div>
-                    </div>
-                    <div class="join md:join">
-                        @{ var saveLabel = (Model.Id == 0) ? "Create" : "Update"; }
-                        <button type="submit" class="btn btn-primary join-item btn-sm w-full md:w-auto" @( (Model.Id == 0 ? Model.CanCreateContacts : Model.CanEditContacts) ? "" : "disabled")>@saveLabel</button>
-                        <a class="btn btn-soft join-item btn-sm" href="/workspaces/@Model.WorkspaceSlug/contacts" asp-preserve-query>Cancel</a>
-                    </div>
-                </form>
-            </div>
+
+<div class="flex flex-row gap-6">
+  @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+  <section class="relative overflow-hidden p-6 flex-1 space-y-6 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
+@await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = (Model.Id == 0 ? "New Contact" : "Edit Contact"), AllowNewAction = Model.CanCreateContacts, NewActionLabel = "New Contact", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/contacts/0/edit" })
+
+<div class="space-y-6">
+<!-- Contact Form Card -->
+<div class="card bg-neutral-900/75 backdrop-blur rounded-2xl border border-white/5 shadow-xl">
+  <div class="card-body">
+    <form method="post" class="grid gap-4">
+      <div class="form-control">
+        <label class="label"><span class="label-text">Name</span></label>
+        <input class="input input-bordered validator w-full" asp-for="Name" />
+        <span class="validator-hint text-xs text-error" asp-validation-for="Name"></span>
+      </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text">Email</span></label>
+        <input class="input input-bordered validator w-full" asp-for="Email" />
+        <span class="validator-hint text-xs text-error" asp-validation-for="Email"></span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="form-control">
+          <label class="label"><span class="label-text">Phone</span></label>
+          <input class="input input-bordered w-full" asp-for="Phone" />
         </div>
-    </section>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Company</span></label>
+          <input class="input input-bordered w-full" asp-for="Company" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Title</span></label>
+          <input class="input input-bordered w-full" asp-for="Title" />
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Preferred Channel</span></label>
+          <select class="select select-bordered w-full" asp-for="PreferredChannel">
+            <option>Email</option>
+            <option>Phone</option>
+            <option>Chat</option>
+          </select>
+        </div>
+        <div class="form-control">
+          <label class="label"><span class="label-text">Priority</span></label>
+          <select class="select select-bordered w-full" asp-for="Priority">
+            @if (ViewData["Priorities"] is IReadOnlyList<Tickflo.Core.Entities.TicketPriority> plist)
+            {
+              foreach (var p in plist)
+              {
+                if (string.Equals(Model.Priority, p.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                  <option selected>@p.Name</option>
+                }
+                else
+                {
+                  <option>@p.Name</option>
+                }
+              }
+            }
+            else
+            {
+              <option>Low</option>
+              <option>Normal</option>
+              <option>High</option>
+            }
+          </select>
+        </div>
+        <div class="md:col-span-2 form-control">
+          <label class="label"><span class="label-text">Tags</span></label>
+          <input class="input input-bordered w-full" asp-for="Tags" />
+        </div>
+        <div class="md:col-span-2 form-control">
+          <label class="label"><span class="label-text">Notes</span></label>
+          <textarea class="textarea textarea-bordered w-full" asp-for="Notes"></textarea>
+        </div>
+      </div>
+      <div class="join md:join">
+        @{ var saveLabel = (Model.Id == 0) ? "Create" : "Update"; }
+        <button type="submit" class="btn btn-primary join-item btn-sm w-full md:w-auto" @( (Model.Id == 0 ? Model.CanCreateContacts : Model.CanEditContacts) ? "" : "disabled")>@saveLabel</button>
+        <a class="btn btn-soft join-item btn-sm" href="/workspaces/@Model.WorkspaceSlug/contacts" asp-preserve-query>Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Client Portal Access Card (with token) -->
+@if (Model.Id > 0 && !string.IsNullOrEmpty(Model.AccessToken))
+{
+<div class="card bg-neutral-900/75 backdrop-blur rounded-2xl border border-white/5 shadow-xl">
+  <div class="card-body">
+    <h3 class="card-title text-xl mb-4">
+      <i class="fa fa-link mr-2"></i>
+      Client Portal Access
+    </h3>
+    <p class="text-sm text-slate-400 mb-4">
+      Share this secure link with your contact to allow them to view their tickets and create new ones:
+    </p>
+    <div class="form-control">
+      <label class="label"><span class="label-text">Portal URL</span></label>
+      <div class="join w-full">
+        <input type="text" 
+               readonly 
+               value="@Model.PortalUrl" 
+               id="portalUrl"
+               class="input input-bordered join-item flex-1 font-mono text-sm" />
+        <button type="button" 
+                class="btn btn-primary join-item"
+                onclick="copyPortalUrl()">
+          <i class="fa fa-copy mr-2"></i>Copy
+        </button>
+      </div>
+      <label class="label">
+        <span class="label-text-alt text-warning">
+          <i class="fa fa-exclamation-triangle mr-1"></i>
+          Keep this link secure - anyone with this link can access this contact's tickets
+        </span>
+      </label>
+    </div>
+    <div class="mt-4">
+      <a href="@Model.PortalUrl" 
+         target="_blank" 
+         class="btn btn-sm btn-outline">
+        <i class="fa fa-external-link-alt mr-2"></i>Preview Portal
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  function copyPortalUrl() {
+    const input = document.getElementById('portalUrl');
+    input.select();
+    input.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(input.value).then(() => {
+      const btn = event.target.closest('button');
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = '<i class="fa fa-check mr-2"></i>Copied!';
+      setTimeout(() => {
+        btn.innerHTML = originalHtml;
+      }, 2000);
+    });
+  }
+</script>
+}
+
+<!-- Client Portal Access Card (no token) -->
+@if (Model.Id > 0 && string.IsNullOrEmpty(Model.AccessToken))
+{
+<div class="card bg-neutral-900/75 backdrop-blur rounded-2xl border border-white/5 shadow-xl">
+  <div class="card-body">
+    <h3 class="card-title text-xl mb-4">
+      <i class="fa fa-link mr-2"></i>
+      Client Portal Access
+    </h3>
+    <p class="text-sm text-slate-400 mb-4">
+      Generate a secure portal link to allow this contact to view and create tickets.
+    </p>
+    <form method="post" asp-page-handler="GenerateToken">
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="fa fa-plus-circle mr-2"></i>Generate Portal Link
+      </button>
+    </form>
+  </div>
+</div>
+}
+</div>
+  </section>
 </div>

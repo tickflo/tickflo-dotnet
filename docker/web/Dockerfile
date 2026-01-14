@@ -26,7 +26,9 @@ WORKDIR /src
 
 COPY Tickflo.sln ./
 COPY Tickflo.Core/Tickflo.Core.csproj ./Tickflo.Core/
+COPY Tickflo.Core/packages.lock.json ./Tickflo.Core/
 COPY Tickflo.Web/Tickflo.Web.csproj ./Tickflo.Web/
+COPY Tickflo.Web/packages.lock.json ./Tickflo.Web/
 
 RUN --mount=type=cache,target=/root/.nuget/packages,sharing=locked \
     dotnet restore --locked-mode Tickflo.Web/Tickflo.Web.csproj

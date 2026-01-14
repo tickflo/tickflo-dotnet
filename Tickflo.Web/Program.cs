@@ -56,6 +56,7 @@ builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IReportRunRepository, ReportRunRepository>();
 builder.Services.AddScoped<IContactRepository, ContactRepository>();
 builder.Services.AddScoped<ITicketRepository, TicketRepository>();
+builder.Services.AddScoped<ITicketCommentRepository, TicketCommentRepository>();
 builder.Services.AddScoped<ITicketStatusRepository, TicketStatusRepository>();
 builder.Services.AddScoped<ITicketPriorityRepository, TicketPriorityRepository>();
 builder.Services.AddScoped<ITicketTypeRepository, TicketTypeRepository>();
@@ -81,6 +82,7 @@ builder.Services.AddScoped<IWorkspaceAccessService, WorkspaceAccessService>();
 builder.Services.AddScoped<IRoleManagementService, RoleManagementService>();
 builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
 builder.Services.AddScoped<INotificationPreferenceService, NotificationPreferenceService>();
+builder.Services.AddScoped<IAccessTokenService, AccessTokenService>();
 
 // Phase 1: Critical business logic services (Dashboard, Tickets)
 builder.Services.AddScoped<IDashboardService, DashboardService>();
@@ -115,6 +117,7 @@ builder.Services.AddScoped<IWorkspaceTeamsEditViewService, WorkspaceTeamsEditVie
     builder.Services.AddScoped<IWorkspaceUsersInviteViewService, WorkspaceUsersInviteViewService>();
     builder.Services.AddScoped<IWorkspaceUsersManageViewService, WorkspaceUsersManageViewService>();
     builder.Services.AddScoped<IWorkspaceTicketsSaveViewService, WorkspaceTicketsSaveViewService>();
+    builder.Services.AddScoped<IClientPortalViewService, ClientPortalViewService>();
 
 // Phase 2 & 3: Domain entity services
 builder.Services.AddScoped<IWorkspaceSettingsService, WorkspaceSettingsService>();
@@ -126,6 +129,7 @@ builder.Services.AddScoped<IInventoryAllocationService, InventoryAllocationServi
 builder.Services.AddScoped<IInventoryAdjustmentService, InventoryAdjustmentService>();
 builder.Services.AddScoped<ILocationSetupService, LocationSetupService>();
 builder.Services.AddScoped<ITicketAssignmentService, TicketAssignmentService>();
+builder.Services.AddScoped<ITicketCommentService, TicketCommentService>();
 builder.Services.AddScoped<ITicketClosingService, TicketClosingService>();
 builder.Services.AddScoped<ITicketCreationService, TicketCreationService>();
 builder.Services.AddScoped<ITicketUpdateService, TicketUpdateService>();

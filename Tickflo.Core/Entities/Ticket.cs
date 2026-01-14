@@ -18,4 +18,7 @@ public class Ticket : IWorkspaceEntity
 
     // Multi-inventory support
     public ICollection<TicketInventory> TicketInventories { get; set; } = new List<TicketInventory>();
+    
+    // Comments
+    public ICollection<TicketComment> Comments { get; set; } = new List<TicketComment>();
 }
