@@ -13,17 +13,20 @@ namespace Tickflo.Web.Pages.Workspaces
     public class InventoryEditModel : WorkspacePageModel
     {
         private readonly IWorkspaceRepository _workspaces;
+        private readonly IUserWorkspaceRepository _userWorkspaceRepo;
         private readonly IWorkspaceInventoryEditViewService _viewService;
         private readonly IInventoryRepository _inventory;
         private readonly IInventoryAllocationService _inventoryAllocationService;
 
         public InventoryEditModel(
             IWorkspaceRepository workspaces, 
+            IUserWorkspaceRepository userWorkspaceRepo,
             IWorkspaceInventoryEditViewService viewService, 
             IInventoryRepository inventory, 
             IInventoryAllocationService inventoryAllocationService)
         {
             _workspaces = workspaces;
+            _userWorkspaceRepo = userWorkspaceRepo;
             _viewService = viewService;
             _inventory = inventory;
             _inventoryAllocationService = inventoryAllocationService;
@@ -43,11 +46,12 @@ namespace Tickflo.Web.Pages.Workspaces
     public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
     {
         WorkspaceSlug = slug;
-        Workspace = await _workspaces.FindBySlugAsync(slug);
-        if (EnsureWorkspaceExistsOrNotFound(Workspace) is IActionResult result) return result;
-
-        var workspaceId = Workspace.Id;
-        if (!TryGetUserId(out var uid)) return Forbid();
+        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaces, _userWorkspaceRepo, slug);
+        if (loadResult is IActionResult actionResult) return actionResult;
+        
+        var (workspace, uid) = (WorkspaceUserLoadResult)loadResult;
+        Workspace = workspace;
+        var workspaceId = workspace.Id;
         
         var viewData = await _viewService.BuildAsync(workspaceId, uid, id);
         CanViewInventory = viewData.CanViewInventory;
@@ -58,18 +62,18 @@ namespace Tickflo.Web.Pages.Workspaces
 
         Item = viewData.ExistingItem ?? new Inventory { WorkspaceId = workspaceId, Status = "active" };
         LocationOptions = viewData.LocationOptions;
-            return Page();
-        }
+        return Page();
+    }
 
-        public async Task<IActionResult> OnPostAsync(string slug, int id = 0)
-        {
-            WorkspaceSlug = slug;
-            Workspace = await _workspaces.FindBySlugAsync(slug);
-            if (EnsureWorkspaceExistsOrNotFound(Workspace) is IActionResult result) return result;
-
-            var workspaceId = Workspace.Id;
-            if (!TryGetUserId(out var uid)) return Forbid();
-            
+    public async Task<IActionResult> OnPostAsync(string slug, int id = 0)
+    {
+        WorkspaceSlug = slug;
+        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaces, _userWorkspaceRepo, slug);
+        if (loadResult is IActionResult actionResult) return actionResult;
+        
+        var (workspace, uid) = (WorkspaceUserLoadResult)loadResult;
+        Workspace = workspace;
+        var workspaceId = workspace.Id;
             var viewData = await _viewService.BuildAsync(workspaceId, uid, id);
             if (EnsureCreateOrEditPermission(id, viewData.CanCreateInventory, viewData.CanEditInventory) is IActionResult permCheck) return permCheck;
 

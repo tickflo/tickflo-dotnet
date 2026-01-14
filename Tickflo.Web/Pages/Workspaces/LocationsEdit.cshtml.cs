@@ -12,6 +12,7 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class LocationsEditModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly ILocationRepository _locationRepo;
     private readonly IWorkspaceLocationsEditViewService _viewService;
     private readonly ILocationSetupService _locationSetupService;
@@ -35,11 +36,13 @@ public class LocationsEditModel : WorkspacePageModel
 
     public LocationsEditModel(
         IWorkspaceRepository workspaceRepo, 
+        IUserWorkspaceRepository userWorkspaceRepo,
         ILocationRepository locationRepo, 
         IWorkspaceLocationsEditViewService viewService, 
         ILocationSetupService locationSetupService)
     {
         _workspaceRepo = workspaceRepo;
+        _userWorkspaceRepo = userWorkspaceRepo;
         _locationRepo = locationRepo;
         _viewService = viewService;
         _locationSetupService = locationSetupService;
@@ -52,7 +55,7 @@ public class LocationsEditModel : WorkspacePageModel
     {
         WorkspaceSlug = slug;
         
-        var result = await LoadWorkspaceAndUserOrExitAsync(_workspaceRepo, slug);
+        var result = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
         if (result is IActionResult actionResult) return actionResult;
         
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
@@ -95,7 +98,7 @@ public class LocationsEditModel : WorkspacePageModel
     {
         WorkspaceSlug = slug;
         
-        var result = await LoadWorkspaceAndUserOrExitAsync(_workspaceRepo, slug);
+        var result = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
         if (result is IActionResult actionResult) return actionResult;
         
         var (workspace, uid) = (WorkspaceUserLoadResult)result;

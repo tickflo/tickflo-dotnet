@@ -13,6 +13,7 @@ namespace Tickflo.Web.Pages.Workspaces;
 public class TeamsModel : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaces;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly ICurrentUserService _currentUserService;
     private readonly IWorkspaceTeamsViewService _viewService;
 
@@ -25,10 +26,12 @@ public class TeamsModel : WorkspacePageModel
 
     public TeamsModel(
         IWorkspaceRepository workspaces,
+        IUserWorkspaceRepository userWorkspaceRepo,
         ICurrentUserService currentUserService,
         IWorkspaceTeamsViewService viewService)
     {
         _workspaces = workspaces;
+        _userWorkspaceRepo = userWorkspaceRepo;
         _currentUserService = currentUserService;
         _viewService = viewService;
     }
@@ -37,7 +40,7 @@ public class TeamsModel : WorkspacePageModel
     {
         WorkspaceSlug = slug;
         
-        var result = await LoadWorkspaceAndUserOrExitAsync(_workspaces, slug);
+        var result = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaces, _userWorkspaceRepo, slug);
         if (result is IActionResult actionResult) return actionResult;
         
         var (workspace, uid) = (WorkspaceUserLoadResult)result;

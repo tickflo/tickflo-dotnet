@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Tickflo.Core/Tickflo.Core.csproj" />
+    <ProjectReference Include="../Tickflo.Web/Tickflo.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>

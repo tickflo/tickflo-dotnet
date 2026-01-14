@@ -58,10 +58,12 @@ public class UsersInviteModel : WorkspacePageModel
     public async Task<IActionResult> OnGetAsync(string slug)
     {
         WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (EnsureWorkspaceExistsOrNotFound(Workspace) is IActionResult result) return result;
+        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
+        if (loadResult is IActionResult actionResult) return actionResult;
+        
+        var (workspace, userId) = (WorkspaceUserLoadResult)loadResult;
+        Workspace = workspace;
 
-        if (!TryGetUserId(out var userId)) return Forbid();
         var viewData = await _viewService.BuildAsync(Workspace.Id, userId);
         if (EnsurePermissionOrForbid(viewData.CanViewUsers && viewData.CanCreateUsers) is IActionResult permCheck) return permCheck;
 
@@ -73,10 +75,12 @@ public class UsersInviteModel : WorkspacePageModel
     public async Task<IActionResult> OnPostAsync(string slug)
     {
         WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
+        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
+        if (loadResult is IActionResult actionResult) return actionResult;
+        
+        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
+        Workspace = workspace;
 
-        if (!TryGetUserId(out var currentUserId)) return Forbid();
         var viewData = await _viewService.BuildAsync(Workspace.Id, currentUserId);
         if (EnsurePermissionOrForbid(viewData.CanViewUsers && viewData.CanCreateUsers) is IActionResult permCheck) return permCheck;
 

@@ -39,21 +39,23 @@ public class UsersModel : WorkspacePageModel
 
     public bool CanCreateUsers { get; private set; }
     public bool CanEditUsers { get; private set; }
-    public async Task OnGetAsync(string slug)
+    
+    public async Task<IActionResult> OnGetAsync(string slug)
     {
         WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace != null)
-        {
-            if (TryGetUserId(out var uid))
-            {
-                var viewData = await _viewService.BuildAsync(Workspace.Id, uid);
-                IsWorkspaceAdmin = viewData.IsWorkspaceAdmin;
-                CanCreateUsers = viewData.CanCreateUsers;
-                CanEditUsers = viewData.CanEditUsers;
-                PendingInvites = viewData.PendingInvites;
-            }
-        }
+        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
+        if (loadResult is IActionResult actionResult) return actionResult;
+        
+        var (workspace, uid) = (WorkspaceUserLoadResult)loadResult;
+        Workspace = workspace;
+
+        var viewData = await _viewService.BuildAsync(Workspace.Id, uid);
+        IsWorkspaceAdmin = viewData.IsWorkspaceAdmin;
+        CanCreateUsers = viewData.CanCreateUsers;
+        CanEditUsers = viewData.CanEditUsers;
+        PendingInvites = viewData.PendingInvites;
+
+        return Page();
     }
 
     public List<InviteView> PendingInvites { get; set; } = new();
@@ -62,9 +64,11 @@ public class UsersModel : WorkspacePageModel
     public async Task<IActionResult> OnPostAcceptAsync(string slug, int userId)
     {
         WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (EnsureWorkspaceExistsOrNotFound(Workspace) is IActionResult result) return result;
-        if (!TryGetUserId(out var currentUserId)) return Forbid();
+        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
+        if (loadResult is IActionResult actionResult) return actionResult;
+        
+        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
+        Workspace = workspace;
         
         var viewData = await _manageViewService.BuildAsync(Workspace.Id, currentUserId);
         if (EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck) return permCheck;
