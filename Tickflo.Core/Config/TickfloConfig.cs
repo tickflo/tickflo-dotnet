@@ -6,6 +6,7 @@ public class TickfloConfig
     public string POSTGRES_PASSWORD { get; set; } = string.Empty;
     public string POSTGRES_DB { get; set; } = string.Empty;
     public string POSTGRES_HOST { get; set; } = string.Empty;
+    public string BASE_URL { get; set; } = "https://app.tickflo.co";
     public string S3_ENDPOINT { get; set; } = string.Empty;
     public string S3_ACCESS_KEY { get; set; } = string.Empty;
     public string S3_SECRET_KEY { get; set; } = string.Empty;

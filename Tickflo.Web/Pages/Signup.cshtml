@@ -1,5 +1,6 @@
 @page
 @model SignupModel
+@inject Tickflo.Core.Config.TickfloConfig Config
 @{
     ViewData["Title"] = "Sign Up";
 }
@@ -74,6 +75,8 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
+        const baseUrl = '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(Config.BASE_URL))';
+        
         function slugify(text) {
             return text
                 .toLowerCase()
@@ -92,7 +95,7 @@
                 const slug = slugify(workspaceName);
                 slugPreview.style.display = 'block';
                 if (slug) {
-                    slugPreview.textContent = `https://app.tickflo.co/${slug}`;
+                    slugPreview.textContent = `${baseUrl}/${slug}`;
                 } else {
                     slugPreview.textContent = 'Invalid workspace name - only letters, numbers, spaces, and hyphens allowed';
                     slugPreview.className = 'text-warning';
