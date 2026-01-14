@@ -17,5 +17,5 @@ public class Contact
     public int? AssignedUserId { get; set; }
     public DateTime? LastInteraction { get; set; }
     public string? AccessToken { get; set; } // For client portal access
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; }
 }

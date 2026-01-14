@@ -45,6 +45,19 @@ public interface ITicketCommentService
     Task<TicketComment> UpdateCommentAsync(int workspaceId, int commentId, string content, int updatedByUserId, CancellationToken ct = default);
     
     /// <summary>
+    /// Creates a new comment on a ticket from a client with specified visibility.
+    /// Automatically marks the comment as visible to client since it's submitted by the client.
+    /// </summary>
+    /// <param name="workspaceId">The workspace ID for scoping</param>
+    /// <param name="ticketId">The ticket ID to add the comment to</param>
+    /// <param name="contactId">The contact ID of the client creating the comment</param>
+    /// <param name="content">The comment text (must be non-empty)</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>The newly created comment with assigned ID and timestamps</returns>
+    /// <exception cref="InvalidOperationException">Thrown if content is empty or null</exception>
+    Task<TicketComment> AddClientCommentAsync(int workspaceId, int ticketId, int contactId, string content, CancellationToken ct = default);
+    
+    /// <summary>
     /// Deletes a comment from a ticket. This is a hard delete operation.
     /// </summary>
     /// <param name="workspaceId">The workspace ID for scoping and security</param>

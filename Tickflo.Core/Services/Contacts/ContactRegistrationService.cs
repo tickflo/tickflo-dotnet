@@ -120,6 +120,24 @@ public class ContactRegistrationService : IContactRegistrationService
         
         await _contactRepo.DeleteAsync(workspaceId, contactId);
     }
+    
+    /// <summary>
+    /// Generates a portal access token for an existing contact if one doesn't exist.
+    /// </summary>
+    public async Task<Contact> GeneratePortalAccessAsync(int workspaceId, int contactId, int generatedByUserId)
+    {
+        var contact = await _contactRepo.FindAsync(workspaceId, contactId);
+        if (contact == null)
+            throw new InvalidOperationException("Contact not found");
+        
+        if (string.IsNullOrEmpty(contact.AccessToken))
+        {
+            contact.AccessToken = _tokenService.GenerateToken();
+            await _contactRepo.UpdateAsync(contact);
+        }
+        
+        return contact;
+    }
 
     private static bool IsValidEmail(string email)
     {

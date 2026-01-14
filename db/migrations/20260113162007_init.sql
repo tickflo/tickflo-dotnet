@@ -1,4 +1,4 @@
-\restrict VM2MG3Kr99CXcekhrmDKzDE4bKdDQLqRoxgKHrdxdz1X6Tqe6RKtJz6oEq7nnhs
+\restrict PQthqYn7Au4hVPxmU6G4vRQLoucMFBgSS571Wf2yTX7Rh63uQCSAipOnbz20PNo
 
 -- Dumped from database version 17.2 (Debian 17.2-1.pgdg120+1)
 -- Dumped by pg_dump version 18.1
@@ -516,7 +516,8 @@ CREATE TABLE public.ticket_comments (
     is_visible_to_client boolean DEFAULT false NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone,
-    updated_by_user_id integer
+    updated_by_user_id integer,
+    created_by_contact_id integer
 );
 
 
@@ -1255,6 +1256,13 @@ CREATE INDEX idx_priorities_ws_order_name ON public.priorities USING btree (work
 
 
 --
+-- Name: idx_ticket_comments_contact_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ticket_comments_contact_id ON public.ticket_comments USING btree (created_by_contact_id);
+
+
+--
 -- Name: idx_ticket_comments_created_by; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1486,6 +1494,14 @@ ALTER TABLE ONLY public.emails
 
 ALTER TABLE ONLY public.emails
     ADD CONSTRAINT emails_updated_by_users_id_fk FOREIGN KEY (updated_by) REFERENCES public.users(id);
+
+
+--
+-- Name: ticket_comments fk_ticket_comments_contact; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_comments
+    ADD CONSTRAINT fk_ticket_comments_contact FOREIGN KEY (created_by_contact_id) REFERENCES public.contacts(id) ON DELETE SET NULL;
 
 
 --
@@ -1868,7 +1884,7 @@ ALTER TABLE ONLY public.workspaces
 -- PostgreSQL database dump complete
 --
 
-\unrestrict VM2MG3Kr99CXcekhrmDKzDE4bKdDQLqRoxgKHrdxdz1X6Tqe6RKtJz6oEq7nnhs
+\unrestrict PQthqYn7Au4hVPxmU6G4vRQLoucMFBgSS571Wf2yTX7Rh63uQCSAipOnbz20PNo
 
 DO $$
 DECLARE
@@ -1896,4 +1912,5 @@ BEGIN
 INSERT INTO public.schema_migrations (version) VALUES
     ('20250113'),
     ('20250822124430'),
-    ('20250823');
+    ('20250823'),
+    ('20260113');

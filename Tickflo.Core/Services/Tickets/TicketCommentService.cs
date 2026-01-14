@@ -57,6 +57,36 @@ public class TicketCommentService(ITicketCommentRepository commentRepo) : ITicke
     }
 
     /// <summary>
+    /// Creates a new comment from a client on a ticket.
+    /// Automatically marks as visible to client and records the contact ID.
+    /// </summary>
+    public async Task<TicketComment> AddClientCommentAsync(int workspaceId, int ticketId, int contactId, string content, CancellationToken ct = default)
+    {
+        // Business rule: All identifiers must be positive
+        ValidateIdentifiers(workspaceId, ticketId);
+        if (contactId <= 0)
+            throw new InvalidOperationException("Invalid contact ID for comment creator");
+
+        // Business rule: Comment content is required and must be non-empty
+        if (string.IsNullOrWhiteSpace(content))
+            throw new InvalidOperationException("Comment content cannot be empty");
+
+        // Use a system user ID (1) for client comments, track actual contact via CreatedByContactId
+        var comment = new TicketComment
+        {
+            WorkspaceId = workspaceId,
+            TicketId = ticketId,
+            CreatedByUserId = 1, // System user ID for client portal
+            CreatedByContactId = contactId, // Track actual client
+            Content = content.Trim(),
+            IsVisibleToClient = true, // Client comments are always visible to client
+            CreatedAt = DateTime.UtcNow
+        };
+
+        return await commentRepo.CreateAsync(comment, ct);
+    }
+
+    /// <summary>
     /// Updates comment content with new audit trail metadata.
     /// </summary>
     public async Task<TicketComment> UpdateCommentAsync(int workspaceId, int commentId, string content, int updatedByUserId, CancellationToken ct = default)

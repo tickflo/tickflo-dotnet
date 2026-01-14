@@ -27,6 +27,12 @@ public class TicketComment
     public int CreatedByUserId { get; set; }
 
     /// <summary>
+    /// The contact ID if this comment was created by a client (null if created by staff).
+    /// Used to identify client-submitted comments in the portal.
+    /// </summary>
+    public int? CreatedByContactId { get; set; }
+
+    /// <summary>
     /// The comment text content.
     /// </summary>
     public string Content { get; set; } = string.Empty;
