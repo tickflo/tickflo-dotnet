@@ -2,17 +2,44 @@ name: Build & Deploy (Docker)
 
 on:
   push:
-    branches: [master]
+    branches: [master, dev]
   pull_request:
-    branches: [master]
+    branches: [master, dev]
 
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository }}
-  CONTAINER_NAME: tickflo-web
 
 jobs:
-  deploy:
+  build-only:
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/web/Dockerfile
+          target: runtime
+          push: false
+          tags: ${{ env.IMAGE_NAME }}:pr-${{ github.event.pull_request.number }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-stage:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    env:
+      CONTAINER_NAME: tickflo-web-stage
     permissions:
       contents: read
       packages: write
@@ -31,21 +58,94 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build only
+      - name: Build and push stage image
         uses: docker/build-push-action@v5
-        if: github.ref != 'refs/heads/master'
         with:
           context: .
           file: docker/web/Dockerfile
           target: runtime
-          push: false
-          tags: ${{ env.IMAGE_NAME }}:pr-${{ github.sha }}
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:stage
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Get service key
+        id: service-key
+        run: |
+          echo secret=$(echo ${{ secrets.TWINGATE_SERVICE_KEY }} | base64 --decode) >> $GITHUB_OUTPUT
+
+      - name: Connect to Twingate
+        uses: twingate/github-action@v1
+        with:
+          service-key: ${{ steps.service-key.outputs.secret }}
+
+      - name: Install DBMate
+        run: |
+          sudo curl -fsSL -o /usr/local/bin/dbmate https://github.com/amacneil/dbmate/releases/download/v2.29.3/dbmate-linux-amd64
+          sudo chmod +x /usr/local/bin/dbmate
+
+      - name: Migrate database
+        run: |
+          dbmate --url "${{ secrets.DATABASE_URL_STAGE }}" --no-dump-schema migrate
+
+      - name: Deploy web application
+        uses: appleboy/ssh-action@v1.2.4
+        with:
+          host: ${{ secrets.DEPLOY_IP_STAGE }}
+          username: ${{ secrets.DEPLOY_USER_STAGE }}
+          key: ${{ secrets.DEPLOY_SSH_KEY_STAGE }}
+          script: |
+            set -e
+
+            docker pull ${{ env.IMAGE_NAME }}:stage
+            docker stop ${{ env.CONTAINER_NAME }} || true
+            docker rm ${{ env.CONTAINER_NAME }} || true
+
+            docker run -d \
+              --name ${{ env.CONTAINER_NAME }} \
+              --restart unless-stopped \
+              --network ubuntu \
+              -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST_STAGE }} \
+              -e POSTGRES_USER=${{ secrets.POSTGRES_USER_STAGE }} \
+              -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD_STAGE }} \
+              -e POSTGRES_DB=${{ secrets.POSTGRES_DB_STAGE }} \
+              -e BASE_URL=https://stage.tickflo.co \
+              -e S3_ENDPOINT=https://storage.tickflo.co \
+              -e S3_ACCESS_KEY=${{ secrets.S3_ACCESS_KEY_STAGE }} \
+              -e S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY_STAGE }} \
+              -e S3_BUCKET=tickflo-stage \
+              -e S3_REGION=us-east-1 \
+              ${{ env.IMAGE_NAME }}:stage
+
+            docker image prune -f
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    env:
+      CONTAINER_NAME: tickflo-web
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and push production image
         uses: docker/build-push-action@v5
-        if: github.ref == 'refs/heads/master'
         with:
           context: .
           file: docker/web/Dockerfile
@@ -56,3 +156,54 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Get service key
+        id: service-key
+        run: |
+          echo secret=$(echo ${{ secrets.TWINGATE_SERVICE_KEY }} | base64 --decode) >> $GITHUB_OUTPUT
+
+      - name: Connect to Twingate
+        uses: twingate/github-action@v1
+        with:
+          service-key: ${{ steps.service-key.outputs.secret }}
+
+      - name: Install DBMate
+        run: |
+          sudo curl -fsSL -o /usr/local/bin/dbmate https://github.com/amacneil/dbmate/releases/download/v2.29.3/dbmate-linux-amd64
+          sudo chmod +x /usr/local/bin/dbmate
+
+      - name: Migrate database
+        run: |
+          dbmate --url "${{ secrets.DATABASE_URL_PROD }}" --no-dump-schema migrate
+
+      - name: Deploy web application
+        uses: appleboy/ssh-action@v1.2.4
+        with:
+          host: ${{ secrets.DEPLOY_IP_PROD }}
+          username: ${{ secrets.DEPLOY_USER_PROD }}
+          key: ${{ secrets.DEPLOY_SSH_KEY_PROD }}
+          script: |
+            set -e
+
+            docker pull ${{ env.IMAGE_NAME }}:latest
+
+            docker stop ${{ env.CONTAINER_NAME }} || true
+            docker rm ${{ env.CONTAINER_NAME }} || true
+
+            docker run -d \
+              --name ${{ env.CONTAINER_NAME }} \
+              --restart unless-stopped \
+              --network ubuntu \
+              -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST_PROD }} \
+              -e POSTGRES_USER=${{ secrets.POSTGRES_USER_PROD }} \
+              -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD_PROD }} \
+              -e POSTGRES_DB=${{ secrets.POSTGRES_DB_PROD }} \
+              -e BASE_URL=https://app.tickflo.co \
+              -e S3_ENDPOINT=https://storage.tickflo.co \
+              -e S3_ACCESS_KEY=${{ secrets.S3_ACCESS_KEY_PROD }} \
+              -e S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY_PROD }} \
+              -e S3_BUCKET=tickflo \
+              -e S3_REGION=us-east-1 \
+              ${{ env.IMAGE_NAME }}:latest
+
+            docker image prune -f
