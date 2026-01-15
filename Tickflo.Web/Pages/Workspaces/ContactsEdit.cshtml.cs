@@ -33,11 +33,6 @@ public class ContactsEditModel : WorkspacePageModel
     [BindProperty] public string? Tags { get; set; }
     [BindProperty] public string? PreferredChannel { get; set; }
     [BindProperty] public string? Priority { get; set; }
-    
-    public string? AccessToken { get; private set; }
-    public string PortalUrl => !string.IsNullOrEmpty(AccessToken) 
-        ? $"{Request.Scheme}://{Request.Host}/portal/{AccessToken}" 
-        : string.Empty;
 
     public ContactsEditModel(
         IWorkspaceRepository workspaceRepo, 
@@ -83,11 +78,9 @@ public class ContactsEditModel : WorkspacePageModel
             Tags = viewData.ExistingContact.Tags;
             PreferredChannel = viewData.ExistingContact.PreferredChannel;
             Priority = viewData.ExistingContact.Priority;
-            AccessToken = viewData.ExistingContact.AccessToken;
         }
         else
         {
-            // defaults for new contact
             Name = string.Empty;
             Email = string.Empty;
             Phone = null;
@@ -137,7 +130,6 @@ public class ContactsEditModel : WorkspacePageModel
         {
             if (id == 0)
             {
-                // Use behavior-focused service for registration
                 var created = await _contactRegistrationService.RegisterContactAsync(workspaceId, new ContactRegistrationRequest
                 {
                     Name = nameTrim,
@@ -147,7 +139,6 @@ public class ContactsEditModel : WorkspacePageModel
                     Notes = notesTrim
                 }, uid);
                 
-                // Set additional fields not covered by core registration
                 created.Title = titleTrim;
                 created.Tags = tagsTrim;
                 created.PreferredChannel = channelTrim;
@@ -158,7 +149,6 @@ public class ContactsEditModel : WorkspacePageModel
             }
             else
             {
-                // Use behavior-focused service for updates
                 var updated = await _contactRegistrationService.UpdateContactInformationAsync(workspaceId, id, new ContactUpdateRequest
                 {
                     Name = nameTrim,
@@ -168,7 +158,6 @@ public class ContactsEditModel : WorkspacePageModel
                     Notes = notesTrim
                 }, uid);
                 
-                // Update additional fields not covered by core update
                 updated.Title = titleTrim;
                 updated.Tags = tagsTrim;
                 updated.PreferredChannel = channelTrim;
@@ -189,47 +178,5 @@ public class ContactsEditModel : WorkspacePageModel
         var queryQ = Request.Query["Query"].ToString();
         var pageQ = Request.Query["PageNumber"].ToString();
         return RedirectToPage("/Workspaces/Contacts", new { slug, Priority = priorityQ, Query = queryQ, PageNumber = pageQ });
-    }
-    
-    public async Task<IActionResult> OnPostGenerateTokenAsync(string slug, int id)
-    {
-        WorkspaceSlug = slug;
-        Id = id;
-        
-        if (id == 0)
-        {
-            SetErrorMessage("Cannot generate portal access for unsaved contact.");
-            return RedirectToPage(new { slug, id });
-        }
-        
-        var result = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
-        if (result is IActionResult actionResult) return actionResult;
-        
-        var (workspace, uid) = (WorkspaceUserLoadResult)result;
-        Workspace = workspace;
-        var workspaceId = workspace.Id;
-        
-        var viewData = await _viewService.BuildAsync(workspaceId, uid, id);
-        if (!viewData.CanEditContacts)
-        {
-            SetErrorMessage("You don't have permission to generate portal access.");
-            return RedirectToPage(new { slug, id });
-        }
-        
-        var contact = await _contactRepo.FindAsync(workspaceId, id);
-        if (contact == null)
-        {
-            SetErrorMessage("Contact not found.");
-            return RedirectToPage(new { slug, id });
-        }
-        
-        if (string.IsNullOrEmpty(contact.AccessToken))
-        {
-            // Generate token using the registration service's token generator
-            await _contactRegistrationService.GeneratePortalAccessAsync(workspaceId, id, uid);
-            SetSuccessMessage("Portal access link generated successfully.");
-        }
-        
-        return RedirectToPage(new { slug, id });
     }
 }

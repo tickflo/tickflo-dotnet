@@ -142,8 +142,10 @@ public class WorkspaceDashboardViewService : IWorkspaceDashboardViewService
 
         var statusColor = statusList.GroupBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First().Color, StringComparer.OrdinalIgnoreCase);
+        var statusColorById = statusList.ToDictionary(s => s.Id, s => s.Color);
         var typeColor = typeList.GroupBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First().Color, StringComparer.OrdinalIgnoreCase);
+        var typeColorById = typeList.ToDictionary(t => t.Id, t => t.Color);
 
         var recent = allTickets
             .OrderByDescending(t => t.UpdatedAt ?? t.CreatedAt)
@@ -164,10 +166,14 @@ public class WorkspaceDashboardViewService : IWorkspaceDashboardViewService
         return recent.Select(t => new DashboardTicketListItem(
             t.Id,
             t.Subject,
-            t.Type,
-            t.Status,
-            statusColor.TryGetValue(t.Status, out var c) ? c : "neutral",
-            typeColor.TryGetValue(t.Type, out var tc) ? tc : "neutral",
+            t.TicketTypeId?.ToString() ?? "0",  // Display type ID or placeholder
+            t.StatusId?.ToString() ?? "0",      // Display status ID or placeholder
+            t.StatusId.HasValue && statusColorById.TryGetValue(t.StatusId.Value, out var cById)
+                ? cById
+                : "neutral",
+            t.TicketTypeId.HasValue && typeColorById.TryGetValue(t.TicketTypeId.Value, out var tcById)
+                ? tcById
+                : "neutral",
             t.AssignedUserId,
             t.AssignedUserId.HasValue && assigneeNames.TryGetValue(t.AssignedUserId.Value, out var assigneeName) ? assigneeName : null,
             t.UpdatedAt ?? t.CreatedAt)).ToList();

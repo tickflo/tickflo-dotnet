@@ -74,7 +74,7 @@ This implementation adds a comprehensive comment system to tickets in Tickflo wi
 ## Features
 
 ### Comment Visibility Control
-- **Client Visible**: Comments marked as visible appear in client portal (when client view is implemented)
+- **Client Visible**: Comments marked as visible can be shared with clients
 - **Internal Only**: Comments marked internal only are visible to workspace members only
 
 ### Permissions
@@ -92,7 +92,7 @@ This implementation adds a comprehensive comment system to tickets in Tickflo wi
 1. Navigate to a ticket detail page
 2. Scroll to the Comments section (above Activity History)
 3. Enter comment text in the textarea
-4. Check "Visible to client" if the comment should be visible in the client portal
+4. Check "Visible to client" if the comment should be shared with clients
 5. Click "Post Comment"
 
 ### For Developers

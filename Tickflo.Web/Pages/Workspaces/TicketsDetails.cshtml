@@ -44,31 +44,34 @@
       <!-- Status Badges -->
       <div class="flex flex-wrap gap-2">
         @{
-          var tColor = (Model.Ticket != null && Model.TypeColorByName.TryGetValue(Model.Ticket.Type, out var tc)) ? tc : "neutral";
+          var typeName = Model.Ticket?.TicketTypeId.HasValue == true ? Model.Types.FirstOrDefault(x => x.Id == Model.Ticket.TicketTypeId.Value)?.Name ?? "Unknown" : "Unknown";
+          var tColor = (Model.Ticket != null && Model.TypeColorByName.TryGetValue(typeName, out var tc)) ? tc : "neutral";
           var tIsHex = tColor.StartsWith("#");
           var tCls = tIsHex ? "badge badge-lg" : $"badge badge-lg badge-{tColor}";
           var tStyle = tIsHex ? $"background-color: {tColor}; color: #fff;" : null;
         }
         <span class="@tCls rounded-full font-medium" style="@tStyle">
-          <i class="fa fa-tag mr-1"></i>@Model.Ticket?.Type
+          <i class="fa fa-tag mr-1"></i>@typeName
         </span>
         @{
-          var pColor = (Model.Ticket != null && Model.PriorityColorByName.TryGetValue(Model.Ticket.Priority, out var pc)) ? pc : "neutral";
+          var priorityName = Model.Ticket?.PriorityId.HasValue == true ? Model.Priorities.FirstOrDefault(x => x.Id == Model.Ticket.PriorityId.Value)?.Name ?? "Unknown" : "Unknown";
+          var pColor = (Model.Ticket != null && Model.PriorityColorByName.TryGetValue(priorityName, out var pc)) ? pc : "neutral";
           var pIsHex = pColor.StartsWith("#");
           var pCls = pIsHex ? "badge badge-lg" : $"badge badge-lg badge-{pColor}";
           var pStyle = pIsHex ? $"background-color: {pColor}; color: #fff;" : null;
         }
         <span class="@pCls rounded-full font-medium" style="@pStyle">
-          <i class="fa fa-exclamation-circle mr-1"></i>@Model.Ticket?.Priority
+          <i class="fa fa-exclamation-circle mr-1"></i>@priorityName
         </span>
         @{
-          var sColor = (Model.Ticket != null && Model.StatusColorByName.TryGetValue(Model.Ticket.Status, out var c)) ? c : "neutral";
+          var statusName = Model.Ticket?.StatusId.HasValue == true ? Model.Statuses.FirstOrDefault(x => x.Id == Model.Ticket.StatusId.Value)?.Name ?? "Unknown" : "Unknown";
+          var sColor = (Model.Ticket != null && Model.StatusColorByName.TryGetValue(statusName, out var c)) ? c : "neutral";
           var isHex = sColor.StartsWith("#");
           var sCls = isHex ? "badge badge-lg" : $"badge badge-lg badge-{sColor}";
           var sStyle = isHex ? $"background-color: {sColor}; color: #fff;" : null;
         }
         <span class="@sCls rounded-full font-medium" style="@sStyle">
-          <i class="fa fa-circle mr-1"></i>@Model.Ticket?.Status
+          <i class="fa fa-circle mr-1"></i>@statusName
         </span>
       </div>
       
@@ -220,7 +223,7 @@
                   <select name="EditType" class="select select-bordered w-full bg-neutral-900/70 focus:bg-neutral-900">
                     @foreach (var t in Model.Types)
                     {
-                      if (Model.Ticket!.Type == t.Name) {<option value="@t.Name" selected>@t.Name</option>} else {<option value="@t.Name">@t.Name</option>}
+                      if (Model.Ticket!.TicketTypeId == t.Id) {<option value="@t.Name" selected>@t.Name</option>} else {<option value="@t.Name">@t.Name</option>}
                     }
                   </select>
                 </div>
@@ -233,7 +236,7 @@
                   <select name="EditStatus" class="select select-bordered w-full bg-neutral-900/70 focus:bg-neutral-900">
                     @foreach (var s in Model.Statuses)
                     {
-                      if (Model.Ticket!.Status == s.Name) {<option value="@s.Name" selected>@s.Name</option>} else {<option value="@s.Name">@s.Name</option>}
+                      if (Model.Ticket!.StatusId == s.Id) {<option value="@s.Name" selected>@s.Name</option>} else {<option value="@s.Name">@s.Name</option>}
                     }
                   </select>
                 </div>
@@ -246,7 +249,7 @@
                   <select name="EditPriority" class="select select-bordered w-full bg-neutral-900/70 focus:bg-neutral-900">
                     @foreach (var p in Model.Priorities)
                     {
-                      if (Model.Ticket!.Priority == p.Name) {<option value="@p.Name" selected>@p.Name</option>} else {<option value="@p.Name">@p.Name</option>}
+                      if (Model.Ticket!.PriorityId == p.Id) {<option value="@p.Name" selected>@p.Name</option>} else {<option value="@p.Name">@p.Name</option>}
                     }
                   </select>
                 </div>

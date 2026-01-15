@@ -8,9 +8,10 @@ public class Ticket : IWorkspaceEntity
     public int? LocationId { get; set; }
     public string Subject { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public string Type { get; set; } = "Standard";
-    public string Priority { get; set; } = "Normal";
-    public string Status { get; set; } = "New";
+    // ID-based references (backed by lookup tables)
+    public int? TicketTypeId { get; set; }
+    public int? PriorityId { get; set; }
+    public int? StatusId { get; set; }
     public int? AssignedUserId { get; set; }
     public int? AssignedTeamId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

@@ -64,7 +64,6 @@ public class InventoryModel : WorkspacePageModel
         CanCreateInventory = viewData.CanCreateInventory;
         CanEditInventory = viewData.CanEditInventory;
 
-        // Apply client-side filtering on loaded items
         Items = viewData.Items;
         if (!string.IsNullOrWhiteSpace(Query))
         {

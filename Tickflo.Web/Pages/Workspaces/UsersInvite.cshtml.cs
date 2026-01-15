@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Http;
-// using Tickflo.Core.Data; // removed duplicate using
 using Tickflo.Core.Entities;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
@@ -100,7 +99,6 @@ public class UsersInviteModel : WorkspacePageModel
 
         try
         {
-            // Resolve role IDs if a role name was provided
             List<int>? roleIds = null;
             var selectedRoleName = Role?.Trim();
             if (!string.IsNullOrWhiteSpace(selectedRoleName))
@@ -116,7 +114,6 @@ public class UsersInviteModel : WorkspacePageModel
 
             var result = await _invitationService.InviteUserAsync(ws.Id, Email.Trim(), currentUserId, roleIds);
 
-            // Compose and send email using provided links
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
             var confirmationLink = baseUrl + result.ConfirmationLink;
             var acceptLink = baseUrl + result.AcceptLink;

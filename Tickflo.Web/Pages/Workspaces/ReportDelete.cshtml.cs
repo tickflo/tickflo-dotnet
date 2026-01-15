@@ -38,7 +38,6 @@ public class ReportDeleteModel : WorkspacePageModel
         var data = await _deleteViewService.BuildAsync(ws.Id, uid);
         if (EnsurePermissionOrForbid(data.CanEditReports) is IActionResult permCheck) return permCheck;
 
-        // Attempt legacy file cleanup for older runs (best-effort)
         try
         {
             var runs = await _reportRunRepo.ListForReportAsync(ws.Id, reportId, take: 500000);
@@ -56,7 +55,6 @@ public class ReportDeleteModel : WorkspacePageModel
         }
         catch { /* ignore cleanup errors */ }
 
-        // Delete runs then report
         await _reportRunRepo.DeleteForReportAsync(ws.Id, reportId);
         var ok = await _reportRepo.DeleteAsync(ws.Id, reportId);
         if (ok)

@@ -69,7 +69,6 @@ public class LocationsModel : WorkspacePageModel
 
         if (!_currentUserService.TryGetUserId(User, out var uid)) return Forbid();
 
-        // Enforce edit permission for deletes
         var canDelete = await _workspaceAccessService.CanUserPerformActionAsync(
             Workspace.Id, uid, "locations", "edit");
         if (!canDelete) return Forbid();

@@ -38,7 +38,6 @@ public class ReportsEditModel : WorkspacePageModel
     public bool CanEditReports { get; private set; }
     public bool CanCreateReports { get; private set; }
 
-    // Definition inputs
     [BindProperty]
     public string Source { get; set; } = "tickets";
     [BindProperty]
@@ -46,7 +45,6 @@ public class ReportsEditModel : WorkspacePageModel
     [BindProperty]
     public string? FiltersJson { get; set; }
 
-    // Schedule inputs
     [BindProperty]
     public bool ScheduleEnabled { get; set; }
     [BindProperty]

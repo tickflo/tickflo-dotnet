@@ -10,8 +10,11 @@ public class TicketSearchCriteria
     public int? AssignedToUserId { get; set; }
     public int? AssignedToTeamId { get; set; }
     public string? Status { get; set; }
+    public int? StatusId { get; set; }
     public string? Priority { get; set; }
+    public int? PriorityId { get; set; }
     public string? Type { get; set; }
+    public int? TypeId { get; set; }
     public int? ContactId { get; set; }
     public int? LocationId { get; set; }
     public DateTime? CreatedAfter { get; set; }

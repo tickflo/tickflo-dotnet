@@ -80,7 +80,6 @@ public class TicketsModel : WorkspacePageModel
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
 
-        // Load view data
         var viewData = await _viewService.BuildAsync(Workspace.Id, currentUserId);
         Statuses = viewData.Statuses;
         StatusColorByName = viewData.StatusColorByName;
@@ -96,17 +95,34 @@ public class TicketsModel : WorkspacePageModel
         CanCreateTickets = viewData.CanCreateTickets;
         CanEditTickets = viewData.CanEditTickets;
 
-        // Load and filter tickets
         var all = await _ticketRepo.ListAsync(Workspace.Id);
         var scoped = _filterService.ApplyScopeFilter(all, currentUserId, viewData.TicketViewScope, viewData.UserTeamIds);
+
+        int? typeId = null;
+        if (!string.IsNullOrWhiteSpace(Type))
+        {
+            typeId = TypesList.FirstOrDefault(t => t.Name.Equals(Type.Trim(), StringComparison.OrdinalIgnoreCase))?.Id;
+        }
+
+        int? statusId = null;
+        if (!string.IsNullOrWhiteSpace(Status) && !Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+        {
+            statusId = Statuses.FirstOrDefault(s => s.Name.Equals(Status.Trim(), StringComparison.OrdinalIgnoreCase))?.Id;
+        }
+
+        int? priorityId = null;
+        if (!string.IsNullOrWhiteSpace(Priority))
+        {
+            priorityId = PrioritiesList.FirstOrDefault(p => p.Name.Equals(Priority.Trim(), StringComparison.OrdinalIgnoreCase))?.Id;
+        }
 
         // Apply filters
         var criteria = new TicketFilterCriteria
         {
             Query = Query?.Trim(),
-            Status = Status?.Trim(),
-            Priority = Priority?.Trim(),
-            Type = Type?.Trim(),
+            StatusId = statusId,
+            PriorityId = priorityId,
+            TypeId = typeId,
             AssigneeUserId = AssigneeUserId,
             LocationId = LocationId,
             Mine = Mine,
@@ -117,13 +133,12 @@ public class TicketsModel : WorkspacePageModel
         // Special case: Status == "Open" means non-closed statuses
         if (!string.IsNullOrWhiteSpace(Status) && Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
         {
-            var openStatusNames = Statuses.Where(s => !s.IsClosedState)
-                .Select(s => s.Name)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            filteredList = filteredList.Where(t => openStatusNames.Contains(t.Status)).ToList();
+            var closedIds = Statuses.Where(s => s.IsClosedState)
+                .Select(s => s.Id)
+                .ToHashSet();
+            filteredList = filteredList.Where(t => !t.StatusId.HasValue || !closedIds.Contains(t.StatusId.Value)).ToList();
         }
 
-        // ContactQuery filter (name/email)
         if (!string.IsNullOrWhiteSpace(ContactQuery))
         {
             var cq = ContactQuery.Trim();
@@ -135,7 +150,6 @@ public class TicketsModel : WorkspacePageModel
             ).ToList();
         }
 
-        // Team name filter
         if (!string.IsNullOrWhiteSpace(AssigneeTeamName))
         {
             var team = TeamsById.Values.FirstOrDefault(t => string.Equals(t.Name, AssigneeTeamName.Trim(), StringComparison.OrdinalIgnoreCase));
@@ -149,7 +163,6 @@ public class TicketsModel : WorkspacePageModel
             }
         }
 
-        // Pagination
         MyCount = currentUserId > 0 ? _filterService.CountMyTickets(all, currentUserId) : 0;
         Total = filteredList.Count();
         var size = PageSize <= 0 ? 25 : Math.Min(PageSize, 200);
@@ -174,15 +187,12 @@ public class TicketsModel : WorkspacePageModel
             return NotFound();
         }
 
-        // Track old assignment for notifications
         var oldAssignedUserId = ticket.AssignedUserId;
 
-        // Update assignment
         ticket.AssignedUserId = assignedUserId > 0 ? assignedUserId : null;
         ticket.UpdatedAt = DateTime.UtcNow;
         await _ticketRepo.UpdateAsync(ticket);
 
-        // Send notification if assignment changed
         if (oldAssignedUserId != ticket.AssignedUserId)
         {
             await _notificationTrigger.NotifyTicketAssignmentChangedAsync(

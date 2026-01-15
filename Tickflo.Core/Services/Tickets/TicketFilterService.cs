@@ -20,28 +20,22 @@ public class TicketFilterService : ITicketFilterService
                 (t.Description ?? string.Empty).ToLowerInvariant().Contains(query));
         }
 
-        // Status filter
-        if (!string.IsNullOrWhiteSpace(filter.Status))
+        // Status filter (now by ID)
+        if (filter.StatusId.HasValue)
         {
-            var status = filter.Status.Trim();
-            filtered = filtered.Where(t =>
-                string.Equals(t.Status, status, StringComparison.OrdinalIgnoreCase));
+            filtered = filtered.Where(t => t.StatusId == filter.StatusId.Value);
         }
 
-        // Priority filter
-        if (!string.IsNullOrWhiteSpace(filter.Priority))
+        // Priority filter (now by ID)
+        if (filter.PriorityId.HasValue)
         {
-            var priority = filter.Priority.Trim();
-            filtered = filtered.Where(t =>
-                string.Equals(t.Priority ?? "Normal", priority, StringComparison.OrdinalIgnoreCase));
+            filtered = filtered.Where(t => t.PriorityId == filter.PriorityId.Value);
         }
 
-        // Type filter
-        if (!string.IsNullOrWhiteSpace(filter.Type))
+        // Type filter (now by ID)
+        if (filter.TypeId.HasValue)
         {
-            var type = filter.Type.Trim();
-            filtered = filtered.Where(t =>
-                string.Equals(t.Type, type, StringComparison.OrdinalIgnoreCase));
+            filtered = filtered.Where(t => t.TicketTypeId == filter.TypeId.Value);
         }
 
         // Contact filter

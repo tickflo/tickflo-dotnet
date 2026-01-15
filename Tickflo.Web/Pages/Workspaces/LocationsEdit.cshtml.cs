@@ -117,14 +117,12 @@ public class LocationsEditModel : WorkspacePageModel
         {
             if (LocationId == 0)
             {
-                // Use behavior-focused service for location creation
                 var created = await _locationSetupService.CreateLocationAsync(workspaceId, new LocationCreationRequest
                 {
                     Name = nameTrim,
                     Address = addressTrim
                 }, uid);
                 
-                // Set additional fields not in core service
                 created.DefaultAssigneeUserId = DefaultAssigneeUserId;
                 created.Active = Active;
                 await _locationRepo.UpdateAsync(created);
@@ -133,14 +131,12 @@ public class LocationsEditModel : WorkspacePageModel
             }
             else
             {
-                // Use behavior-focused service for location updates
                 var updated = await _locationSetupService.UpdateLocationDetailsAsync(workspaceId, LocationId, new LocationUpdateRequest
                 {
                     Name = nameTrim,
                     Address = addressTrim
                 }, uid);
                 
-                // Set additional fields
                 updated.DefaultAssigneeUserId = DefaultAssigneeUserId;
                 updated.Active = Active;
                 await _locationRepo.UpdateAsync(updated);
@@ -153,7 +149,6 @@ public class LocationsEditModel : WorkspacePageModel
             SetErrorMessage(ex.Message);
             return Page();
         }
-        // Persist contact assignments
         await _locationRepo.SetContactsAsync(workspaceId, effectiveLocationId, SelectedContactIds ?? new List<int>());
         var queryQ = Request.Query["Query"].ToString();
         var pageQ = Request.Query["PageNumber"].ToString();

@@ -44,9 +44,9 @@ public interface ITicketFilterService
 public class TicketFilterCriteria
 {
     public string? Query { get; set; }
-    public string? Status { get; set; }
-    public string? Priority { get; set; }
-    public string? Type { get; set; }
+    public int? StatusId { get; set; }
+    public int? PriorityId { get; set; }
+    public int? TypeId { get; set; }
     public int? ContactId { get; set; }
     public int? AssigneeUserId { get; set; }
     public string? AssigneeTeamName { get; set; }

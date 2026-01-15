@@ -51,14 +51,16 @@ public class DashboardService : IDashboardService
         var closedNames = new HashSet<string>(
             statuses.Where(s => s.IsClosedState).Select(s => s.Name), 
             StringComparer.OrdinalIgnoreCase);
+        var closedIds = new HashSet<int>(
+            statuses.Where(s => s.IsClosedState).Select(s => s.Id));
         
         var memberships = await _userWorkspaceRepo.FindForWorkspaceAsync(workspaceId);
         
         return new DashboardTicketStats
         {
             TotalTickets = visibleTickets.Count,
-            OpenTickets = visibleTickets.Count(t => !closedNames.Contains(t.Status)),
-            ResolvedTickets = visibleTickets.Count(t => closedNames.Contains(t.Status)),
+            OpenTickets = visibleTickets.Count(t => !(t.StatusId.HasValue && closedIds.Contains(t.StatusId.Value))),
+            ResolvedTickets = visibleTickets.Count(t => t.StatusId.HasValue && closedIds.Contains(t.StatusId.Value)),
             ActiveMembers = memberships.Count(m => m.Accepted)
         };
     }
@@ -77,6 +79,8 @@ public class DashboardService : IDashboardService
         var closedNames = new HashSet<string>(
             statuses.Where(s => s.IsClosedState).Select(s => s.Name), 
             StringComparer.OrdinalIgnoreCase);
+        var closedIds = new HashSet<int>(
+            statuses.Where(s => s.IsClosedState).Select(s => s.Id));
         
         var startDate = DateTime.UtcNow.Date.AddDays(-daysBack + 1);
         var dateWindow = Enumerable.Range(0, daysBack).Select(i => startDate.AddDays(i)).ToList();
@@ -87,7 +91,7 @@ public class DashboardService : IDashboardService
                 Date = d.ToString("MMM dd"),
                 Created = visibleTickets.Count(t => t.CreatedAt.Date == d.Date),
                 Closed = visibleTickets.Count(t => 
-                    closedNames.Contains(t.Status) && 
+                    (t.StatusId.HasValue && closedIds.Contains(t.StatusId.Value)) && 
                     (t.UpdatedAt ?? t.CreatedAt).Date == d.Date)
             })
             .ToList();
@@ -107,9 +111,11 @@ public class DashboardService : IDashboardService
         var closedNames = new HashSet<string>(
             statuses.Where(s => s.IsClosedState).Select(s => s.Name), 
             StringComparer.OrdinalIgnoreCase);
+        var closedIds = new HashSet<int>(
+            statuses.Where(s => s.IsClosedState).Select(s => s.Id));
         
         var closedAssigned = visibleTickets
-            .Where(t => t.AssignedUserId.HasValue && closedNames.Contains(t.Status))
+            .Where(t => t.AssignedUserId.HasValue && (t.StatusId.HasValue && closedIds.Contains(t.StatusId.Value)))
             .GroupBy(t => t.AssignedUserId!.Value)
             .Select(g => new { UserId = g.Key, Count = g.Count() })
             .OrderByDescending(x => x.Count)
@@ -144,9 +150,11 @@ public class DashboardService : IDashboardService
         var closedNames = new HashSet<string>(
             statuses.Where(s => s.IsClosedState).Select(s => s.Name), 
             StringComparer.OrdinalIgnoreCase);
+        var closedIds = new HashSet<int>(
+            statuses.Where(s => s.IsClosedState).Select(s => s.Id));
         
         var closedWithUpdate = visibleTickets
-            .Where(t => closedNames.Contains(t.Status) && t.UpdatedAt.HasValue)
+            .Where(t => (t.StatusId.HasValue && closedIds.Contains(t.StatusId.Value)) && t.UpdatedAt.HasValue)
             .ToList();
         
         if (closedWithUpdate.Count == 0)
@@ -168,22 +176,28 @@ public class DashboardService : IDashboardService
         var visibleTickets = await ApplyTicketScopeFilterAsync(tickets, workspaceId, userId, ticketViewScope, userTeamIds);
         
         var priorities = await _priorityRepo.ListAsync(workspaceId);
-        
-        var priorityCounts = priorities.ToDictionary(
-            p => p.Name,
-            p => visibleTickets.Count(t => (t.Priority ?? "Normal") == p.Name)
-        );
-        
-        // Add any tickets with priorities not in the custom list
+
+        // Count by PriorityId when available, otherwise by name
+        var byId = priorities.ToDictionary(p => p.Id, p => 0);
         foreach (var t in visibleTickets)
         {
-            var p = string.IsNullOrWhiteSpace(t.Priority) ? "Normal" : t.Priority;
-            if (!priorityCounts.ContainsKey(p))
-                priorityCounts[p] = 1;
-            else if (!priorities.Any(x => x.Name == p))
-                priorityCounts[p]++;
+            if (t.PriorityId.HasValue && byId.ContainsKey(t.PriorityId.Value))
+                byId[t.PriorityId.Value]++;
         }
-        
+
+        // Build result keyed by name
+        var priorityCounts = priorities.ToDictionary(
+            p => p.Name,
+            p => byId.TryGetValue(p.Id, out var cnt) ? cnt : 0
+        );
+
+        // Include any tickets without PriorityId by skipping them
+        // (All tickets should have PriorityId now, but handle null case for safety)
+        foreach (var t in visibleTickets.Where(x => !x.PriorityId.HasValue))
+        {
+            // Skip tickets without PriorityId - they should not exist in ID-only model
+        }
+
         return priorityCounts;
     }
 

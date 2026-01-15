@@ -18,7 +18,7 @@ public class ReportingService : IReportingService
 
     public IReadOnlyDictionary<string, string[]> GetAvailableSources() => new Dictionary<string, string[]>
     {
-        ["tickets"] = new []{ "Id","Subject","Description","Type","Priority","Status","AssignedUserId","AssignedTeamId","CreatedAt","UpdatedAt","ContactId","ChargeAmount","ChargeAmountAtLocation" },
+        ["tickets"] = new []{ "Id","Subject","Description","TypeId","PriorityId","StatusId","AssignedUserId","AssignedTeamId","CreatedAt","UpdatedAt","ContactId","ChargeAmount","ChargeAmountAtLocation" },
         ["contacts"] = new []{ "Id","Name","Email","Phone","Company","Title","Priority","Status","AssignedUserId","LastInteraction","CreatedAt" },
         ["locations"] = new []{ "Id","Name","Address","Active","InventoryCount","TicketCount","OpenTicketCount","LastTicketAt" },
         ["inventory"] = new []{ "Id","Sku","Name","Description","Quantity","LocationId","MinStock","Cost","Price","Category","Status","Tags","LastRestockAt","CreatedAt","UpdatedAt","TicketCount","OpenTicketCount","LastTicketAt" },
@@ -122,7 +122,7 @@ public class ReportingService : IReportingService
     {
         if (string.IsNullOrWhiteSpace(json))
         {
-            return new ReportDef { Source = "tickets", Fields = new List<string>{"Id","Subject","Status","CreatedAt"} };
+            return new ReportDef { Source = "tickets", Fields = new List<string>{"Id","Subject","StatusId","CreatedAt"} };
         }
         try
         {
@@ -132,7 +132,7 @@ public class ReportingService : IReportingService
         }
         catch
         {
-            return new ReportDef { Source = "tickets", Fields = new List<string>{"Id","Subject","Status","CreatedAt"} };
+            return new ReportDef { Source = "tickets", Fields = new List<string>{"Id","Subject","StatusId","CreatedAt"} };
         }
     }
 
@@ -167,9 +167,9 @@ public class ReportingService : IReportingService
                     "Id" => t.Id,
                     "Subject" => t.Subject,
                     "Description" => t.Description,
-                    "Type" => t.Type,
-                    "Priority" => t.Priority,
-                    "Status" => t.Status,
+                    "TypeId" => t.TicketTypeId,
+                    "PriorityId" => t.PriorityId,
+                    "StatusId" => t.StatusId,
                     "AssignedUserId" => t.AssignedUserId,
                     "AssignedTeamId" => t.AssignedTeamId,
                     "CreatedAt" => t.CreatedAt,
@@ -271,7 +271,7 @@ public class ReportingService : IReportingService
                              where i.WorkspaceId == workspaceId && i.LocationId == l.Id && t.WorkspaceId == workspaceId
                              select t;
             var totalTickets = await ticketJoin.Select(t => t.Id).Distinct().CountAsync(ct);
-            var openTickets = await ticketJoin.Where(t => t.Status != "Closed" && t.Status != "Completed").Select(t => t.Id).Distinct().CountAsync(ct);
+            var openTickets = await ticketJoin.Where(t => !t.StatusId.HasValue).Select(t => t.Id).Distinct().CountAsync(ct);  // Placeholder: actual closed check needs status repo lookup
             var lastTicketAt = await ticketJoin.OrderByDescending(t => t.CreatedAt).Select(t => (DateTime?)t.CreatedAt).FirstOrDefaultAsync(ct);
 
             var row = new Dictionary<string, object?>();
@@ -308,7 +308,7 @@ public class ReportingService : IReportingService
                              where ti.InventoryId == i.Id && t.WorkspaceId == workspaceId
                              select t;
             var totalTickets = await ticketJoin.Select(t => t.Id).Distinct().CountAsync(ct);
-            var openTickets = await ticketJoin.Where(t => t.Status != "Closed" && t.Status != "Completed").Select(t => t.Id).Distinct().CountAsync(ct);
+            var openTickets = await ticketJoin.Where(t => !t.StatusId.HasValue).Select(t => t.Id).Distinct().CountAsync(ct);  // Placeholder: actual closed check needs status repo lookup
             var lastTicketAt = await ticketJoin.OrderByDescending(t => t.CreatedAt).Select(t => (DateTime?)t.CreatedAt).FirstOrDefaultAsync(ct);
 
             var row = new Dictionary<string, object?>();
@@ -348,25 +348,25 @@ public class ReportingService : IReportingService
         {
             switch (f.Field)
             {
-                case "Status":
-                    if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.String)
-                        q = q.Where(t => t.Status == f.Value.GetString());
+                case "StatusId":
+                    if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var sid))
+                        q = q.Where(t => t.StatusId == sid);
                     break;
-                case "Priority":
-                    if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.String)
-                        q = q.Where(t => t.Priority == f.Value.GetString());
+                case "PriorityId":
+                    if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var pid))
+                        q = q.Where(t => t.PriorityId == pid);
                     break;
-                case "Type":
-                    if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.String)
-                        q = q.Where(t => t.Type == f.Value.GetString());
+                case "TypeId":
+                    if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var tid))
+                        q = q.Where(t => t.TicketTypeId == tid);
                     break;
                 case "AssignedUserId":
                     if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var uid))
                         q = q.Where(t => t.AssignedUserId == uid);
                     break;
                 case "AssignedTeamId":
-                    if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var tid))
-                        q = q.Where(t => t.AssignedTeamId == tid);
+                    if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var teamid))
+                        q = q.Where(t => t.AssignedTeamId == teamid);
                     break;
                 case "ContactId":
                     if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var cid))

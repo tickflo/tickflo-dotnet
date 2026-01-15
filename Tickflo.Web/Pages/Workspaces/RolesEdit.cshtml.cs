@@ -35,7 +35,6 @@ public class RolesEditModel : WorkspacePageModel
         _rolesEditViewService = rolesEditViewService;
     }
 
-    // Security item bindings
     public class SectionPermissionInput
     {
         public string Section { get; set; } = string.Empty;

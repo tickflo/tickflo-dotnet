@@ -279,30 +279,33 @@
                             </div>
                         </td>
                     @{
-                        var tcolor = Model.TypeColorByName.TryGetValue(t.Type, out var tclr) ? tclr : "neutral";
+                        var typeName = t.TicketTypeId.HasValue ? Model.TypesList.FirstOrDefault(x => x.Id == t.TicketTypeId.Value)?.Name ?? "Unknown" : "Unknown";
+                        var tcolor = Model.TypeColorByName.TryGetValue(typeName, out var tclr) ? tclr : "neutral";
                         var tIsHex = tcolor.StartsWith("#");
                         var tCls = tIsHex ? "badge badge-soft rounded-full" : $"badge badge-soft badge-{tcolor} rounded-full";
                         var tStyle = tIsHex ? $"background-color: {tcolor}; color: #fff;" : null;
                     }
                                     <td class="py-3 align-top">
                                         <div class="flex flex-col gap-1">
-                                            <span class="@tCls text-xs" style="@tStyle">@t.Type</span>
+                                            <span class="@tCls text-xs" style="@tStyle">@typeName</span>
                                             @{
-                                                var pcolor = Model.PriorityColorByName.TryGetValue(t.Priority, out var pclr) ? pclr : "neutral";
+                                                var priorityName = t.PriorityId.HasValue ? Model.PrioritiesList.FirstOrDefault(x => x.Id == t.PriorityId.Value)?.Name ?? "Unknown" : "Unknown";
+                                                var pcolor = Model.PriorityColorByName.TryGetValue(priorityName, out var pclr) ? pclr : "neutral";
                                                 var pIsHex = pcolor.StartsWith("#");
                                                 var pCls = pIsHex ? "badge badge-soft rounded-full" : $"badge badge-soft badge-{pcolor} rounded-full";
                                                 var pStyle = pIsHex ? $"background-color: {pcolor}; color: #fff;" : null;
                                             }
-                                            <span class="@pCls text-xs font-semibold" style="@pStyle">@t.Priority</span>
+                                            <span class="@pCls text-xs font-semibold" style="@pStyle">@priorityName</span>
                                         </div>
                                     </td>
                     @{
-                        var color = Model.StatusColorByName.TryGetValue(t.Status, out var col) ? col : "neutral";
+                        var statusName = t.StatusId.HasValue ? Model.Statuses.FirstOrDefault(x => x.Id == t.StatusId.Value)?.Name ?? "Unknown" : "Unknown";
+                        var color = Model.StatusColorByName.TryGetValue(statusName, out var col) ? col : "neutral";
                         var isHex = color.StartsWith("#");
                         var statusCls = isHex ? "badge badge-soft rounded-full" : $"badge badge-soft badge-{color} rounded-full";
                         var statusStyle = isHex ? $"background-color: {color}; color: #fff;" : null;
                     }
-                    <td class="py-3 align-top"><span class="@statusCls text-xs font-semibold" style="@statusStyle">@t.Status</span></td>
+                    <td class="py-3 align-top"><span class="@statusCls text-xs font-semibold" style="@statusStyle">@statusName</span></td>
                                             <td class="py-3 align-top">
                         @if (t.AssignedTeamId.HasValue && Model.TeamsById.TryGetValue(t.AssignedTeamId.Value, out var team))
                         {

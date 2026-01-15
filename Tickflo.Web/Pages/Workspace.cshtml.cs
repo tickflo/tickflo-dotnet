@@ -26,7 +26,6 @@ public class WorkspaceModel : PageModel
     public bool IsMember { get; set; }
     public List<WorkspaceView> Workspaces { get; set; } = new();
 
-    // Dashboard metrics
     public int TotalTickets { get; set; }
     public int OpenTickets { get; set; }
     public int ResolvedTickets { get; set; }
@@ -46,14 +45,11 @@ public class WorkspaceModel : PageModel
     public bool CanViewTickets { get; set; }
     public string TicketViewScope { get; set; } = string.Empty;
 
-    // Priority counts
     public Dictionary<string, int> PriorityCounts { get; set; } = new();
     public List<TicketPriority> PriorityList { get; set; } = new();
 
-    // Activity sparkline data
     public List<ActivityPoint> ActivitySeries { get; set; } = new();
 
-    // Theme/Color properties
     public string DashboardTheme { get; set; } = "light";
     public string PrimaryColor { get; set; } = "primary";
     public string SuccessColor { get; set; } = "success";
@@ -61,7 +57,6 @@ public class WorkspaceModel : PageModel
     public string WarningColor { get; set; } = "warning";
     public string ErrorColor { get; set; } = "error";
     
-    // Custom color support (hex or DaisyUI color names)
     public bool PrimaryIsHex { get; set; }
     public bool SuccessIsHex { get; set; }
     public bool InfoIsHex { get; set; }
@@ -83,7 +78,6 @@ public class WorkspaceModel : PageModel
         _settingsConfig = settingsConfig;
         _currentUserService = currentUserService;
 
-        // Initialize theme from settings
         InitializeTheme();
     }
 
@@ -226,8 +220,6 @@ public class WorkspaceModel : PageModel
         }).ToList();
     }
 
-    // Removed local ticket filtering helpers; now handled by IWorkspaceDashboardViewService
-
     private static string FormatDuration(TimeSpan ts)
     {
         if (ts.TotalDays >= 1)
@@ -238,7 +230,6 @@ public class WorkspaceModel : PageModel
             return $"{(int)ts.TotalMinutes}m";
         return $"{ts.Seconds}s";
 
-    // Close LoadDashboardDataAsync method
     }
     
     public static string HexToRgba(string hex, double opacity)
@@ -249,7 +240,6 @@ public class WorkspaceModel : PageModel
         hex = hex.TrimStart('#');
         if (hex.Length == 3)
         {
-            // Expand shorthand hex (e.g., #abc to #aabbcc)
             hex = $"{hex[0]}{hex[0]}{hex[1]}{hex[1]}{hex[2]}{hex[2]}";
         }
         
@@ -269,7 +259,6 @@ public class WorkspaceModel : PageModel
         }
     }
 
-    // Close LoadDashboardDataAsync method
 }
 
 // Close WorkspaceModel class

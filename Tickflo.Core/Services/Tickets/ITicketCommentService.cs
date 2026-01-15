@@ -26,7 +26,7 @@ public interface ITicketCommentService
     /// <param name="ticketId">The ticket ID to add the comment to</param>
     /// <param name="createdByUserId">The user ID creating the comment (for audit trail)</param>
     /// <param name="content">The comment text (must be non-empty)</param>
-    /// <param name="isVisibleToClient">If true, comment is visible in client portal; if false, internal-only</param>
+    /// <param name="isVisibleToClient">If true, comment is visible to clients; if false, internal-only</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>The newly created comment with assigned ID and timestamps</returns>
     /// <exception cref="InvalidOperationException">Thrown if content is empty or null</exception>

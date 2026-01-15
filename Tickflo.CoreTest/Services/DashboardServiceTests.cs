@@ -36,13 +36,13 @@ public class DashboardServiceTests
 
         ticketRepo.Setup(r => r.ListAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Ticket>
         {
-            new Ticket { Id = 1, WorkspaceId = 1, Status = "Open" },
-            new Ticket { Id = 2, WorkspaceId = 1, Status = "Closed" }
+            new Ticket { Id = 1, WorkspaceId = 1, StatusId = 1 },
+            new Ticket { Id = 2, WorkspaceId = 1, StatusId = 2 }
         });
         statusRepo.Setup(r => r.ListAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(new List<TicketStatus>
         {
-            new TicketStatus { Name = "Open", IsClosedState = false },
-            new TicketStatus { Name = "Closed", IsClosedState = true }
+            new TicketStatus { Id = 1, Name = "Open", IsClosedState = false },
+            new TicketStatus { Id = 2, Name = "Closed", IsClosedState = true }
         });
         uwRepo.Setup(r => r.FindForWorkspaceAsync(1)).ReturnsAsync(new List<UserWorkspace> { new() { Accepted = true } });
 
