@@ -43,10 +43,16 @@ public class WorkspaceTicketDetailsViewServiceTests
         // Setup repositories
         statusRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<TicketStatus>());
+        statusRepo.Setup(r => r.FindByNameAsync(workspaceId, "New"))
+            .ReturnsAsync(new TicketStatus { Id = 1, Name = "New" });
         priorityRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<TicketPriority>());
+        priorityRepo.Setup(r => r.FindAsync(workspaceId, "Normal"))
+            .ReturnsAsync(new TicketPriority { Id = 1, Name = "Normal" });
         typeRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<TicketType>());
+        typeRepo.Setup(r => r.FindByNameAsync(workspaceId, "Standard"))
+            .ReturnsAsync(new TicketType { Id = 1, Name = "Standard" });
 
         contactRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Contact>());
@@ -120,7 +126,7 @@ public class WorkspaceTicketDetailsViewServiceTests
         userWorkspaceRoleRepo.Setup(r => r.IsAdminAsync(userId, workspaceId))
             .ReturnsAsync(false);
 
-        var ticket = new Ticket { Id = ticketId, WorkspaceId = workspaceId, Subject = "Test", Type = "Bug", Status = "Open" };
+        var ticket = new Ticket { Id = ticketId, WorkspaceId = workspaceId, Subject = "Test", TicketTypeId = 1, StatusId = 1 };
         ticketRepo.Setup(r => r.FindAsync(workspaceId, ticketId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ticket);
 

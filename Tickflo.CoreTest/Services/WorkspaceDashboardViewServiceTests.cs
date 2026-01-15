@@ -64,7 +64,7 @@ public class WorkspaceDashboardViewServiceTests
         // Tickets
         ticketRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Ticket>
         {
-            new Ticket { Id = 1, WorkspaceId = workspaceId, Subject = "S", Type = "Bug", Status = "Open", CreatedAt = DateTime.UtcNow }
+            new Ticket { Id = 1, WorkspaceId = workspaceId, Subject = "S", TicketTypeId = 1, StatusId = 1, CreatedAt = DateTime.UtcNow }
         });
 
         // Users/teams

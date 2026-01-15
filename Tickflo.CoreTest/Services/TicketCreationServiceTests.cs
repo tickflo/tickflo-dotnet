@@ -17,7 +17,10 @@ public class TicketCreationServiceTests
         var team = new Mock<ITeamRepository>();
         var location = new Mock<ILocationRepository>();
         location.Setup(r => r.FindAsync(1, 9)).ReturnsAsync(new Location { Id = 9, Active = false });
-        var svc = new TicketCreationService(ticketRepo.Object, history.Object, uw.Object, team.Object, location.Object);
+        var statusRepo = new Mock<ITicketStatusRepository>();
+        var priorityRepo = new Mock<ITicketPriorityRepository>();
+        var typeRepo = new Mock<ITicketTypeRepository>();
+        var svc = new TicketCreationService(ticketRepo.Object, history.Object, uw.Object, team.Object, location.Object, statusRepo.Object, priorityRepo.Object, typeRepo.Object);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateTicketAsync(1, new TicketCreationRequest { Subject = "S", LocationId = 9 }, 3));
     }
@@ -36,7 +39,13 @@ public class TicketCreationServiceTests
         uw.Setup(r => r.FindAsync(It.IsAny<int>(), 1)).ReturnsAsync(new UserWorkspace { WorkspaceId = 1, Accepted = true, UserId = 4 });
         var team = new Mock<ITeamRepository>();
         var location = new Mock<ILocationRepository>();
-        var svc = new TicketCreationService(ticketRepo.Object, history.Object, uw.Object, team.Object, location.Object);
+        var statusRepo = new Mock<ITicketStatusRepository>();
+        statusRepo.Setup(r => r.FindByNameAsync(1, "New")).ReturnsAsync(new TicketStatus { Id = 1, Name = "New" });
+        var priorityRepo = new Mock<ITicketPriorityRepository>();
+        priorityRepo.Setup(r => r.FindAsync(1, "Normal")).ReturnsAsync(new TicketPriority { Id = 1, Name = "Normal" });
+        var typeRepo = new Mock<ITicketTypeRepository>();
+        typeRepo.Setup(r => r.FindByNameAsync(1, "Standard")).ReturnsAsync(new TicketType { Id = 1, Name = "Standard" });
+        var svc = new TicketCreationService(ticketRepo.Object, history.Object, uw.Object, team.Object, location.Object, statusRepo.Object, priorityRepo.Object, typeRepo.Object);
 
         var ticket = await svc.CreateTicketAsync(1, new TicketCreationRequest { Subject = "New" }, 2);
 
