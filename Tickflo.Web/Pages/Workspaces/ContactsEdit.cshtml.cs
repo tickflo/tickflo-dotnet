@@ -81,7 +81,6 @@ public class ContactsEditModel : WorkspacePageModel
         }
         else
         {
-            // defaults for new contact
             Name = string.Empty;
             Email = string.Empty;
             Phone = null;
@@ -131,7 +130,6 @@ public class ContactsEditModel : WorkspacePageModel
         {
             if (id == 0)
             {
-                // Use behavior-focused service for registration
                 var created = await _contactRegistrationService.RegisterContactAsync(workspaceId, new ContactRegistrationRequest
                 {
                     Name = nameTrim,
@@ -141,7 +139,6 @@ public class ContactsEditModel : WorkspacePageModel
                     Notes = notesTrim
                 }, uid);
                 
-                // Set additional fields not covered by core registration
                 created.Title = titleTrim;
                 created.Tags = tagsTrim;
                 created.PreferredChannel = channelTrim;
@@ -152,7 +149,6 @@ public class ContactsEditModel : WorkspacePageModel
             }
             else
             {
-                // Use behavior-focused service for updates
                 var updated = await _contactRegistrationService.UpdateContactInformationAsync(workspaceId, id, new ContactUpdateRequest
                 {
                     Name = nameTrim,
@@ -162,7 +158,6 @@ public class ContactsEditModel : WorkspacePageModel
                     Notes = notesTrim
                 }, uid);
                 
-                // Update additional fields not covered by core update
                 updated.Title = titleTrim;
                 updated.Tags = tagsTrim;
                 updated.PreferredChannel = channelTrim;

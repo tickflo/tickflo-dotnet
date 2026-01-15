@@ -220,8 +220,6 @@ public class WorkspaceModel : PageModel
         }).ToList();
     }
 
-    // Removed local ticket filtering helpers; now handled by IWorkspaceDashboardViewService
-
     private static string FormatDuration(TimeSpan ts)
     {
         if (ts.TotalDays >= 1)
@@ -232,7 +230,6 @@ public class WorkspaceModel : PageModel
             return $"{(int)ts.TotalMinutes}m";
         return $"{ts.Seconds}s";
 
-    // Close LoadDashboardDataAsync method
     }
     
     public static string HexToRgba(string hex, double opacity)
@@ -243,7 +240,6 @@ public class WorkspaceModel : PageModel
         hex = hex.TrimStart('#');
         if (hex.Length == 3)
         {
-            // Expand shorthand hex (e.g., #abc to #aabbcc)
             hex = $"{hex[0]}{hex[0]}{hex[1]}{hex[1]}{hex[2]}{hex[2]}";
         }
         
@@ -263,7 +259,6 @@ public class WorkspaceModel : PageModel
         }
     }
 
-    // Close LoadDashboardDataAsync method
 }
 
 // Close WorkspaceModel class

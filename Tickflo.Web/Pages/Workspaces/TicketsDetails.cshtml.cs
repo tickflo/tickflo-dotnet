@@ -111,7 +111,6 @@ public class TicketsDetailsModel : WorkspacePageModel
     [BindProperty]
     public int? EditContactId { get; set; }
     
-    // Comment properties
     public IReadOnlyList<TicketComment> Comments { get; private set; } = Array.Empty<TicketComment>();
     [BindProperty]
     public string? NewCommentContent { get; set; }
@@ -127,11 +126,9 @@ public class TicketsDetailsModel : WorkspacePageModel
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
 
-        // Load view data - this handles permissions, scope, metadata
         var viewData = await _viewService.BuildAsync(Workspace.Id, id, currentUserId, LocationId);
         if (viewData == null) return Forbid();
 
-        // Populate properties from view data
         Ticket = viewData.Ticket;
         Contact = viewData.Contact;
         Contacts = viewData.Contacts;
@@ -153,7 +150,6 @@ public class TicketsDetailsModel : WorkspacePageModel
         TicketViewScope = viewData.TicketViewScope;
         LocationId = Ticket?.LocationId;
 
-        // Load comments for the ticket if it exists
         if (Ticket != null && Ticket.Id > 0)
         {
             Comments = await _commentService.GetCommentsAsync(Workspace.Id, Ticket.Id, isClientView: false);
@@ -162,7 +158,6 @@ public class TicketsDetailsModel : WorkspacePageModel
         return Page();
     }
 
-    // Add a new comment to the ticket
     public async Task<IActionResult> OnPostAddCommentAsync(string slug, int id, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub)
     {
         WorkspaceSlug = slug;
@@ -172,14 +167,12 @@ public class TicketsDetailsModel : WorkspacePageModel
         var currentUserId = TryGetUserId(out var uid) ? uid : 0;
         if (currentUserId == 0) return Forbid();
 
-        // Validate comment content
         if (string.IsNullOrWhiteSpace(NewCommentContent))
         {
             SetErrorMessage("Comment cannot be empty.");
             return RedirectToPage("/Workspaces/TicketsDetails", new { slug, id });
         }
 
-        // Verify user can edit tickets (permission to add comments)
         var saveViewData = await _savingViewService.BuildAsync(Workspace.Id, uid, false, null);
         if (!saveViewData.CanEditTickets)
         {
@@ -188,7 +181,6 @@ public class TicketsDetailsModel : WorkspacePageModel
 
         try
         {
-            // Add the comment
             var comment = await _commentService.AddCommentAsync(
                 Workspace.Id,
                 id,
@@ -197,11 +189,9 @@ public class TicketsDetailsModel : WorkspacePageModel
                 NewCommentIsVisibleToClient
             );
 
-            // Get ticket for notification
             var ticket = await _ticketRepo.FindAsync(Workspace.Id, id);
             if (ticket != null)
             {
-                // Send notification about new comment
                 await _notificationTrigger.NotifyTicketCommentAddedAsync(
                     Workspace.Id,
                     ticket,
@@ -210,7 +200,6 @@ public class TicketsDetailsModel : WorkspacePageModel
                 );
             }
 
-            // Broadcast comment creation to workspace clients
             var group = Tickflo.Web.Realtime.TicketsHub.WorkspaceGroup(WorkspaceSlug ?? string.Empty);
             
             await hub.Clients.Group(group).SendCoreAsync("commentAdded", new object[] {
@@ -235,8 +224,7 @@ public class TicketsDetailsModel : WorkspacePageModel
         return RedirectToPage("/Workspaces/TicketsDetails", new { slug, id });
     }
 
-    // Consolidated save: updates subject, description, priority, status, and assignment
-        public async Task<IActionResult> OnPostSaveAsync(string slug, int id, int? assignedUserId, int? assignedTeamId, int? locationId, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub)
+    public async Task<IActionResult> OnPostSaveAsync(string slug, int id, int? assignedUserId, int? assignedTeamId, int? locationId, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub)
         {
             // Bind inventory products from JSON
             var inventories = new List<TicketInventory>();
@@ -265,7 +253,6 @@ public class TicketsDetailsModel : WorkspacePageModel
         if (Workspace == null) return NotFound();
         var workspaceId = Workspace.Id;
         int uid = TryGetUserId(out var currentUid) ? currentUid : 0;
-        // Robustly resolve ticket id: route -> form -> query
         int resolvedId = id;
         if (resolvedId <= 0)
         {

@@ -88,7 +88,7 @@ namespace Tickflo.Web.Pages.Workspaces
             {
                 if (id == 0)
                 {
-                    // Use behavior-focused allocation service for registration
+
                     var created = await _inventoryAllocationService.RegisterInventoryItemAsync(workspaceId, new InventoryRegistrationRequest
                     {
                         Sku = Item.Sku?.Trim() ?? string.Empty,
@@ -103,7 +103,6 @@ namespace Tickflo.Web.Pages.Workspaces
                 }
                 else
                 {
-                    // Use behavior-focused service for updates
                     var updated = await _inventoryAllocationService.UpdateInventoryDetailsAsync(workspaceId, id, new InventoryDetailsUpdateRequest
                     {
                         Sku = Item.Sku?.Trim() ?? string.Empty,
@@ -112,8 +111,6 @@ namespace Tickflo.Web.Pages.Workspaces
                         UnitCost = Item.Cost
                     }, uid);
                     
-                    // Handle quantity and location separately (they require different business rules)
-                    // For now, directly update via repository - ideally use InventoryAdjustmentService for quantity
                     updated.Quantity = Item.Quantity;
                     updated.LocationId = Item.LocationId;
                     updated.Status = Item.Status;

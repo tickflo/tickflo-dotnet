@@ -92,33 +92,27 @@ public class SettingsModel : WorkspacePageModel
     [BindProperty]
     public string? NewTypeColor { get; set; }
 
-    // Notification configuration properties
     [BindProperty]
     public bool NotificationsEnabled { get; set; } = true;
     
-    // Email Integration
     [BindProperty]
     public bool EmailIntegrationEnabled { get; set; } = true;
     [BindProperty]
     public string EmailProvider { get; set; } = "smtp";
     
-    // SMS Integration
     [BindProperty]
     public bool SmsIntegrationEnabled { get; set; } = false;
     [BindProperty]
     public string SmsProvider { get; set; } = "none";
     
-    // Push Integration
     [BindProperty]
     public bool PushIntegrationEnabled { get; set; } = false;
     [BindProperty]
     public string PushProvider { get; set; } = "none";
     
-    // In-App (always enabled, no external integration needed)
     [BindProperty]
     public bool InAppNotificationsEnabled { get; set; } = true;
     
-    // Scheduling
     [BindProperty]
     public int BatchNotificationDelay { get; set; } = 30;
     [BindProperty]
@@ -144,7 +138,6 @@ public class SettingsModel : WorkspacePageModel
             await EnsurePermissionsAsync(uid);
             return Page();
         }
-        // Update workspace via service (validates slug uniqueness)
         var name = (Request.Form["Workspace.Name"].ToString() ?? Workspace.Name).Trim();
         var newSlug = (Request.Form["Workspace.Slug"].ToString() ?? Workspace.Slug).Trim();
         try
@@ -163,7 +156,6 @@ public class SettingsModel : WorkspacePageModel
 
     private async Task LoadDataAsync(Workspace workspace)
     {
-        // Use view service to populate lists and defaults
         if (!TryGetUserId(out var uid)) { Statuses = Array.Empty<Tickflo.Core.Entities.TicketStatus>(); Priorities = Array.Empty<Tickflo.Core.Entities.TicketPriority>(); Types = Array.Empty<Tickflo.Core.Entities.TicketType>(); return; }
         await EnsurePermissionsAsync(uid);
     }
@@ -177,7 +169,6 @@ public class SettingsModel : WorkspacePageModel
         if (uid == 0) return Forbid();
         await EnsurePermissionsAsync(uid);
         if (EnsurePermissionOrForbid(CanViewSettings) is IActionResult permCheck) return permCheck;
-        // lists already populated by EnsurePermissionsAsync
         return Page();
     }
 
@@ -382,17 +373,6 @@ public class SettingsModel : WorkspacePageModel
         await EnsurePermissionsAsync(uid);
         if (EnsurePermissionOrForbid(CanEditSettings) is IActionResult permCheck) return permCheck;
         
-        // TODO: Save notification settings to workspace_settings table or workspace metadata
-        // For now, this would just redirect back
-        // In production, you'd store these in a workspace_settings table:
-        // await _workspaceSettingsRepo.SaveAsync(new WorkspaceSettings
-        // {
-        //     WorkspaceId = Workspace.Id,
-        //     NotificationsEnabled = NotificationsEnabled,
-        //     EmailNotificationsEnabled = EmailNotificationsEnabled,
-        //     ...
-        // });
-        
         TempData["NotificationSettingsSaved"] = true;
         return RedirectToPage("/Workspaces/Settings", new { slug });
     }
@@ -413,7 +393,6 @@ public class SettingsModel : WorkspacePageModel
         {
             var form = Request.Form;
 
-            // Workspace identity
             var workspaceName = form["Workspace.Name"].ToString();
             var workspaceSlug = form["Workspace.Slug"].ToString();
 
@@ -441,7 +420,6 @@ public class SettingsModel : WorkspacePageModel
             await _workspaceRepo.UpdateAsync(Workspace);
             changedCount++;
 
-            // Ticket statuses (update/delete)
             var statusMatches = form.Keys
                 .Select(k => Regex.Match(k, @"^statuses\[(\d+)\]\.(.+)$"))
                 .Where(m => m.Success)
@@ -485,7 +463,6 @@ public class SettingsModel : WorkspacePageModel
                 changedCount++;
             }
 
-            // New status
             var newStatusName = (form["NewStatusName"].ToString() ?? string.Empty).Trim();
             var newStatusColor = (form["NewStatusColor"].ToString() ?? "neutral").Trim();
             if (!string.IsNullOrWhiteSpace(newStatusName))
@@ -509,7 +486,6 @@ public class SettingsModel : WorkspacePageModel
                 }
             }
 
-            // Ticket priorities (update/delete)
             var priorityMatches = form.Keys
                 .Select(k => Regex.Match(k, @"^priorities\[(\d+)\]\.(.+)$"))
                 .Where(m => m.Success)
@@ -553,7 +529,6 @@ public class SettingsModel : WorkspacePageModel
                 changedCount++;
             }
 
-            // New priority
             var newPriorityName = (form["NewPriorityName"].ToString() ?? string.Empty).Trim();
             var newPriorityColor = (form["NewPriorityColor"].ToString() ?? "neutral").Trim();
             if (!string.IsNullOrWhiteSpace(newPriorityName))
@@ -577,7 +552,6 @@ public class SettingsModel : WorkspacePageModel
                 }
             }
 
-            // Ticket types (update/delete)
             var typeMatches = form.Keys
                 .Select(k => Regex.Match(k, @"^types\[(\d+)\]\.(.+)$"))
                 .Where(m => m.Success)
@@ -619,7 +593,6 @@ public class SettingsModel : WorkspacePageModel
                 changedCount++;
             }
 
-            // New type
             var newTypeName = (form["NewTypeName"].ToString() ?? string.Empty).Trim();
             var newTypeColor = (form["NewTypeColor"].ToString() ?? "neutral").Trim();
             if (!string.IsNullOrWhiteSpace(newTypeName))
@@ -643,7 +616,6 @@ public class SettingsModel : WorkspacePageModel
                 }
             }
 
-            // Notification settings
             NotificationsEnabled = form["NotificationsEnabled"] == "true" || form["NotificationsEnabled"] == "on";
             EmailIntegrationEnabled = form["EmailIntegrationEnabled"] == "true" || form["EmailIntegrationEnabled"] == "on";
             SmsIntegrationEnabled = form["SmsIntegrationEnabled"] == "true" || form["SmsIntegrationEnabled"] == "on";

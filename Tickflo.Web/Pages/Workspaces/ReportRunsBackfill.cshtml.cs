@@ -54,7 +54,6 @@ public class ReportRunsBackfillModel : WorkspacePageModel
         if (uid == 0) return Forbid();
         var data = await _backfillViewService.BuildAsync(ws.Id, uid);
         if (EnsurePermissionOrForbid(data.CanEditReports) is IActionResult permCheck) return permCheck;
-        // Backfill operation not yet implemented; preserve behavior
         return NotFound();
     }
 }
