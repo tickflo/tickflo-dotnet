@@ -311,7 +311,7 @@
                     <!-- Recent Activity Card -->
                     @if (Model.CanViewTickets)
                     {
-                    <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+                    <div class="card bg-base-100 shadow-sm rounded-3xl">
                             <div class="card-body">
                                 <div class="flex items-center justify-between mb-6">
                                     <div>
@@ -326,10 +326,10 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="overflow-x-auto rounded-2xl bg-neutral-900/80 backdrop-blur shadow-inner">
-                                    <table class="table table-sm table-zebra">
+                                <div class="overflow-x-auto">
+                                    <table class="table table-zebra table-md">
                                         <thead>
-                                            <tr class="border-b border-base-200">
+                                            <tr>
                                                 <th>Ticket</th>
                                                 <th>Type</th>
                                                 <th>Status</th>
