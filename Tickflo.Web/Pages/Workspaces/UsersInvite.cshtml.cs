@@ -24,6 +24,7 @@ public class UsersInviteModel : WorkspacePageModel
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IEmailSender _emailSender;
+    private readonly INotificationRepository _notificationRepository;
     private readonly ITokenRepository _tokenRepo;
     private readonly IRoleRepository _roleRepo;
     private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
@@ -38,7 +39,7 @@ public class UsersInviteModel : WorkspacePageModel
     [BindProperty]
     public string Role { get; set; } = "Member";
 
-    public UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IPasswordHasher passwordHasher, IEmailSender emailSender, ITokenRepository tokenRepo, IRoleRepository roleRepo, IUserInvitationService invitationService, IWorkspaceUsersInviteViewService viewService)
+    public UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IPasswordHasher passwordHasher, IEmailSender emailSender, INotificationRepository notificationRepository, ITokenRepository tokenRepo, IRoleRepository roleRepo, IUserInvitationService invitationService, IWorkspaceUsersInviteViewService viewService)
     {
         _workspaceRepo = workspaceRepo;
         _userRepo = userRepo;
@@ -46,6 +47,7 @@ public class UsersInviteModel : WorkspacePageModel
         _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
         _passwordHasher = passwordHasher;
         _emailSender = emailSender;
+        _notificationRepository = notificationRepository;
         _tokenRepo = tokenRepo;
         _roleRepo = roleRepo;
         _invitationService = invitationService;
@@ -129,6 +131,24 @@ public class UsersInviteModel : WorkspacePageModel
                         $"<hr/><p style='color:#777'>If you did not expect this email, you can ignore it.</p>"+
                         $"</div>";
             await _emailSender.SendAsync(result.User.Email!, subject, body);
+
+            // Create a notification record in the database
+            var notification = new Notification
+            {
+                UserId = result.User.Id,
+                WorkspaceId = ws.Id,
+                Type = "workspace_invite",
+                DeliveryMethod = "email",
+                Priority = "high",
+                Subject = subject,
+                Body = body,
+                Status = "sent",
+                SentAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = currentUserId
+            };
+
+            await _notificationRepository.AddAsync(notification);
 
             SetSuccessMessage($"Invite created for '{Email}'" + (!string.IsNullOrWhiteSpace(Role) ? $" as {Role}" : "") + ".");
         }

@@ -17,6 +17,7 @@ public class WorkspaceModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
+    private readonly IUserRepository _users;
     private readonly IWorkspaceDashboardViewService _dashboardViewService;
     private readonly ITeamMemberRepository _teamMembers;
     private readonly SettingsConfig _settingsConfig;
@@ -44,6 +45,7 @@ public class WorkspaceModel : PageModel
     public bool CanViewDashboard { get; set; }
     public bool CanViewTickets { get; set; }
     public string TicketViewScope { get; set; } = string.Empty;
+    public bool ShowEmailConfirmationPrompt { get; set; }
 
     public Dictionary<string, int> PriorityCounts { get; set; } = new();
     public List<TicketPriority> PriorityList { get; set; } = new();
@@ -66,6 +68,7 @@ public class WorkspaceModel : PageModel
     public WorkspaceModel(
         IWorkspaceRepository workspaceRepo,
         IUserWorkspaceRepository userWorkspaceRepo,
+        IUserRepository users,
         IWorkspaceDashboardViewService dashboardViewService,
         ITeamMemberRepository teamMembers,
         SettingsConfig settingsConfig,
@@ -73,6 +76,7 @@ public class WorkspaceModel : PageModel
     {
         _workspaceRepo = workspaceRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
+        _users = users;
         _dashboardViewService = dashboardViewService;
         _teamMembers = teamMembers;
         _settingsConfig = settingsConfig;
@@ -98,6 +102,12 @@ public class WorkspaceModel : PageModel
         
         if (!_currentUserService.TryGetUserId(User, out var userId))
             return Challenge();
+
+        var user = await _users.FindByIdAsync(userId);
+        if (user == null)
+            return Challenge();
+
+        ShowEmailConfirmationPrompt = !user.EmailConfirmed;
 
         if (string.IsNullOrEmpty(slug))
         {

@@ -1,0 +1,96 @@
+@page "/workspaces/{slug}/users/{userId:int}/edit"
+@model Tickflo.Web.Pages.Workspaces.UsersEditModel
+@{
+    ViewData["Title"] = "Edit User";
+}
+
+<div class="flex flex-row gap-4">
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+    <section class="p-6 flex-1 space-y-4">
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.WorkspaceSlug, SectionTitle = "Edit User" })
+
+        <div class="card bg-base-100 shadow-sm rounded-3xl">
+            <div class="card-body">
+                <h2 class="card-title">@Model.UserName (@Model.UserEmail)</h2>
+                
+                <div class="divider">Current Roles</div>
+
+                @if (!Model.CurrentRoles.Any())
+                {
+                    <div class="text-sm opacity-70 mb-4">No roles assigned yet.</div>
+                }
+                else
+                {
+                    <div class="overflow-x-auto rounded-box bg-base-100 mb-4">
+                        <table class="table table-sm table-zebra w-full">
+                            <thead>
+                                <tr>
+                                    <th>Role Name</th>
+                                    <th>Type</th>
+                                    <th class="text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var role in Model.CurrentRoles)
+                            {
+                                <tr>
+                                    <td>@role.Name</td>
+                                    <td>
+                                        @if (role.Admin)
+                                        {
+                                            <span class="badge badge-soft badge-primary rounded-full">Admin</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-soft rounded-full">Member</span>
+                                        }
+                                    </td>
+                                    <td class="text-right">
+                                        <form method="post" asp-page-handler="Remove" asp-route-roleId="@role.Id" class="inline">
+                                            <button type="submit" class="btn btn-error btn-xs" onclick="return confirm('Remove role @role.Name?');">Remove</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                <div class="divider">Add Role</div>
+
+                <form method="post" asp-page-handler="Assign" class="space-y-4">
+                    <div class="join w-full">
+                        <select name="roleId" class="select select-bordered join-item w-full">
+                            <option value="">-- Select a role to add --</option>
+                            @foreach (var role in Model.AvailableRoles)
+                            {
+                                <option value="@role.Id">@role.Name</option>
+                            }
+                        </select>
+                        <button type="submit" class="btn btn-primary join-item btn-sm">Add</button>
+                    </div>
+                </form>
+
+                <div class="divider">Permissions</div>
+
+                <form method="post" class="space-y-4">
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-3">
+                            <input type="checkbox" asp-for="IsAdmin" class="toggle toggle-primary" />
+                            <span class="label-text">Workspace Admin</span>
+                        </label>
+                        <label class="label">
+                            <span class="label-text-alt text-xs opacity-70">Grants full access to all workspace features, independent of assigned roles</span>
+                        </label>
+                    </div>
+
+                    <div class="join md:join">
+                        <button type="submit" class="btn btn-primary join-item btn-sm">Save Changes</button>
+                        <a class="btn btn-ghost join-item btn-sm" asp-page="/Workspaces/Users" asp-route-slug="@Model.WorkspaceSlug">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>

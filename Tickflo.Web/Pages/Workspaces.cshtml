@@ -6,8 +6,7 @@
 }
 
 <div class="flex flex-row gap-4">
-    @await Html.PartialAsync("_AppSidebar")
-    <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
+    <section class="relative overflow-hidden p-6 w-full space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
         @if (!Model.Workspaces.Any())
         {
             <div role="alert" class="alert alert-info rounded-3xl shadow-md border border-base-200/70">

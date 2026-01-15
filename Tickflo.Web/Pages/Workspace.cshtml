@@ -15,19 +15,71 @@
 <div class="flex flex-row gap-4">
     @await Html.PartialAsync("_WorkspaceSidebar", Model.Workspace?.Slug ?? "")
     <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
-        <div role="alert" class="alert alert-info rounded-3xl shadow-md border border-base-200/70">
-            <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <span class="flex items-center gap-2 text-sm"><i class="fa fa-envelope-open-text"></i> You have not yet confirmed your email address</span>
-                <div class="join join-horizontal">
-                    <form class="join-item" data-discover="true" action="/email-confirmation/dismiss" method="post">
-                        <button type="submit" class="btn btn-ghost btn-sm">Dismiss</button>
-                    </form>
-                    <form class="join-item" data-discover="true" action="/email-confirmation/resend" method="post">
-                        <button type="submit" class="btn btn-primary btn-sm">Resend Email</button>
-                    </form>
+        @if (Model.ShowEmailConfirmationPrompt)
+        {
+            <div role="alert" class="alert alert-info rounded-3xl shadow-md border border-base-200/70" id="email-reminder">
+                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <span class="flex items-center gap-2 text-sm"><i class="fa fa-envelope-open-text"></i> You have not yet confirmed your email address</span>
+                    <div class="join join-horizontal">
+                        <form class="join-item" data-email-confirm="dismiss" action="/email-confirmation/dismiss" method="post">
+                            <button type="submit" class="btn btn-ghost btn-sm">Dismiss</button>
+                        </form>
+                        <form class="join-item" data-email-confirm="resend" action="/email-confirmation/resend" method="post">
+                            <button type="submit" class="btn btn-primary btn-sm">Resend Email</button>
+                        </form>
+                    </div>
                 </div>
             </div>
-        </div>
+
+            <div class="toast toast-top toast-end" id="email-toast" style="display:none; position:fixed; top:5rem; right:1rem; z-index:1200;">
+                <div class="alert alert-info shadow-lg" id="email-toast-alert">
+                    <span id="email-toast-msg">Sending confirmation email...</span>
+                </div>
+            </div>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    const forms = document.querySelectorAll('form[data-email-confirm]');
+                    const toast = document.getElementById('email-toast');
+                    const toastAlert = document.getElementById('email-toast-alert');
+                    const toastMsg = document.getElementById('email-toast-msg');
+
+                    function showToast(message, isError) {
+                        if (!toast || !toastAlert || !toastMsg) return;
+                        toastAlert.className = isError ? 'alert alert-error shadow-lg' : 'alert alert-success shadow-lg';
+                        toastMsg.textContent = message;
+                        toast.style.display = '';
+                        setTimeout(() => { toast.style.display = 'none'; }, 3000);
+                    }
+
+                    forms.forEach(form => {
+                        form.addEventListener('submit', async (evt) => {
+                            evt.preventDefault();
+                            const button = form.querySelector('button[type="submit"]');
+                            if (button) button.disabled = true;
+
+                            try {
+                                const response = await fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                                if (!response.ok) throw new Error('Request failed');
+                                const payload = await response.json().catch(() => ({}));
+                                const defaultMessage = form.dataset.emailConfirm === 'resend' ? 'Confirmation email sent.' : 'Reminder dismissed.';
+                                showToast(payload.message || defaultMessage, false);
+                                if (form.dataset.emailConfirm === 'dismiss') {
+                                    const banner = document.getElementById('email-reminder');
+                                    if (banner) banner.style.display = 'none';
+                                }
+                            }
+                            catch (err) {
+                                showToast('Something went wrong. Please try again.', true);
+                            }
+                            finally {
+                                if (button) button.disabled = false;
+                            }
+                        });
+                    });
+                });
+            </script>
+        }
 
         @if (Model.Workspace == null)
         {

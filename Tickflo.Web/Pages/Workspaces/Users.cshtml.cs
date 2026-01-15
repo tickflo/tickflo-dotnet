@@ -19,24 +19,25 @@ public class UsersModel : WorkspacePageModel
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
     private readonly IEmailSender _emailSender;
+    private readonly INotificationRepository _notificationRepository;
     private readonly IWorkspaceUsersViewService _viewService;
-    private readonly IRolePermissionRepository _rolePerms;
     private readonly IWorkspaceUsersManageViewService _manageViewService;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
-    public UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IEmailSender emailSender, IWorkspaceUsersViewService viewService, IRolePermissionRepository rolePerms, IWorkspaceUsersManageViewService manageViewService)
+    public UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IEmailSender emailSender, INotificationRepository notificationRepository, IWorkspaceUsersViewService viewService, IWorkspaceUsersManageViewService manageViewService)
     {
         _workspaceRepo = workspaceRepo;
         _userRepo = userRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
         _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
         _emailSender = emailSender;
+        _notificationRepository = notificationRepository;
         _viewService = viewService;
-        _rolePerms = rolePerms;
         _manageViewService = manageViewService;
     }
 
+    public bool CanViewUsers { get; private set; }
     public bool CanCreateUsers { get; private set; }
     public bool CanEditUsers { get; private set; }
     
@@ -50,15 +51,20 @@ public class UsersModel : WorkspacePageModel
         Workspace = workspace;
 
         var viewData = await _viewService.BuildAsync(Workspace.Id, uid);
+        if (EnsurePermissionOrForbid(viewData.CanViewUsers) is IActionResult permCheck) return permCheck;
+        
         IsWorkspaceAdmin = viewData.IsWorkspaceAdmin;
+        CanViewUsers = viewData.CanViewUsers;
         CanCreateUsers = viewData.CanCreateUsers;
         CanEditUsers = viewData.CanEditUsers;
         PendingInvites = viewData.PendingInvites;
+        AcceptedUsers = viewData.AcceptedUsers;
 
         return Page();
     }
 
     public List<InviteView> PendingInvites { get; set; } = new();
+    public List<AcceptedUserView> AcceptedUsers { get; set; } = new();
     public bool IsWorkspaceAdmin { get; set; }
 
     public async Task<IActionResult> OnPostAcceptAsync(string slug, int userId)
@@ -103,6 +109,25 @@ public class UsersModel : WorkspacePageModel
         var subject = $"Your invite to {Workspace.Name}";
         var body = $"<p>Hello,</p><p>Here is your email confirmation link for workspace '{Workspace.Name}'.</p><p><a href=\"{confirmationLink}\">Confirm your email</a></p><p>Use your original temporary password to sign in.</p>";
         await _emailSender.SendAsync(user.Email, subject, body);
+        
+        // Create a notification record in the database
+        var notification = new Notification
+        {
+            UserId = userId,
+            WorkspaceId = Workspace.Id,
+            Type = "workspace_invite",
+            DeliveryMethod = "email",
+            Priority = "high",
+            Subject = subject,
+            Body = body,
+            Status = "sent",
+            SentAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = currentUserId
+        };
+        
+        await _notificationRepository.AddAsync(notification);
+        
         TempData["Success"] = "Invite email resent.";
         return RedirectToPage("/Workspaces/Users", new { slug });
     }

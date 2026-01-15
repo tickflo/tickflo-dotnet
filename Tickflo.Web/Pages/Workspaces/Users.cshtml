@@ -8,13 +8,83 @@
     @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
     <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
         @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Users", NewActionLabel = "Invite User", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/users/invite", AllowNewAction = (Model.CanCreateUsers || Model.IsWorkspaceAdmin) })
+        
         <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
-            <div class="card-body">
-                <h2 class="card-title">Users</h2>
-                <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
+            <div class="card-body space-y-4">
+                <h2 class="card-title">Workspace Members</h2>
+            @if (!Model.AcceptedUsers.Any())
+            {
+                <div class="alert alert-info rounded-2xl border border-white/10">No active members yet.</div>
+            }
+            else
+            {
+                <div class="card-body p-0">
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra table-md">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Admin</th>
+                                    <th class="hidden sm:table-cell">Joined</th>
+                                    <th>Roles</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var user in Model.AcceptedUsers)
+                            {
+                                <tr>
+                                    <td>@(string.IsNullOrEmpty(user.Name) ? user.Email : user.Name)</td>
+                                    <td class="break-all">@user.Email</td>
+                                    <td>
+                                        @if (user.IsAdmin)
+                                        {
+                                            <span class="badge badge-soft badge-primary rounded-full">Yes</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-soft rounded-full">No</span>
+                                        }
+                                    </td>
+                                    <td class="hidden sm:table-cell">@user.JoinedAt.ToString("yyyy-MM-dd")</td>
+                                    <td>
+                                        @if (user.Roles != null && user.Roles.Any())
+                                        {
+                                            @foreach (var role in user.Roles)
+                                            {
+                                                <span class="badge badge-soft badge-secondary rounded-full mr-1">@role</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-slate-400">—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="join md:join">
+                                            @if (Model.CanEditUsers || Model.IsWorkspaceAdmin)
+                                            {
+                                                <a class="btn btn-soft join-item btn-sm" asp-page="/Workspaces/UsersEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-userId="@user.UserId">Edit</a>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-soft join-item btn-sm" disabled>Edit</button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
             </div>
         </div>
+        
         <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+
             <div class="card-body space-y-4">
                 <h2 class="card-title">Pending Invites</h2>
             @if (!Model.PendingInvites.Any())
