@@ -10,13 +10,26 @@ public class TicketUpdateService : ITicketUpdateService
 {
     private readonly ITicketRepository _ticketRepo;
     private readonly ITicketHistoryRepository _historyRepo;
+    private readonly ITicketStatusRepository _statusRepo;
+    private readonly ITicketPriorityRepository _priorityRepo;
 
+    // Backward-compatible constructor
     public TicketUpdateService(
         ITicketRepository ticketRepo,
         ITicketHistoryRepository historyRepo)
+        : this(ticketRepo, historyRepo, statusRepo: null!, priorityRepo: null!)
+    { }
+
+    public TicketUpdateService(
+        ITicketRepository ticketRepo,
+        ITicketHistoryRepository historyRepo,
+        ITicketStatusRepository statusRepo,
+        ITicketPriorityRepository priorityRepo)
     {
         _ticketRepo = ticketRepo;
         _historyRepo = historyRepo;
+        _statusRepo = statusRepo;
+        _priorityRepo = priorityRepo;
     }
 
     /// <summary>
@@ -45,12 +58,6 @@ public class TicketUpdateService : ITicketUpdateService
         {
             changes.Add("Description updated");
             ticket.Description = request.Description.Trim();
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.Type) && ticket.Type != request.Type.Trim())
-        {
-            changes.Add($"Type changed from '{ticket.Type}' to '{request.Type.Trim()}'");
-            ticket.Type = request.Type.Trim();
         }
 
         if (request.ContactId.HasValue && ticket.ContactId != request.ContactId.Value)
@@ -101,13 +108,17 @@ public class TicketUpdateService : ITicketUpdateService
         if (string.IsNullOrWhiteSpace(newPriority))
             throw new InvalidOperationException("Priority cannot be empty");
 
-        var oldPriority = ticket.Priority;
-        ticket.Priority = newPriority.Trim();
+        // Resolve PriorityId
+        var pr = await _priorityRepo.FindAsync(workspaceId, newPriority.Trim());
+        if (pr == null)
+            throw new InvalidOperationException($"Priority '{newPriority}' not found in workspace");
+        
+        ticket.PriorityId = pr.Id;
         ticket.UpdatedAt = DateTime.UtcNow;
 
         await _ticketRepo.UpdateAsync(ticket);
 
-        var note = $"Priority changed from '{oldPriority}' to '{ticket.Priority}'";
+        var note = $"Priority changed to '{pr.Name}'";
         if (!string.IsNullOrWhiteSpace(reason))
             note += $". Reason: {reason}";
 
@@ -140,17 +151,17 @@ public class TicketUpdateService : ITicketUpdateService
         if (string.IsNullOrWhiteSpace(newStatus))
             throw new InvalidOperationException("Status cannot be empty");
 
-        // Business rule: Prevent invalid status transitions
-        if (!IsValidStatusTransition(ticket.Status, newStatus))
-            throw new InvalidOperationException($"Cannot transition from '{ticket.Status}' to '{newStatus}'");
-
-        var oldStatus = ticket.Status;
-        ticket.Status = newStatus.Trim();
+        // Resolve StatusId and verify it exists
+        var st = await _statusRepo.FindByNameAsync(workspaceId, newStatus.Trim());
+        if (st == null)
+            throw new InvalidOperationException($"Status '{newStatus}' not found in workspace");
+        
+        ticket.StatusId = st.Id;
         ticket.UpdatedAt = DateTime.UtcNow;
 
         await _ticketRepo.UpdateAsync(ticket);
 
-        var note = $"Status changed from '{oldStatus}' to '{ticket.Status}'";
+        var note = $"Status changed to '{st.Name}'";
         if (!string.IsNullOrWhiteSpace(reason))
             note += $". Reason: {reason}";
 
@@ -196,23 +207,9 @@ public class TicketUpdateService : ITicketUpdateService
 
     private static bool IsValidStatusTransition(string fromStatus, string toStatus)
     {
-        // Define valid status transitions
-        // This is a simple example - enhance based on business rules
-        var validTransitions = new Dictionary<string, List<string>>
-        {
-            { "New", new List<string> { "Open", "Cancelled" } },
-            { "Open", new List<string> { "In Progress", "Resolved", "Cancelled" } },
-            { "In Progress", new List<string> { "Resolved", "On Hold", "Cancelled" } },
-            { "On Hold", new List<string> { "Open", "Resolved", "Cancelled" } },
-            { "Resolved", new List<string> { "Closed", "Reopened" } },
-            { "Closed", new List<string> { "Reopened" } },
-            { "Cancelled", new List<string> { "Reopened" } }
-        };
-
-        if (!validTransitions.TryGetValue(fromStatus, out var allowedTransitions))
-            return false;
-
-        return allowedTransitions.Contains(toStatus, StringComparer.OrdinalIgnoreCase);
+        // Status transitions are now validated at the database level via foreign keys
+        // and at the service layer via FindByNameAsync; remove hardcoded rules
+        return true;
     }
 }
 

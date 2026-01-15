@@ -14,19 +14,40 @@ public class TicketCreationService : ITicketCreationService
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly ITeamRepository _teamRepo;
     private readonly ILocationRepository _locationRepo;
+    private readonly ITicketStatusRepository _statusRepo;
+    private readonly ITicketPriorityRepository _priorityRepo;
+    private readonly ITicketTypeRepository _typeRepo;
 
+    // Backward-compatible constructor for tests or simple usage
     public TicketCreationService(
         ITicketRepository ticketRepo,
         ITicketHistoryRepository historyRepo,
         IUserWorkspaceRepository userWorkspaceRepo,
         ITeamRepository teamRepo,
         ILocationRepository locationRepo)
+        : this(ticketRepo, historyRepo, userWorkspaceRepo, teamRepo, locationRepo, 
+               statusRepo: null!, priorityRepo: null!, typeRepo: null!)
+    {
+    }
+
+    public TicketCreationService(
+        ITicketRepository ticketRepo,
+        ITicketHistoryRepository historyRepo,
+        IUserWorkspaceRepository userWorkspaceRepo,
+        ITeamRepository teamRepo,
+        ILocationRepository locationRepo,
+        ITicketStatusRepository statusRepo,
+        ITicketPriorityRepository priorityRepo,
+        ITicketTypeRepository typeRepo)
     {
         _ticketRepo = ticketRepo;
         _historyRepo = historyRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
         _teamRepo = teamRepo;
         _locationRepo = locationRepo;
+        _statusRepo = statusRepo;
+        _priorityRepo = priorityRepo;
+        _typeRepo = typeRepo;
     }
 
     /// <summary>
@@ -56,18 +77,39 @@ public class TicketCreationService : ITicketCreationService
                 throw new InvalidOperationException("Cannot create ticket for inactive location");
         }
 
-        // Business rule: Set default status
-        var status = string.IsNullOrWhiteSpace(request.Status) ? "New" : request.Status.Trim();
-        var priority = string.IsNullOrWhiteSpace(request.Priority) ? "Normal" : request.Priority.Trim();
+        // Resolve type/priority/status IDs
+        int? typeId = request.TypeId;
+        int? priorityId = request.PriorityId;
+        int? statusId = request.StatusId;
+
+        // If IDs not provided, resolve by name (or use defaults)
+        if (!typeId.HasValue)
+        {
+            var defaultTypeName = string.IsNullOrWhiteSpace(request.Type) ? "Standard" : request.Type.Trim();
+            var t = await _typeRepo.FindByNameAsync(workspaceId, defaultTypeName);
+            typeId = t?.Id;
+        }
+        if (!priorityId.HasValue)
+        {
+            var defaultPriorityName = string.IsNullOrWhiteSpace(request.Priority) ? "Normal" : request.Priority.Trim();
+            var p = await _priorityRepo.FindAsync(workspaceId, defaultPriorityName);
+            priorityId = p?.Id;
+        }
+        if (!statusId.HasValue)
+        {
+            var defaultStatusName = string.IsNullOrWhiteSpace(request.Status) ? "New" : request.Status.Trim();
+            var s = await _statusRepo.FindByNameAsync(workspaceId, defaultStatusName);
+            statusId = s?.Id;
+        }
 
         var ticket = new Ticket
         {
             WorkspaceId = workspaceId,
             Subject = request.Subject.Trim(),
             Description = string.IsNullOrWhiteSpace(request.Description) ? string.Empty : request.Description.Trim(),
-            Type = string.IsNullOrWhiteSpace(request.Type) ? "Standard" : request.Type.Trim(),
-            Priority = priority,
-            Status = status,
+            TicketTypeId = typeId,
+            PriorityId = priorityId,
+            StatusId = statusId,
             ContactId = request.ContactId,
             LocationId = request.LocationId,
             TicketInventories = request.Inventories ?? new List<TicketInventory>()
@@ -166,6 +208,9 @@ public class TicketCreationRequest
     public string? Type { get; set; }
     public string? Priority { get; set; }
     public string? Status { get; set; }
+    public int? TypeId { get; set; }
+    public int? PriorityId { get; set; }
+    public int? StatusId { get; set; }
     public int? ContactId { get; set; }
     public int? LocationId { get; set; }
     public int? AssignedUserId { get; set; }

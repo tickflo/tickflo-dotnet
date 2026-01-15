@@ -128,12 +128,17 @@ public class WorkspaceTicketDetailsViewService : IWorkspaceTicketDetailsViewServ
         else
         {
             // Create new ticket with defaults
+            // Load default IDs from database
+            var defaultType = await _typeRepo.FindByNameAsync(workspaceId, "Standard");
+            var defaultPriority = await _priorityRepo.FindAsync(workspaceId, "Normal");
+            var defaultStatus = await _statusRepo.FindByNameAsync(workspaceId, "New");
+
             data.Ticket = new Ticket
             {
                 WorkspaceId = workspaceId,
-                Type = "Standard",
-                Priority = "Normal",
-                Status = "New",
+                TicketTypeId = defaultType?.Id,
+                PriorityId = defaultPriority?.Id,
+                StatusId = defaultStatus?.Id,
                 LocationId = locationId
             };
         }

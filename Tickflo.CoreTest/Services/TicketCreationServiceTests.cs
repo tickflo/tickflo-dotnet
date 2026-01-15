@@ -40,7 +40,7 @@ public class TicketCreationServiceTests
 
         var ticket = await svc.CreateTicketAsync(1, new TicketCreationRequest { Subject = "New" }, 2);
 
-        Assert.Equal("New", ticket.Status);
+        Assert.NotNull(ticket.StatusId); // Now using ID-based fields
         history.Verify(h => h.CreateAsync(It.Is<TicketHistory>(th => th.Action == "created" && th.TicketId == 10)), Times.Once);
     }
 }

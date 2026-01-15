@@ -342,7 +342,7 @@ public class TicketsDetailsModel : WorkspacePageModel
             // Track changes for notifications
             var oldAssignedUserId = existing!.AssignedUserId;
             var oldAssignedTeamId = existing.AssignedTeamId;
-            var oldStatus = existing.Status;
+            var oldStatusId = existing.StatusId;
 
             var updateReq = new UpdateTicketRequest
             {
@@ -376,13 +376,13 @@ public class TicketsDetailsModel : WorkspacePageModel
                     );
                 }
                 
-                if (oldStatus != t.Status)
+                if (oldStatusId != t.StatusId)
                 {
                     await _notificationTrigger.NotifyTicketStatusChangedAsync(
                         workspaceId,
                         t,
-                        oldStatus,
-                        t.Status,
+                        oldStatusId?.ToString() ?? "Unknown",
+                        t.StatusId?.ToString() ?? "Unknown",
                         uid
                     );
                 }
@@ -409,9 +409,9 @@ public class TicketsDetailsModel : WorkspacePageModel
                 new {
                     id = t.Id,
                     subject = t.Subject ?? string.Empty,
-                    type = t.Type ?? "Standard",
-                    priority = t.Priority ?? "Normal",
-                    status = t.Status ?? "New",
+                    typeId = t.TicketTypeId,
+                    priorityId = t.PriorityId,
+                    statusId = t.StatusId,
                     contactId = t.ContactId,
                     assignedUserId = t.AssignedUserId,
                     assignedDisplay = assignedDisplay,
@@ -430,9 +430,9 @@ public class TicketsDetailsModel : WorkspacePageModel
                 new {
                     id = t.Id,
                     subject = t.Subject ?? string.Empty,
-                    type = t.Type ?? "Standard",
-                    priority = t.Priority ?? "Normal",
-                    status = t.Status ?? "New",
+                    typeId = t.TicketTypeId,
+                    priorityId = t.PriorityId,
+                    statusId = t.StatusId,
                     contactId = t.ContactId,
                     assignedUserId = t.AssignedUserId,
                     assignedDisplay = assignedDisplay,

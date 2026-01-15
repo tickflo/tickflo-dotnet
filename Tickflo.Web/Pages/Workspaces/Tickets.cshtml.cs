@@ -100,13 +100,32 @@ public class TicketsModel : WorkspacePageModel
         var all = await _ticketRepo.ListAsync(Workspace.Id);
         var scoped = _filterService.ApplyScopeFilter(all, currentUserId, viewData.TicketViewScope, viewData.UserTeamIds);
 
+        // Resolve filter IDs from names
+        int? typeId = null;
+        if (!string.IsNullOrWhiteSpace(Type))
+        {
+            typeId = TypesList.FirstOrDefault(t => t.Name.Equals(Type.Trim(), StringComparison.OrdinalIgnoreCase))?.Id;
+        }
+
+        int? statusId = null;
+        if (!string.IsNullOrWhiteSpace(Status) && !Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+        {
+            statusId = Statuses.FirstOrDefault(s => s.Name.Equals(Status.Trim(), StringComparison.OrdinalIgnoreCase))?.Id;
+        }
+
+        int? priorityId = null;
+        if (!string.IsNullOrWhiteSpace(Priority))
+        {
+            priorityId = PrioritiesList.FirstOrDefault(p => p.Name.Equals(Priority.Trim(), StringComparison.OrdinalIgnoreCase))?.Id;
+        }
+
         // Apply filters
         var criteria = new TicketFilterCriteria
         {
             Query = Query?.Trim(),
-            Status = Status?.Trim(),
-            Priority = Priority?.Trim(),
-            Type = Type?.Trim(),
+            StatusId = statusId,
+            PriorityId = priorityId,
+            TypeId = typeId,
             AssigneeUserId = AssigneeUserId,
             LocationId = LocationId,
             Mine = Mine,
@@ -117,10 +136,10 @@ public class TicketsModel : WorkspacePageModel
         // Special case: Status == "Open" means non-closed statuses
         if (!string.IsNullOrWhiteSpace(Status) && Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
         {
-            var openStatusNames = Statuses.Where(s => !s.IsClosedState)
-                .Select(s => s.Name)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            filteredList = filteredList.Where(t => openStatusNames.Contains(t.Status)).ToList();
+            var closedIds = Statuses.Where(s => s.IsClosedState)
+                .Select(s => s.Id)
+                .ToHashSet();
+            filteredList = filteredList.Where(t => !t.StatusId.HasValue || !closedIds.Contains(t.StatusId.Value)).ToList();
         }
 
         // ContactQuery filter (name/email)

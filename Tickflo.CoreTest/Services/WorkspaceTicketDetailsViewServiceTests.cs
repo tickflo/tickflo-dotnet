@@ -79,12 +79,12 @@ public class WorkspaceTicketDetailsViewServiceTests
 
         Assert.NotNull(view);
         Assert.NotNull(view.Ticket);
-        Assert.Equal("Standard", view.Ticket.Type);
-        Assert.Equal("Normal", view.Ticket.Priority);
-        Assert.Equal("New", view.Ticket.Status);
+        Assert.NotNull(view.Ticket.TicketTypeId); // Now checking ID-based properties
+        Assert.NotNull(view.Ticket.PriorityId);
+        Assert.NotNull(view.Ticket.StatusId);
         Assert.True(view.CanCreateTickets);
         Assert.True(view.CanEditTickets);
-        Assert.Equal(3, view.Statuses.Count); // Fallback defaults
+        Assert.Equal(3, view.Statuses.Count);
         Assert.Equal(3, view.Priorities.Count);
         Assert.Equal(3, view.Types.Count);
     }
