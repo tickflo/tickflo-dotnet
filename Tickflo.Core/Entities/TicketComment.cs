@@ -28,7 +28,7 @@ public class TicketComment
 
     /// <summary>
     /// The contact ID if this comment was created by a client (null if created by staff).
-    /// Used to identify client-submitted comments in the portal.
+    /// Used to identify client-submitted comments.
     /// </summary>
     public int? CreatedByContactId { get; set; }
 
@@ -38,7 +38,7 @@ public class TicketComment
     public string Content { get; set; } = string.Empty;
 
     /// <summary>
-    /// Controls visibility: true means visible in client portal, false means internal-only.
+    /// Controls visibility: true means visible to clients, false means internal-only.
     /// </summary>
     public bool IsVisibleToClient { get; set; } = false;
 

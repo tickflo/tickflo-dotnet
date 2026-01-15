@@ -9,12 +9,10 @@ namespace Tickflo.Core.Services.Contacts;
 public class ContactRegistrationService : IContactRegistrationService
 {
     private readonly IContactRepository _contactRepo;
-    private readonly IAccessTokenService _tokenService;
 
-    public ContactRegistrationService(IContactRepository contactRepo, IAccessTokenService tokenService)
+    public ContactRegistrationService(IContactRepository contactRepo)
     {
         _contactRepo = contactRepo;
-        _tokenService = tokenService;
     }
 
     /// <summary>
@@ -45,7 +43,6 @@ public class ContactRegistrationService : IContactRegistrationService
             Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim(),
             Company = string.IsNullOrWhiteSpace(request.Company) ? null : request.Company.Trim(),
             Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
-            AccessToken = _tokenService.GenerateToken(), // Generate portal access token
             CreatedAt = DateTime.UtcNow
         };
 
@@ -119,24 +116,6 @@ public class ContactRegistrationService : IContactRegistrationService
         // - Archive instead of delete
         
         await _contactRepo.DeleteAsync(workspaceId, contactId);
-    }
-    
-    /// <summary>
-    /// Generates a portal access token for an existing contact if one doesn't exist.
-    /// </summary>
-    public async Task<Contact> GeneratePortalAccessAsync(int workspaceId, int contactId, int generatedByUserId)
-    {
-        var contact = await _contactRepo.FindAsync(workspaceId, contactId);
-        if (contact == null)
-            throw new InvalidOperationException("Contact not found");
-        
-        if (string.IsNullOrEmpty(contact.AccessToken))
-        {
-            contact.AccessToken = _tokenService.GenerateToken();
-            await _contactRepo.UpdateAsync(contact);
-        }
-        
-        return contact;
     }
 
     private static bool IsValidEmail(string email)

@@ -76,7 +76,7 @@ public class TicketCommentService(ITicketCommentRepository commentRepo) : ITicke
         {
             WorkspaceId = workspaceId,
             TicketId = ticketId,
-            CreatedByUserId = 1, // System user ID for client portal
+            CreatedByUserId = 1, // System user ID for client comments
             CreatedByContactId = contactId, // Track actual client
             Content = content.Trim(),
             IsVisibleToClient = true, // Client comments are always visible to client

@@ -18,7 +18,6 @@ public class TickfloConfig
     public LocationConfig LOCATION { get; set; } = new();
     public RoleConfig ROLE { get; set; } = new();
     public WorkspaceConfig WORKSPACE { get; set; } = new();
-    public PortalConfig PORTAL { get; set; } = new();
     public EmailConfig EMAIL { get; set; } = new();
 }
 
@@ -47,17 +46,6 @@ public class WorkspaceConfig
     public int MIN_NAME_LENGTH { get; set; }
     public int MAX_NAME_LENGTH { get; set; }
     public int MAX_SLUG_LENGTH { get; set; }
-}
-
-public class PortalConfig
-{
-    public int MIN_NAME_LENGTH { get; set; }
-    public int MAX_NAME_LENGTH { get; set; }
-    public int MAX_SLUG_LENGTH { get; set; }
-    public int MIN_SECTION_TITLE_LENGTH { get; set; }
-    public int MAX_SECTION_TITLE_LENGTH { get; set; }
-    public int MIN_QUESTION_LABEL_LENGTH { get; set; }
-    public int MAX_QUESTION_LABEL_LENGTH { get; set; }
 }
 
 public class RoleConfig

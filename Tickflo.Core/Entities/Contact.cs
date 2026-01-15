@@ -16,6 +16,5 @@ public class Contact
     public string? Status { get; set; } // Active, Archived
     public int? AssignedUserId { get; set; }
     public DateTime? LastInteraction { get; set; }
-    public string? AccessToken { get; set; } // For client portal access
     public DateTime CreatedAt { get; set; }
 }

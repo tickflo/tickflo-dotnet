@@ -82,7 +82,6 @@ builder.Services.AddScoped<IWorkspaceAccessService, WorkspaceAccessService>();
 builder.Services.AddScoped<IRoleManagementService, RoleManagementService>();
 builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
 builder.Services.AddScoped<INotificationPreferenceService, NotificationPreferenceService>();
-builder.Services.AddScoped<IAccessTokenService, AccessTokenService>();
 
 // Phase 1: Critical business logic services (Dashboard, Tickets)
 builder.Services.AddScoped<IDashboardService, DashboardService>();
@@ -117,7 +116,6 @@ builder.Services.AddScoped<IWorkspaceTeamsEditViewService, WorkspaceTeamsEditVie
     builder.Services.AddScoped<IWorkspaceUsersInviteViewService, WorkspaceUsersInviteViewService>();
     builder.Services.AddScoped<IWorkspaceUsersManageViewService, WorkspaceUsersManageViewService>();
     builder.Services.AddScoped<IWorkspaceTicketsSaveViewService, WorkspaceTicketsSaveViewService>();
-    builder.Services.AddScoped<IClientPortalViewService, ClientPortalViewService>();
 
 // Phase 2 & 3: Domain entity services
 builder.Services.AddScoped<IWorkspaceSettingsService, WorkspaceSettingsService>();

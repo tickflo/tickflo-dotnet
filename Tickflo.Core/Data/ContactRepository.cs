@@ -11,9 +11,6 @@ public class ContactRepository(TickfloDbContext db) : IContactRepository
     public async Task<Contact?> FindAsync(int workspaceId, int id, CancellationToken ct = default)
         => await db.Contacts.FirstOrDefaultAsync(c => c.WorkspaceId == workspaceId && c.Id == id, ct);
 
-    public async Task<Contact?> FindByAccessTokenAsync(string token, CancellationToken ct = default)
-        => await db.Contacts.FirstOrDefaultAsync(c => c.AccessToken == token, ct);
-
     public async Task<Contact> CreateAsync(Contact contact, CancellationToken ct = default)
     {
         db.Contacts.Add(contact);
