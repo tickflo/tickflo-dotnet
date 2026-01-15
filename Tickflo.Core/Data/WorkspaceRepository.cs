@@ -17,6 +17,11 @@ public class WorkspaceRepository(TickfloDbContext db) : IWorkspaceRepository
         return _db.Workspaces.FirstOrDefaultAsync(w => w.Id == id);
     }
 
+    public Task<Workspace?> FindByPortalTokenAsync(string token)
+    {
+        return _db.Workspaces.FirstOrDefaultAsync(w => w.PortalAccessToken == token);
+    }
+
     public async Task AddAsync(Workspace workspace)
     {
         _db.Workspaces.Add(workspace);

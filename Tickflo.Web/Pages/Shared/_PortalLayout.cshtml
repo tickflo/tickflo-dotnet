@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Tickflo</title>
+    <link rel="icon" href="~/img/icon.png" />
+    <link rel="stylesheet" href="~/css/dist.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/font-awesome/css/fontawesome.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" asp-append-version="true" />
+</head>
+
+<body data-theme="dark" class="shell-outer">
+    <mini-profiler />
+    <main class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8">
+        @RenderBody()
+    </main>
+
+    <script>
+        function setThemeCookie(value) {
+            const expires = new Date();
+            expires.setFullYear(expires.getFullYear() + 1);
+            document.cookie = `theme=${value}; path=/; expires=${expires.toUTCString()}`;
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"
+        integrity="sha512-7rhBJh1om/W5Ztx7WiYOR9h2wlSaTmPyQMoHFtbT/FVNIA12y6S6I8HY9mrBS1uJ3dSU/R3qaSAXsGYuRjMDxg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+
+</html>

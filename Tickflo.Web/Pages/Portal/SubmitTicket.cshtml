@@ -1,0 +1,191 @@
+@page "/workspace-portal/{token}"
+@model Tickflo.Web.Pages.Portal.SubmitTicketModel
+@{
+    ViewData["Title"] = "Submit a Ticket";
+    Layout = "/Pages/Shared/_PortalLayout.cshtml";
+}
+
+<section class="relative overflow-hidden p-6 flex-1 space-y-6 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
+    <div class="space-y-6">
+        <!-- Header Card -->
+        <div class="card bg-neutral-900/70 backdrop-blur rounded-2xl border border-white/5">
+            <div class="card-body p-4">
+                <div class="flex items-center gap-3 mb-2">
+                    <i class="fa fa-globe text-primary"></i>
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Public Portal</span>
+                </div>
+                @if (Model.Workspace != null)
+                {
+                    <div>
+                        <h1 class="text-3xl font-bold mb-1">@Model.Workspace.Name</h1>
+                        <p class="text-sm text-slate-400">Submit a Support Ticket</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Messages -->
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-error rounded-2xl shadow-lg mb-6">
+                <i class="fa fa-exclamation-circle"></i>
+                <span>@Model.ErrorMessage</span>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+        {
+            <div class="alert alert-success rounded-2xl shadow-lg mb-6">
+                <i class="fa fa-check-circle"></i>
+                <span>@Model.SuccessMessage</span>
+            </div>
+        }
+
+        @if (Model.PortalEnabled && Model.Workspace != null)
+        {
+            <form method="post" class="space-y-6">
+                <!-- Contact Information Card -->
+                <div class="card bg-neutral-900/70 backdrop-blur rounded-2xl border border-white/5">
+                    <div class="card-body p-4">
+                        <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i class="fa fa-user"></i>
+                            Your Information
+                        </h2>
+                        
+                        <div class="space-y-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text text-slate-300 font-medium text-xs">Name <span class="text-error">*</span></span>
+                                </label>
+                                <input type="text" 
+                                       asp-for="ContactName" 
+                                       class="input input-sm input-bordered w-full rounded-2xl bg-neutral-800/60 border-white/10 text-white" 
+                                       placeholder="John Doe"
+                                       required />
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text text-slate-300 font-medium text-xs">Email <span class="text-error">*</span></span>
+                                </label>
+                                <input type="email" 
+                                       asp-for="ContactEmail" 
+                                       class="input input-sm input-bordered w-full rounded-2xl bg-neutral-800/60 border-white/10 text-white" 
+                                       placeholder="john.doe@example.com"
+                                       required />
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text text-slate-300 font-medium text-xs">Phone</span>
+                                    </label>
+                                    <input type="tel" 
+                                           asp-for="ContactPhone" 
+                                           class="input input-sm input-bordered w-full rounded-2xl bg-neutral-800/60 border-white/10 text-white" 
+                                           placeholder="+1 (555) 123-4567" />
+                                </div>
+                                
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text text-slate-300 font-medium text-xs">Company</span>
+                                    </label>
+                                    <input type="text" 
+                                           asp-for="ContactCompany" 
+                                           class="input input-sm input-bordered w-full rounded-2xl bg-neutral-800/60 border-white/10 text-white" 
+                                           placeholder="Acme Corp" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ticket Information Card -->
+                <div class="card bg-neutral-900/70 backdrop-blur rounded-2xl border border-white/5">
+                    <div class="card-body p-4">
+                        <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i class="fa fa-ticket"></i>
+                            Ticket Details
+                        </h2>
+                        
+                        <div class="space-y-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text text-slate-300 font-medium text-xs">Subject <span class="text-error">*</span></span>
+                                </label>
+                                <input type="text" 
+                                       asp-for="TicketSubject" 
+                                       class="input input-sm input-bordered w-full rounded-2xl bg-neutral-800/60 border-white/10 text-white" 
+                                       placeholder="Brief description of your issue"
+                                       required />
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text text-slate-300 font-medium text-xs">Description</span>
+                                </label>
+                                <textarea asp-for="TicketDescription" 
+                                          class="textarea textarea-sm textarea-bordered w-full h-32 rounded-2xl bg-neutral-800/60 border-white/10 text-white" 
+                                          placeholder="Please provide more details about your request..."></textarea>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                @if (Model.Priorities.Any())
+                                {
+                                    <div class="form-control">
+                                        <label class="label">
+                                            <span class="label-text text-slate-300 font-medium text-xs">Priority</span>
+                                        </label>
+                                        <select asp-for="TicketPriority" 
+                                                class="select select-sm select-bordered w-full rounded-2xl bg-neutral-800/60 border-white/10 text-white">
+                                            <option value="">Select priority...</option>
+                                            @foreach (var priority in Model.Priorities)
+                                            {
+                                                <option value="@priority.Name">@priority.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                }
+                                
+                                @if (Model.Types.Any())
+                                {
+                                    <div class="form-control">
+                                        <label class="label">
+                                            <span class="label-text text-slate-300 font-medium text-xs">Type</span>
+                                        </label>
+                                        <select asp-for="TicketType" 
+                                                class="select select-sm select-bordered w-full rounded-2xl bg-neutral-800/60 border-white/10 text-white">
+                                            <option value="">Select type...</option>
+                                            @foreach (var type in Model.Types)
+                                            {
+                                                <option value="@type.Name">@type.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary rounded-2xl px-8">
+                        <i class="fa fa-paper-plane mr-2"></i>
+                        Submit Ticket
+                    </button>
+                </div>
+            </form>
+        }
+        else if (!Model.PortalEnabled && Model.Workspace != null)
+        {
+            <div class="card bg-neutral-900/70 backdrop-blur rounded-2xl border border-white/5">
+                <div class="card-body text-center p-8">
+                    <i class="fa fa-lock text-6xl text-slate-400 mb-4"></i>
+                    <h2 class="text-2xl font-bold text-white mb-2">Portal Disabled</h2>
+                    <p class="text-slate-400">This workspace portal is currently not accepting submissions.</p>
+                </div>
+            </div>
+        }
+    </div>
+</section>

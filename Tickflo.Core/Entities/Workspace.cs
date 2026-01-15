@@ -9,4 +9,8 @@ public class Workspace
     public int CreatedBy { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public int? UpdatedBy { get; set; }
+    
+    // Portal settings
+    public bool PortalEnabled { get; set; } = false;
+    public string? PortalAccessToken { get; set; } // Unique token for the workspace portal
 }

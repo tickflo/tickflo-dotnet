@@ -21,10 +21,11 @@ public class SettingsModel : WorkspacePageModel
     private readonly ITicketTypeRepository _typeRepo;
     private readonly IWorkspaceSettingsService _settingsService;
     private readonly IWorkspaceSettingsViewService _settingsViewService;
+    private readonly IAccessTokenService _tokenService;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
-    public SettingsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, IWorkspaceSettingsService settingsService, IWorkspaceSettingsViewService settingsViewService)
+    public SettingsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, IWorkspaceSettingsService settingsService, IWorkspaceSettingsViewService settingsViewService, IAccessTokenService tokenService)
     {
         _workspaceRepo = workspaceRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
@@ -33,6 +34,7 @@ public class SettingsModel : WorkspacePageModel
         _typeRepo = typeRepo;
         _settingsService = settingsService;
         _settingsViewService = settingsViewService;
+        _tokenService = tokenService;
     }
 
     public IReadOnlyList<Tickflo.Core.Entities.TicketStatus> Statuses { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketStatus>();
@@ -437,6 +439,18 @@ public class SettingsModel : WorkspacePageModel
                     Workspace.Slug = newSlug;
                 }
             }
+
+            // Portal settings
+            var portalEnabledValue = form["Workspace.PortalEnabled"].ToString();
+            var portalEnabled = portalEnabledValue == "true";
+            
+            if (portalEnabled && string.IsNullOrEmpty(Workspace.PortalAccessToken))
+            {
+                // Generate a new portal token if enabling portal for the first time
+                Workspace.PortalAccessToken = _tokenService.GenerateToken(32);
+            }
+            
+            Workspace.PortalEnabled = portalEnabled;
 
             await _workspaceRepo.UpdateAsync(Workspace);
             changedCount++;

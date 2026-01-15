@@ -82,6 +82,78 @@
             </div>
         </div>
 
+        <!-- Portal Settings -->
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+            <div class="card-body space-y-6">
+                <div class="flex flex-col gap-1">
+                    <p class="text-xs uppercase tracking-wide text-base-content/60">Workspace Portal</p>
+                    <h3 class="font-semibold text-lg">Public Ticket Submission</h3>
+                    <p class="text-sm text-base-content/70">Allow external users to submit tickets via an embeddable form.</p>
+                </div>
+                <div class="space-y-4">
+                    <div class="form-control">
+                        <label class="label cursor-pointer justify-start gap-3">
+                            <input type="checkbox" 
+                                   name="Workspace.PortalEnabled" 
+                                   value="true" 
+                                   @(Model.Workspace?.PortalEnabled == true ? "checked" : "")
+                                   class="toggle toggle-primary" />
+                            <div>
+                                <span class="label-text font-semibold block">Enable Portal</span>
+                                <span class="label-text-alt opacity-70 block">Allow ticket submissions from external users</span>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    @if (!string.IsNullOrEmpty(Model.Workspace?.PortalAccessToken))
+                    {
+                        <div class="space-y-2">
+                            <label class="label">
+                                <span class="label-text font-semibold">Portal Link</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <input type="text" 
+                                       readonly 
+                                       value="@($"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}/workspace-portal/{Model.Workspace.PortalAccessToken}")"
+                                       class="input input-bordered flex-1 bg-neutral-800/60 border-white/10 text-slate-200 font-mono text-sm"
+                                       id="portal-link" />
+                                <button type="button" 
+                                        onclick="navigator.clipboard.writeText(document.getElementById('portal-link').value); this.innerHTML = '<i class=\'fa fa-check\'></i> Copied'; setTimeout(() => this.innerHTML = '<i class=\'fa fa-copy\'></i> Copy', 2000);"
+                                        class="btn btn-primary rounded-2xl">
+                                    <i class="fa fa-copy"></i> Copy
+                                </button>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1">
+                                <i class="fa fa-info-circle"></i> Share this link to allow customers to submit tickets. 
+                                You can embed this in your website using an iframe.
+                            </p>
+                            
+                            <div class="mt-4">
+                                <label class="label">
+                                    <span class="label-text font-semibold">Embed Code</span>
+                                </label>
+                                <textarea readonly 
+                                          class="textarea textarea-bordered w-full h-24 bg-neutral-800/60 border-white/10 text-slate-200 font-mono text-xs"
+                                          id="embed-code">&lt;iframe src="@($"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}/workspace-portal/{Model.Workspace.PortalAccessToken}")" width="100%" height="800" frameborder="0"&gt;&lt;/iframe&gt;</textarea>
+                                <button type="button" 
+                                        onclick="navigator.clipboard.writeText(document.getElementById('embed-code').value); this.innerHTML = '<i class=\'fa fa-check\'></i> Copied'; setTimeout(() => this.innerHTML = '<i class=\'fa fa-copy\'></i> Copy Embed Code', 2000);"
+                                        class="btn btn-sm btn-ghost mt-2">
+                                    <i class="fa fa-copy"></i> Copy Embed Code
+                                </button>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info rounded-2xl">
+                            <i class="fa fa-info-circle"></i>
+                            <span>Save settings to generate your portal link</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
         <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
             <div class="card-body">
                 <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
