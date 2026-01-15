@@ -71,28 +71,27 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Connect to Twingate
-        uses: twingate/github-action@v1.5
-        with:
-          service-key: ${{ secrets.TWINGATE_SERVICE_KEY }}
-
-      - name: Install DBMate
+      - name: Sync Migrations
         run: |
-          sudo curl -fsSL -o /usr/local/bin/dbmate https://github.com/amacneil/dbmate/releases/download/v2.29.3/dbmate-linux-amd64
-          sudo chmod +x /usr/local/bin/dbmate
-
-      - name: Migrate database
-        run: |
-          dbmate --url "${{ secrets.DATABASE_URL_STAGE }}" --no-dump-schema migrate
+          echo "${{ secrets.DEPLOY_SSH_KEY_STAGE }}" > deploy_key_stage.pem
+          chmod 600 deploy_key_stage.pem
+          rsync -avz \
+            --delete \
+            -e "ssh -o StrictHostKeyChecking=no -i deploy_key_stage.pem" \
+           db/migrations/ \
+           ${{ secrets.DEPLOY_USER_STAGE }}@tickflo.co:/home/deploy/tickflo-migrations-stage/
+           rm deploy_key_stage.pem
 
       - name: Deploy web application
         uses: appleboy/ssh-action@v1.2.4
         with:
-          host: ${{ secrets.DEPLOY_IP_STAGE }}
+          host: tickflo.co
           username: ${{ secrets.DEPLOY_USER_STAGE }}
           key: ${{ secrets.DEPLOY_SSH_KEY_STAGE }}
           script: |
             set -e
+
+            dbmate --url "${{ secrets.DATABASE_URL_STAGE }}" -d /home/deploy/tickflo-migrations-stage --no-dump-schema migrate
 
             docker pull ${{ env.IMAGE_NAME }}:stage
             docker stop ${{ env.CONTAINER_NAME }} || true
@@ -152,28 +151,27 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Connect to Twingate
-        uses: twingate/github-action@v1.5
-        with:
-          service-key: ${{ secrets.TWINGATE_SERVICE_KEY }}
-
-      - name: Install DBMate
+      - name: Sync Migrations
         run: |
-          sudo curl -fsSL -o /usr/local/bin/dbmate https://github.com/amacneil/dbmate/releases/download/v2.29.3/dbmate-linux-amd64
-          sudo chmod +x /usr/local/bin/dbmate
-
-      - name: Migrate database
-        run: |
-          dbmate --url "${{ secrets.DATABASE_URL_PROD }}" --no-dump-schema migrate
+          echo "${{ secrets.DEPLOY_SSH_KEY_PROD }}" > deploy_key_prod.pem
+          chmod 600 deploy_key_prod.pem
+          rsync -avz \
+            --delete \
+            -e "ssh -o StrictHostKeyChecking=no -i deploy_key_prod.pem" \
+           db/migrations/ \
+           ${{ secrets.DEPLOY_USER_PROD }}@tickflo.co:/home/deploy/tickflo-migrations-prod/
+           rm deploy_key_prod.pem
 
       - name: Deploy web application
         uses: appleboy/ssh-action@v1.2.4
         with:
-          host: ${{ secrets.DEPLOY_IP_PROD }}
+          host: tickflo.co
           username: ${{ secrets.DEPLOY_USER_PROD }}
           key: ${{ secrets.DEPLOY_SSH_KEY_PROD }}
           script: |
             set -e
+
+            dbmate --url "${{ secrets.DATABASE_URL_PROD }}" -d /home/deploy/tickflo-migrations-prod --no-dump-schema migrate
 
             docker pull ${{ env.IMAGE_NAME }}:latest
 
