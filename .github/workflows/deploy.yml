@@ -73,11 +73,14 @@ jobs:
 
       - name: Get service key
         id: service-key
+        shell: bash
         run: |
-          echo secret=$(echo ${{ secrets.TWINGATE_SERVICE_KEY }} | base64 --decode) >> $GITHUB_OUTPUT
+          decoded="$(echo "${{ secrets.TWINGATE_SERVICE_KEY }}" | base64 --decode)"
+          echo "::add-mask::$decoded"
+          echo "secret=$decoded" >> "$GITHUB_OUTPUT"
 
       - name: Connect to Twingate
-        uses: twingate/github-action@v1
+        uses: twingate/github-action@v1.5
         with:
           service-key: ${{ steps.service-key.outputs.secret }}
 
@@ -159,11 +162,14 @@ jobs:
 
       - name: Get service key
         id: service-key
+        shell: bash
         run: |
-          echo secret=$(echo ${{ secrets.TWINGATE_SERVICE_KEY }} | base64 --decode) >> $GITHUB_OUTPUT
+          decoded="$(echo "${{ secrets.TWINGATE_SERVICE_KEY }}" | base64 --decode)"
+          echo "::add-mask::$decoded"
+          echo "secret=$decoded" >> "$GITHUB_OUTPUT"
 
       - name: Connect to Twingate
-        uses: twingate/github-action@v1
+        uses: twingate/github-action@v1.5
         with:
           service-key: ${{ steps.service-key.outputs.secret }}
 
