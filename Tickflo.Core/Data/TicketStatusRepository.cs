@@ -14,6 +14,9 @@ public class TicketStatusRepository(TickfloDbContext db) : ITicketStatusReposito
     public async Task<TicketStatus?> FindByNameAsync(int workspaceId, string name, CancellationToken ct = default)
         => await db.TicketStatuses.FirstOrDefaultAsync(s => s.WorkspaceId == workspaceId && s.Name == name, ct);
 
+    public async Task<TicketStatus?> FindByIsClosedStateAsync(int workspaceId, bool isClosedState, CancellationToken ct = default)
+        => await db.TicketStatuses.FirstOrDefaultAsync(s => s.WorkspaceId == workspaceId && s.IsClosedState == isClosedState, ct);
+
     public async Task<TicketStatus> CreateAsync(TicketStatus status, CancellationToken ct = default)
     {
         db.TicketStatuses.Add(status);

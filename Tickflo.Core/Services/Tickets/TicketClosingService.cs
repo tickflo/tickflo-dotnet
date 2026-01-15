@@ -36,9 +36,9 @@ public class TicketClosingService : ITicketClosingService
             throw new InvalidOperationException("Ticket not found");
 
         // Resolve closed status ID
-        var closedStatus = await _statusRepo.FindByNameAsync(workspaceId, "Closed");
+        var closedStatus = await _statusRepo.FindByIsClosedStateAsync(workspaceId, true);
         if (closedStatus == null)
-            throw new InvalidOperationException("'Closed' status not found in workspace");
+            throw new InvalidOperationException("Closed status not found in workspace");
 
         // Business rule: Cannot close an already closed ticket
         if (ticket.StatusId == closedStatus.Id)
@@ -81,9 +81,9 @@ public class TicketClosingService : ITicketClosingService
         if (ticket == null)
             throw new InvalidOperationException("Ticket not found");
 
-        var closedStatus = await _statusRepo.FindByNameAsync(workspaceId, "Closed");
+        var closedStatus = await _statusRepo.FindByIsClosedStateAsync(workspaceId, true);
         if (closedStatus == null)
-            throw new InvalidOperationException("'Closed' status not found in workspace");
+            throw new InvalidOperationException("Closed status not found in workspace");
 
         // Business rule: Can only reopen closed tickets
         if (ticket.StatusId != closedStatus.Id)
@@ -130,7 +130,7 @@ public class TicketClosingService : ITicketClosingService
         if (ticket == null)
             throw new InvalidOperationException("Ticket not found");
 
-        var closedStatus = await _statusRepo.FindByNameAsync(workspaceId, "Closed");
+        var closedStatus = await _statusRepo.FindByIsClosedStateAsync(workspaceId, true);
         var resolvedStatus = await _statusRepo.FindByNameAsync(workspaceId, "Resolved");
         if (resolvedStatus == null)
             throw new InvalidOperationException("'Resolved' status not found in workspace");
@@ -173,7 +173,7 @@ public class TicketClosingService : ITicketClosingService
         if (ticket == null)
             throw new InvalidOperationException("Ticket not found");
 
-        var closedStatus = await _statusRepo.FindByNameAsync(workspaceId, "Closed");
+        var closedStatus = await _statusRepo.FindByIsClosedStateAsync(workspaceId, true);
         var cancelledStatus = await _statusRepo.FindByNameAsync(workspaceId, "Cancelled");
         if (cancelledStatus == null)
             throw new InvalidOperationException("'Cancelled' status not found in workspace");

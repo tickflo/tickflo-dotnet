@@ -41,7 +41,6 @@ builder.Configuration.GetSection("SETTINGS").Bind(settingsConfig);
 
 var connectionString = $"Host={appConfig.POSTGRES_HOST};Port=5432;Database={appConfig.POSTGRES_DB};Username={appConfig.POSTGRES_USER};Password={appConfig.POSTGRES_PASSWORD}";
 
-// Add services to the container.
 builder.Services.AddSingleton(appConfig);
 builder.Services.AddSingleton(settingsConfig);
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -66,7 +65,6 @@ builder.Services.AddScoped<ITeamMemberRepository, TeamMemberRepository>();
 builder.Services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IUserNotificationPreferenceRepository, UserNotificationPreferenceRepository>();
-// Realtime updates for tickets
 builder.Services.AddSignalR();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IFileStorageRepository, FileStorageRepository>();
@@ -75,7 +73,6 @@ builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<IPasswordSetupService, PasswordSetupService>();
 builder.Services.AddScoped<Tickflo.Core.Services.Notifications.INotificationService, Tickflo.Core.Services.Notifications.NotificationService>();
 
-// New domain services for business logic
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 builder.Services.AddScoped<IWorkspaceAccessService, WorkspaceAccessService>();
@@ -209,15 +206,14 @@ builder.Services.AddSingleton<IAmazonS3>(sp =>
     var s3Config = new AmazonS3Config
     {
         ServiceURL = config.S3_ENDPOINT,
-        ForcePathStyle = true, // Use path-style access for S3 buckets
-        AuthenticationRegion = config.S3_REGION, // Set the region for S3 authentication
+        ForcePathStyle = true,
+        AuthenticationRegion = config.S3_REGION,
     };
     return new AmazonS3Client(config.S3_ACCESS_KEY, config.S3_SECRET_KEY, s3Config);
 });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
@@ -251,7 +247,6 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 app.MapControllers();
-// Map SignalR hubs
 app.MapHub<Tickflo.Web.Realtime.TicketsHub>("/hubs/tickets");
 
 app.Run();
