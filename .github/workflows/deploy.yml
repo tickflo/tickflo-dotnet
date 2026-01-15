@@ -71,18 +71,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Get service key
-        id: service-key
-        shell: bash
-        run: |
-          decoded="$(echo "${{ secrets.TWINGATE_SERVICE_KEY }}" | base64 --decode)"
-          echo "::add-mask::$decoded"
-          echo "secret=$decoded" >> "$GITHUB_OUTPUT"
-
       - name: Connect to Twingate
         uses: twingate/github-action@v1.5
         with:
-          service-key: ${{ steps.service-key.outputs.secret }}
+          service-key: ${{ secrets.TWINGATE_SERVICE_KEY }}
 
       - name: Install DBMate
         run: |
@@ -160,18 +152,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Get service key
-        id: service-key
-        shell: bash
-        run: |
-          decoded="$(echo "${{ secrets.TWINGATE_SERVICE_KEY }}" | base64 --decode)"
-          echo "::add-mask::$decoded"
-          echo "secret=$decoded" >> "$GITHUB_OUTPUT"
-
       - name: Connect to Twingate
         uses: twingate/github-action@v1.5
         with:
-          service-key: ${{ steps.service-key.outputs.secret }}
+          service-key: ${{ secrets.TWINGATE_SERVICE_KEY }}
 
       - name: Install DBMate
         run: |
