@@ -67,12 +67,19 @@
                             <label class="label"><span class="label-text-alt opacity-70">The display name for your workspace</span></label>
                             <span asp-validation-for="Workspace.Name" class="validator-hint text-error"></span>
                         </div>
-                        <div class="form-control">
-                            <label class="label" for="Slug"><span class="label-text font-semibold">Slug <span class="text-error">*</span></span></label>
-                            <input class="input w-full rounded-2xl bg-neutral-900/85 border border-white/10 text-slate-100" asp-for="Workspace.Slug" required pattern="[a-z0-9-]+" />
-                            <label class="label"><span class="label-text-alt opacity-70">URL-friendly identifier (lowercase, numbers, hyphens only)</span></label>
-                            <span asp-validation-for="Workspace.Slug" class="validator-hint text-error"></span>
-                        </div>
+                        @if (Model.IsSystemAdmin)
+                        {
+                            <div class="form-control">
+                                <label class="label" for="Slug"><span class="label-text font-semibold">Slug <span class="text-error">*</span></span></label>
+                                <input class="input w-full rounded-2xl bg-neutral-900/85 border border-white/10 text-slate-100" asp-for="Workspace.Slug" required pattern="[a-z0-9-]+" />
+                                <label class="label"><span class="label-text-alt opacity-70">URL-friendly identifier (lowercase, numbers, hyphens only)</span></label>
+                                <span asp-validation-for="Workspace.Slug" class="validator-hint text-error"></span>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="hidden" name="Workspace.Slug" value="@Model.Workspace?.Slug" />
+                        }
                     </div>
                     <div class="card-actions flex flex-col md:flex-row gap-2 md:join">
                         <a class="btn btn-soft join-item btn-sm w-full md:w-auto rounded-2xl" asp-page="/Workspace" asp-route-slug="@Model.WorkspaceSlug" asp-preserve-query>Cancel</a>

@@ -21,10 +21,11 @@ public class SettingsModel : WorkspacePageModel
     private readonly ITicketTypeRepository _typeRepo;
     private readonly IWorkspaceSettingsService _settingsService;
     private readonly IWorkspaceSettingsViewService _settingsViewService;
+    private readonly IUserRepository _userRepo;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
-    public SettingsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, IWorkspaceSettingsService settingsService, IWorkspaceSettingsViewService settingsViewService)
+    public SettingsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, IWorkspaceSettingsService settingsService, IWorkspaceSettingsViewService settingsViewService, IUserRepository userRepo)
     {
         _workspaceRepo = workspaceRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
@@ -33,6 +34,7 @@ public class SettingsModel : WorkspacePageModel
         _typeRepo = typeRepo;
         _settingsService = settingsService;
         _settingsViewService = settingsViewService;
+        _userRepo = userRepo;
     }
 
     public IReadOnlyList<Tickflo.Core.Entities.TicketStatus> Statuses { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketStatus>();
@@ -43,6 +45,7 @@ public class SettingsModel : WorkspacePageModel
     public bool CanEditSettings { get; private set; }
     public bool CanCreateSettings { get; private set; }
     public bool IsWorkspaceAdmin { get; private set; }
+    public bool IsSystemAdmin { get; private set; }
 
     private async Task<(int userId, bool isAdmin)> ResolveUserAsync()
     {
@@ -54,6 +57,8 @@ public class SettingsModel : WorkspacePageModel
     private async Task<bool> EnsurePermissionsAsync(int userId)
     {
         if (Workspace == null) return false;
+        var user = await _userRepo.FindByIdAsync(userId);
+        IsSystemAdmin = user?.SystemAdmin == true;
         var data = await _settingsViewService.BuildAsync(Workspace.Id, userId);
         CanViewSettings = data.CanViewSettings;
         CanEditSettings = data.CanEditSettings;
@@ -140,6 +145,15 @@ public class SettingsModel : WorkspacePageModel
         }
         var name = (Request.Form["Workspace.Name"].ToString() ?? Workspace.Name).Trim();
         var newSlug = (Request.Form["Workspace.Slug"].ToString() ?? Workspace.Slug).Trim();
+        
+        // Only allow system admins to change the slug
+        if (newSlug != Workspace.Slug && !IsSystemAdmin)
+        {
+            TempData["ErrorMessage"] = "Only system administrators can change the workspace slug.";
+            await EnsurePermissionsAsync(uid);
+            return Page();
+        }
+        
         try
         {
             Workspace = await _settingsService.UpdateWorkspaceBasicSettingsAsync(Workspace.Id, name, newSlug);
