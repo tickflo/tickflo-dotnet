@@ -4,11 +4,11 @@
     "net10.0": {
       "AWSSDK.S3": {
         "type": "Direct",
-        "requested": "[4.0.6.2, )",
-        "resolved": "4.0.6.2",
-        "contentHash": "suVZWac0WWUD6Td17bpCAWEh1OYNbdDcS6e0N1n/B4ezrlPvMu8v1gTZ1u4bC2nUDU4XOdyyWA+oz5BxthD5oQ==",
+        "requested": "[4.0.17.1, )",
+        "resolved": "4.0.17.1",
+        "contentHash": "LKSufHYQhetc2SfCr0jlvQ+f5COn3deM3t63yA/Jh/k7H4Nv+B9CxSl/CN4Jsrc1TohyLV8ow5LwvABouAhvRg==",
         "dependencies": {
-          "AWSSDK.Core": "[4.0.0.17, 5.0.0)"
+          "AWSSDK.Core": "[4.0.3.8, 5.0.0)"
         }
       },
       "DotNetEnv": {
@@ -78,8 +78,8 @@
       },
       "AWSSDK.Core": {
         "type": "Transitive",
-        "resolved": "4.0.0.17",
-        "contentHash": "6jUEYOfvhRVfS3vh6mx+tGI+cxMbdvmktDFARjquRkF9WSY3Pa86UceEUAEa7youGNR+yz6Nn18+wzS/GFu77A=="
+        "resolved": "4.0.3.8",
+        "contentHash": "nJyNzaz3pcD8c8hZvtJXuziJm1dkd3/BYmZvhf1TPNfMo3G3lsesGFZl1UVyQhGEfmQOS+efT0H8tf00PMmjug=="
       },
       "Isopoh.Cryptography.Argon2": {
         "type": "Transitive",
