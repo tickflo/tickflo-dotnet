@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Authorization;
 
 using Tickflo.Core.Services.Views;
 using Tickflo.Core.Services.Users;
+using Tickflo.Core.Services.Email;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
@@ -24,6 +25,7 @@ public class UsersInviteModel : WorkspacePageModel
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IEmailSender _emailSender;
+    private readonly IEmailTemplateService _emailTemplateService;
     private readonly INotificationRepository _notificationRepository;
     private readonly ITokenRepository _tokenRepo;
     private readonly IRoleRepository _roleRepo;
@@ -120,16 +122,18 @@ public class UsersInviteModel : WorkspacePageModel
             var confirmationLink = baseUrl + result.ConfirmationLink;
             var acceptLink = baseUrl + result.AcceptLink;
             var setPasswordLink = baseUrl + result.ResetPasswordLink;
-            var subject = $"You're invited to {ws.Name}";
-            var body = $"<div style='font-family:Arial,sans-serif'>"+
-                        $"<h2 style='color:#333'>Workspace Invitation</h2>"+
-                        $"<p>You have been invited to the workspace '<b>{ws.Name}</b>'.</p>"+
-                        $"<p>Temporary password: <code style='font-size:1.1em'>{result.TemporaryPassword}</code></p>"+
-                        $"<p>Please confirm your email: <a href=\"{confirmationLink}\">Confirm Email</a></p>"+
-                        $"<p>Then accept the invite: <a href=\"{acceptLink}\">Accept Invite</a></p>"+
-                        $"<p>Or set your password now: <a href=\"{setPasswordLink}\">Set Password</a></p>"+
-                        $"<hr/><p style='color:#777'>If you did not expect this email, you can ignore it.</p>"+
-                        $"</div>";
+            
+            // Template Type ID 2 = Workspace Invite (new user)
+            var variables = new Dictionary<string, string>
+            {
+                { "WORKSPACE_NAME", ws.Name },
+                { "TEMPORARY_PASSWORD", result.TemporaryPassword },
+                { "CONFIRMATION_LINK", confirmationLink },
+                { "ACCEPT_LINK", acceptLink },
+                { "SET_PASSWORD_LINK", setPasswordLink }
+            };
+            
+            var (subject, body) = await _emailTemplateService.RenderTemplateAsync(2, variables, ws.Id);
             await _emailSender.SendAsync(result.User.Email!, subject, body);
 
             // Create a notification record in the database

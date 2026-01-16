@@ -161,6 +161,7 @@ else
 {
     builder.Services.AddScoped<IEmailSender, DebugEmailSender>();
 }
+builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
 builder.Services.AddDbContext<TickfloDbContext>(options =>
     options.UseNpgsql(connectionString!)
         .UseSnakeCaseNamingConvention());

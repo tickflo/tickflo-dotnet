@@ -9,6 +9,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Email;
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
@@ -19,19 +20,21 @@ public class UsersModel : WorkspacePageModel
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
     private readonly IEmailSender _emailSender;
+    private readonly IEmailTemplateService _emailTemplateService;
     private readonly INotificationRepository _notificationRepository;
     private readonly IWorkspaceUsersViewService _viewService;
     private readonly IWorkspaceUsersManageViewService _manageViewService;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
-    public UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IEmailSender emailSender, INotificationRepository notificationRepository, IWorkspaceUsersViewService viewService, IWorkspaceUsersManageViewService manageViewService)
+    public UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IEmailSender emailSender, IEmailTemplateService emailTemplateService, INotificationRepository notificationRepository, IWorkspaceUsersViewService viewService, IWorkspaceUsersManageViewService manageViewService)
     {
         _workspaceRepo = workspaceRepo;
         _userRepo = userRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
         _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
         _emailSender = emailSender;
+        _emailTemplateService = emailTemplateService;
         _notificationRepository = notificationRepository;
         _viewService = viewService;
         _manageViewService = manageViewService;
@@ -106,8 +109,15 @@ public class UsersModel : WorkspacePageModel
         user!.EmailConfirmationCode = newCode;
         await _userRepo.UpdateAsync(user);
         var confirmationLink = $"/email-confirmation/confirm?email={Uri.EscapeDataString(user.Email)}&code={Uri.EscapeDataString(newCode)}";
-        var subject = $"Your invite to {Workspace.Name}";
-        var body = $"<p>Hello,</p><p>Here is your email confirmation link for workspace '{Workspace.Name}'.</p><p><a href=\"{confirmationLink}\">Confirm your email</a></p><p>Use your original temporary password to sign in.</p>";
+        
+        // Template Type ID 4 = Workspace Invite Resend
+        var variables = new Dictionary<string, string>
+        {
+            { "WORKSPACE_NAME", Workspace.Name },
+            { "CONFIRMATION_LINK", confirmationLink }
+        };
+        
+        var (subject, body) = await _emailTemplateService.RenderTemplateAsync(4, variables, Workspace.Id);
         await _emailSender.SendAsync(user.Email, subject, body);
         
         // Create a notification record in the database

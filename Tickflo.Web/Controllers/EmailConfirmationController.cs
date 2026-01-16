@@ -13,17 +13,20 @@ public class EmailConfirmationController : ControllerBase
 {
     private readonly IUserRepository _users;
     private readonly IEmailSender _emailSender;
+    private readonly IEmailTemplateService _emailTemplateService;
     private readonly INotificationRepository _notificationRepository;
     private readonly ICurrentUserService _currentUserService;
 
     public EmailConfirmationController(
         IUserRepository users,
         IEmailSender emailSender,
+        IEmailTemplateService emailTemplateService,
         INotificationRepository notificationRepository,
         ICurrentUserService currentUserService)
     {
         _users = users;
         _emailSender = emailSender;
+        _emailTemplateService = emailTemplateService;
         _notificationRepository = notificationRepository;
         _currentUserService = currentUserService;
     }
@@ -89,18 +92,15 @@ public class EmailConfirmationController : ControllerBase
         // Create confirmation link
         var confirmationLink = $"{Request.Scheme}://{Request.Host}/email-confirmation/confirm?email={Uri.EscapeDataString(user.Email)}&code={Uri.EscapeDataString(newCode)}";
 
-        // Prepare email content
-        var subject = "Confirm Your Email Address";
-        var body = $@"<div style='font-family:Arial,sans-serif'>
-                        <h2 style='color:#333'>Email Confirmation</h2>
-                        <p>Hello {user.Name},</p>
-                        <p>Please confirm your email address by clicking the link below:</p>
-                        <p><a href=""{confirmationLink}"" style='background-color:#007bff;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block'>Confirm Email</a></p>
-                        <p>Or copy and paste this link: <br/>{confirmationLink}</p>
-                        <hr/>
-                        <p style='color:#777;font-size:12px'>If you did not request this email, you can ignore it.</p>
-                     </div>";
-
+        // Template Type ID 3 = Email Confirmation Request
+        var variables = new Dictionary<string, string>
+        {
+            { "USER_NAME", user.Name },
+            { "CONFIRMATION_LINK", confirmationLink }
+        };
+        
+        var (subject, body) = await _emailTemplateService.RenderTemplateAsync(3, variables);
+        
         // Send the email
         await _emailSender.SendAsync(user.Email, subject, body);
 

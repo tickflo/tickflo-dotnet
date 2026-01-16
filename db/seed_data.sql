@@ -568,8 +568,9 @@ INSERT INTO public.user_notification_preferences (user_id, notification_type, em
 -- Global email templates for system-wide messages
 -- Template Type IDs:
 -- 1 = Email Confirmation Thank You
--- 2 = Workspace Invite
--- 3 = Password Reset
+-- 2 = Workspace Invite (new user)
+-- 3 = Email Confirmation Request
+-- 4 = Workspace Invite Resend
 -- =============================================
 INSERT INTO public.email_templates (workspace_id, template_type_id, subject, body, created_at, created_by) VALUES
 -- Global template for Email Confirmation Thank You (template_type_id = 1)
@@ -587,6 +588,37 @@ INSERT INTO public.email_templates (workspace_id, template_type_id, subject, bod
             </div>
         </div>
     </div>
-</div>', NOW(), 1);
+</div>', NOW(), 1),
+
+-- Global template for Workspace Invite - New User (template_type_id = 2)
+(NULL, 2, 'You''re invited to {{WORKSPACE_NAME}}',
+'<div style="font-family:Arial,sans-serif">
+    <h2 style="color:#333">Workspace Invitation</h2>
+    <p>You have been invited to the workspace ''<b>{{WORKSPACE_NAME}}</b>''.</p>
+    <p>Temporary password: <code style="font-size:1.1em">{{TEMPORARY_PASSWORD}}</code></p>
+    <p>Please confirm your email: <a href="{{CONFIRMATION_LINK}}">Confirm Email</a></p>
+    <p>Then accept the invite: <a href="{{ACCEPT_LINK}}">Accept Invite</a></p>
+    <p>Or set your password now: <a href="{{SET_PASSWORD_LINK}}">Set Password</a></p>
+    <hr/><p style="color:#777">If you did not expect this email, you can ignore it.</p>
+</div>', NOW(), 1),
+
+-- Global template for Email Confirmation Request (template_type_id = 3)
+(NULL, 3, 'Confirm Your Email Address',
+'<div style="font-family:Arial,sans-serif">
+    <h2 style="color:#333">Email Confirmation</h2>
+    <p>Hello {{USER_NAME}},</p>
+    <p>Please confirm your email address by clicking the link below:</p>
+    <p><a href="{{CONFIRMATION_LINK}}" style="background-color:#007bff;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;display:inline-block">Confirm Email</a></p>
+    <p>Or copy and paste this link: <br/>{{CONFIRMATION_LINK}}</p>
+    <hr/>
+    <p style="color:#777;font-size:12px">If you did not request this email, you can ignore it.</p>
+</div>', NOW(), 1),
+
+-- Global template for Workspace Invite Resend (template_type_id = 4)
+(NULL, 4, 'Your invite to {{WORKSPACE_NAME}}',
+'<p>Hello,</p>
+<p>Here is your email confirmation link for workspace ''{{WORKSPACE_NAME}}''.</p>
+<p><a href="{{CONFIRMATION_LINK}}">Confirm your email</a></p>
+<p>Use your original temporary password to sign in.</p>', NOW(), 1);
 
 -- =============================================
