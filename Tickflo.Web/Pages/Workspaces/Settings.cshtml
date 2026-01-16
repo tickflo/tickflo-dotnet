@@ -109,7 +109,7 @@
                             {
                                 var displayColor = string.IsNullOrWhiteSpace(s.Color) ? "neutral" : s.Color;
                                 var isHex = displayColor.StartsWith("#");
-                                var badgeCls = isHex ? "badge badge-soft" : $"badge badge-soft badge-{displayColor}";
+                                var badgeCls = isHex ? "badge badge-soft badge-nowrap" : $"badge badge-soft badge-{displayColor} badge-nowrap";
                                 var badgeStyle = isHex ? $"background-color: {displayColor}; color: #fff;" : null;
                                 var colorMap = new Dictionary<string, string>
                                 {
@@ -184,7 +184,7 @@
                             {
                                 var displayColor = string.IsNullOrWhiteSpace(p.Color) ? "neutral" : p.Color;
                                 var isHex = displayColor.StartsWith("#");
-                                var badgeCls = isHex ? "badge badge-soft" : $"badge badge-soft badge-{displayColor}";
+                                var badgeCls = isHex ? "badge badge-soft badge-nowrap" : $"badge badge-soft badge-{displayColor} badge-nowrap";
                                 var badgeStyle = isHex ? $"background-color: {displayColor}; color: #fff;" : null;
                                 var colorMap = new Dictionary<string, string>
                                 {
@@ -255,7 +255,7 @@
                             {
                                 var displayColor = string.IsNullOrWhiteSpace(t.Color) ? "neutral" : t.Color;
                                 var isHex = displayColor.StartsWith("#");
-                                var badgeCls = isHex ? "badge badge-soft" : $"badge badge-soft badge-{displayColor}";
+                                var badgeCls = isHex ? "badge badge-soft badge-nowrap" : $"badge badge-soft badge-{displayColor} badge-nowrap";
                                 var badgeStyle = isHex ? $"background-color: {displayColor}; color: #fff;" : null;
                                 var colorMap = new Dictionary<string, string>
                                 {
