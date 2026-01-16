@@ -45,10 +45,6 @@
                     <h2 class="card-title text-2xl">Settings</h2>
                     <p class="text-sm text-base-content/70">Workspace: @Model.WorkspaceSlug</p>
                 </div>
-                <div class="flex flex-wrap gap-2 text-xs">
-                    <span class="badge badge-soft badge-primary rounded-full">Live</span>
-                    <span class="badge badge-soft badge-ghost rounded-full">All changes visible immediately</span>
-                </div>
             </div>
         </div>
 
@@ -95,10 +91,6 @@
                     <div>
                         <h3 class="card-title">Ticket Statuses</h3>
                         <p class="text-sm opacity-70">Rename, recolor, and reorder how tickets progress.</p>
-                    </div>
-                    <div class="flex flex-wrap gap-2 text-xs">
-                        <span class="badge badge-soft badge-info rounded-full">Visible in filters</span>
-                        <span class="badge badge-soft badge-neutral rounded-full">Applies to all tickets</span>
                     </div>
                 </div>
                 <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
@@ -173,10 +165,6 @@
                         <h3 class="card-title">Priorities</h3>
                         <p class="text-sm opacity-70">Keep urgency clear for tickets and contacts.</p>
                     </div>
-                    <div class="flex flex-wrap gap-2 text-xs">
-                        <span class="badge badge-soft badge-warning rounded-full">Impacts alerts</span>
-                        <span class="badge badge-soft badge-info rounded-full">Shows on kanban</span>
-                    </div>
                 </div>
                 <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
                     <table class="table table-sm align-middle">
@@ -245,10 +233,6 @@
                     <div>
                         <h3 class="card-title">Ticket Types</h3>
                         <p class="text-sm opacity-70">Keep work organized with clear categories.</p>
-                    </div>
-                    <div class="flex flex-wrap gap-2 text-xs">
-                        <span class="badge badge-soft badge-success rounded-full">Helps routing</span>
-                        <span class="badge badge-soft badge-info rounded-full">Filters & search</span>
                     </div>
                 </div>
                 <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
@@ -319,7 +303,6 @@
                         <h3 class="card-title">Notification Integrations</h3>
                         <p class="text-sm opacity-70">Configure how alerts reach your team.</p>
                     </div>
-                    <span class="badge badge-soft badge-primary rounded-full">Always visible</span>
                 </div>
                 
                 @if (TempData["NotificationSettingsSaved"] != null)
