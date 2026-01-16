@@ -14,6 +14,13 @@ namespace Tickflo.Web.Pages.Workspaces;
 [Authorize]
 public class LocationsModel : WorkspacePageModel
 {
+    #region Constants
+    private const string LocationDeletedFormat = "Location #{0} deleted.";
+    private const string LocationNotFoundMessage = "Location not found.";
+    private const string LocationsSection = "locations";
+    private const string EditAction = "edit";
+    #endregion
+
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly ILocationRepository _locationRepo;
@@ -69,13 +76,21 @@ public class LocationsModel : WorkspacePageModel
 
         if (!_currentUserService.TryGetUserId(User, out var uid)) return Forbid();
 
-        var canDelete = await _workspaceAccessService.CanUserPerformActionAsync(
-            Workspace!.Id, uid, "locations", "edit");
-        if (!canDelete) return Forbid();
+        if (!await CanUserEditLocationsAsync(uid))
+            return Forbid();
 
-        var ok = await _locationRepo.DeleteAsync(Workspace.Id, locationId);
-        SetSuccessMessage(ok ? $"Location #{locationId} deleted." : "Location not found.");
+        var ok = await _locationRepo.DeleteAsync(Workspace!.Id, locationId);
+        SetSuccessMessage(ok 
+            ? string.Format(LocationDeletedFormat, locationId) 
+            : LocationNotFoundMessage);
+        
         return RedirectToPage("/Workspaces/Locations", new { slug });
+    }
+
+    private async Task<bool> CanUserEditLocationsAsync(int userId)
+    {
+        return await _workspaceAccessService.CanUserPerformActionAsync(
+            Workspace!.Id, userId, LocationsSection, EditAction);
     }
 }
 

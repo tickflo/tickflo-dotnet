@@ -3,14 +3,19 @@ using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services;
-
 using Tickflo.Core.Services.Teams;
 using Tickflo.Core.Services.Views;
+
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
 public class TeamsEditModel : WorkspacePageModel
 {
+    #region Constants
+    private const int NewTeamId = 0;
+    private const string TeamNameRequired = "Team name is required";
+    #endregion
+
     private readonly IWorkspaceRepository _workspaces;
     private readonly ITeamManagementService _teamService;
     private readonly IWorkspaceTeamsEditViewService _teamsEditViewService;
@@ -28,6 +33,9 @@ public class TeamsEditModel : WorkspacePageModel
     public List<int> SelectedMemberIds { get; set; } = new();
 
     public List<User> WorkspaceUsers { get; private set; } = new();
+    public bool CanViewTeams { get; private set; }
+    public bool CanEditTeams { get; private set; }
+    public bool CanCreateTeams { get; private set; }
 
     public TeamsEditModel(
         IWorkspaceRepository workspaces,
@@ -38,9 +46,6 @@ public class TeamsEditModel : WorkspacePageModel
         _teamService = teamService;
         _teamsEditViewService = teamsEditViewService;
     }
-    public bool CanViewTeams { get; private set; }
-    public bool CanEditTeams { get; private set; }
-    public bool CanCreateTeams { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
     {
@@ -48,29 +53,21 @@ public class TeamsEditModel : WorkspacePageModel
         var ws = await _workspaces.FindBySlugAsync(slug);
         if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
         if (!TryGetUserId(out var uid)) return Forbid();
+
         Workspace = ws;
         var data = await _teamsEditViewService.BuildAsync(ws!.Id, uid, id);
+        
         CanViewTeams = data.CanViewTeams;
         CanEditTeams = data.CanEditTeams;
         CanCreateTeams = data.CanCreateTeams;
+        WorkspaceUsers = data.WorkspaceUsers ?? new();
+
         if (EnsurePermissionOrForbid(CanViewTeams) is IActionResult permCheck) return permCheck;
 
         Id = id;
-        WorkspaceUsers = data.WorkspaceUsers ?? new();
         if (id > 0)
-        {
-            var team = data.ExistingTeam;
-            var teamCheck = EnsureEntityBelongsToWorkspace(team, ws!.Id);
-            if (teamCheck is not null) return teamCheck;
-            Name = team!.Name;
-            Description = team.Description;
-            SelectedMemberIds = (data.ExistingMemberIds ?? new()).ToList();
-        }
-        else
-        {
-            Name = string.Empty;
-            Description = null;
-        }
+            LoadTeamDataFromExisting(data.ExistingTeam, ws.Id, data.ExistingMemberIds);
+
         return Page();
     }
 
@@ -80,46 +77,81 @@ public class TeamsEditModel : WorkspacePageModel
         var ws = await _workspaces.FindBySlugAsync(slug);
         if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
         if (!TryGetUserId(out var uid)) return Forbid();
+
         Workspace = ws;
         var data = await _teamsEditViewService.BuildAsync(ws!.Id, uid, id);
+        
         CanViewTeams = data.CanViewTeams;
         CanEditTeams = data.CanEditTeams;
         CanCreateTeams = data.CanCreateTeams;
-        var allowed = id == 0 ? CanCreateTeams : CanEditTeams;
-        if (!allowed) return Forbid();
-
-        // Ensure users list is available even if we return Page() on validation errors
         WorkspaceUsers = data.WorkspaceUsers ?? new();
 
-        var nameTrim = Name?.Trim() ?? string.Empty;
-        var descTrim = string.IsNullOrWhiteSpace(Description) ? null : Description.Trim();
-        if (string.IsNullOrWhiteSpace(nameTrim))
-        {
-            ModelState.AddModelError(nameof(Name), "Team name is required");
-            return Page();
-        }
+        var allowed = id == NewTeamId ? CanCreateTeams : CanEditTeams;
+        if (!allowed) return Forbid();
+
+        var nameValidation = ValidateTeamName();
+        if (nameValidation != null) return nameValidation;
+
         try
         {
-            if (id == 0)
-            {
-                var created = await _teamService.CreateTeamAsync(ws.Id, nameTrim, descTrim);
-                // Persist selected members via service validation/sync
-                var selectedIds = (SelectedMemberIds ?? new()).Distinct().ToList();
-                await _teamService.SyncTeamMembersAsync(created.Id, ws.Id, selectedIds);
-            }
-            else
-            {
-                var updated = await _teamService.UpdateTeamAsync(id, nameTrim, descTrim);
-                var selectedIds = (SelectedMemberIds ?? new()).Distinct().ToList();
-                await _teamService.SyncTeamMembersAsync(updated.Id, ws.Id, selectedIds);
-            }
+            var team = id == NewTeamId
+                ? await CreateTeamAsync(ws)
+                : await UpdateTeamAsync(id, ws);
+
+            return RedirectToPage("/Workspaces/Teams", new { slug });
         }
         catch (InvalidOperationException ex)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
             return Page();
         }
-        return RedirectToPage("/Workspaces/Teams", new { slug });
+    }
+
+    private void LoadTeamDataFromExisting(Team? team, int workspaceId, IList<int>? existingMemberIds)
+    {
+        if (team == null) return;
+        
+        var teamCheck = EnsureEntityBelongsToWorkspace(team, workspaceId);
+        if (teamCheck is not null) throw new InvalidOperationException("Team does not belong to this workspace");
+
+        Name = team.Name;
+        Description = team.Description;
+        SelectedMemberIds = (existingMemberIds ?? new List<int>()).ToList();
+    }
+
+    private IActionResult? ValidateTeamName()
+    {
+        var nameTrim = Name?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(nameTrim))
+        {
+            ModelState.AddModelError(nameof(Name), TeamNameRequired);
+            return Page();
+        }
+        return null;
+    }
+
+    private async Task<Team> CreateTeamAsync(Workspace ws)
+    {
+        var nameTrim = Name?.Trim() ?? string.Empty;
+        var descTrim = string.IsNullOrWhiteSpace(Description) ? null : Description.Trim();
+        
+        var created = await _teamService.CreateTeamAsync(ws.Id, nameTrim, descTrim);
+        var selectedIds = (SelectedMemberIds ?? new()).Distinct().ToList();
+        await _teamService.SyncTeamMembersAsync(created.Id, ws.Id, selectedIds);
+        
+        return created;
+    }
+
+    private async Task<Team> UpdateTeamAsync(int id, Workspace ws)
+    {
+        var nameTrim = Name?.Trim() ?? string.Empty;
+        var descTrim = string.IsNullOrWhiteSpace(Description) ? null : Description.Trim();
+        
+        var updated = await _teamService.UpdateTeamAsync(id, nameTrim, descTrim);
+        var selectedIds = (SelectedMemberIds ?? new()).Distinct().ToList();
+        await _teamService.SyncTeamMembersAsync(updated.Id, ws.Id, selectedIds);
+        
+        return updated;
     }
 
 }

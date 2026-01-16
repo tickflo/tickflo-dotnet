@@ -1,9 +1,14 @@
 using Tickflo.Core.Data;
+using Tickflo.Core.Entities;
 
 namespace Tickflo.Core.Services.Email;
 
 public class EmailTemplateService : IEmailTemplateService
 {
+    #region Constants
+    private const string TemplateNotFoundErrorFormat = "Email template with type ID {0} not found.";
+    #endregion
+
     private readonly IEmailTemplateRepository _templateRepo;
 
     public EmailTemplateService(IEmailTemplateRepository templateRepo)
@@ -16,24 +21,34 @@ public class EmailTemplateService : IEmailTemplateService
         Dictionary<string, string> variables, 
         int? workspaceId = null)
     {
+        var template = await GetTemplateOrThrowAsync(templateTypeId, workspaceId);
+        
+        var subject = ReplaceVariables(template.Subject, variables);
+        var body = ReplaceVariables(template.Body, variables);
+
+        return (subject, body);
+    }
+
+    private async Task<EmailTemplate> GetTemplateOrThrowAsync(int templateTypeId, int? workspaceId)
+    {
         var template = await _templateRepo.FindByTypeAsync(templateTypeId, workspaceId);
         
         if (template == null)
         {
-            throw new InvalidOperationException($"Email template with type ID {templateTypeId} not found.");
+            throw new InvalidOperationException(string.Format(TemplateNotFoundErrorFormat, templateTypeId));
         }
+        
+        return template;
+    }
 
-        var subject = template.Subject;
-        var body = template.Body;
-
-        // Replace all variables in subject and body
+    private string ReplaceVariables(string text, Dictionary<string, string> variables)
+    {
+        var result = text;
         foreach (var kvp in variables)
         {
             var placeholder = $"{{{{{kvp.Key}}}}}";
-            subject = subject.Replace(placeholder, kvp.Value);
-            body = body.Replace(placeholder, kvp.Value);
+            result = result.Replace(placeholder, kvp.Value);
         }
-
-        return (subject, body);
+        return result;
     }
 }

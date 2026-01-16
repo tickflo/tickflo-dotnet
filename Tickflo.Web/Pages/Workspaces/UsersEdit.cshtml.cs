@@ -9,6 +9,20 @@ namespace Tickflo.Web.Pages.Workspaces;
 [Authorize]
 public class UsersEditModel : WorkspacePageModel
 {
+    #region Constants
+    private const int InvalidRoleId = 0;
+    private const string AdminRoleName = "Admin";
+    private const string AdminRoleNotFound = "Admin role not found.";
+    private const string UserPromotedMessage = "User promoted to admin.";
+    private const string AdminPrivilegesRemovedMessage = "Admin privileges removed.";
+    private const string NoChangesMessage = "No changes made.";
+    private const string InvalidRoleError = "Please select a valid role.";
+    private const string InvalidRoleSelectionError = "Invalid role selection.";
+    private const string UserAlreadyHasRoleError = "User already has this role.";
+    private const string RoleAssignedMessage = "Role assigned successfully.";
+    private const string RoleRemovedMessage = "Role removed successfully.";
+    #endregion
+
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IUserRepository _userRepo;
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
@@ -47,25 +61,17 @@ public class UsersEditModel : WorkspacePageModel
     {
         WorkspaceSlug = slug;
         EditUserId = userId;
-        
-        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
-        if (loadResult is IActionResult actionResult) return actionResult;
-        
-        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
-        Workspace = workspace;
 
-        var viewData = await _manageViewService.BuildAsync(Workspace!.Id, currentUserId);
-        if (EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck) return permCheck;
+        var authCheck = await AuthorizeAndLoadWorkspaceAsync(slug, userId, isEditingRoles: false);
+        if (authCheck is IActionResult result) return result;
 
-        // Load user details
         var user = await _userRepo.FindByIdAsync(userId);
         if (user == null) return NotFound();
 
         UserName = user.Name ?? string.Empty;
         UserEmail = user.Email;
-        IsAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(userId, Workspace.Id);
-        
-        // Load available roles and current roles
+        IsAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(userId, Workspace!.Id);
+
         AvailableRoles = await _roleRepo.ListForWorkspaceAsync(Workspace.Id);
         CurrentRoles = await _userWorkspaceRoleRepo.GetRolesAsync(userId, Workspace.Id);
 
@@ -76,45 +82,11 @@ public class UsersEditModel : WorkspacePageModel
     {
         WorkspaceSlug = slug;
         EditUserId = userId;
-        
-        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
-        if (loadResult is IActionResult actionResult) return actionResult;
-        
-        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
-        Workspace = workspace;
 
-        var viewData = await _manageViewService.BuildAsync(Workspace!.Id, currentUserId);
-        if (EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck) return permCheck;
+        var authCheck = await AuthorizeAndLoadWorkspaceAsync(slug, userId, isEditingRoles: true);
+        if (authCheck is IActionResult result) return result;
 
-        // Find the Admin role
-        var adminRole = await _roleRepo.FindByNameAsync(Workspace.Id, "Admin");
-        if (adminRole == null)
-        {
-            SetErrorMessage("Admin role not found.");
-            return RedirectToPage("/Workspaces/Users", new { slug });
-        }
-
-        // Check current admin status
-        var currentRoles = await _userWorkspaceRoleRepo.GetRolesAsync(userId, Workspace.Id);
-        var hasAdminRole = currentRoles.Any(r => r.Id == adminRole.Id);
-
-        if (IsAdmin && !hasAdminRole)
-        {
-            // Add admin role
-            await _userWorkspaceRoleRepo.AddAsync(userId, Workspace.Id, adminRole.Id, currentUserId);
-            SetSuccessMessage("User promoted to admin.");
-        }
-        else if (!IsAdmin && hasAdminRole)
-        {
-            // Remove admin role
-            await _userWorkspaceRoleRepo.RemoveAsync(userId, Workspace.Id, adminRole.Id);
-            SetSuccessMessage("Admin privileges removed.");
-        }
-        else
-        {
-            SetSuccessMessage("No changes made.");
-        }
-
+        await HandleAdminRoleChangeAsync(userId);
         return RedirectToPage("/Workspaces/Users", new { slug });
     }
 
@@ -122,42 +94,27 @@ public class UsersEditModel : WorkspacePageModel
     {
         WorkspaceSlug = slug;
         EditUserId = userId;
-        
-        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
-        if (loadResult is IActionResult actionResult) return actionResult;
-        
-        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
-        Workspace = workspace;
 
-        var viewData = await _manageViewService.BuildAsync(Workspace!.Id, currentUserId);
-        if (EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck) return permCheck;
+        var authCheck = await AuthorizeAndLoadWorkspaceAsync(slug, userId, isEditingRoles: true);
+        if (authCheck is IActionResult result) return result;
 
-        if (roleId <= 0)
+        var roleValidation = await ValidateAndGetRoleAsync(roleId);
+        if (roleValidation.IsError)
         {
-            SetErrorMessage("Please select a valid role.");
+            SetErrorMessage(roleValidation.ErrorMessage!);
             return RedirectToPage("/Workspaces/UsersEdit", new { slug, userId });
         }
 
-        // Verify role belongs to workspace
-        var role = await _roleRepo.FindByIdAsync(roleId);
-        if (role == null || role.WorkspaceId != Workspace.Id)
-        {
-            SetErrorMessage("Invalid role selection.");
-            return RedirectToPage("/Workspaces/UsersEdit", new { slug, userId });
-        }
-
-        // Check if user already has this role
-        var existingRoles = await _userWorkspaceRoleRepo.GetRolesAsync(userId, Workspace.Id);
+        var existingRoles = await _userWorkspaceRoleRepo.GetRolesAsync(userId, Workspace!.Id);
         if (existingRoles.Any(r => r.Id == roleId))
         {
-            SetErrorMessage("User already has this role.");
+            SetErrorMessage(UserAlreadyHasRoleError);
             return RedirectToPage("/Workspaces/UsersEdit", new { slug, userId });
         }
 
-        // Assign role
+        var currentUserId = TryGetUserId(out var uid) ? uid : 0;
         await _userWorkspaceRoleRepo.AddAsync(userId, Workspace.Id, roleId, currentUserId);
-        
-        SetSuccessMessage("Role assigned successfully.");
+        SetSuccessMessage(RoleAssignedMessage);
         return RedirectToPage("/Workspaces/UsersEdit", new { slug, userId });
     }
 
@@ -165,20 +122,67 @@ public class UsersEditModel : WorkspacePageModel
     {
         WorkspaceSlug = slug;
         EditUserId = userId;
-        
+
+        var authCheck = await AuthorizeAndLoadWorkspaceAsync(slug, userId, isEditingRoles: true);
+        if (authCheck is IActionResult result) return result;
+
+        await _userWorkspaceRoleRepo.RemoveAsync(userId, Workspace!.Id, roleId);
+        SetSuccessMessage(RoleRemovedMessage);
+        return RedirectToPage("/Workspaces/UsersEdit", new { slug, userId });
+    }
+
+    private async Task<IActionResult?> AuthorizeAndLoadWorkspaceAsync(string slug, int userId, bool isEditingRoles)
+    {
         var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
         if (loadResult is IActionResult actionResult) return actionResult;
-        
+
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
 
         var viewData = await _manageViewService.BuildAsync(Workspace!.Id, currentUserId);
         if (EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck) return permCheck;
 
-        // Remove role
-        await _userWorkspaceRoleRepo.RemoveAsync(userId, Workspace.Id, roleId);
-        
-        SetSuccessMessage("Role removed successfully.");
-        return RedirectToPage("/Workspaces/UsersEdit", new { slug, userId });
+        return null;
+    }
+
+    private async Task HandleAdminRoleChangeAsync(int userId)
+    {
+        var adminRole = await _roleRepo.FindByNameAsync(Workspace!.Id, AdminRoleName);
+        if (adminRole == null)
+        {
+            SetErrorMessage(AdminRoleNotFound);
+            return;
+        }
+
+        var currentRoles = await _userWorkspaceRoleRepo.GetRolesAsync(userId, Workspace.Id);
+        var hasAdminRole = currentRoles.Any(r => r.Id == adminRole.Id);
+        var currentUserId = TryGetUserId(out var uid) ? uid : 0;
+
+        if (IsAdmin && !hasAdminRole)
+        {
+            await _userWorkspaceRoleRepo.AddAsync(userId, Workspace.Id, adminRole.Id, currentUserId);
+            SetSuccessMessage(UserPromotedMessage);
+        }
+        else if (!IsAdmin && hasAdminRole)
+        {
+            await _userWorkspaceRoleRepo.RemoveAsync(userId, Workspace.Id, adminRole.Id);
+            SetSuccessMessage(AdminPrivilegesRemovedMessage);
+        }
+        else
+        {
+            SetSuccessMessage(NoChangesMessage);
+        }
+    }
+
+    private async Task<(bool IsError, string? ErrorMessage)> ValidateAndGetRoleAsync(int roleId)
+    {
+        if (roleId <= InvalidRoleId)
+            return (true, InvalidRoleError);
+
+        var role = await _roleRepo.FindByIdAsync(roleId);
+        if (role == null || role.WorkspaceId != Workspace!.Id)
+            return (true, InvalidRoleSelectionError);
+
+        return (false, null);
     }
 }

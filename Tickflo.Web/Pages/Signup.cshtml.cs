@@ -3,14 +3,22 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Services;
-
-
 using Tickflo.Core.Services.Authentication;
+
 namespace Tickflo.Web.Pages;
 
 [AllowAnonymous]
 public class SignupModel(ILogger<SignupModel> logger, IAuthenticationService authService) : PageModel
 {
+    #region Constants
+    private const string TokenCookieName = "user_token";
+    private const int TokenCookieExpirationDays = 30;
+    private const string WorkspaceRedirectUrl = "/workspaces/{0}";
+    private const string WorkspacesUrl = "/workspaces";
+    private const string RecoveryEmailMismatchError = "Recovery email must be different from your login email.";
+    private const string RecoveryEmailFieldName = "Input.RecoveryEmail";
+    #endregion
+
     private readonly ILogger<SignupModel> _logger = logger;
     private readonly IAuthenticationService _authService = authService;
 
@@ -21,44 +29,62 @@ public class SignupModel(ILogger<SignupModel> logger, IAuthenticationService aut
 
     public async Task<IActionResult> OnPostAsync()
     {
-        // Custom validation: Recovery email must be different from login email
-        if (!string.IsNullOrEmpty(Input.Email) && !string.IsNullOrEmpty(Input.RecoveryEmail) &&
-            Input.Email.Equals(Input.RecoveryEmail, StringComparison.OrdinalIgnoreCase))
-        {
-            ModelState.AddModelError("Input.RecoveryEmail", "Recovery email must be different from your login email.");
-        }
+        if (ValidateRecoveryEmailDifference() is IActionResult validationResult)
+            return validationResult;
 
         if (!ModelState.IsValid)
-        {
             return Page();
-        }
-        var name = Input.Name?.Trim() ?? string.Empty;
-        var email = Input.Email?.Trim() ?? string.Empty;
-        var recoveryEmail = Input.RecoveryEmail?.Trim() ?? string.Empty;
-        var workspaceName = Input.WorkspaceName?.Trim() ?? string.Empty;
-        var password = Input.Password ?? string.Empty;
 
-        var result = await _authService.SignupAsync(name, email, recoveryEmail, workspaceName, password);
+        var result = await ExecuteSignupAsync();
         if (!result.Success)
         {
             ErrorMessage = result.ErrorMessage;
             return Page();
         }
 
-        Response.Cookies.Append("user_token", result.Token!, new CookieOptions
+        AppendAuthenticationCookie(result.Token!);
+        return GetPostSignupRedirect(result.WorkspaceSlug);
+    }
+
+    private IActionResult? ValidateRecoveryEmailDifference()
+    {
+        if (!string.IsNullOrEmpty(Input.Email) && !string.IsNullOrEmpty(Input.RecoveryEmail) &&
+            Input.Email.Equals(Input.RecoveryEmail, StringComparison.OrdinalIgnoreCase))
+        {
+            ModelState.AddModelError(RecoveryEmailFieldName, RecoveryEmailMismatchError);
+        }
+
+        return null;
+    }
+
+    private async Task<AuthenticationResult> ExecuteSignupAsync()
+    {
+        var name = Input.Name?.Trim() ?? string.Empty;
+        var email = Input.Email?.Trim() ?? string.Empty;
+        var recoveryEmail = Input.RecoveryEmail?.Trim() ?? string.Empty;
+        var workspaceName = Input.WorkspaceName?.Trim() ?? string.Empty;
+        var password = Input.Password ?? string.Empty;
+
+        return await _authService.SignupAsync(name, email, recoveryEmail, workspaceName, password);
+    }
+
+    private void AppendAuthenticationCookie(string token)
+    {
+        Response.Cookies.Append(TokenCookieName, token, new CookieOptions
         {
             HttpOnly = true,
             Secure = Request.IsHttps,
             SameSite = SameSiteMode.Lax,
-            Expires = DateTimeOffset.UtcNow.AddDays(30)
+            Expires = DateTimeOffset.UtcNow.AddDays(TokenCookieExpirationDays)
         });
+    }
 
-        if (!string.IsNullOrEmpty(result.WorkspaceSlug))
-        {
-            return Redirect($"/workspaces/{result.WorkspaceSlug}");
-        }
+    private IActionResult GetPostSignupRedirect(string? workspaceSlug)
+    {
+        if (!string.IsNullOrEmpty(workspaceSlug))
+            return Redirect(string.Format(WorkspaceRedirectUrl, workspaceSlug));
 
-        return Redirect("/workspaces");
+        return Redirect(WorkspacesUrl);
     }
 }
 

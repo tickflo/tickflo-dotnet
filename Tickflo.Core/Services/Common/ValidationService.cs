@@ -7,6 +7,12 @@ public class ValidationResult
 {
     public bool IsValid { get; set; } = true;
     public List<ValidationError> Errors { get; set; } = new();
+
+    public void AddError(string field, string message)
+    {
+        IsValid = false;
+        Errors.Add(new ValidationError { Field = field, Message = message });
+    }
 }
 
 public class ValidationError
@@ -30,6 +36,28 @@ public interface IValidationService
 
 public class ValidationService : IValidationService
 {
+    private const int MaxSlugLength = 30;
+    private const int MaxSubjectLength = 255;
+    private const int MaxRoleNameLength = 30;
+    private const int MaxContactNameLength = 100;
+    private const int MaxTeamNameLength = 100;
+    private const string SlugPattern = @"^[a-z0-9\-]+$";
+    
+    private const string DefaultTicketType = "Standard";
+    private const string DefaultPriority = "Normal";
+    private const string DefaultStatus = "New";
+
+    private static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> AllowedStatusTransitions = new Dictionary<string, IReadOnlyList<string>>
+    {
+        { "New", new[] { "Open", "Cancelled" } },
+        { "Open", new[] { "InProgress", "Resolved", "Cancelled" } },
+        { "InProgress", new[] { "Resolved", "OnHold", "Cancelled" } },
+        { "OnHold", new[] { "Open", "Resolved", "Cancelled" } },
+        { "Resolved", new[] { "Closed" } },
+        { "Closed", new[] { "Open" } },
+        { "Cancelled", new[] { "Open" } }
+    };
+
     private readonly IUserRepository _userRepo;
     private readonly IRoleRepository _roleRepo;
     private readonly ITeamRepository _teamRepo;
@@ -46,44 +74,48 @@ public class ValidationService : IValidationService
 
     public async Task<ValidationResult> ValidateEmailAsync(string email, bool checkUniqueness = false)
     {
-        if (!ValidateRequired("Email", email, out var result))
+        var result = new ValidationResult();
+        
+        if (!ValidateRequired("Email", email, result))
             return result;
 
-        if (!ValidateEmailFormat(email, out result))
+        if (!ValidateEmailFormat(email, result))
             return result;
 
-        if (checkUniqueness)
+        if (checkUniqueness && await IsEmailAlreadyInUseAsync(email))
         {
-            var existing = await _userRepo.FindByEmailAsync(email);
-            if (existing != null)
-            {
-                result.IsValid = false;
-                result.Errors.Add(new ValidationError { Field = "Email", Message = "Email address is already in use." });
-            }
+            result.AddError("Email", "Email address is already in use.");
         }
 
         return result;
     }
 
+    private async Task<bool> IsEmailAlreadyInUseAsync(string email)
+    {
+        var existing = await _userRepo.FindByEmailAsync(email);
+        return existing != null;
+    }
+
     public ValidationResult ValidateWorkspaceSlug(string slug)
     {
-        if (!ValidateRequired("Slug", slug, out var result))
+        var result = new ValidationResult();
+        
+        if (!ValidateRequired("Slug", slug, result))
             return result;
 
-        if (!ValidateMaxLength("Slug", slug, 30, out result))
+        if (!ValidateMaxLength("Slug", slug, MaxSlugLength, result))
             return result;
 
-        if (!Regex.IsMatch(slug, @"^[a-z0-9\-]+$"))
+        if (!Regex.IsMatch(slug, SlugPattern))
         {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { Field = "Slug", Message = "Slug can only contain lowercase letters, numbers, and hyphens." });
+            result.AddError("Slug", "Slug can only contain lowercase letters, numbers, and hyphens.");
         }
 
         return result;
     }
 
     public ValidationResult ValidateTicketSubject(string subject)
-        => ValidateRequiredField("Subject", subject, 255);
+        => ValidateRequiredField("Subject", subject, MaxSubjectLength);
 
     public ValidationResult ValidateQuantity(int quantity)
     {
@@ -91,8 +123,7 @@ public class ValidationService : IValidationService
 
         if (quantity < 0)
         {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { Field = "Quantity", Message = "Quantity cannot be negative." });
+            result.AddError("Quantity", "Quantity cannot be negative.");
         }
 
         return result;
@@ -101,53 +132,58 @@ public class ValidationService : IValidationService
     public ValidationResult ValidateStatusTransition(string currentStatus, string newStatus)
     {
         var result = new ValidationResult();
-        var allowedTransitions = new Dictionary<string, List<string>>
-        {
-            { "New", new List<string> { "Open", "Cancelled" } },
-            { "Open", new List<string> { "InProgress", "Resolved", "Cancelled" } },
-            { "InProgress", new List<string> { "Resolved", "OnHold", "Cancelled" } },
-            { "OnHold", new List<string> { "Open", "Resolved", "Cancelled" } },
-            { "Resolved", new List<string> { "Closed" } },
-            { "Closed", new List<string> { "Open" } },
-            { "Cancelled", new List<string> { "Open" } }
-        };
 
-        if (!allowedTransitions.ContainsKey(currentStatus))
+        if (!IsValidStatus(currentStatus))
         {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { Field = "Status", Message = $"Unknown status '{currentStatus}'." });
+            result.AddError("Status", $"Unknown status '{currentStatus}'.");
             return result;
         }
 
-        if (!allowedTransitions[currentStatus].Contains(newStatus))
+        if (!IsTransitionAllowed(currentStatus, newStatus))
         {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { Field = "Status", Message = $"Cannot transition from '{currentStatus}' to '{newStatus}'." });
+            result.AddError("Status", $"Cannot transition from '{currentStatus}' to '{newStatus}'.");
         }
 
         return result;
+    }
+
+    private static bool IsValidStatus(string status)
+    {
+        return AllowedStatusTransitions.ContainsKey(status);
+    }
+
+    private static bool IsTransitionAllowed(string currentStatus, string newStatus)
+    {
+        return AllowedStatusTransitions.TryGetValue(currentStatus, out var allowedTargets) 
+            && allowedTargets.Contains(newStatus);
     }
 
     public async Task<ValidationResult> ValidateRoleNameAsync(int workspaceId, string roleName, int? excludeRoleId = null)
     {
-        if (!ValidateRequired("Name", roleName, out var result))
+        var result = new ValidationResult();
+        
+        if (!ValidateRequired("Name", roleName, result))
             return result;
 
-        if (!ValidateMaxLength("Name", roleName, 30, out result))
+        if (!ValidateMaxLength("Name", roleName, MaxRoleNameLength, result))
             return result;
 
-        var existing = await _roleRepo.FindByNameAsync(workspaceId, roleName);
-        if (existing != null && (excludeRoleId == null || existing.Id != excludeRoleId.Value))
+        if (await IsRoleNameDuplicateAsync(workspaceId, roleName, excludeRoleId))
         {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { Field = "Name", Message = "A role with this name already exists in this workspace." });
+            result.AddError("Name", "A role with this name already exists in this workspace.");
         }
 
         return result;
     }
 
+    private async Task<bool> IsRoleNameDuplicateAsync(int workspaceId, string roleName, int? excludeRoleId)
+    {
+        var existing = await _roleRepo.FindByNameAsync(workspaceId, roleName);
+        return existing != null && (excludeRoleId == null || existing.Id != excludeRoleId.Value);
+    }
+
     public ValidationResult ValidateContactName(string name)
-        => ValidateRequiredField("Name", name, 100);
+        => ValidateRequiredField("Name", name, MaxContactNameLength);
 
     public ValidationResult ValidatePriceValue(decimal price)
     {
@@ -155,8 +191,7 @@ public class ValidationService : IValidationService
 
         if (price < 0)
         {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { Field = "Price", Message = "Price cannot be negative." });
+            result.AddError("Price", "Price cannot be negative.");
         }
 
         return result;
@@ -164,37 +199,35 @@ public class ValidationService : IValidationService
 
     public async Task<ValidationResult> ValidateTeamNameAsync(int workspaceId, string teamName, int? excludeTeamId = null)
     {
-        if (!ValidateRequired("Name", teamName, out var result))
+        var result = new ValidationResult();
+        
+        if (!ValidateRequired("Name", teamName, result))
             return result;
 
-        return ValidateMaxLength("Name", teamName, 100, out result) ? result : result;
+        ValidateMaxLength("Name", teamName, MaxTeamNameLength, result);
+        return result;
     }
 
-    private bool ValidateRequired(string field, string value, out ValidationResult result)
+    private bool ValidateRequired(string field, string value, ValidationResult result)
     {
-        result = new ValidationResult();
         if (!string.IsNullOrWhiteSpace(value))
             return true;
 
-        result.IsValid = false;
-        result.Errors.Add(new ValidationError { Field = field, Message = $"{field} is required." });
+        result.AddError(field, $"{field} is required.");
         return false;
     }
 
-    private bool ValidateMaxLength(string field, string value, int maxLength, out ValidationResult result)
+    private bool ValidateMaxLength(string field, string value, int maxLength, ValidationResult result)
     {
-        result = new ValidationResult();
         if (value?.Length <= maxLength)
             return true;
 
-        result.IsValid = false;
-        result.Errors.Add(new ValidationError { Field = field, Message = $"{field} must be {maxLength} characters or less." });
+        result.AddError(field, $"{field} must be {maxLength} characters or less.");
         return false;
     }
 
-    private bool ValidateEmailFormat(string email, out ValidationResult result)
+    private bool ValidateEmailFormat(string email, ValidationResult result)
     {
-        result = new ValidationResult();
         try
         {
             _ = new System.Net.Mail.MailAddress(email);
@@ -202,17 +235,19 @@ public class ValidationService : IValidationService
         }
         catch
         {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { Field = "Email", Message = "Invalid email format." });
+            result.AddError("Email", "Invalid email format.");
             return false;
         }
     }
 
     private ValidationResult ValidateRequiredField(string fieldName, string value, int maxLength)
     {
-        if (!ValidateRequired(fieldName, value, out var result))
+        var result = new ValidationResult();
+        
+        if (!ValidateRequired(fieldName, value, result))
             return result;
 
-        return ValidateMaxLength(fieldName, value, maxLength, out result) ? result : result;
+        ValidateMaxLength(fieldName, value, maxLength, result);
+        return result;
     }
 }

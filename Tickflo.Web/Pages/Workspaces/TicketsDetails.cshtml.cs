@@ -15,6 +15,16 @@ namespace Tickflo.Web.Pages.Workspaces;
 [Authorize]
 public class TicketsDetailsModel : WorkspacePageModel
 {
+    #region Constants
+    private const string DefaultTicketType = "Standard";
+    private const string DefaultTicketPriority = "Normal";
+    private const string DefaultTicketStatus = "New";
+    private const string SuccessTicketSaved = "Ticket saved.";
+    private const string ErrorCommentEmpty = "Comment cannot be empty.";
+    private const string ErrorTicketNotFound = "Ticket not found.";
+    private const int InvalidTicketId = 0;
+    #endregion
+
     [BindProperty]
     public string? TicketInventoriesJson { get; set; }
 
@@ -125,10 +135,24 @@ public class TicketsDetailsModel : WorkspacePageModel
         
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
+        if (Workspace == null) return NotFound();
 
-        var viewData = await _viewService.BuildAsync(Workspace!.Id, id, currentUserId, LocationId);
+        var viewData = await _viewService.BuildAsync(Workspace.Id, id, currentUserId, LocationId);
         if (viewData == null) return Forbid();
 
+        LoadViewDataFromService(viewData);
+        LocationId = Ticket?.LocationId;
+
+        if (Ticket != null && Ticket.Id > InvalidTicketId)
+        {
+            Comments = await _commentService.GetCommentsAsync(Workspace.Id, Ticket.Id, isClientView: false);
+        }
+
+        return Page();
+    }
+
+    private void LoadViewDataFromService(WorkspaceTicketDetailsViewData viewData)
+    {
         Ticket = viewData.Ticket;
         Contact = viewData.Contact;
         Contacts = viewData.Contacts;
@@ -148,14 +172,6 @@ public class TicketsDetailsModel : WorkspacePageModel
         CanCreateTickets = viewData.CanCreateTickets;
         IsWorkspaceAdmin = viewData.IsWorkspaceAdmin;
         TicketViewScope = viewData.TicketViewScope;
-        LocationId = Ticket?.LocationId;
-
-        if (Ticket != null && Ticket.Id > 0)
-        {
-            Comments = await _commentService.GetCommentsAsync(Workspace.Id, Ticket.Id, isClientView: false);
-        }
-
-        return Page();
     }
 
     public async Task<IActionResult> OnPostAddCommentAsync(string slug, int id, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub)
@@ -164,20 +180,17 @@ public class TicketsDetailsModel : WorkspacePageModel
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
 
-        var currentUserId = TryGetUserId(out var uid) ? uid : 0;
-        if (currentUserId == 0) return Forbid();
+        var currentUserId = ExtractCurrentUserId();
+        if (currentUserId == InvalidTicketId) return Forbid();
 
         if (string.IsNullOrWhiteSpace(NewCommentContent))
         {
-            SetErrorMessage("Comment cannot be empty.");
+            SetErrorMessage(ErrorCommentEmpty);
             return RedirectToPage("/Workspaces/TicketsDetails", new { slug, id });
         }
 
-        var saveViewData = await _savingViewService.BuildAsync(Workspace.Id, uid, false, null);
-        if (!saveViewData.CanEditTickets)
-        {
-            return Forbid();
-        }
+        var saveViewData = await _savingViewService.BuildAsync(Workspace.Id, currentUserId, false, null);
+        if (!saveViewData.CanEditTickets) return Forbid();
 
         try
         {
@@ -186,8 +199,7 @@ public class TicketsDetailsModel : WorkspacePageModel
                 id,
                 currentUserId,
                 NewCommentContent.Trim(),
-                NewCommentIsVisibleToClient
-            );
+                NewCommentIsVisibleToClient);
 
             var ticket = await _ticketRepo.FindAsync(Workspace.Id, id);
             if (ticket != null)
@@ -196,24 +208,10 @@ public class TicketsDetailsModel : WorkspacePageModel
                     Workspace.Id,
                     ticket,
                     currentUserId,
-                    NewCommentIsVisibleToClient
-                );
+                    NewCommentIsVisibleToClient);
             }
 
-            var group = Tickflo.Web.Realtime.TicketsHub.WorkspaceGroup(WorkspaceSlug ?? string.Empty);
-            
-            await hub.Clients.Group(group).SendCoreAsync("commentAdded", new object[] {
-                new {
-                    id = comment.Id,
-                    ticketId = comment.TicketId,
-                    content = comment.Content,
-                    isVisibleToClient = comment.IsVisibleToClient,
-                    createdByUserId = comment.CreatedByUserId,
-                    createdByUserName = comment.CreatedByUser?.Name ?? comment.CreatedByUser?.Email ?? "Unknown",
-                    createdAt = comment.CreatedAt
-                }
-            });
-
+            await BroadcastCommentAddedAsync(hub, comment);
             SetSuccessMessage("Comment added successfully.");
         }
         catch (Exception ex)
@@ -224,226 +222,276 @@ public class TicketsDetailsModel : WorkspacePageModel
         return RedirectToPage("/Workspaces/TicketsDetails", new { slug, id });
     }
 
-    public async Task<IActionResult> OnPostSaveAsync(string slug, int id, int? assignedUserId, int? assignedTeamId, int? locationId, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub)
+    private async Task BroadcastCommentAddedAsync(Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub, TicketComment comment)
+    {
+        var group = Tickflo.Web.Realtime.TicketsHub.WorkspaceGroup(WorkspaceSlug ?? string.Empty);
+        await hub.Clients.Group(group).SendCoreAsync("commentAdded", new object[]
         {
-            // Bind inventory products from JSON
-            var inventories = new List<TicketInventory>();
-            if (!string.IsNullOrWhiteSpace(TicketInventoriesJson))
+            new
             {
-                try
-                {
-                    var parsed = System.Text.Json.JsonSerializer.Deserialize<List<TicketInventoryDto>>(TicketInventoriesJson);
-                    if (parsed != null)
-                    {
-                        foreach (var dto in parsed)
-                        {
-                            inventories.Add(new TicketInventory
-                            {
-                                InventoryId = dto.id,
-                                Quantity = dto.quantity,
-                                UnitPrice = dto.unitPrice
-                            });
-                        }
-                    }
-                }
-                catch { }
+                id = comment.Id,
+                ticketId = comment.TicketId,
+                content = comment.Content,
+                isVisibleToClient = comment.IsVisibleToClient,
+                createdByUserId = comment.CreatedByUserId,
+                createdByUserName = comment.CreatedByUser?.Name ?? comment.CreatedByUser?.Email ?? "Unknown",
+                createdAt = comment.CreatedAt
             }
+        });
+    }
+
+    private int ExtractCurrentUserId()
+    {
+        return TryGetUserId(out var uid) ? uid : InvalidTicketId;
+    }
+
+    public async Task<IActionResult> OnPostSaveAsync(string slug, int id, int? assignedUserId, int? assignedTeamId, int? locationId, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub)
+    {
         WorkspaceSlug = slug;
         Workspace = await _workspaceRepo.FindBySlugAsync(slug);
         if (Workspace == null) return NotFound();
+
         var workspaceId = Workspace.Id;
-        int uid = TryGetUserId(out var currentUid) ? currentUid : 0;
-        int resolvedId = id;
-        if (resolvedId <= 0)
-        {
-            var routeIdObj = Request.RouteValues.TryGetValue("id", out var rv) ? rv : null;
-            if (routeIdObj != null && int.TryParse(routeIdObj.ToString(), out var rid) && rid > 0)
-            {
-                resolvedId = rid;
-            }
-        }
-        if (resolvedId <= 0)
-        {
-            var idStr = Request.Form["id"].ToString();
-            if (int.TryParse(idStr, out var parsed) && parsed > 0)
-            {
-                resolvedId = parsed;
-            }
-        }
-        if (resolvedId <= 0)
-        {
-            var qStr = Request.Query["id"].ToString();
-            if (int.TryParse(qStr, out var qid) && qid > 0)
-            {
-                resolvedId = qid;
-            }
-        }
-        var isNew = resolvedId <= 0;
+        var currentUserId = ExtractCurrentUserId();
+        if (currentUserId == InvalidTicketId) return Forbid();
+
+        var inventories = ParseInventoriesFromJson();
+        var resolvedId = ResolveTicketId(id);
+        var isNew = resolvedId <= InvalidTicketId;
         var existing = !isNew ? await _ticketRepo.FindAsync(workspaceId, resolvedId) : null;
-        
-        var saveViewData = await _savingViewService.BuildAsync(workspaceId, uid, isNew, existing);
+
+        var saveViewData = await _savingViewService.BuildAsync(workspaceId, currentUserId, isNew, existing);
+        var authCheck = ValidateTicketPermissions(isNew, saveViewData);
+        if (authCheck != null) return authCheck;
+
+        try
+        {
+            var ticket = isNew
+                ? await HandleNewTicketAsync(workspaceId, currentUserId, inventories)
+                : await HandleTicketUpdateAsync(workspaceId, resolvedId, currentUserId, existing, inventories);
+
+            if (ticket == null) return NotFound();
+
+            await BroadcastTicketChangeAsync(hub, ticket, isNew, workspaceId);
+            SetSuccessMessage(SuccessTicketSaved);
+            return RedirectToTicketsWithPreservedFilters(slug);
+        }
+        catch (InvalidOperationException ex)
+        {
+            SetErrorMessage(ex.Message);
+            return RedirectToPage("/Workspaces/Tickets", new { slug });
+        }
+    }
+
+    private List<TicketInventory> ParseInventoriesFromJson()
+    {
+        var inventories = new List<TicketInventory>();
+        if (!string.IsNullOrWhiteSpace(TicketInventoriesJson))
+        {
+            try
+            {
+                var parsed = System.Text.Json.JsonSerializer.Deserialize<List<TicketInventoryDto>>(TicketInventoriesJson);
+                if (parsed != null)
+                {
+                    foreach (var dto in parsed)
+                    {
+                        inventories.Add(new TicketInventory
+                        {
+                            InventoryId = dto.id,
+                            Quantity = dto.quantity,
+                            UnitPrice = dto.unitPrice
+                        });
+                    }
+                }
+            }
+            catch { }
+        }
+        return inventories;
+    }
+
+    private int ResolveTicketId(int id)
+    {
+        var resolvedId = id;
+
+        if (resolvedId <= InvalidTicketId && Request.RouteValues.TryGetValue("id", out var routeValue) && routeValue != null)
+        {
+            if (int.TryParse(routeValue.ToString(), out var rid) && rid > InvalidTicketId)
+                resolvedId = rid;
+        }
+
+        if (resolvedId <= InvalidTicketId)
+        {
+            var formId = Request.Form["id"].ToString();
+            if (int.TryParse(formId, out var formIdParsed) && formIdParsed > InvalidTicketId)
+                resolvedId = formIdParsed;
+        }
+
+        if (resolvedId <= InvalidTicketId)
+        {
+            var queryId = Request.Query["id"].ToString();
+            if (int.TryParse(queryId, out var queryIdParsed) && queryIdParsed > InvalidTicketId)
+                resolvedId = queryIdParsed;
+        }
+
+        return resolvedId;
+    }
+
+    private IActionResult? ValidateTicketPermissions(bool isNew, WorkspaceTicketsSaveViewData saveViewData)
+    {
         if (isNew && !saveViewData.CanCreateTickets) return Forbid();
         if (!isNew && !saveViewData.CanEditTickets) return Forbid();
         if (!isNew && !saveViewData.CanAccessTicket) return Forbid();
-        
-        Ticket? t = null;
-        if (isNew)
-        {
-            var createReq = new CreateTicketRequest
-            {
-                WorkspaceId = workspaceId,
-                CreatedByUserId = uid,
-                Subject = (EditSubject ?? string.Empty).Trim(),
-                Description = (EditDescription ?? string.Empty).Trim(),
-                Type = DefaultOrTrim(EditType, "Standard"),
-                Priority = DefaultOrTrim(EditPriority, "Normal"),
-                Status = DefaultOrTrim(EditStatus, "New"),
-                ContactId = EditContactId,
-                AssignedUserId = assignedUserId,
-                AssignedTeamId = assignedTeamId,
-                LocationId = locationId,
-                Inventories = inventories
-            };
-            try
-            {
-                t = await _ticketService.CreateTicketAsync(createReq);
-                
-                // Send notification about new ticket
-                await _notificationTrigger.NotifyTicketCreatedAsync(
-                    workspaceId,
-                    t,
-                    uid
-                );
-            }
-            catch (InvalidOperationException ex)
-            {
-                SetErrorMessage(ex.Message);
-                return RedirectToPage("/Workspaces/Tickets", new { slug });
-            }
-        }
-        else
-        {
-            existing = await _ticketRepo.FindAsync(workspaceId, resolvedId);
-            if (EnsureEntityExistsOrNotFound(existing) is IActionResult ticketCheck) return ticketCheck;
+        return null;
+    }
 
-            // Track changes for notifications
-            var oldAssignedUserId = existing!.AssignedUserId;
-            var oldAssignedTeamId = existing.AssignedTeamId;
-            var oldStatusId = existing.StatusId;
-
-            var updateReq = new UpdateTicketRequest
-            {
-                TicketId = resolvedId,
-                WorkspaceId = workspaceId,
-                UpdatedByUserId = uid,
-                Subject = EditSubject?.Trim(),
-                Description = EditDescription?.Trim(),
-                Type = EditType?.Trim(),
-                Priority = EditPriority?.Trim(),
-                Status = EditStatus?.Trim(),
-                ContactId = EditContactId,
-                AssignedUserId = assignedUserId,
-                AssignedTeamId = assignedTeamId,
-                LocationId = locationId,
-                Inventories = inventories
-            };
-            try
-            {
-                t = await _ticketService.UpdateTicketAsync(updateReq);
-                
-                // Send notifications about changes
-                if (oldAssignedUserId != t.AssignedUserId || oldAssignedTeamId != t.AssignedTeamId)
-                {
-                    await _notificationTrigger.NotifyTicketAssignmentChangedAsync(
-                        workspaceId,
-                        t,
-                        oldAssignedUserId,
-                        oldAssignedTeamId,
-                        uid
-                    );
-                }
-                
-                if (oldStatusId != t.StatusId)
-                {
-                    await _notificationTrigger.NotifyTicketStatusChangedAsync(
-                        workspaceId,
-                        t,
-                        oldStatusId?.ToString() ?? "Unknown",
-                        t.StatusId?.ToString() ?? "Unknown",
-                        uid
-                    );
-                }
-            }
-            catch (InvalidOperationException ex)
-            {
-                SetErrorMessage(ex.Message);
-                return RedirectToPage("/Workspaces/Tickets", new { slug });
-            }
-        }
-        // Broadcast update to workspace clients
-        string? assignedDisplay = t.AssignedUserId.HasValue ? await _ticketService.GetAssigneeDisplayNameAsync(t.AssignedUserId.Value) : null;
-        string? assignedTeamName = null;
-        if (t.AssignedTeamId.HasValue)
+    private async Task<Ticket?> HandleNewTicketAsync(int workspaceId, int userId, List<TicketInventory> inventories)
+    {
+        var createReq = new CreateTicketRequest
         {
-            var team = await _teamRepo.FindByIdAsync(t.AssignedTeamId.Value);
-            assignedTeamName = team?.Name;
+            WorkspaceId = workspaceId,
+            CreatedByUserId = userId,
+            Subject = (EditSubject ?? string.Empty).Trim(),
+            Description = (EditDescription ?? string.Empty).Trim(),
+            Type = DefaultOrTrim(EditType, DefaultTicketType),
+            Priority = DefaultOrTrim(EditPriority, DefaultTicketPriority),
+            Status = DefaultOrTrim(EditStatus, DefaultTicketStatus),
+            ContactId = EditContactId,
+            AssignedUserId = null,
+            AssignedTeamId = null,
+            LocationId = null,
+            Inventories = inventories
+        };
+
+        var ticket = await _ticketService.CreateTicketAsync(createReq);
+        await _notificationTrigger.NotifyTicketCreatedAsync(workspaceId, ticket, userId);
+        return ticket;
+    }
+
+    private async Task<Ticket?> HandleTicketUpdateAsync(int workspaceId, int ticketId, int userId, Ticket? existing, List<TicketInventory> inventories)
+    {
+        if (EnsureEntityExistsOrNotFound(existing) is IActionResult result) throw new InvalidOperationException(ErrorTicketNotFound);
+
+        var oldAssignedUserId = existing!.AssignedUserId;
+        var oldAssignedTeamId = existing.AssignedTeamId;
+        var oldStatusId = existing.StatusId;
+
+        var updateReq = new UpdateTicketRequest
+        {
+            TicketId = ticketId,
+            WorkspaceId = workspaceId,
+            UpdatedByUserId = userId,
+            Subject = EditSubject?.Trim(),
+            Description = EditDescription?.Trim(),
+            Type = EditType?.Trim(),
+            Priority = EditPriority?.Trim(),
+            Status = EditStatus?.Trim(),
+            ContactId = EditContactId,
+            AssignedUserId = null,
+            AssignedTeamId = null,
+            LocationId = null,
+            Inventories = inventories
+        };
+
+        var ticket = await _ticketService.UpdateTicketAsync(updateReq);
+        await NotifyTicketChangesAsync(workspaceId, ticket, userId, oldAssignedUserId, oldAssignedTeamId, oldStatusId);
+        return ticket;
+    }
+
+    private async Task NotifyTicketChangesAsync(int workspaceId, Ticket ticket, int userId, int? oldAssignedUserId, int? oldAssignedTeamId, int? oldStatusId)
+    {
+        if (oldAssignedUserId != ticket.AssignedUserId || oldAssignedTeamId != ticket.AssignedTeamId)
+        {
+            await _notificationTrigger.NotifyTicketAssignmentChangedAsync(
+                workspaceId, ticket, oldAssignedUserId, oldAssignedTeamId, userId);
         }
+
+        if (oldStatusId != ticket.StatusId)
+        {
+            await _notificationTrigger.NotifyTicketStatusChangedAsync(
+                workspaceId, ticket,
+                oldStatusId?.ToString() ?? "Unknown",
+                ticket.StatusId?.ToString() ?? "Unknown",
+                userId);
+        }
+    }
+
+    private async Task BroadcastTicketChangeAsync(Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub, Ticket ticket, bool isNew, int workspaceId)
+    {
+        var assignedDisplay = ticket.AssignedUserId.HasValue
+            ? await _ticketService.GetAssigneeDisplayNameAsync(ticket.AssignedUserId.Value)
+            : null;
+
+        var assignedTeamName = ticket.AssignedTeamId.HasValue
+            ? (await _teamRepo.FindByIdAsync(ticket.AssignedTeamId.Value))?.Name
+            : null;
+
+        var (invSummary, invDetails) = await _ticketService.GenerateInventorySummaryAsync(
+            ticket.TicketInventories?.ToList() ?? new List<TicketInventory>(),
+            workspaceId);
+
         var group = Tickflo.Web.Realtime.TicketsHub.WorkspaceGroup(WorkspaceSlug ?? string.Empty);
+        var eventName = isNew ? "ticketCreated" : "ticketUpdated";
+        var ticketData = BuildTicketBroadcastObject(ticket, assignedDisplay, assignedTeamName, invSummary, invDetails, isNew);
+
+        await hub.Clients.Group(group).SendCoreAsync(eventName, new object[] { ticketData });
+    }
+
+    private object BuildTicketBroadcastObject(Ticket ticket, string? assignedDisplay, string? assignedTeamName, string invSummary, string invDetails, bool isNew)
+    {
         if (isNew)
         {
-            var (invSummaryNew, invDetailsNew) = await _ticketService.GenerateInventorySummaryAsync(t.TicketInventories?.ToList() ?? new List<TicketInventory>(), workspaceId);
-            await hub.Clients.Group(group).SendCoreAsync("ticketCreated", new object[] {
-                new {
-                    id = t.Id,
-                    subject = t.Subject ?? string.Empty,
-                    typeId = t.TicketTypeId,
-                    priorityId = t.PriorityId,
-                    statusId = t.StatusId,
-                    contactId = t.ContactId,
-                    assignedUserId = t.AssignedUserId,
-                    assignedDisplay = assignedDisplay,
-                    assignedTeamId = t.AssignedTeamId,
-                    assignedTeamName = assignedTeamName,
-                    inventorySummary = invSummaryNew,
-                    inventoryDetails = invDetailsNew,
-                    createdAt = t.CreatedAt
-                }
-            });
+            return new
+            {
+                id = ticket.Id,
+                subject = ticket.Subject ?? string.Empty,
+                typeId = ticket.TicketTypeId,
+                priorityId = ticket.PriorityId,
+                statusId = ticket.StatusId,
+                contactId = ticket.ContactId,
+                assignedUserId = ticket.AssignedUserId,
+                assignedDisplay = assignedDisplay,
+                assignedTeamId = ticket.AssignedTeamId,
+                assignedTeamName = assignedTeamName,
+                inventorySummary = invSummary,
+                inventoryDetails = invDetails,
+                createdAt = ticket.CreatedAt
+            };
         }
-        else
+
+        return new
         {
-            var (invSummaryUpd, invDetailsUpd) = await _ticketService.GenerateInventorySummaryAsync(t.TicketInventories?.ToList() ?? new List<TicketInventory>(), workspaceId);
-            await hub.Clients.Group(group).SendCoreAsync("ticketUpdated", new object[] {
-                new {
-                    id = t.Id,
-                    subject = t.Subject ?? string.Empty,
-                    typeId = t.TicketTypeId,
-                    priorityId = t.PriorityId,
-                    statusId = t.StatusId,
-                    contactId = t.ContactId,
-                    assignedUserId = t.AssignedUserId,
-                    assignedDisplay = assignedDisplay,
-                    assignedTeamId = t.AssignedTeamId,
-                    assignedTeamName = assignedTeamName,
-                    inventorySummary = invSummaryUpd,
-                    inventoryDetails = invDetailsUpd,
-                    updatedAt = DateTime.UtcNow
-                }
-            });
-        }
-        SetSuccessMessage("Ticket saved.");
-        // Preserve common filters when returning
-        var statusQ = Request.Query["Status"].ToString();
-        var priorityQ = Request.Query["Priority"].ToString();
-        var contactQ = Request.Query["ContactQuery"].ToString();
-        var assigneeQ = Request.Query["AssigneeUserId"].ToString();
-        var mineQ = Request.Query["Mine"].ToString();
-        var queryQ = Request.Query["Query"].ToString();
-        var pageQ = Request.Query["PageNumber"].ToString();
-        var typeQ = Request.Query["Type"].ToString();
-        var pageSizeQ = Request.Query["PageSize"].ToString();
-        var teamNameQ = Request.Query["AssigneeTeamName"].ToString();
-        return RedirectToPage("/Workspaces/Tickets", new { slug, Query = queryQ, Type = typeQ, Status = statusQ, Priority = priorityQ, ContactQuery = contactQ, AssigneeUserId = assigneeQ, AssigneeTeamName = teamNameQ, Mine = mineQ, PageNumber = pageQ, PageSize = pageSizeQ });
+            id = ticket.Id,
+            subject = ticket.Subject ?? string.Empty,
+            typeId = ticket.TicketTypeId,
+            priorityId = ticket.PriorityId,
+            statusId = ticket.StatusId,
+            contactId = ticket.ContactId,
+            assignedUserId = ticket.AssignedUserId,
+            assignedDisplay = assignedDisplay,
+            assignedTeamId = ticket.AssignedTeamId,
+            assignedTeamName = assignedTeamName,
+            inventorySummary = invSummary,
+            inventoryDetails = invDetails,
+            updatedAt = DateTime.UtcNow
+        };
+    }
+
+    private RedirectToPageResult RedirectToTicketsWithPreservedFilters(string slug)
+    {
+        return RedirectToPage("/Workspaces/Tickets", new
+        {
+            slug,
+            Query = Request.Query["Query"].ToString(),
+            Type = Request.Query["Type"].ToString(),
+            Status = Request.Query["Status"].ToString(),
+            Priority = Request.Query["Priority"].ToString(),
+            ContactQuery = Request.Query["ContactQuery"].ToString(),
+            AssigneeUserId = Request.Query["AssigneeUserId"].ToString(),
+            AssigneeTeamName = Request.Query["AssigneeTeamName"].ToString(),
+            Mine = Request.Query["Mine"].ToString(),
+            PageNumber = Request.Query["PageNumber"].ToString(),
+            PageSize = Request.Query["PageSize"].ToString()
+        });
     }
 
     private static string DefaultOrTrim(string? value, string defaultValue)

@@ -9,6 +9,18 @@ namespace Tickflo.Core.Services.Tickets;
 /// </summary>
 public class TicketCreationService : ITicketCreationService
 {
+    private const string DefaultTicketType = "Standard";
+    private const string DefaultPriority = "Normal";
+    private const string DefaultStatus = "New";
+    private const string HistoryActionCreated = "created";
+    
+    private const string ErrorSubjectRequired = "Ticket subject is required";
+    private const string ErrorInvalidContactId = "Invalid contact ID";
+    private const string ErrorLocationNotFound = "Location not found";
+    private const string ErrorLocationInactive = "Cannot create ticket for inactive location";
+    private const string ErrorInvalidAssignee = "Assigned user does not have valid access to this workspace";
+    private const string ErrorInvalidTeam = "Team not found or does not belong to this workspace";
+
     private readonly ITicketRepository _ticketRepo;
     private readonly ITicketHistoryRepository _historyRepo;
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
@@ -54,55 +66,88 @@ public class TicketCreationService : ITicketCreationService
     /// Creates a new ticket with comprehensive validation and assignment logic.
     /// </summary>
     public async Task<Ticket> CreateTicketAsync(
-        int workspaceId, 
-        TicketCreationRequest request, 
+        int workspaceId,
+        TicketCreationRequest request,
         int createdByUserId)
     {
-        // Business rule: Ticket must have subject
+        ValidateTicketRequest(request);
+        await ValidateLocationAsync(workspaceId, request.LocationId);
+
+        var typeId = await ResolveTicketTypeIdAsync(workspaceId, request);
+        var priorityId = await ResolvePriorityIdAsync(workspaceId, request);
+        var statusId = await ResolveStatusIdAsync(workspaceId, request);
+
+        var ticket = BuildTicket(workspaceId, request, typeId, priorityId, statusId);
+
+        await AssignUserToTicketAsync(workspaceId, ticket, request);
+        await AssignTeamToTicketAsync(workspaceId, ticket, request);
+
+        await _ticketRepo.CreateAsync(ticket);
+        await CreateTicketHistoryAsync(workspaceId, ticket.Id, createdByUserId, ticket.Subject);
+
+        return ticket;
+    }
+
+    private static void ValidateTicketRequest(TicketCreationRequest request)
+    {
         if (string.IsNullOrWhiteSpace(request.Subject))
-            throw new InvalidOperationException("Ticket subject is required");
+            throw new InvalidOperationException(ErrorSubjectRequired);
 
-        // Business rule: Validate contact exists if specified
         if (request.ContactId.HasValue && request.ContactId.Value <= 0)
-            throw new InvalidOperationException("Invalid contact ID");
+            throw new InvalidOperationException(ErrorInvalidContactId);
+    }
 
-        // Business rule: Validate location exists and is active if specified
-        if (request.LocationId.HasValue)
-        {
-            var location = await _locationRepo.FindAsync(workspaceId, request.LocationId.Value);
-            if (location == null)
-                throw new InvalidOperationException("Location not found");
-            
-            if (!location.Active)
-                throw new InvalidOperationException("Cannot create ticket for inactive location");
-        }
+    private async Task ValidateLocationAsync(int workspaceId, int? locationId)
+    {
+        if (!locationId.HasValue)
+            return;
 
-        // Resolve type/priority/status IDs
-        int? typeId = request.TypeId;
-        int? priorityId = request.PriorityId;
-        int? statusId = request.StatusId;
+        var location = await _locationRepo.FindAsync(workspaceId, locationId.Value);
+        if (location == null)
+            throw new InvalidOperationException(ErrorLocationNotFound);
 
-        // If IDs not provided, resolve by name (or use defaults)
-        if (!typeId.HasValue)
-        {
-            var defaultTypeName = string.IsNullOrWhiteSpace(request.Type) ? "Standard" : request.Type.Trim();
-            var t = await _typeRepo.FindByNameAsync(workspaceId, defaultTypeName);
-            typeId = t?.Id;
-        }
-        if (!priorityId.HasValue)
-        {
-            var defaultPriorityName = string.IsNullOrWhiteSpace(request.Priority) ? "Normal" : request.Priority.Trim();
-            var p = await _priorityRepo.FindAsync(workspaceId, defaultPriorityName);
-            priorityId = p?.Id;
-        }
-        if (!statusId.HasValue)
-        {
-            var defaultStatusName = string.IsNullOrWhiteSpace(request.Status) ? "New" : request.Status.Trim();
-            var s = await _statusRepo.FindByNameAsync(workspaceId, defaultStatusName);
-            statusId = s?.Id;
-        }
+        if (!location.Active)
+            throw new InvalidOperationException(ErrorLocationInactive);
+    }
 
-        var ticket = new Ticket
+    private async Task<int?> ResolveTicketTypeIdAsync(int workspaceId, TicketCreationRequest request)
+    {
+        if (request.TypeId.HasValue)
+            return request.TypeId;
+
+        var typeName = string.IsNullOrWhiteSpace(request.Type) ? DefaultTicketType : request.Type.Trim();
+        var type = await _typeRepo.FindByNameAsync(workspaceId, typeName);
+        return type?.Id;
+    }
+
+    private async Task<int?> ResolvePriorityIdAsync(int workspaceId, TicketCreationRequest request)
+    {
+        if (request.PriorityId.HasValue)
+            return request.PriorityId;
+
+        var priorityName = string.IsNullOrWhiteSpace(request.Priority) ? DefaultPriority : request.Priority.Trim();
+        var priority = await _priorityRepo.FindAsync(workspaceId, priorityName);
+        return priority?.Id;
+    }
+
+    private async Task<int?> ResolveStatusIdAsync(int workspaceId, TicketCreationRequest request)
+    {
+        if (request.StatusId.HasValue)
+            return request.StatusId;
+
+        var statusName = string.IsNullOrWhiteSpace(request.Status) ? DefaultStatus : request.Status.Trim();
+        var status = await _statusRepo.FindByNameAsync(workspaceId, statusName);
+        return status?.Id;
+    }
+
+    private static Ticket BuildTicket(
+        int workspaceId,
+        TicketCreationRequest request,
+        int? typeId,
+        int? priorityId,
+        int? statusId)
+    {
+        return new Ticket
         {
             WorkspaceId = workspaceId,
             Subject = request.Subject.Trim(),
@@ -114,47 +159,68 @@ public class TicketCreationService : ITicketCreationService
             LocationId = request.LocationId,
             TicketInventories = request.Inventories ?? new List<TicketInventory>()
         };
+    }
 
-        // Handle user assignment with validation
+    private async Task AssignUserToTicketAsync(int workspaceId, Ticket ticket, TicketCreationRequest request)
+    {
         if (request.AssignedUserId.HasValue)
         {
-            var assigneeWorkspace = await _userWorkspaceRepo.FindAsync(request.AssignedUserId.Value, workspaceId);
-            if (assigneeWorkspace != null && assigneeWorkspace.Accepted)
-                ticket.AssignedUserId = request.AssignedUserId.Value;
-            else
-                throw new InvalidOperationException("Assigned user does not have valid access to this workspace");
+            await ValidateAndAssignUserAsync(workspaceId, ticket, request.AssignedUserId.Value);
         }
         else if (request.LocationId.HasValue)
         {
-            // Business rule: Auto-assign from location default if available
-            var location = await _locationRepo.FindAsync(workspaceId, request.LocationId.Value);
-            if (location?.DefaultAssigneeUserId.HasValue == true)
-                ticket.AssignedUserId = location.DefaultAssigneeUserId;
+            await AssignDefaultUserFromLocationAsync(workspaceId, ticket, request.LocationId.Value);
         }
+    }
 
-        // Handle team assignment with validation
-        if (request.AssignedTeamId.HasValue)
+    private async Task ValidateAndAssignUserAsync(int workspaceId, Ticket ticket, int userId)
+    {
+        var assigneeWorkspace = await _userWorkspaceRepo.FindAsync(userId, workspaceId);
+        if (assigneeWorkspace != null && assigneeWorkspace.Accepted)
         {
-            var team = await _teamRepo.FindByIdAsync(request.AssignedTeamId.Value);
-            if (team != null && team.WorkspaceId == workspaceId)
-                ticket.AssignedTeamId = request.AssignedTeamId.Value;
-            else
-                throw new InvalidOperationException("Team not found or does not belong to this workspace");
+            ticket.AssignedUserId = userId;
         }
+        else
+        {
+            throw new InvalidOperationException(ErrorInvalidAssignee);
+        }
+    }
 
-        await _ticketRepo.CreateAsync(ticket);
+    private async Task AssignDefaultUserFromLocationAsync(int workspaceId, Ticket ticket, int locationId)
+    {
+        var location = await _locationRepo.FindAsync(workspaceId, locationId);
+        if (location?.DefaultAssigneeUserId.HasValue == true)
+        {
+            ticket.AssignedUserId = location.DefaultAssigneeUserId;
+        }
+    }
 
-        // Log ticket creation
+    private async Task AssignTeamToTicketAsync(int workspaceId, Ticket ticket, TicketCreationRequest request)
+    {
+        if (!request.AssignedTeamId.HasValue)
+            return;
+
+        var team = await _teamRepo.FindByIdAsync(request.AssignedTeamId.Value);
+        if (team != null && team.WorkspaceId == workspaceId)
+        {
+            ticket.AssignedTeamId = request.AssignedTeamId.Value;
+        }
+        else
+        {
+            throw new InvalidOperationException(ErrorInvalidTeam);
+        }
+    }
+
+    private async Task CreateTicketHistoryAsync(int workspaceId, int ticketId, int createdByUserId, string subject)
+    {
         await _historyRepo.CreateAsync(new TicketHistory
         {
             WorkspaceId = workspaceId,
-            TicketId = ticket.Id,
+            TicketId = ticketId,
             CreatedByUserId = createdByUserId,
-            Action = "created",
-            Note = $"Ticket created: {ticket.Subject}"
+            Action = HistoryActionCreated,
+            Note = $"Ticket created: {subject}"
         });
-
-        return ticket;
     }
 
     /// <summary>

@@ -11,6 +11,15 @@ namespace Tickflo.Core.Services.Workspace;
 /// </summary>
 public class WorkspaceSettingsService : IWorkspaceSettingsService
 {
+    #region Constants
+    private const string WorkspaceNotFoundError = "Workspace not found";
+    private const string SlugInUseError = "Slug is already in use";
+    private const string NameRequiredError = "{0} name is required";
+    private const string AlreadyExistsError = "{0} '{1}' already exists";
+    private const string NotFoundError = "{0} not found";
+    private const string DefaultColor = "neutral";
+    #endregion
+
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly ITicketStatusRepository _statusRepo;
     private readonly ITicketPriorityRepository _priorityRepo;
@@ -30,18 +39,13 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
 
     public async Task<WorkspaceEntity> UpdateWorkspaceBasicSettingsAsync(int workspaceId, string name, string slug)
     {
-        var workspace = await _workspaceRepo.FindByIdAsync(workspaceId);
-        if (workspace == null)
-            throw new InvalidOperationException("Workspace not found");
-
+        var workspace = await GetWorkspaceOrThrowAsync(workspaceId);
         workspace.Name = name.Trim();
 
         var newSlug = slug.Trim();
         if (newSlug != workspace.Slug)
         {
-            var existing = await _workspaceRepo.FindBySlugAsync(newSlug);
-            if (existing != null && existing.Id != workspaceId)
-                throw new InvalidOperationException("Slug is already in use");
+            await ValidateSlugIsAvailableAsync(newSlug, workspaceId);
             workspace.Slug = newSlug;
         }
 
@@ -99,24 +103,19 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
 
     public async Task<TicketStatus> AddStatusAsync(int workspaceId, string name, string color, bool isClosedState = false)
     {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new InvalidOperationException("Status name is required");
+        var trimmedName = ValidateAndTrimName(name, "Status");
+        var trimmedColor = TrimColorOrDefault(color);
 
-        name = name.Trim();
-        color = string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim();
+        await EnsureNameIsUniqueAsync(workspaceId, trimmedName, "Status", 
+            () => _statusRepo.FindByNameAsync(workspaceId, trimmedName));
 
-        var existing = await _statusRepo.FindByNameAsync(workspaceId, name);
-        if (existing != null)
-            throw new InvalidOperationException($"Status '{name}' already exists");
-
-        var statuses = await _statusRepo.ListAsync(workspaceId);
-        var maxOrder = statuses.Any() ? statuses.Max(s => s.SortOrder) : 0;
+        var maxOrder = await GetMaxSortOrderAsync(() => _statusRepo.ListAsync(workspaceId), s => s.SortOrder);
 
         var status = new TicketStatus
         {
             WorkspaceId = workspaceId,
-            Name = name,
-            Color = color,
+            Name = trimmedName,
+            Color = trimmedColor,
             SortOrder = maxOrder + 1,
             IsClosedState = isClosedState
         };
@@ -135,13 +134,10 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
     {
         var status = await _statusRepo.FindByIdAsync(workspaceId, statusId);
         if (status == null)
-            throw new InvalidOperationException("Status not found");
+            throw new InvalidOperationException(string.Format(NotFoundError, "Status"));
 
-        if (string.IsNullOrWhiteSpace(name))
-            throw new InvalidOperationException("Status name is required");
-
-        status.Name = name.Trim();
-        status.Color = string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim();
+        status.Name = ValidateAndTrimName(name, "Status");
+        status.Color = TrimColorOrDefault(color);
         status.SortOrder = sortOrder;
         status.IsClosedState = isClosedState;
 
@@ -156,24 +152,19 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
 
     public async Task<TicketPriority> AddPriorityAsync(int workspaceId, string name, string color)
     {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new InvalidOperationException("Priority name is required");
+        var trimmedName = ValidateAndTrimName(name, "Priority");
+        var trimmedColor = TrimColorOrDefault(color);
 
-        name = name.Trim();
-        color = string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim();
+        await EnsureNameIsUniqueAsync(workspaceId, trimmedName, "Priority",
+            () => _priorityRepo.FindAsync(workspaceId, trimmedName));
 
-        var existing = await _priorityRepo.FindAsync(workspaceId, name);
-        if (existing != null)
-            throw new InvalidOperationException($"Priority '{name}' already exists");
-
-        var priorities = await _priorityRepo.ListAsync(workspaceId);
-        var maxOrder = priorities.Any() ? priorities.Max(p => p.SortOrder) : 0;
+        var maxOrder = await GetMaxSortOrderAsync(() => _priorityRepo.ListAsync(workspaceId), p => p.SortOrder);
 
         var priority = new TicketPriority
         {
             WorkspaceId = workspaceId,
-            Name = name,
-            Color = color,
+            Name = trimmedName,
+            Color = trimmedColor,
             SortOrder = maxOrder + 1
         };
 
@@ -192,13 +183,10 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
         var priority = priorities.FirstOrDefault(p => p.Id == priorityId);
         
         if (priority == null)
-            throw new InvalidOperationException("Priority not found");
+            throw new InvalidOperationException(string.Format(NotFoundError, "Priority"));
 
-        if (string.IsNullOrWhiteSpace(name))
-            throw new InvalidOperationException("Priority name is required");
-
-        priority.Name = name.Trim();
-        priority.Color = string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim();
+        priority.Name = ValidateAndTrimName(name, "Priority");
+        priority.Color = TrimColorOrDefault(color);
         priority.SortOrder = sortOrder;
 
         await _priorityRepo.UpdateAsync(priority);
@@ -212,24 +200,19 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
 
     public async Task<TicketType> AddTypeAsync(int workspaceId, string name, string color)
     {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new InvalidOperationException("Type name is required");
+        var trimmedName = ValidateAndTrimName(name, "Type");
+        var trimmedColor = TrimColorOrDefault(color);
 
-        name = name.Trim();
-        color = string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim();
+        await EnsureNameIsUniqueAsync(workspaceId, trimmedName, "Type",
+            () => _typeRepo.FindByNameAsync(workspaceId, trimmedName));
 
-        var existing = await _typeRepo.FindByNameAsync(workspaceId, name);
-        if (existing != null)
-            throw new InvalidOperationException($"Type '{name}' already exists");
-
-        var types = await _typeRepo.ListAsync(workspaceId);
-        var maxOrder = types.Any() ? types.Max(t => t.SortOrder) : 0;
+        var maxOrder = await GetMaxSortOrderAsync(() => _typeRepo.ListAsync(workspaceId), t => t.SortOrder);
 
         var type = new TicketType
         {
             WorkspaceId = workspaceId,
-            Name = name,
-            Color = color,
+            Name = trimmedName,
+            Color = trimmedColor,
             SortOrder = maxOrder + 1
         };
 
@@ -248,13 +231,10 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
         var type = types.FirstOrDefault(t => t.Id == typeId);
         
         if (type == null)
-            throw new InvalidOperationException("Type not found");
+            throw new InvalidOperationException(string.Format(NotFoundError, "Type"));
 
-        if (string.IsNullOrWhiteSpace(name))
-            throw new InvalidOperationException("Type name is required");
-
-        type.Name = name.Trim();
-        type.Color = string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim();
+        type.Name = ValidateAndTrimName(name, "Type");
+        type.Color = TrimColorOrDefault(color);
         type.SortOrder = sortOrder;
 
         await _typeRepo.UpdateAsync(type);
@@ -264,6 +244,46 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
     public async Task DeleteTypeAsync(int workspaceId, int typeId)
     {
         await _typeRepo.DeleteAsync(workspaceId, typeId);
+    }
+
+    private async Task<WorkspaceEntity> GetWorkspaceOrThrowAsync(int workspaceId)
+    {
+        var workspace = await _workspaceRepo.FindByIdAsync(workspaceId);
+        if (workspace == null)
+            throw new InvalidOperationException(WorkspaceNotFoundError);
+        return workspace;
+    }
+
+    private async Task ValidateSlugIsAvailableAsync(string slug, int workspaceId)
+    {
+        var existing = await _workspaceRepo.FindBySlugAsync(slug);
+        if (existing != null && existing.Id != workspaceId)
+            throw new InvalidOperationException(SlugInUseError);
+    }
+
+    private string ValidateAndTrimName(string name, string entityType)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new InvalidOperationException(string.Format(NameRequiredError, entityType));
+        return name.Trim();
+    }
+
+    private string TrimColorOrDefault(string color)
+    {
+        return string.IsNullOrWhiteSpace(color) ? DefaultColor : color.Trim();
+    }
+
+    private async Task EnsureNameIsUniqueAsync<T>(int workspaceId, string name, string entityType, Func<Task<T?>> findExisting) where T : class
+    {
+        var existing = await findExisting();
+        if (existing != null)
+            throw new InvalidOperationException(string.Format(AlreadyExistsError, entityType, name));
+    }
+
+    private async Task<int> GetMaxSortOrderAsync<T>(Func<Task<IReadOnlyList<T>>> getList, Func<T, int> getSortOrder)
+    {
+        var list = await getList();
+        return list.Any() ? list.Max(getSortOrder) : 0;
     }
 }
 

@@ -15,6 +15,16 @@ namespace Tickflo.Web.Pages.Workspaces;
 [Authorize]
 public class UsersModel : WorkspacePageModel
 {
+    #region Constants
+    private const string InviteAcceptedMessage = "Invite accepted.";
+    private const string InviteEmailResentMessage = "Invite email resent.";
+    private const string WorkspaceInviteNotificationType = "workspace_invite";
+    private const string EmailDeliveryMethod = "email";
+    private const string HighPriority = "high";
+    private const string SentStatus = "sent";
+    private const int WorkspaceInviteResendTemplateId = 4;
+    #endregion
+
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IUserRepository _userRepo;
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
@@ -73,22 +83,18 @@ public class UsersModel : WorkspacePageModel
     public async Task<IActionResult> OnPostAcceptAsync(string slug, int userId)
     {
         WorkspaceSlug = slug;
-        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
-        if (loadResult is IActionResult actionResult) return actionResult;
         
-        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
-        Workspace = workspace;
-
-        var viewData = await _manageViewService.BuildAsync(Workspace!.Id, currentUserId);
-        if (EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck) return permCheck;
+        if (await AuthorizeWorkspaceAccessAsync(slug) is IActionResult authResult)
+            return authResult;
         
-        var uw = await _userWorkspaceRepo.FindAsync(userId, Workspace.Id);
+        var uw = await _userWorkspaceRepo.FindAsync(userId, Workspace!.Id);
         if (uw == null) return NotFound();
-        uw.Accepted = true;
-        uw.UpdatedAt = DateTime.UtcNow;
+        
+        AcceptUserInvite(uw);
         await _userWorkspaceRepo.UpdateAsync(uw);
-        SetSuccessMessage("Invite accepted.");
-        return RedirectToPage("/Workspaces/Users", new { slug });
+        
+        SetSuccessMessage(InviteAcceptedMessage);
+        return RedirectToUsersPage(slug);
     }
 
     public async Task<IActionResult> OnPostResendAsync(string slug, int userId)
@@ -103,42 +109,86 @@ public class UsersModel : WorkspacePageModel
         
         var uw = await _userWorkspaceRepo.FindAsync(userId, Workspace.Id);
         if (uw == null || uw.Accepted) return NotFound();
+        
         var user = await _userRepo.FindByIdAsync(userId);
         if (EnsureEntityExistsOrNotFound(user) is IActionResult userCheck) return userCheck;
-        var newCode = TokenGenerator.GenerateToken(16);
-        user!.EmailConfirmationCode = newCode;
-        await _userRepo.UpdateAsync(user);
-        var confirmationLink = $"/email-confirmation/confirm?email={Uri.EscapeDataString(user.Email)}&code={Uri.EscapeDataString(newCode)}";
         
-        // Template Type ID 4 = Workspace Invite Resend
+        await RegenerateConfirmationCodeAsync(user!);
+        await SendInviteEmailAsync(user!, Workspace, BuildConfirmationLink(user!));
+        await CreateNotificationRecordAsync(userId, Workspace.Id, currentUserId);
+        
+        TempData["Success"] = InviteEmailResentMessage;
+        return RedirectToUsersPage(slug);
+    }
+
+    private async Task<IActionResult?> AuthorizeWorkspaceAccessAsync(string slug)
+    {
+        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
+        if (loadResult is IActionResult actionResult)
+            return actionResult;
+        
+        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
+        Workspace = workspace;
+
+        var viewData = await _manageViewService.BuildAsync(Workspace!.Id, currentUserId);
+        if (EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck)
+            return permCheck;
+        
+        return null;
+    }
+
+    private void AcceptUserInvite(UserWorkspace userWorkspace)
+    {
+        userWorkspace.Accepted = true;
+        userWorkspace.UpdatedAt = DateTime.UtcNow;
+    }
+
+    private async Task RegenerateConfirmationCodeAsync(User user)
+    {
+        var newCode = TokenGenerator.GenerateToken(16);
+        user.EmailConfirmationCode = newCode;
+        await _userRepo.UpdateAsync(user);
+    }
+
+    private string BuildConfirmationLink(User user)
+    {
+        return $"/email-confirmation/confirm?email={Uri.EscapeDataString(user.Email)}&code={Uri.EscapeDataString(user.EmailConfirmationCode ?? string.Empty)}";
+    }
+
+    private async Task SendInviteEmailAsync(User user, Workspace workspace, string confirmationLink)
+    {
         var variables = new Dictionary<string, string>
         {
-            { "WORKSPACE_NAME", Workspace.Name },
+            { "WORKSPACE_NAME", workspace.Name },
             { "CONFIRMATION_LINK", confirmationLink }
         };
         
-        var (subject, body) = await _emailTemplateService.RenderTemplateAsync(4, variables, Workspace.Id);
+        var (subject, body) = await _emailTemplateService.RenderTemplateAsync(WorkspaceInviteResendTemplateId, variables, workspace.Id);
         await _emailSender.SendAsync(user.Email, subject, body);
-        
-        // Create a notification record in the database
+    }
+
+    private async Task CreateNotificationRecordAsync(int userId, int workspaceId, int createdBy)
+    {
         var notification = new Notification
         {
             UserId = userId,
-            WorkspaceId = Workspace.Id,
-            Type = "workspace_invite",
-            DeliveryMethod = "email",
-            Priority = "high",
-            Subject = subject,
-            Body = body,
-            Status = "sent",
+            WorkspaceId = workspaceId,
+            Type = WorkspaceInviteNotificationType,
+            DeliveryMethod = EmailDeliveryMethod,
+            Priority = HighPriority,
+            Subject = string.Empty,
+            Body = string.Empty,
+            Status = SentStatus,
             SentAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = currentUserId
+            CreatedBy = createdBy
         };
         
         await _notificationRepository.AddAsync(notification);
-        
-        TempData["Success"] = "Invite email resent.";
+    }
+
+    private IActionResult RedirectToUsersPage(string slug)
+    {
         return RedirectToPage("/Workspaces/Users", new { slug });
     }
 }

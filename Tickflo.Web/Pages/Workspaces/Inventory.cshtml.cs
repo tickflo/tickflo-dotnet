@@ -13,6 +13,15 @@ namespace Tickflo.Web.Pages.Workspaces;
 [Authorize]
 public class InventoryModel : WorkspacePageModel
 {
+    #region Constants
+    private const string InventorySection = "inventory";
+    private const string EditAction = "edit";
+    private const string ArchivedStatus = "archived";
+    private const string ActiveStatus = "active";
+    private const string ItemArchivedMessage = "Inventory item archived.";
+    private const string ItemRestoredMessage = "Inventory item restored.";
+    #endregion
+
     private readonly IWorkspaceRepository _workspaces;
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly IInventoryRepository _inventoryRepo;
@@ -80,69 +89,60 @@ public class InventoryModel : WorkspacePageModel
     public async Task<IActionResult> OnPostArchiveAsync(string slug, int id)
     {
         WorkspaceSlug = slug;
-        Workspace = await _workspaces.FindBySlugAsync(slug);
-        if (Workspace == null)
-        {
-            return NotFound();
-        }
+        
+        if (await AuthorizeInventoryEditAsync(slug) is IActionResult authResult)
+            return authResult;
+        
+        var item = await _inventoryRepo.FindAsync(Workspace!.Id, id);
+        if (item == null) return NotFound();
 
-        if (!_currentUserService.TryGetUserId(User, out var uid))
-        {
-            return Forbid();
-        }
-
-        // Use service to check permissions
-        bool allowed = await _workspaceAccessService.CanUserPerformActionAsync(Workspace.Id, uid, "inventory", "edit");
-        if (!allowed)
-        {
-            return Forbid();
-        }
-
-        var item = await _inventoryRepo.FindAsync(Workspace.Id, id);
-        if (item == null)
-        {
-            return NotFound();
-        }
-
-        item.Status = "archived";
-        await _inventoryRepo.UpdateAsync(item);
-
-        SetSuccessMessage("Inventory item archived.");
-        return Redirect($"/workspaces/{Workspace.Slug}/inventory");
+        await UpdateInventoryStatusAsync(item, ArchivedStatus);
+        SetSuccessMessage(ItemArchivedMessage);
+        
+        return RedirectToInventoryPage();
     }
 
     public async Task<IActionResult> OnPostRestoreAsync(string slug, int id)
     {
         WorkspaceSlug = slug;
+        
+        if (await AuthorizeInventoryEditAsync(slug) is IActionResult authResult)
+            return authResult;
+        
+        var item = await _inventoryRepo.FindAsync(Workspace!.Id, id);
+        if (item == null) return NotFound();
+
+        await UpdateInventoryStatusAsync(item, ActiveStatus);
+        SetSuccessMessage(ItemRestoredMessage);
+        
+        return RedirectToInventoryPage();
+    }
+
+    private async Task<IActionResult?> AuthorizeInventoryEditAsync(string slug)
+    {
         Workspace = await _workspaces.FindBySlugAsync(slug);
-        if (Workspace == null)
-        {
-            return NotFound();
-        }
+        if (Workspace == null) return NotFound();
 
         if (!_currentUserService.TryGetUserId(User, out var uid))
-        {
             return Forbid();
-        }
 
-        // Use service to check permissions
-        bool allowed = await _workspaceAccessService.CanUserPerformActionAsync(Workspace.Id, uid, "inventory", "edit");
-        if (!allowed)
-        {
-            return Forbid();
-        }
+        bool allowed = await _workspaceAccessService.CanUserPerformActionAsync(
+            Workspace.Id, uid, InventorySection, EditAction);
+        
+        if (!allowed) return Forbid();
+        
+        return null;
+    }
 
-        var item = await _inventoryRepo.FindAsync(Workspace.Id, id);
-        if (item == null)
-        {
-            return NotFound();
-        }
-
-        item.Status = "active";
+    private async Task UpdateInventoryStatusAsync(Inventory item, string status)
+    {
+        item.Status = status;
         await _inventoryRepo.UpdateAsync(item);
+    }
 
-        SetSuccessMessage("Inventory item restored.");
-        return Redirect($"/workspaces/{Workspace.Slug}/inventory");
+    private IActionResult RedirectToInventoryPage()
+    {
+        return Redirect($"/workspaces/{Workspace!.Slug}/inventory");
     }
 }
 
