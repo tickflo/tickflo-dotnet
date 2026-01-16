@@ -4,10 +4,6 @@ using Tickflo.Core.Services.Authentication;
 
 namespace Tickflo.Core.Services.Users;
 
-/// <summary>
-/// Implementation of IUserManagementService.
-/// Provides user creation, validation, and update operations.
-/// </summary>
 public class UserManagementService : IUserManagementService
 {
     private readonly IUserRepository _userRepository;
@@ -21,21 +17,19 @@ public class UserManagementService : IUserManagementService
 
     public async Task<User> CreateUserAsync(string name, string email, string? recoveryEmail, string password, bool systemAdmin = false)
     {
-        var normalizedEmail = email.Trim().ToLowerInvariant();
-        
-        // Check for duplicate
+        var normalizedEmail = NormalizeEmail(email);
+
         var existing = await _userRepository.FindByEmailAsync(normalizedEmail);
         if (existing != null)
         {
             throw new InvalidOperationException($"A user with email '{email}' already exists.");
         }
 
-        // Create user with hashed password
         var user = new User
         {
             Name = name.Trim(),
             Email = normalizedEmail,
-            RecoveryEmail = string.IsNullOrWhiteSpace(recoveryEmail) ? null : recoveryEmail.Trim().ToLowerInvariant(),
+            RecoveryEmail = NormalizeEmail(recoveryEmail),
             SystemAdmin = systemAdmin,
             EmailConfirmed = false,
             PasswordHash = _passwordHasher.Hash(password),
@@ -49,9 +43,8 @@ public class UserManagementService : IUserManagementService
 
     public async Task<User> UpdateUserAsync(int userId, string name, string email, string? recoveryEmail)
     {
-        var normalizedEmail = email.Trim().ToLowerInvariant();
-        
-        // Check for email conflicts (excluding current user)
+        var normalizedEmail = NormalizeEmail(email);
+
         var existing = await _userRepository.FindByEmailAsync(normalizedEmail);
         if (existing != null && existing.Id != userId)
         {
@@ -66,7 +59,7 @@ public class UserManagementService : IUserManagementService
 
         user.Name = name.Trim();
         user.Email = normalizedEmail;
-        user.RecoveryEmail = string.IsNullOrWhiteSpace(recoveryEmail) ? null : recoveryEmail.Trim().ToLowerInvariant();
+        user.RecoveryEmail = NormalizeEmail(recoveryEmail);
         user.UpdatedAt = DateTime.UtcNow;
 
         await _userRepository.UpdateAsync(user);
@@ -75,16 +68,13 @@ public class UserManagementService : IUserManagementService
 
     public async Task<bool> IsEmailInUseAsync(string email, int? excludeUserId = null)
     {
-        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var normalizedEmail = NormalizeEmail(email);
         var existing = await _userRepository.FindByEmailAsync(normalizedEmail);
-        
+
         if (existing == null)
             return false;
 
-        if (excludeUserId.HasValue && existing.Id == excludeUserId.Value)
-            return false;
-
-        return true;
+        return !excludeUserId.HasValue || existing.Id != excludeUserId.Value;
     }
 
     public async Task<User?> GetUserAsync(int userId)
@@ -97,12 +87,14 @@ public class UserManagementService : IUserManagementService
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(recoveryEmail))
             return null;
 
-        if (email.Equals(recoveryEmail, StringComparison.OrdinalIgnoreCase))
-        {
-            return "Recovery email must be different from your login email.";
-        }
+        return email.Equals(recoveryEmail, StringComparison.OrdinalIgnoreCase)
+            ? "Recovery email must be different from your login email."
+            : null;
+    }
 
-        return null;
+    private static string? NormalizeEmail(string? email)
+    {
+        return string.IsNullOrWhiteSpace(email) ? null : email.Trim().ToLowerInvariant();
     }
 }
 

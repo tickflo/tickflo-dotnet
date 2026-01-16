@@ -8,15 +8,90 @@ namespace Tickflo.CoreTest.Services;
 
 public class UserManagementServiceTests
 {
+    private static IUserManagementService CreateService(
+        IUserRepository? userRepo = null,
+        IPasswordHasher? hasher = null)
+    {
+        userRepo ??= Mock.Of<IUserRepository>();
+        hasher ??= new MockPasswordHasher();
+        return new UserManagementService(userRepo, hasher);
+    }
+
     [Fact]
-    public async Task CreateUserAsync_Throws_On_Duplicate_Email()
+    public async Task CreateUserAsync_Throws_OnDuplicateEmail()
     {
         var repo = new Mock<IUserRepository>();
         repo.Setup(r => r.FindByEmailAsync("dup@test.com")).ReturnsAsync(new User { Id = 1 });
-        var hasher = new Mock<IPasswordHasher>();
-        hasher.Setup(h => h.Hash(It.IsAny<string>())).Returns("hash");
-        var svc = new UserManagementService(repo.Object, hasher.Object);
+        var svc = CreateService(repo.Object);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateUserAsync("Name", "dup@test.com", null, "pwd"));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => svc.CreateUserAsync("Name", "dup@test.com", null, "pwd"));
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_NormalizesEmail()
+    {
+        var repo = new Mock<IUserRepository>();
+        repo.Setup(r => r.FindByEmailAsync(It.IsAny<string>())).ReturnsAsync((User)null!);
+
+        var svc = CreateService(repo.Object);
+        await svc.CreateUserAsync("Name", "Test@EXAMPLE.COM", null, "pwd");
+
+        repo.Verify(r => r.AddAsync(It.Is<User>(u => u.Email == "test@example.com")), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateUserAsync_Throws_WhenUserNotFound()
+    {
+        var repo = new Mock<IUserRepository>();
+        repo.Setup(r => r.FindByIdAsync(1)).ReturnsAsync((User)null!);
+        var svc = CreateService(repo.Object);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => svc.UpdateUserAsync(1, "Name", "test@example.com", null));
+    }
+
+    [Fact]
+    public async Task IsEmailInUseAsync_ReturnsFalseWhenNotFound()
+    {
+        var repo = new Mock<IUserRepository>();
+        repo.Setup(r => r.FindByEmailAsync(It.IsAny<string>())).ReturnsAsync((User)null!);
+        var svc = CreateService(repo.Object);
+
+        var result = await svc.IsEmailInUseAsync("test@example.com");
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task IsEmailInUseAsync_ReturnsTrueWhenFound()
+    {
+        var repo = new Mock<IUserRepository>();
+        repo.Setup(r => r.FindByEmailAsync("test@example.com"))
+            .ReturnsAsync(new User { Id = 1 });
+        var svc = CreateService(repo.Object);
+
+        var result = await svc.IsEmailInUseAsync("test@example.com");
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task IsEmailInUseAsync_ReturnsFalseWhenExcludedUser()
+    {
+        var repo = new Mock<IUserRepository>();
+        repo.Setup(r => r.FindByEmailAsync("test@example.com"))
+            .ReturnsAsync(new User { Id = 1 });
+        var svc = CreateService(repo.Object);
+
+        var result = await svc.IsEmailInUseAsync("test@example.com", excludeUserId: 1);
+
+        Assert.False(result);
+    }
+
+    private class MockPasswordHasher : IPasswordHasher
+    {
+        public string Hash(string password) => $"hash_{password}";
+        public bool Verify(string password, string hash) => hash == $"hash_{password}";
     }
 }

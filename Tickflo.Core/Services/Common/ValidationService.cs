@@ -3,79 +3,31 @@ using Tickflo.Core.Data;
 
 namespace Tickflo.Core.Services.Common;
 
-/// <summary>
-/// Validation result containing any validation errors.
-/// </summary>
 public class ValidationResult
 {
     public bool IsValid { get; set; } = true;
     public List<ValidationError> Errors { get; set; } = new();
 }
 
-/// <summary>
-/// Individual validation error.
-/// </summary>
 public class ValidationError
 {
     public string Field { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
 }
 
-/// <summary>
-/// Cross-cutting service for shared validation rules used across multiple services.
-/// Centralizes business rule validation to maintain consistency.
-/// </summary>
 public interface IValidationService
 {
-    /// <summary>
-    /// Validate email format and optionally check for uniqueness.
-    /// </summary>
     Task<ValidationResult> ValidateEmailAsync(string email, bool checkUniqueness = false);
-
-    /// <summary>
-    /// Validate a workspace slug (lowercase, hyphens, length).
-    /// </summary>
     ValidationResult ValidateWorkspaceSlug(string slug);
-
-    /// <summary>
-    /// Validate a ticket subject (non-empty, reasonable length).
-    /// </summary>
     ValidationResult ValidateTicketSubject(string subject);
-
-    /// <summary>
-    /// Validate quantity for inventory (positive number).
-    /// </summary>
     ValidationResult ValidateQuantity(int quantity);
-
-    /// <summary>
-    /// Validate a status transition is allowed.
-    /// </summary>
     ValidationResult ValidateStatusTransition(string currentStatus, string newStatus);
-
-    /// <summary>
-    /// Validate a role name (unique, non-empty, valid characters).
-    /// </summary>
     Task<ValidationResult> ValidateRoleNameAsync(int workspaceId, string roleName, int? excludeRoleId = null);
-
-    /// <summary>
-    /// Validate contact name (non-empty, reasonable length).
-    /// </summary>
     ValidationResult ValidateContactName(string name);
-
-    /// <summary>
-    /// Validate a price/cost value (non-negative).
-    /// </summary>
     ValidationResult ValidatePriceValue(decimal price);
-
-    /// <summary>
-    /// Validate team name (unique per workspace, non-empty).
-    /// </summary>
     Task<ValidationResult> ValidateTeamNameAsync(int workspaceId, string teamName, int? excludeTeamId = null);
 }
 
-/// <summary>
-/// Implementation of shared validation service.
-/// </summary>
 public class ValidationService : IValidationService
 {
     private readonly IUserRepository _userRepo;
@@ -94,28 +46,12 @@ public class ValidationService : IValidationService
 
     public async Task<ValidationResult> ValidateEmailAsync(string email, bool checkUniqueness = false)
     {
-        var result = new ValidationResult();
-
-        if (string.IsNullOrWhiteSpace(email))
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { Field = "Email", Message = "Email is required." });
+        if (!ValidateRequired("Email", email, out var result))
             return result;
-        }
 
-        // Validate format
-        try
-        {
-            _ = new System.Net.Mail.MailAddress(email);
-        }
-        catch
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { Field = "Email", Message = "Invalid email format." });
+        if (!ValidateEmailFormat(email, out result))
             return result;
-        }
 
-        // Check uniqueness if requested
         if (checkUniqueness)
         {
             var existing = await _userRepo.FindByEmailAsync(email);
@@ -131,20 +67,11 @@ public class ValidationService : IValidationService
 
     public ValidationResult ValidateWorkspaceSlug(string slug)
     {
-        var result = new ValidationResult();
-
-        if (string.IsNullOrWhiteSpace(slug))
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { Field = "Slug", Message = "Slug is required." });
+        if (!ValidateRequired("Slug", slug, out var result))
             return result;
-        }
 
-        if (slug.Length > 30)
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { Field = "Slug", Message = "Slug must be 30 characters or less." });
-        }
+        if (!ValidateMaxLength("Slug", slug, 30, out result))
+            return result;
 
         if (!Regex.IsMatch(slug, @"^[a-z0-9\-]+$"))
         {
@@ -156,24 +83,7 @@ public class ValidationService : IValidationService
     }
 
     public ValidationResult ValidateTicketSubject(string subject)
-    {
-        var result = new ValidationResult();
-
-        if (string.IsNullOrWhiteSpace(subject))
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { Field = "Subject", Message = "Subject is required." });
-            return result;
-        }
-
-        if (subject.Length > 255)
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { Field = "Subject", Message = "Subject must be 255 characters or less." });
-        }
-
-        return result;
-    }
+        => ValidateRequiredField("Subject", subject, 255);
 
     public ValidationResult ValidateQuantity(int quantity)
     {
@@ -191,8 +101,6 @@ public class ValidationService : IValidationService
     public ValidationResult ValidateStatusTransition(string currentStatus, string newStatus)
     {
         var result = new ValidationResult();
-
-        // Define allowed transitions
         var allowedTransitions = new Dictionary<string, List<string>>
         {
             { "New", new List<string> { "Open", "Cancelled" } },
@@ -214,11 +122,7 @@ public class ValidationService : IValidationService
         if (!allowedTransitions[currentStatus].Contains(newStatus))
         {
             result.IsValid = false;
-            result.Errors.Add(new ValidationError 
-            { 
-                Field = "Status", 
-                Message = $"Cannot transition from '{currentStatus}' to '{newStatus}'." 
-            });
+            result.Errors.Add(new ValidationError { Field = "Status", Message = $"Cannot transition from '{currentStatus}' to '{newStatus}'." });
         }
 
         return result;
@@ -226,22 +130,12 @@ public class ValidationService : IValidationService
 
     public async Task<ValidationResult> ValidateRoleNameAsync(int workspaceId, string roleName, int? excludeRoleId = null)
     {
-        var result = new ValidationResult();
-
-        if (string.IsNullOrWhiteSpace(roleName))
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { Field = "Name", Message = "Role name is required." });
+        if (!ValidateRequired("Name", roleName, out var result))
             return result;
-        }
 
-        if (roleName.Length > 30)
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { Field = "Name", Message = "Role name must be 30 characters or less." });
-        }
+        if (!ValidateMaxLength("Name", roleName, 30, out result))
+            return result;
 
-        // Check uniqueness in workspace
         var existing = await _roleRepo.FindByNameAsync(workspaceId, roleName);
         if (existing != null && (excludeRoleId == null || existing.Id != excludeRoleId.Value))
         {
@@ -253,24 +147,7 @@ public class ValidationService : IValidationService
     }
 
     public ValidationResult ValidateContactName(string name)
-    {
-        var result = new ValidationResult();
-
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { Field = "Name", Message = "Contact name is required." });
-            return result;
-        }
-
-        if (name.Length > 100)
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { Field = "Name", Message = "Contact name must be 100 characters or less." });
-        }
-
-        return result;
-    }
+        => ValidateRequiredField("Name", name, 100);
 
     public ValidationResult ValidatePriceValue(decimal price)
     {
@@ -287,23 +164,55 @@ public class ValidationService : IValidationService
 
     public async Task<ValidationResult> ValidateTeamNameAsync(int workspaceId, string teamName, int? excludeTeamId = null)
     {
-        var result = new ValidationResult();
-
-        if (string.IsNullOrWhiteSpace(teamName))
-        {
-            result.IsValid = false;
-            result.Errors.Add(new ValidationError { Field = "Name", Message = "Team name is required." });
+        if (!ValidateRequired("Name", teamName, out var result))
             return result;
-        }
 
-        if (teamName.Length > 100)
+        return ValidateMaxLength("Name", teamName, 100, out result) ? result : result;
+    }
+
+    private bool ValidateRequired(string field, string value, out ValidationResult result)
+    {
+        result = new ValidationResult();
+        if (!string.IsNullOrWhiteSpace(value))
+            return true;
+
+        result.IsValid = false;
+        result.Errors.Add(new ValidationError { Field = field, Message = $"{field} is required." });
+        return false;
+    }
+
+    private bool ValidateMaxLength(string field, string value, int maxLength, out ValidationResult result)
+    {
+        result = new ValidationResult();
+        if (value?.Length <= maxLength)
+            return true;
+
+        result.IsValid = false;
+        result.Errors.Add(new ValidationError { Field = field, Message = $"{field} must be {maxLength} characters or less." });
+        return false;
+    }
+
+    private bool ValidateEmailFormat(string email, out ValidationResult result)
+    {
+        result = new ValidationResult();
+        try
+        {
+            _ = new System.Net.Mail.MailAddress(email);
+            return true;
+        }
+        catch
         {
             result.IsValid = false;
-            result.Errors.Add(new ValidationError { Field = "Name", Message = "Team name must be 100 characters or less." });
+            result.Errors.Add(new ValidationError { Field = "Email", Message = "Invalid email format." });
+            return false;
         }
+    }
 
-        // Assuming teams are workspace-scoped, check uniqueness
-        // Would need appropriate method on TeamRepository
-        return result;
+    private ValidationResult ValidateRequiredField(string fieldName, string value, int maxLength)
+    {
+        if (!ValidateRequired(fieldName, value, out var result))
+            return result;
+
+        return ValidateMaxLength(fieldName, value, maxLength, out result) ? result : result;
     }
 }
