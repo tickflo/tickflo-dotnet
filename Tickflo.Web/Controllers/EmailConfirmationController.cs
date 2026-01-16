@@ -92,14 +92,13 @@ public class EmailConfirmationController : ControllerBase
         // Create confirmation link
         var confirmationLink = $"{Request.Scheme}://{Request.Host}/email-confirmation/confirm?email={Uri.EscapeDataString(user.Email)}&code={Uri.EscapeDataString(newCode)}";
 
-        // Template Type ID 3 = Email Confirmation Request
         var variables = new Dictionary<string, string>
         {
             { "USER_NAME", user.Name },
             { "CONFIRMATION_LINK", confirmationLink }
         };
         
-        var (subject, body) = await _emailTemplateService.RenderTemplateAsync(3, variables);
+        var (subject, body) = await _emailTemplateService.RenderTemplateAsync(EmailTemplateType.EmailConfirmationRequest, variables);
         
         // Send the email
         await _emailSender.SendAsync(user.Email, subject, body);

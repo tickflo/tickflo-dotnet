@@ -7,9 +7,8 @@ using Tickflo.Core.Services.Email;
 using Tickflo.Core.Utils;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
-
 using Tickflo.Core.Services.Views;
-using Tickflo.Core.Services.Email;
+
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
@@ -22,7 +21,6 @@ public class UsersModel : WorkspacePageModel
     private const string EmailDeliveryMethod = "email";
     private const string HighPriority = "high";
     private const string SentStatus = "sent";
-    private const int WorkspaceInviteResendTemplateId = 4;
     #endregion
 
     private readonly IWorkspaceRepository _workspaceRepo;
@@ -163,7 +161,7 @@ public class UsersModel : WorkspacePageModel
             { "CONFIRMATION_LINK", confirmationLink }
         };
         
-        var (subject, body) = await _emailTemplateService.RenderTemplateAsync(WorkspaceInviteResendTemplateId, variables, workspace.Id);
+        var (subject, body) = await _emailTemplateService.RenderTemplateAsync(EmailTemplateType.WorkspaceInviteResend, variables, workspace.Id);
         await _emailSender.SendAsync(user.Email, subject, body);
     }
 

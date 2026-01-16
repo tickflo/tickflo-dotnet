@@ -23,6 +23,7 @@ public class EmailTemplateServiceTests
             {
                 Id = 1,
                 TemplateTypeId = 1,
+                Version = 1,
                 Subject = "Hello {{NAME}}",
                 Body = "Welcome {{NAME}}, your email is {{EMAIL}}"
             });
@@ -63,6 +64,7 @@ public class EmailTemplateServiceTests
             {
                 Id = 1,
                 TemplateTypeId = 1,
+                Version = 1,
                 Subject = "Static Subject",
                 Body = "Static body with no variables"
             });
@@ -85,6 +87,7 @@ public class EmailTemplateServiceTests
             {
                 Id = 1,
                 TemplateTypeId = 1,
+                Version = 1,
                 Subject = "Hello {{NAME}}",
                 Body = "Body text"
             });
@@ -111,6 +114,7 @@ public class EmailTemplateServiceTests
             {
                 Id = 1,
                 TemplateTypeId = 1,
+                Version = 1,
                 Subject = "Hello {{NAME}}",
                 Body = "Welcome {{NAME}}, code: {{CODE}}"
             });
@@ -136,7 +140,7 @@ public class EmailTemplateServiceTests
             {
                 Id = 1,
                 TemplateTypeId = 1,
-                WorkspaceId = 5,
+                Version = 2,
                 Subject = "Workspace Custom",
                 Body = "Custom template for workspace"
             });
@@ -159,6 +163,7 @@ public class EmailTemplateServiceTests
             {
                 Id = 1,
                 TemplateTypeId = 1,
+                Version = 1,
                 Subject = "{{NAME}} - {{NAME}}",
                 Body = "Hello {{NAME}}, welcome {{NAME}}!"
             });

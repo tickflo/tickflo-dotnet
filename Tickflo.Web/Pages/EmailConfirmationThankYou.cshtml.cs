@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
+using Tickflo.Core.Entities;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Tickflo.Web.Pages;
@@ -17,8 +18,7 @@ public class EmailConfirmationThankYouModel : PageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
-        // Template Type ID 1 = Email Confirmation Thank You
-        var template = await _emailTemplateRepo.FindByTypeAsync(1);
+        var template = await _emailTemplateRepo.FindByTypeAsync(EmailTemplateType.EmailConfirmationThankYou);
         
         if (template == null)
         {

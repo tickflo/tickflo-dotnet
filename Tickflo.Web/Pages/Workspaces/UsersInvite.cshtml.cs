@@ -11,10 +11,9 @@ using System.Security.Cryptography;
 using Tickflo.Core.Data;
 using Tickflo.Core.Services;
 using Microsoft.AspNetCore.Authorization;
-
 using Tickflo.Core.Services.Views;
 using Tickflo.Core.Services.Users;
-using Tickflo.Core.Services.Email;
+
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
@@ -133,7 +132,7 @@ public class UsersInviteModel : WorkspacePageModel
                 { "SET_PASSWORD_LINK", setPasswordLink }
             };
             
-            var (subject, body) = await _emailTemplateService.RenderTemplateAsync(2, variables, ws.Id);
+            var (subject, body) = await _emailTemplateService.RenderTemplateAsync(EmailTemplateType.WorkspaceInviteNewUser, variables, ws.Id);
             await _emailSender.SendAsync(result.User.Email!, subject, body);
 
             // Create a notification record in the database
