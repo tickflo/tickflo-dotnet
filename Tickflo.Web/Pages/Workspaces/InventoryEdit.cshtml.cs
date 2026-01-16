@@ -51,7 +51,7 @@ namespace Tickflo.Web.Pages.Workspaces
         
         var (workspace, uid) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
-        var workspaceId = workspace.Id;
+        var workspaceId = workspace!.Id;
         
         var viewData = await _viewService.BuildAsync(workspaceId, uid, id);
         CanViewInventory = viewData.CanViewInventory;
@@ -73,7 +73,7 @@ namespace Tickflo.Web.Pages.Workspaces
         
         var (workspace, uid) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
-        var workspaceId = workspace.Id;
+        var workspaceId = workspace!.Id;
             var viewData = await _viewService.BuildAsync(workspaceId, uid, id);
             if (EnsureCreateOrEditPermission(id, viewData.CanCreateInventory, viewData.CanEditInventory) is IActionResult permCheck) return permCheck;
 

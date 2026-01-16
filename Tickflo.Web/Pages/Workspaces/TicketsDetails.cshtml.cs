@@ -126,7 +126,7 @@ public class TicketsDetailsModel : WorkspacePageModel
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
 
-        var viewData = await _viewService.BuildAsync(Workspace.Id, id, currentUserId, LocationId);
+        var viewData = await _viewService.BuildAsync(Workspace!.Id, id, currentUserId, LocationId);
         if (viewData == null) return Forbid();
 
         Ticket = viewData.Ticket;

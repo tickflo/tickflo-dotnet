@@ -80,7 +80,7 @@ public class TicketsModel : WorkspacePageModel
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
 
-        var viewData = await _viewService.BuildAsync(Workspace.Id, currentUserId);
+        var viewData = await _viewService.BuildAsync(Workspace!.Id, currentUserId);
         Statuses = viewData.Statuses;
         StatusColorByName = viewData.StatusColorByName;
         PrioritiesList = viewData.Priorities;
@@ -181,7 +181,7 @@ public class TicketsModel : WorkspacePageModel
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
 
-        var ticket = await _ticketRepo.FindAsync(Workspace.Id, id);
+        var ticket = await _ticketRepo.FindAsync(Workspace!.Id, id);
         if (ticket == null)
         {
             return NotFound();

@@ -49,7 +49,7 @@ public class TeamsEditModel : WorkspacePageModel
         if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
         if (!TryGetUserId(out var uid)) return Forbid();
         Workspace = ws;
-        var data = await _teamsEditViewService.BuildAsync(ws.Id, uid, id);
+        var data = await _teamsEditViewService.BuildAsync(ws!.Id, uid, id);
         CanViewTeams = data.CanViewTeams;
         CanEditTeams = data.CanEditTeams;
         CanCreateTeams = data.CanCreateTeams;
@@ -60,9 +60,9 @@ public class TeamsEditModel : WorkspacePageModel
         if (id > 0)
         {
             var team = data.ExistingTeam;
-            var teamCheck = EnsureEntityBelongsToWorkspace(team, ws.Id);
+            var teamCheck = EnsureEntityBelongsToWorkspace(team, ws!.Id);
             if (teamCheck is not null) return teamCheck;
-            Name = team.Name;
+            Name = team!.Name;
             Description = team.Description;
             SelectedMemberIds = (data.ExistingMemberIds ?? new()).ToList();
         }
@@ -81,7 +81,7 @@ public class TeamsEditModel : WorkspacePageModel
         if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
         if (!TryGetUserId(out var uid)) return Forbid();
         Workspace = ws;
-        var data = await _teamsEditViewService.BuildAsync(ws.Id, uid, id);
+        var data = await _teamsEditViewService.BuildAsync(ws!.Id, uid, id);
         CanViewTeams = data.CanViewTeams;
         CanEditTeams = data.CanEditTeams;
         CanCreateTeams = data.CanCreateTeams;

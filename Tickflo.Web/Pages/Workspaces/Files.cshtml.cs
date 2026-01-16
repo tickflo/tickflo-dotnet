@@ -33,7 +33,7 @@ public class FilesModel : WorkspacePageModel
         if (result is IActionResult actionResult) return actionResult;
         
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
-        var data = await _filesViewService.BuildAsync(workspace.Id, uid);
+        var data = await _filesViewService.BuildAsync(workspace!.Id, uid);
         if (EnsurePermissionOrForbid(data.CanViewFiles) is IActionResult permCheck) return permCheck;
 
         Workspace = workspace;

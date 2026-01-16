@@ -53,7 +53,7 @@ public class RolesEditModel : WorkspacePageModel
         var ws = await _workspaces.FindBySlugAsync(slug);
         if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
         if (!TryGetUserId(out var uid)) return Forbid();
-        var workspaceId = ws.Id;
+        var workspaceId = ws!.Id;
         var data = await _rolesEditViewService.BuildAsync(workspaceId, uid, id);
         if (!data.IsAdmin) return Forbid();
         if (id > 0)
@@ -62,7 +62,7 @@ public class RolesEditModel : WorkspacePageModel
             var roleCheck = EnsureEntityBelongsToWorkspace(role, workspaceId);
             if (roleCheck is not null) return roleCheck;
             Role = role;
-            Name = role.Name ?? string.Empty;
+            Name = role!.Name ?? string.Empty;
             Admin = role.Admin;
             // Load existing permissions from view data
             var existingPerms = data.ExistingPermissions;
@@ -125,16 +125,16 @@ public class RolesEditModel : WorkspacePageModel
                 if (roleCheck is not null) return roleCheck;
                 // Ensure name uniqueness for update
                 var existing = await _roles.FindByNameAsync(workspaceId, nameTrim);
-                if (existing != null && existing.Id != role.Id)
+                if (existing != null && existing.Id != role!.Id)
                 {
                     ModelState.AddModelError(nameof(Name), "A role with that name already exists");
                     Role = role;
                     return Page();
                 }
-                role.Name = nameTrim;
-                role.Admin = Admin;
+                role!.Name = nameTrim;
+                role!.Admin = Admin;
                 await _roles.UpdateAsync(role);
-                await _rolePerms.UpsertAsync(role.Id, MapEffectivePermissions(), uid);
+                await _rolePerms.UpsertAsync(role!.Id, MapEffectivePermissions(), uid);
             }
         }
         catch (InvalidOperationException ex)

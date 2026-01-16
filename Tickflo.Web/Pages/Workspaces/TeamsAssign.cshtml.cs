@@ -45,7 +45,7 @@ public class TeamsAssignModel : WorkspacePageModel
         var ws = await _workspaces.FindBySlugAsync(slug);
         if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
         if (!TryGetUserId(out var uid)) return Forbid();
-        var data = await _teamsAssignViewService.BuildAsync(ws.Id, uid, teamId);
+        var data = await _teamsAssignViewService.BuildAsync(ws!.Id, uid, teamId);
         CanViewTeams = data.CanViewTeams;
         CanEditTeams = data.CanEditTeams;
         if (EnsurePermissionOrForbid(CanEditTeams) is IActionResult editCheck) return editCheck;
@@ -63,7 +63,7 @@ public class TeamsAssignModel : WorkspacePageModel
         var ws = await _workspaces.FindBySlugAsync(slug);
         if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
         if (!TryGetUserId(out var uid)) return Forbid();
-        var data = await _teamsAssignViewService.BuildAsync(ws.Id, uid, TeamId);
+        var data = await _teamsAssignViewService.BuildAsync(ws!.Id, uid, TeamId);
         Workspace = ws;
         Team = data.Team;
         CanEditTeams = data.CanEditTeams;
@@ -96,7 +96,7 @@ public class TeamsAssignModel : WorkspacePageModel
         var ws = await _workspaces.FindBySlugAsync(slug);
         if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
         if (!TryGetUserId(out var uid)) return Forbid();
-        var data = await _teamsAssignViewService.BuildAsync(ws.Id, uid, TeamId);
+        var data = await _teamsAssignViewService.BuildAsync(ws!.Id, uid, TeamId);
         Workspace = ws;
         Team = data.Team;
         CanEditTeams = data.CanEditTeams;

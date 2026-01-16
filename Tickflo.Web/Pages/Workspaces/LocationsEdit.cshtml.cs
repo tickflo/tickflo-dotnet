@@ -60,7 +60,7 @@ public class LocationsEditModel : WorkspacePageModel
         
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
         Workspace = workspace;
-        var workspaceId = workspace.Id;
+        var workspaceId = workspace!.Id;
         
         var viewData = await _viewService.BuildAsync(workspaceId, uid, locationId);
         CanViewLocations = viewData.CanViewLocations;
@@ -103,7 +103,7 @@ public class LocationsEditModel : WorkspacePageModel
         
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
         Workspace = workspace;
-        var workspaceId = workspace.Id;
+        var workspaceId = workspace!.Id;
         
         var viewData = await _viewService.BuildAsync(workspaceId, uid, LocationId);
         if (EnsureCreateOrEditPermission(LocationId, viewData.CanCreateLocations, viewData.CanEditLocations) is IActionResult permCheck) return permCheck;

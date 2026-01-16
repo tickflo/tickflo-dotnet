@@ -58,7 +58,7 @@ public class ContactsEditModel : WorkspacePageModel
         
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
         Workspace = workspace;
-        var workspaceId = workspace.Id;
+        var workspaceId = workspace!.Id;
         
         var viewData = await _viewService.BuildAsync(workspaceId, uid, id);
         CanViewContacts = viewData.CanViewContacts;
@@ -105,7 +105,7 @@ public class ContactsEditModel : WorkspacePageModel
         
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
         Workspace = workspace;
-        var workspaceId = workspace.Id;
+        var workspaceId = workspace!.Id;
         
         var viewData = await _viewService.BuildAsync(workspaceId, uid, id);
         bool allowed = viewData.CanCreateContacts || viewData.CanEditContacts;

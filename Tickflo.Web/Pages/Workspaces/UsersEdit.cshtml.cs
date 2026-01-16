@@ -54,7 +54,7 @@ public class UsersEditModel : WorkspacePageModel
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
 
-        var viewData = await _manageViewService.BuildAsync(Workspace.Id, currentUserId);
+        var viewData = await _manageViewService.BuildAsync(Workspace!.Id, currentUserId);
         if (EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck) return permCheck;
 
         // Load user details
@@ -83,7 +83,7 @@ public class UsersEditModel : WorkspacePageModel
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
 
-        var viewData = await _manageViewService.BuildAsync(Workspace.Id, currentUserId);
+        var viewData = await _manageViewService.BuildAsync(Workspace!.Id, currentUserId);
         if (EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck) return permCheck;
 
         // Find the Admin role
@@ -129,7 +129,7 @@ public class UsersEditModel : WorkspacePageModel
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
 
-        var viewData = await _manageViewService.BuildAsync(Workspace.Id, currentUserId);
+        var viewData = await _manageViewService.BuildAsync(Workspace!.Id, currentUserId);
         if (EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck) return permCheck;
 
         if (roleId <= 0)
@@ -172,7 +172,7 @@ public class UsersEditModel : WorkspacePageModel
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
 
-        var viewData = await _manageViewService.BuildAsync(Workspace.Id, currentUserId);
+        var viewData = await _manageViewService.BuildAsync(Workspace!.Id, currentUserId);
         if (EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck) return permCheck;
 
         // Remove role

@@ -53,7 +53,7 @@ public class LocationsModel : WorkspacePageModel
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
         Workspace = workspace;
 
-        var viewData = await _viewService.BuildAsync(Workspace.Id, uid);
+        var viewData = await _viewService.BuildAsync(Workspace!.Id, uid);
         Locations = viewData.Locations;
         CanCreateLocations = viewData.CanCreateLocations;
         CanEditLocations = viewData.CanEditLocations;
@@ -70,7 +70,7 @@ public class LocationsModel : WorkspacePageModel
         if (!_currentUserService.TryGetUserId(User, out var uid)) return Forbid();
 
         var canDelete = await _workspaceAccessService.CanUserPerformActionAsync(
-            Workspace.Id, uid, "locations", "edit");
+            Workspace!.Id, uid, "locations", "edit");
         if (!canDelete) return Forbid();
 
         var ok = await _locationRepo.DeleteAsync(Workspace.Id, locationId);

@@ -66,7 +66,7 @@ public class ReportsEditModel : WorkspacePageModel
         
         var (workspace, uid) = (WorkspaceUserLoadResult)workspaceLoadResult;
         Workspace = workspace;
-        var workspaceId = Workspace.Id;
+        var workspaceId = Workspace!.Id;
         var data = await _reportsEditViewService.BuildAsync(workspaceId, uid, reportId);
         CanViewReports = data.CanViewReports;
         CanEditReports = data.CanEditReports;
@@ -78,7 +78,7 @@ public class ReportsEditModel : WorkspacePageModel
         {
             var rep = data.ExistingReport;
             if (EnsureEntityExistsOrNotFound(rep) is IActionResult result) return result;
-            ReportId = rep.Id;
+            ReportId = rep!.Id;
             Name = rep.Name;
             Ready = rep.Ready;
             // Parse definition
@@ -118,7 +118,7 @@ public class ReportsEditModel : WorkspacePageModel
         
         var (workspace, uid) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
-        var workspaceId = workspace.Id;
+        var workspaceId = workspace!.Id;
         var data = await _reportsEditViewService.BuildAsync(workspaceId, uid, ReportId);
         bool allowed = (ReportId == 0) ? data.CanCreateReports : data.CanEditReports;
         if (!allowed) return Forbid();

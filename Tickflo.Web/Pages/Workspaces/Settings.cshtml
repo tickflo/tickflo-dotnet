@@ -93,17 +93,18 @@
                         <p class="text-sm opacity-70">Rename, recolor, and reorder how tickets progress.</p>
                     </div>
                 </div>
-                <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
-                    <table class="table table-md table-zebra align-middle">
-                        <thead class="bg-white/5">
-                            <tr>
-                                <th class="w-full">Name & Color</th>
-                                <th>Preview</th>
-                                <th>Order</th>
-                                <th class="text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                <div class="card-body p-0">
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra table-md align-middle">
+                            <thead>
+                                <tr>
+                                    <th class="w-full">Name & Color</th>
+                                    <th>Preview</th>
+                                    <th>Order</th>
+                                    <th class="text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                             @foreach (var s in Model.Statuses)
                             {
                                 var displayColor = string.IsNullOrWhiteSpace(s.Color) ? "neutral" : s.Color;
@@ -153,7 +154,8 @@
                                 </td>
                             </tr>
                         </tbody>
-                    </table>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -166,17 +168,18 @@
                         <p class="text-sm opacity-70">Keep urgency clear for tickets and contacts.</p>
                     </div>
                 </div>
-                <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
-                    <table class="table table-md table-zebra align-middle">
-                        <thead class="bg-white/5">
-                            <tr>
-                                <th class="w-full">Name & Color</th>
-                                <th>Preview</th>
-                                <th>Order</th>
-                                <th class="text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                <div class="card-body p-0">
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra table-md align-middle">
+                            <thead>
+                                <tr>
+                                    <th class="w-full">Name & Color</th>
+                                    <th>Preview</th>
+                                    <th>Order</th>
+                                    <th class="text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                             @foreach (var p in Model.Priorities)
                             {
                                 var displayColor = string.IsNullOrWhiteSpace(p.Color) ? "neutral" : p.Color;
@@ -222,7 +225,8 @@
                                 </td>
                             </tr>
                         </tbody>
-                    </table>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -235,17 +239,18 @@
                         <p class="text-sm opacity-70">Keep work organized with clear categories.</p>
                     </div>
                 </div>
-                <div class="overflow-x-auto rounded-2xl bg-neutral-900/70 backdrop-blur">
-                    <table class="table table-md table-zebra align-middle">
-                        <thead class="bg-white/5">
-                            <tr>
-                                <th class="w-full">Name & Color</th>
-                                <th>Preview</th>
-                                <th>Order</th>
-                                <th class="text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                <div class="card-body p-0">
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra table-md align-middle">
+                            <thead>
+                                <tr>
+                                    <th class="w-full">Name & Color</th>
+                                    <th>Preview</th>
+                                    <th>Order</th>
+                                    <th class="text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                             @foreach (var t in Model.Types)
                             {
                                 var displayColor = string.IsNullOrWhiteSpace(t.Color) ? "neutral" : t.Color;
@@ -291,217 +296,8 @@
                                 </td>
                             </tr>
                         </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
-            <div class="card-body space-y-6">
-                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                    <div>
-                        <h3 class="card-title">Notification Integrations</h3>
-                        <p class="text-sm opacity-70">Configure how alerts reach your team.</p>
+                        </table>
                     </div>
-                </div>
-                
-                @if (TempData["NotificationSettingsSaved"] != null)
-                {
-                    <div class="alert alert-success mb-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        <span>Notification settings saved successfully!</span>
-                    </div>
-                }
-                
-                <div class="alert alert-info">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <div class="text-sm">
-                        <p class="font-semibold">Pluggable Integrations</p>
-                        <p>Enable only the channels you need; everything stays visible and editable here.</p>
-                    </div>
-                </div>
-                
-                <div class="space-y-6">
-                    
-                    <div class="divider">General Settings</div>
-                    
-                    <div class="form-control bg-base-200/60 rounded-3xl px-4 py-3">
-                        <label class="label cursor-pointer justify-start gap-4">
-                            <input type="checkbox" asp-for="NotificationsEnabled" class="toggle toggle-xs toggle-primary" />
-                            <div>
-                                <span class="label-text font-semibold">Enable Notifications</span>
-                                <p class="text-xs opacity-70">Master switch for all notification types in this workspace</p>
-                            </div>
-                        </label>
-                    </div>
-                    
-                    <div class="divider">Delivery Integrations</div>
-
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        <!-- Email Integration -->
-                        <div class="card bg-base-200/80 shadow-sm border border-base-300 rounded-3xl">
-                            <div class="card-body space-y-3">
-                                <div class="flex items-start justify-between gap-2">
-                                    <div class="flex-1">
-                                        <h4 class="font-semibold flex items-center gap-2">
-                                            <span>📧 Email Integration</span>
-                                            <span class="badge badge-success badge-sm">Built-in</span>
-                                        </h4>
-                                        <p class="text-xs opacity-70 mt-1">Send notifications via email using SMTP</p>
-                                    </div>
-                                    <input type="checkbox" asp-for="EmailIntegrationEnabled" class="toggle toggle-xs toggle-primary" />
-                                </div>
-                                <div class="form-control">
-                                    <label class="label"><span class="label-text text-xs">Provider</span></label>
-                                    <select asp-for="EmailProvider" class="select select-bordered select-sm">
-                                        <option value="smtp">SMTP (Built-in)</option>
-                                        <option value="sendgrid">SendGrid (Plugin)</option>
-                                        <option value="mailgun">Mailgun (Plugin)</option>
-                                        <option value="ses">AWS SES (Plugin)</option>
-                                    </select>
-                                    <label class="label"><span class="label-text-alt opacity-70">Configure provider in appsettings.json</span></label>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- In-App Integration -->
-                        <div class="card bg-base-200/80 shadow-sm border border-base-300 rounded-3xl">
-                            <div class="card-body space-y-3">
-                                <div class="flex items-start justify-between gap-2">
-                                    <div class="flex-1">
-                                        <h4 class="font-semibold flex items-center gap-2">
-                                            <span>🔔 In-App Notifications</span>
-                                            <span class="badge badge-success badge-sm">Built-in</span>
-                                        </h4>
-                                        <p class="text-xs opacity-70 mt-1">Show notifications within the application interface</p>
-                                    </div>
-                                    <input type="checkbox" asp-for="InAppNotificationsEnabled" class="toggle toggle-xs toggle-primary" />
-                                </div>
-                                <p class="text-xs opacity-60">No external provider needed - uses internal database storage</p>
-                            </div>
-                        </div>
-                        
-                        <!-- SMS Integration -->
-                        <div class="card bg-base-200/80 shadow-sm border border-base-300 rounded-3xl">
-                            <div class="card-body space-y-3">
-                                <div class="flex items-start justify-between gap-2">
-                                    <div class="flex-1">
-                                        <h4 class="font-semibold flex items-center gap-2">
-                                            <span>💬 SMS Integration</span>
-                                            <span class="badge badge-warning badge-sm">Plugin Required</span>
-                                        </h4>
-                                        <p class="text-xs opacity-70 mt-1">Send urgent notifications via SMS text messages</p>
-                                    </div>
-                                    <input type="checkbox" asp-for="SmsIntegrationEnabled" class="toggle toggle-xs toggle-primary" />
-                                </div>
-                                <div class="form-control">
-                                    <label class="label"><span class="label-text text-xs">Provider</span></label>
-                                    <select asp-for="SmsProvider" class="select select-bordered select-sm">
-                                        <option value="none">Not Configured</option>
-                                        <option value="twilio">Twilio (Plugin)</option>
-                                        <option value="sns">AWS SNS (Plugin)</option>
-                                        <option value="messagebird">MessageBird (Plugin)</option>
-                                        <option value="vonage">Vonage/Nexmo (Plugin)</option>
-                                    </select>
-                                    <label class="label"><span class="label-text-alt opacity-70">Install plugin package and configure credentials</span></label>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Push Integration -->
-                        <div class="card bg-base-200/80 shadow-sm border border-base-300 rounded-3xl">
-                            <div class="card-body space-y-3">
-                                <div class="flex items-start justify-between gap-2">
-                                    <div class="flex-1">
-                                        <h4 class="font-semibold flex items-center gap-2">
-                                            <span>📱 Push Notifications</span>
-                                            <span class="badge badge-warning badge-sm">Plugin Required</span>
-                                        </h4>
-                                        <p class="text-xs opacity-70 mt-1">Send push notifications to mobile devices and browsers</p>
-                                    </div>
-                                    <input type="checkbox" asp-for="PushIntegrationEnabled" class="toggle toggle-xs toggle-primary" />
-                                </div>
-                                <div class="form-control">
-                                    <label class="label"><span class="label-text text-xs">Provider</span></label>
-                                    <select asp-for="PushProvider" class="select select-bordered select-sm">
-                                        <option value="none">Not Configured</option>
-                                        <option value="fcm">Firebase Cloud Messaging (Plugin)</option>
-                                        <option value="apns">Apple Push Notification Service (Plugin)</option>
-                                        <option value="onesignal">OneSignal (Plugin)</option>
-                                        <option value="pusher">Pusher Beams (Plugin)</option>
-                                    </select>
-                                    <label class="label"><span class="label-text-alt opacity-70">Install plugin package and configure API keys</span></label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="divider">Batch & Scheduling</div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text font-semibold">Batch Notification Delay (minutes)</span>
-                            </label>
-                            <input type="number" asp-for="BatchNotificationDelay" min="1" max="120" class="input input-bordered" />
-                            <label class="label">
-                                <span class="label-text-alt opacity-70">Group similar notifications within this time window</span>
-                            </label>
-                        </div>
-                        
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text font-semibold">Daily Summary Time (hour)</span>
-                            </label>
-                            <input type="number" asp-for="DailySummaryHour" min="0" max="23" class="input input-bordered" />
-                            <label class="label">
-                                <span class="label-text-alt opacity-70">Hour of day (0-23) to send daily ticket summaries</span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <div class="divider">Priority Rules</div>
-                    
-                    <div class="space-y-3">
-                        <div class="form-control">
-                            <label class="label cursor-pointer justify-start gap-4">
-                                <input type="checkbox" asp-for="MentionNotificationsUrgent" class="toggle toggle-xs toggle-primary" />
-                                <div>
-                                    <span class="label-text font-semibold">Mark Mentions as Urgent</span>
-                                    <p class="text-xs opacity-70">When users are @@mentioned in comments, treat as urgent priority</p>
-                                </div>
-                            </label>
-                        </div>
-                        
-                        <div class="form-control">
-                            <label class="label cursor-pointer justify-start gap-4">
-                                <input type="checkbox" asp-for="TicketAssignmentNotificationsHigh" class="toggle toggle-xs toggle-primary" />
-                                <div>
-                                    <span class="label-text font-semibold">Mark Ticket Assignments as High Priority</span>
-                                    <p class="text-xs opacity-70">Notify users immediately when tickets are assigned to them</p>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <div class="alert">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <div class="text-sm">
-                            <p class="font-semibold">How to add integrations:</p>
-                            <ul class="list-disc list-inside mt-1 space-y-1">
-                                <li>Install integration NuGet packages (e.g., <code class="text-xs">Tickflo.Notifications.Twilio</code>)</li>
-                                <li>Add provider credentials to appsettings.json or environment variables</li>
-                                <li>Enable the integration and select your provider above</li>
-                                <li>Users can control which notifications they receive in their profile</li>
-                            </ul>
-                        </div>
-                    </div>
-                    
-                    <div class="text-xs opacity-70">Notification changes are saved with the master button.</div>
                 </div>
             </div>
         </div>

@@ -50,7 +50,7 @@ public class UsersModel : WorkspacePageModel
         var (workspace, uid) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
 
-        var viewData = await _viewService.BuildAsync(Workspace.Id, uid);
+        var viewData = await _viewService.BuildAsync(Workspace!.Id, uid);
         if (EnsurePermissionOrForbid(viewData.CanViewUsers) is IActionResult permCheck) return permCheck;
         
         IsWorkspaceAdmin = viewData.IsWorkspaceAdmin;
@@ -75,8 +75,8 @@ public class UsersModel : WorkspacePageModel
         
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
-        
-        var viewData = await _manageViewService.BuildAsync(Workspace.Id, currentUserId);
+
+        var viewData = await _manageViewService.BuildAsync(Workspace!.Id, currentUserId);
         if (EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck) return permCheck;
         
         var uw = await _userWorkspaceRepo.FindAsync(userId, Workspace.Id);
@@ -95,7 +95,7 @@ public class UsersModel : WorkspacePageModel
         if (EnsureWorkspaceExistsOrNotFound(Workspace) is IActionResult result) return result;
         if (!TryGetUserId(out var currentUserId)) return Forbid();
         
-        var viewData = await _manageViewService.BuildAsync(Workspace.Id, currentUserId);
+        var viewData = await _manageViewService.BuildAsync(Workspace!.Id, currentUserId);
         if (EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck) return permCheck;
         
         var uw = await _userWorkspaceRepo.FindAsync(userId, Workspace.Id);
@@ -103,7 +103,7 @@ public class UsersModel : WorkspacePageModel
         var user = await _userRepo.FindByIdAsync(userId);
         if (EnsureEntityExistsOrNotFound(user) is IActionResult userCheck) return userCheck;
         var newCode = TokenGenerator.GenerateToken(16);
-        user.EmailConfirmationCode = newCode;
+        user!.EmailConfirmationCode = newCode;
         await _userRepo.UpdateAsync(user);
         var confirmationLink = $"/email-confirmation/confirm?email={Uri.EscapeDataString(user.Email)}&code={Uri.EscapeDataString(newCode)}";
         var subject = $"Your invite to {Workspace.Name}";

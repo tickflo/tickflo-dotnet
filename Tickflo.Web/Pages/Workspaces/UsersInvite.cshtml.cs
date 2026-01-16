@@ -65,7 +65,7 @@ public class UsersInviteModel : WorkspacePageModel
         var (workspace, userId) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
 
-        var viewData = await _viewService.BuildAsync(Workspace.Id, userId);
+        var viewData = await _viewService.BuildAsync(Workspace!.Id, userId);
         if (EnsurePermissionOrForbid(viewData.CanViewUsers && viewData.CanCreateUsers) is IActionResult permCheck) return permCheck;
 
         CanViewUsers = viewData.CanViewUsers;
@@ -82,7 +82,7 @@ public class UsersInviteModel : WorkspacePageModel
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
 
-        var viewData = await _viewService.BuildAsync(Workspace.Id, currentUserId);
+        var viewData = await _viewService.BuildAsync(Workspace!.Id, currentUserId);
         if (EnsurePermissionOrForbid(viewData.CanViewUsers && viewData.CanCreateUsers) is IActionResult permCheck) return permCheck;
 
         CanViewUsers = viewData.CanViewUsers;

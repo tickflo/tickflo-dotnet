@@ -59,7 +59,7 @@ public class InventoryModel : WorkspacePageModel
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
         Workspace = workspace;
 
-        var viewData = await _viewService.BuildAsync(Workspace.Id, uid);
+        var viewData = await _viewService.BuildAsync(Workspace!.Id, uid);
         IsWorkspaceAdmin = viewData.IsWorkspaceAdmin;
         CanCreateInventory = viewData.CanCreateInventory;
         CanEditInventory = viewData.CanEditInventory;

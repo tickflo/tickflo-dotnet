@@ -67,18 +67,6 @@ public class SettingsModel : WorkspacePageModel
         Statuses = data.Statuses;
         Priorities = data.Priorities;
         Types = data.Types;
-        NotificationsEnabled = data.NotificationsEnabled;
-        EmailIntegrationEnabled = data.EmailIntegrationEnabled;
-        EmailProvider = data.EmailProvider;
-        SmsIntegrationEnabled = data.SmsIntegrationEnabled;
-        SmsProvider = data.SmsProvider;
-        PushIntegrationEnabled = data.PushIntegrationEnabled;
-        PushProvider = data.PushProvider;
-        InAppNotificationsEnabled = data.InAppNotificationsEnabled;
-        BatchNotificationDelay = data.BatchNotificationDelay;
-        DailySummaryHour = data.DailySummaryHour;
-        MentionNotificationsUrgent = data.MentionNotificationsUrgent;
-        TicketAssignmentNotificationsHigh = data.TicketAssignmentNotificationsHigh;
         return true;
     }
 
@@ -96,36 +84,6 @@ public class SettingsModel : WorkspacePageModel
     public string? NewTypeName { get; set; }
     [BindProperty]
     public string? NewTypeColor { get; set; }
-
-    [BindProperty]
-    public bool NotificationsEnabled { get; set; } = true;
-    
-    [BindProperty]
-    public bool EmailIntegrationEnabled { get; set; } = true;
-    [BindProperty]
-    public string EmailProvider { get; set; } = "smtp";
-    
-    [BindProperty]
-    public bool SmsIntegrationEnabled { get; set; } = false;
-    [BindProperty]
-    public string SmsProvider { get; set; } = "none";
-    
-    [BindProperty]
-    public bool PushIntegrationEnabled { get; set; } = false;
-    [BindProperty]
-    public string PushProvider { get; set; } = "none";
-    
-    [BindProperty]
-    public bool InAppNotificationsEnabled { get; set; } = true;
-    
-    [BindProperty]
-    public int BatchNotificationDelay { get; set; } = 30;
-    [BindProperty]
-    public int DailySummaryHour { get; set; } = 9;
-    [BindProperty]
-    public bool MentionNotificationsUrgent { get; set; } = true;
-    [BindProperty]
-    public bool TicketAssignmentNotificationsHigh { get; set; } = true;
 
     public async Task<IActionResult> OnPostAsync([FromRoute] string slug)
     {
@@ -629,17 +587,6 @@ public class SettingsModel : WorkspacePageModel
                     SetErrorMessage($"Type '{newTypeName}' already exists.");
                 }
             }
-
-            NotificationsEnabled = form["NotificationsEnabled"] == "true" || form["NotificationsEnabled"] == "on";
-            EmailIntegrationEnabled = form["EmailIntegrationEnabled"] == "true" || form["EmailIntegrationEnabled"] == "on";
-            SmsIntegrationEnabled = form["SmsIntegrationEnabled"] == "true" || form["SmsIntegrationEnabled"] == "on";
-            PushIntegrationEnabled = form["PushIntegrationEnabled"] == "true" || form["PushIntegrationEnabled"] == "on";
-            InAppNotificationsEnabled = form["InAppNotificationsEnabled"] == "true" || form["InAppNotificationsEnabled"] == "on";
-            if (int.TryParse(form["BatchNotificationDelay"], out var batchDelay)) BatchNotificationDelay = batchDelay;
-            if (int.TryParse(form["DailySummaryHour"], out var summaryHour)) DailySummaryHour = summaryHour;
-            MentionNotificationsUrgent = form["MentionNotificationsUrgent"] == "true" || form["MentionNotificationsUrgent"] == "on";
-            TicketAssignmentNotificationsHigh = form["TicketAssignmentNotificationsHigh"] == "true" || form["TicketAssignmentNotificationsHigh"] == "on";
-            changedCount++;
 
             SetSuccessMessage(changedCount > 0
                 ? $"Saved {changedCount} change(s) successfully."
