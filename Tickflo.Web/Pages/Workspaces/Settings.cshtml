@@ -137,7 +137,7 @@
                                         <input type="color" name="statuses[@s.Id].color" value="@pickerColor" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70 cursor-pointer" @(Model.CanEditSettings ? "" : "disabled") />
                                         <input type="number" name="statuses[@s.Id].sortOrder" value="@s.SortOrder" class="input join-item input-sm w-20 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanEditSettings ? "" : "disabled") />
                                         <label class="label cursor-pointer join-item ml-2 gap-2">
-                                            <input type="checkbox" name="statuses[@s.Id].isClosedState" value="true" @(s.IsClosedState ? "checked" : null) class="checkbox checkbox-xs" @(Model.CanEditSettings ? "" : "disabled") />
+                                            <input type="checkbox" name="statuses[@s.Id].isClosedState" value="true" @(s.IsClosedState ? "checked" : null) class="toggle toggle-xs toggle-primary" @(Model.CanEditSettings ? "" : "disabled") />
                                             <span class="label-text text-xs">Closed state</span>
                                         </label>
                                     </td>
@@ -145,7 +145,7 @@
                                     <td class="font-semibold">@s.SortOrder</td>
                                     <td class="text-right">
                                         <label class="label cursor-pointer justify-end gap-2">
-                                            <input type="checkbox" name="statuses[@s.Id].delete" value="true" class="checkbox checkbox-error checkbox-sm" @(Model.CanEditSettings ? "" : "disabled") />
+                                            <input type="checkbox" name="statuses[@s.Id].delete" value="true" class="toggle toggle-xs toggle-primary" @(Model.CanEditSettings ? "" : "disabled") />
                                             <span class="label-text text-xs">Remove</span>
                                         </label>
                                     </td>
@@ -218,7 +218,7 @@
                                     <td class="font-semibold">@p.SortOrder</td>
                                     <td class="text-right">
                                         <label class="label cursor-pointer justify-end gap-2">
-                                            <input type="checkbox" name="priorities[@p.Id].delete" value="true" class="checkbox checkbox-error checkbox-sm" @(Model.CanEditSettings ? "" : "disabled") />
+                                            <input type="checkbox" name="priorities[@p.Id].delete" value="true" class="toggle toggle-xs toggle-primary" @(Model.CanEditSettings ? "" : "disabled") />
                                             <span class="label-text text-xs">Remove</span>
                                         </label>
                                     </td>
@@ -291,7 +291,7 @@
                                     <td class="font-semibold">@t.SortOrder</td>
                                     <td class="text-right">
                                         <label class="label cursor-pointer justify-end gap-2">
-                                            <input type="checkbox" name="types[@t.Id].delete" value="true" class="checkbox checkbox-error checkbox-sm" @(Model.CanEditSettings ? "" : "disabled") />
+                                            <input type="checkbox" name="types[@t.Id].delete" value="true" class="toggle toggle-xs toggle-primary" @(Model.CanEditSettings ? "" : "disabled") />
                                             <span class="label-text text-xs">Remove</span>
                                         </label>
                                     </td>
@@ -346,7 +346,7 @@
                     
                     <div class="form-control bg-base-200/60 rounded-3xl px-4 py-3">
                         <label class="label cursor-pointer justify-start gap-4">
-                            <input type="checkbox" asp-for="NotificationsEnabled" class="toggle toggle-primary" />
+                            <input type="checkbox" asp-for="NotificationsEnabled" class="toggle toggle-xs toggle-primary" />
                             <div>
                                 <span class="label-text font-semibold">Enable Notifications</span>
                                 <p class="text-xs opacity-70">Master switch for all notification types in this workspace</p>
@@ -368,7 +368,7 @@
                                         </h4>
                                         <p class="text-xs opacity-70 mt-1">Send notifications via email using SMTP</p>
                                     </div>
-                                    <input type="checkbox" asp-for="EmailIntegrationEnabled" class="toggle toggle-primary" />
+                                    <input type="checkbox" asp-for="EmailIntegrationEnabled" class="toggle toggle-xs toggle-primary" />
                                 </div>
                                 <div class="form-control">
                                     <label class="label"><span class="label-text text-xs">Provider</span></label>
@@ -394,7 +394,7 @@
                                         </h4>
                                         <p class="text-xs opacity-70 mt-1">Show notifications within the application interface</p>
                                     </div>
-                                    <input type="checkbox" asp-for="InAppNotificationsEnabled" class="toggle toggle-primary" />
+                                    <input type="checkbox" asp-for="InAppNotificationsEnabled" class="toggle toggle-xs toggle-primary" />
                                 </div>
                                 <p class="text-xs opacity-60">No external provider needed - uses internal database storage</p>
                             </div>
@@ -411,7 +411,7 @@
                                         </h4>
                                         <p class="text-xs opacity-70 mt-1">Send urgent notifications via SMS text messages</p>
                                     </div>
-                                    <input type="checkbox" asp-for="SmsIntegrationEnabled" class="toggle toggle-primary" />
+                                    <input type="checkbox" asp-for="SmsIntegrationEnabled" class="toggle toggle-xs toggle-primary" />
                                 </div>
                                 <div class="form-control">
                                     <label class="label"><span class="label-text text-xs">Provider</span></label>
@@ -438,7 +438,7 @@
                                         </h4>
                                         <p class="text-xs opacity-70 mt-1">Send push notifications to mobile devices and browsers</p>
                                     </div>
-                                    <input type="checkbox" asp-for="PushIntegrationEnabled" class="toggle toggle-primary" />
+                                    <input type="checkbox" asp-for="PushIntegrationEnabled" class="toggle toggle-xs toggle-primary" />
                                 </div>
                                 <div class="form-control">
                                     <label class="label"><span class="label-text text-xs">Provider</span></label>
@@ -484,7 +484,7 @@
                     <div class="space-y-3">
                         <div class="form-control">
                             <label class="label cursor-pointer justify-start gap-4">
-                                <input type="checkbox" asp-for="MentionNotificationsUrgent" class="checkbox checkbox-primary checkbox-sm" />
+                                <input type="checkbox" asp-for="MentionNotificationsUrgent" class="toggle toggle-xs toggle-primary" />
                                 <div>
                                     <span class="label-text font-semibold">Mark Mentions as Urgent</span>
                                     <p class="text-xs opacity-70">When users are @@mentioned in comments, treat as urgent priority</p>
@@ -494,7 +494,7 @@
                         
                         <div class="form-control">
                             <label class="label cursor-pointer justify-start gap-4">
-                                <input type="checkbox" asp-for="TicketAssignmentNotificationsHigh" class="checkbox checkbox-primary checkbox-sm" />
+                                <input type="checkbox" asp-for="TicketAssignmentNotificationsHigh" class="toggle toggle-xs toggle-primary" />
                                 <div>
                                     <span class="label-text font-semibold">Mark Ticket Assignments as High Priority</span>
                                     <p class="text-xs opacity-70">Notify users immediately when tickets are assigned to them</p>
