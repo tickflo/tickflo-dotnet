@@ -137,10 +137,9 @@
                                     <td><span class="@badgeCls" style="@badgeStyle" title="@s.Name">@(isHex ? "Custom" : s.Color)</span></td>
                                     <td class="font-semibold">@s.SortOrder</td>
                                     <td class="text-right">
-                                        <label class="label cursor-pointer justify-end gap-2">
-                                            <input type="checkbox" name="statuses[@s.Id].delete" value="true" class="toggle toggle-xs toggle-primary" @(Model.CanEditSettings ? "" : "disabled") />
-                                            <span class="label-text text-xs">Remove</span>
-                                        </label>
+                                        <button type="button" class="btn btn-error btn-xs remove-btn" data-type="status" data-id="@s.Id" data-name="@s.Name">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
                                     </td>
                                 </tr>
                             }
@@ -208,10 +207,9 @@
                                     <td><span class="@badgeCls" style="@badgeStyle" title="@p.Name">@(isHex ? "Custom" : p.Color)</span></td>
                                     <td class="font-semibold">@p.SortOrder</td>
                                     <td class="text-right">
-                                        <label class="label cursor-pointer justify-end gap-2">
-                                            <input type="checkbox" name="priorities[@p.Id].delete" value="true" class="toggle toggle-xs toggle-primary" @(Model.CanEditSettings ? "" : "disabled") />
-                                            <span class="label-text text-xs">Remove</span>
-                                        </label>
+                                        <button type="button" class="btn btn-error btn-xs remove-btn" data-type="priority" data-id="@p.Id" data-name="@p.Name">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
                                     </td>
                                 </tr>
                             }
@@ -279,10 +277,9 @@
                                     <td><span class="@badgeCls" style="@badgeStyle" title="@t.Name">@(isHex ? "Custom" : t.Color)</span></td>
                                     <td class="font-semibold">@t.SortOrder</td>
                                     <td class="text-right">
-                                        <label class="label cursor-pointer justify-end gap-2">
-                                            <input type="checkbox" name="types[@t.Id].delete" value="true" class="toggle toggle-xs toggle-primary" @(Model.CanEditSettings ? "" : "disabled") />
-                                            <span class="label-text text-xs">Remove</span>
-                                        </label>
+                                        <button type="button" class="btn btn-error btn-xs remove-btn" data-type="type" data-id="@t.Id" data-name="@t.Name">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
                                     </td>
                                 </tr>
                             }
@@ -304,3 +301,66 @@
         </form>
     </section>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<dialog id="deleteModal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Delete Item</h3>
+        <p class="py-4">Are you sure you want to delete <span id="deleteItemName" class="font-semibold text-error"></span>? This action cannot be undone.</p>
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Cancel</button>
+            </form>
+            <button id="confirmDeleteBtn" class="btn btn-error">Delete</button>
+        </div>
+    </div>
+</dialog>
+
+<script>
+let pendingDelete = null;
+
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.remove-btn')) {
+        const btn = e.target.closest('.remove-btn');
+        const type = btn.getAttribute('data-type');
+        const id = btn.getAttribute('data-id');
+        const name = btn.getAttribute('data-name');
+        
+        pendingDelete = { type, id, name };
+        
+        document.getElementById('deleteItemName').textContent = name;
+        document.getElementById('deleteModal').showModal();
+    }
+});
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+    if (!pendingDelete) return;
+    
+    const { type, id, name } = pendingDelete;
+    const slug = window.location.pathname.split('/')[2];
+    const handler = `Delete${type.charAt(0).toUpperCase() + type.slice(1)}`;
+    const url = `/workspaces/${slug}/settings?handler=${handler}`;
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+        },
+        body: `id=${id}`
+    })
+    .then(response => {
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert('Failed to delete ' + type);
+            document.getElementById('deleteModal').close();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred');
+        document.getElementById('deleteModal').close();
+    });
+});
+</script>

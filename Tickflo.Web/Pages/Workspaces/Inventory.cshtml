@@ -9,100 +9,135 @@
   <section class="relative overflow-hidden p-6 flex-1 space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
 @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView { Slug = Model.WorkspaceSlug, Name = Model.Workspace?.Name ?? "Workspace", SectionTitle = "Inventory", NewActionLabel = "New Item", NewActionHref = $"/workspaces/{Model.WorkspaceSlug}/inventory/0/edit", AllowNewAction = Model.CanCreateInventory })
 
-<div class="space-y-8">
-  <div class="flex items-center justify-between">
-    @await Html.PartialAsync("_FilterBar", new Tickflo.Web.Pages.Shared.FilterBarView {
-      QueryParamName = "Query",
-      QueryValue = Model.Query,
-      Placeholder = "Search name or SKU",
-      SubmitLabel = "Filter",
-      Selects = new List<Tickflo.Web.Pages.Shared.FilterSelect> {
-        new Tickflo.Web.Pages.Shared.FilterSelect {
-          Name = "Status",
-          Options = new List<Tickflo.Web.Pages.Shared.FilterOption> {
-            new Tickflo.Web.Pages.Shared.FilterOption { Value = "", Label = "All", Selected = string.IsNullOrEmpty(Model.Status) },
-            new Tickflo.Web.Pages.Shared.FilterOption { Value = "active", Label = "Active", Selected = (Model.Status ?? string.Empty) == "active" },
-            new Tickflo.Web.Pages.Shared.FilterOption { Value = "archived", Label = "Archived", Selected = (Model.Status ?? string.Empty) == "archived" }
-          }
+<div class="grid gap-4">
+  <div class="card bg-neutral-900/70 backdrop-blur rounded-2xl border border-white/5">
+    <div class="card-body p-4 space-y-3">
+      <div class="space-y-1">
+        <div class="text-sm uppercase tracking-wide text-white/60">Inventory Management</div>
+        <div class="text-2xl font-semibold text-white">Track your parts and supplies</div>
+        <p class="text-sm text-white/70 max-w-3xl">Manage inventory items, track stock levels, and monitor low stock alerts. Filter by status to view active or archived items.</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        @{
+          var chipBase = $"Query={Model.Query}";
         }
-      }
-    })
+        <a class="btn btn-sm btn-ghost border border-white/10 @(string.IsNullOrWhiteSpace(Model.Status) ? "btn-active" : string.Empty)" href="?@chipBase&Status=">All</a>
+        <a class="btn btn-sm btn-ghost border border-white/10 @(string.Equals(Model.Status, "active", StringComparison.OrdinalIgnoreCase) ? "btn-active" : string.Empty)" href="?@chipBase&Status=active">Active</a>
+        <a class="btn btn-sm btn-ghost border border-white/10 @(string.Equals(Model.Status, "archived", StringComparison.OrdinalIgnoreCase) ? "btn-active" : string.Empty)" href="?@chipBase&Status=archived">Archived</a>
+      </div>
+    </div>
+  </div>
 
-    @await Html.PartialAsync("_ActionRow", new Tickflo.Web.Pages.Shared.ActionRowView {
-      Actions = new List<Tickflo.Web.Pages.Shared.ActionItem> {
-        new Tickflo.Web.Pages.Shared.ActionItem { Label = "New Item", Href = Model.CanCreateInventory ? $"/workspaces/{Model.Workspace?.Slug}/inventory/0/edit" : null, Disabled = !Model.CanCreateInventory, ButtonClass = "btn btn-primary" }
-      }
-    })
+  <div class="card bg-neutral-900/60 backdrop-blur rounded-2xl border border-white/5">
+    <div class="card-body p-4">
+      <form method="get" class="flex flex-col gap-3 lg:flex-row lg:items-end">
+        <div class="flex-1">
+          <label class="label pb-1">
+            <span class="label-text text-xs opacity-70">Search</span>
+          </label>
+          <input name="Query" value="@Model.Query" placeholder="Search by name or SKU..." class="input input-sm w-full bg-neutral-900/80 border border-white/10 text-slate-100" />
+        </div>
+        <div class="w-full lg:w-48">
+          <label class="label pb-1">
+            <span class="label-text text-xs opacity-70">Status</span>
+          </label>
+          <select name="Status" class="select select-sm w-full bg-neutral-900/80 border border-white/10 text-slate-100">
+            <option value="" selected="@(string.IsNullOrEmpty(Model.Status))">All</option>
+            <option value="active" selected="@((Model.Status ?? string.Empty) == "active")">Active</option>
+            <option value="archived" selected="@((Model.Status ?? string.Empty) == "archived")">Archived</option>
+          </select>
+        </div>
+        <div class="w-full lg:w-auto">
+          <button type="submit" class="btn btn-primary btn-sm w-full lg:w-auto">
+            <i class="fa fa-filter mr-2"></i>Filter
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <div class="card bg-base-100 shadow-sm rounded-3xl">
     <div class="card-body p-0">
-      <div class="overflow-x-auto">
-        <table class="table table-zebra table-md">
-      <thead>
-        <tr>
-          <th>SKU</th>
-          <th>Name</th>
-          <th>Qty</th>
-          <th class="hidden sm:table-cell">Min</th>
-          <th class="hidden md:table-cell">Cost</th>
-          <th class="hidden md:table-cell">Price</th>
-          <th>Status</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-      @foreach (var i in Model.Items)
+      @if (Model.Items == null || !Model.Items.Any())
       {
-        var low = i.MinStock.HasValue && i.Quantity < i.MinStock.Value;
-        <tr class="@(low ? "bg-warning/10" : "")">
-          <td class="break-all">@i.Sku</td>
-          <td>@i.Name</td>
-          <td class="@(low ? "text-warning font-medium" : "")">@i.Quantity</td>
-          <td class="hidden sm:table-cell">@(i.MinStock ?? 0)</td>
-          <td class="hidden md:table-cell">$@i.Cost.ToString("0.00")</td>
-          <td class="hidden md:table-cell">@(i.Price.HasValue ? "$" + i.Price.Value.ToString("0.00") : "-")</td>
-          <td>
-            <div class="flex gap-2 items-center">
-              <span class="badge badge-soft rounded-full">@i.Status</span>
-              @if (low)
-              {
-                <span class="badge badge-warning badge-soft rounded-full">Low</span>
-              }
+        <div class="p-8 text-center">
+          <div class="alert alert-info rounded-2xl border border-white/10">
+            <div class="flex flex-col gap-1">
+              <span class="font-semibold">No inventory items found</span>
+              <span class="text-sm text-slate-200">@(string.IsNullOrEmpty(Model.Query) ? "Add your first item to start tracking inventory." : "Try adjusting your search or filter criteria.")</span>
             </div>
-          </td>
-          <td>
-            <div class="join">
-              @if (Model.CanEditInventory) {
-                <a class="btn btn-soft join-item btn-sm" href="/workspaces/@Model.Workspace?.Slug/inventory/@i.Id/edit">Edit</a>
-              } else {
-                <button class="btn btn-soft join-item btn-sm" disabled>Edit</button>
-              }
-              @if(Model.CanEditInventory)
-              {
-                if (i.Status != "archived")
-                {
-                  <form method="post" asp-page-handler="Archive" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@i.Id" class="join-item">
-                    <button type="submit" class="btn btn-soft btn-sm">Archive</button>
-                  </form>
-                }
-                else
-                {
-                  <form method="post" asp-page-handler="Restore" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@i.Id" class="join-item">
-                    <button type="submit" class="btn btn-soft btn-sm">Restore</button>
-                  </form>
-                }
-              }
-            </div>
-          </td>
-        </tr>
+          </div>
+        </div>
       }
-      </tbody>
-        </table>
-      </div>
+      else
+      {
+        <div class="overflow-x-auto">
+          <table class="table table-zebra table-md">
+            <thead>
+              <tr class="border-b border-white/10">
+                <th class="bg-neutral-900/50 text-slate-300 font-semibold">SKU</th>
+                <th class="bg-neutral-900/50 text-slate-300 font-semibold">Name</th>
+                <th class="bg-neutral-900/50 text-slate-300 font-semibold">Qty</th>
+                <th class="hidden sm:table-cell bg-neutral-900/50 text-slate-300 font-semibold">Min</th>
+                <th class="hidden md:table-cell bg-neutral-900/50 text-slate-300 font-semibold">Cost</th>
+                <th class="hidden md:table-cell bg-neutral-900/50 text-slate-300 font-semibold">Price</th>
+                <th class="bg-neutral-900/50 text-slate-300 font-semibold">Status</th>
+                <th class="bg-neutral-900/50 text-slate-300 font-semibold"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @foreach (var i in Model.Items)
+              {
+                var low = i.MinStock.HasValue && i.Quantity < i.MinStock.Value;
+                <tr class="@(low ? "bg-warning/10 hover:bg-warning/20" : "hover:bg-neutral-900/30")">
+                  <td class="break-all">@i.Sku</td>
+                  <td class="font-medium">@i.Name</td>
+                  <td class="@(low ? "text-warning font-bold" : "")">@i.Quantity</td>
+                  <td class="hidden sm:table-cell text-slate-400">@(i.MinStock ?? 0)</td>
+                  <td class="hidden md:table-cell">$@i.Cost.ToString("0.00")</td>
+                  <td class="hidden md:table-cell">@(i.Price.HasValue ? "$" + i.Price.Value.ToString("0.00") : "-")</td>
+                  <td>
+                    <div class="flex gap-2 items-center">
+                      <span class="badge badge-soft rounded-full">@i.Status</span>
+                      @if (low)
+                      {
+                        <span class="badge badge-warning badge-soft rounded-full">Low Stock</span>
+                      }
+                    </div>
+                  </td>
+                  <td>
+                    <div class="flex flex-wrap gap-2 md:join">
+                      @if (Model.CanEditInventory) {
+                        <a class="btn btn-ghost btn-sm md:join-item" href="/workspaces/@Model.Workspace?.Slug/inventory/@i.Id/edit">Edit</a>
+                      } else {
+                        <button class="btn btn-ghost btn-sm md:join-item" disabled>Edit</button>
+                      }
+                      @if(Model.CanEditInventory)
+                      {
+                        if (i.Status != "archived")
+                        {
+                          <form method="post" asp-page-handler="Archive" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@i.Id" class="md:join-item">
+                            <button type="submit" class="btn btn-ghost btn-sm">Archive</button>
+                          </form>
+                        }
+                        else
+                        {
+                          <form method="post" asp-page-handler="Restore" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@i.Id" class="md:join-item">
+                            <button type="submit" class="btn btn-ghost btn-sm">Restore</button>
+                          </form>
+                        }
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
     </div>
   </div>
-  </div>
+</div>
   </section>
 </div>
  

@@ -24,6 +24,7 @@ using AuthenticationService = Tickflo.Core.Services.Authentication.Authenticatio
 using IAuthenticationService = Tickflo.Core.Services.Authentication.IAuthenticationService;
 using Amazon.S3;
 using Amazon;
+using Tickflo.Web.Middleware;
 
 DotNetEnv.Env.Load();
 
@@ -219,12 +220,14 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
-
 }
 else
 {
     app.UseMiniProfiler();
 }
+
+// Add global exception handler middleware
+app.UseGlobalExceptionHandler();
 
 app.UseStatusCodePages(context =>
 {
@@ -232,6 +235,10 @@ app.UseStatusCodePages(context =>
     {
         var path = context.HttpContext.Request.Path;
         context.HttpContext.Response.Redirect($"/login{(path != "/" ? $"?returnUrl={HttpUtility.UrlEncode(path)}" : "")}");
+    }
+    else if (context.HttpContext.Response.StatusCode >= 400)
+    {
+        context.HttpContext.Response.Redirect($"/StatusCode?code={context.HttpContext.Response.StatusCode}");
     }
     return Task.CompletedTask;
 });
@@ -241,6 +248,15 @@ app.UseStaticFiles();
 
 app.UseRouting();
 app.UseSession();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapRazorPages();
+app.MapControllers();
+app.MapHub<Tickflo.Web.Realtime.TicketsHub>("/hubs/tickets");
+
+app.Run();
 
 app.UseAuthentication();
 app.UseAuthorization();

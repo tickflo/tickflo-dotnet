@@ -47,7 +47,9 @@
                                     </td>
                                     <td class="text-right">
                                         <form method="post" asp-page-handler="Remove" asp-route-roleId="@role.Id" class="inline">
-                                            <button type="submit" class="btn btn-error btn-xs" onclick="return confirm('Remove role @role.Name?');">Remove</button>
+                                            <button type="submit" class="btn btn-error btn-xs" onclick="return confirm('Remove role @role.Name?');">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
                                         </form>
                                     </td>
                                 </tr>
