@@ -31,6 +31,7 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<UserNotificationPreference> UserNotificationPreferences => Set<UserNotificationPreference>();
     public DbSet<FileStorage> FileStorages => Set<FileStorage>();
+    public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
