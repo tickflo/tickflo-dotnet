@@ -18,7 +18,7 @@ public class EmailTemplateServiceTests
     public async Task RenderTemplateAsync_ReplacesVariables()
     {
         var repo = new Mock<IEmailTemplateRepository>();
-        repo.Setup(r => r.FindByTypeAsync(1, null, default))
+        repo.Setup(r => r.FindByTypeAsync(EmailTemplateType.EmailConfirmationThankYou, null, default))
             .ReturnsAsync(new EmailTemplate
             {
                 Id = 1,
@@ -35,7 +35,7 @@ public class EmailTemplateServiceTests
             { "EMAIL", "john@example.com" }
         };
 
-        var (subject, body) = await svc.RenderTemplateAsync(1, variables);
+        var (subject, body) = await svc.RenderTemplateAsync(EmailTemplateType.EmailConfirmationThankYou, variables);
 
         Assert.Equal("Hello John", subject);
         Assert.Equal("Welcome John, your email is john@example.com", body);
@@ -45,21 +45,21 @@ public class EmailTemplateServiceTests
     public async Task RenderTemplateAsync_ThrowsWhenTemplateNotFound()
     {
         var repo = new Mock<IEmailTemplateRepository>();
-        repo.Setup(r => r.FindByTypeAsync(99, null, default))
+        repo.Setup(r => r.FindByTypeAsync(EmailTemplateType.ForgotPassword, null, default))
             .ReturnsAsync((EmailTemplate)null!);
 
         var svc = CreateService(repo.Object);
         var variables = new Dictionary<string, string>();
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => svc.RenderTemplateAsync(99, variables));
+            () => svc.RenderTemplateAsync(EmailTemplateType.ForgotPassword, variables));
     }
 
     [Fact]
     public async Task RenderTemplateAsync_HandlesEmptyVariables()
     {
         var repo = new Mock<IEmailTemplateRepository>();
-        repo.Setup(r => r.FindByTypeAsync(1, null, default))
+        repo.Setup(r => r.FindByTypeAsync(EmailTemplateType.EmailConfirmationThankYou, null, default))
             .ReturnsAsync(new EmailTemplate
             {
                 Id = 1,
@@ -72,7 +72,7 @@ public class EmailTemplateServiceTests
         var svc = CreateService(repo.Object);
         var variables = new Dictionary<string, string>();
 
-        var (subject, body) = await svc.RenderTemplateAsync(1, variables);
+        var (subject, body) = await svc.RenderTemplateAsync(EmailTemplateType.EmailConfirmationThankYou, variables);
 
         Assert.Equal("Static Subject", subject);
         Assert.Equal("Static body with no variables", body);
@@ -82,7 +82,7 @@ public class EmailTemplateServiceTests
     public async Task RenderTemplateAsync_HandlesUnusedVariables()
     {
         var repo = new Mock<IEmailTemplateRepository>();
-        repo.Setup(r => r.FindByTypeAsync(1, null, default))
+        repo.Setup(r => r.FindByTypeAsync(EmailTemplateType.EmailConfirmationThankYou, null, default))
             .ReturnsAsync(new EmailTemplate
             {
                 Id = 1,
@@ -99,7 +99,7 @@ public class EmailTemplateServiceTests
             { "UNUSED", "Value" }
         };
 
-        var (subject, body) = await svc.RenderTemplateAsync(1, variables);
+        var (subject, body) = await svc.RenderTemplateAsync(EmailTemplateType.EmailConfirmationThankYou, variables);
 
         Assert.Equal("Hello John", subject);
         Assert.Equal("Body text", body);
@@ -109,7 +109,7 @@ public class EmailTemplateServiceTests
     public async Task RenderTemplateAsync_LeavesUnknownPlaceholders()
     {
         var repo = new Mock<IEmailTemplateRepository>();
-        repo.Setup(r => r.FindByTypeAsync(1, null, default))
+        repo.Setup(r => r.FindByTypeAsync(EmailTemplateType.EmailConfirmationThankYou, null, default))
             .ReturnsAsync(new EmailTemplate
             {
                 Id = 1,
@@ -125,7 +125,7 @@ public class EmailTemplateServiceTests
             { "NAME", "John" }
         };
 
-        var (subject, body) = await svc.RenderTemplateAsync(1, variables);
+        var (subject, body) = await svc.RenderTemplateAsync(EmailTemplateType.EmailConfirmationThankYou, variables);
 
         Assert.Equal("Hello John", subject);
         Assert.Equal("Welcome John, code: {{CODE}}", body);
@@ -135,7 +135,7 @@ public class EmailTemplateServiceTests
     public async Task RenderTemplateAsync_WorkspaceSpecificTemplate()
     {
         var repo = new Mock<IEmailTemplateRepository>();
-        repo.Setup(r => r.FindByTypeAsync(1, 5, default))
+        repo.Setup(r => r.FindByTypeAsync(EmailTemplateType.EmailConfirmationThankYou, 5, default))
             .ReturnsAsync(new EmailTemplate
             {
                 Id = 1,
@@ -148,7 +148,7 @@ public class EmailTemplateServiceTests
         var svc = CreateService(repo.Object);
         var variables = new Dictionary<string, string>();
 
-        var (subject, body) = await svc.RenderTemplateAsync(1, variables, workspaceId: 5);
+        var (subject, body) = await svc.RenderTemplateAsync(EmailTemplateType.EmailConfirmationThankYou, variables, workspaceId: 5);
 
         Assert.Equal("Workspace Custom", subject);
         Assert.Equal("Custom template for workspace", body);
@@ -158,7 +158,7 @@ public class EmailTemplateServiceTests
     public async Task RenderTemplateAsync_ReplacesMultipleOccurrences()
     {
         var repo = new Mock<IEmailTemplateRepository>();
-        repo.Setup(r => r.FindByTypeAsync(1, null, default))
+        repo.Setup(r => r.FindByTypeAsync(EmailTemplateType.EmailConfirmationThankYou, null, default))
             .ReturnsAsync(new EmailTemplate
             {
                 Id = 1,
@@ -174,7 +174,7 @@ public class EmailTemplateServiceTests
             { "NAME", "John" }
         };
 
-        var (subject, body) = await svc.RenderTemplateAsync(1, variables);
+        var (subject, body) = await svc.RenderTemplateAsync(EmailTemplateType.EmailConfirmationThankYou, variables);
 
         Assert.Equal("John - John", subject);
         Assert.Equal("Hello John, welcome John!", body);

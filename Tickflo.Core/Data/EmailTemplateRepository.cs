@@ -5,13 +5,13 @@ namespace Tickflo.Core.Data;
 
 public class EmailTemplateRepository(TickfloDbContext db) : IEmailTemplateRepository
 {
-    public async Task<EmailTemplate?> FindByTypeAsync(int templateTypeId, int? workspaceId = null, CancellationToken ct = default)
+    public async Task<EmailTemplate?> FindByTypeAsync(EmailTemplateType templateType, int? workspaceId = null, CancellationToken ct = default)
     {
         // Get the template with the highest version for the given template type
         // workspaceId parameter is kept for interface compatibility but no longer used
         // (templates are now global with versioning)
         return await db.EmailTemplates
-            .Where(t => t.TemplateTypeId == templateTypeId)
+            .Where(t => t.TemplateTypeId == (int)templateType)
             .OrderByDescending(t => t.Version)
             .FirstOrDefaultAsync(ct);
     }

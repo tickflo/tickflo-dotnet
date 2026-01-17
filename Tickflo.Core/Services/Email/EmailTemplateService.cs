@@ -17,11 +17,11 @@ public class EmailTemplateService : IEmailTemplateService
     }
 
     public async Task<(string subject, string body)> RenderTemplateAsync(
-        int templateTypeId, 
+        EmailTemplateType templateType, 
         Dictionary<string, string> variables, 
         int? workspaceId = null)
     {
-        var template = await GetTemplateOrThrowAsync(templateTypeId, workspaceId);
+        var template = await GetTemplateOrThrowAsync(templateType, workspaceId);
         
         var subject = ReplaceVariables(template.Subject, variables);
         var body = ReplaceVariables(template.Body, variables);
@@ -29,13 +29,13 @@ public class EmailTemplateService : IEmailTemplateService
         return (subject, body);
     }
 
-    private async Task<EmailTemplate> GetTemplateOrThrowAsync(int templateTypeId, int? workspaceId)
+    private async Task<EmailTemplate> GetTemplateOrThrowAsync(EmailTemplateType templateType, int? workspaceId)
     {
-        var template = await _templateRepo.FindByTypeAsync(templateTypeId, workspaceId);
+        var template = await _templateRepo.FindByTypeAsync(templateType, workspaceId);
         
         if (template == null)
         {
-            throw new InvalidOperationException(string.Format(TemplateNotFoundErrorFormat, templateTypeId));
+            throw new InvalidOperationException(string.Format(TemplateNotFoundErrorFormat, (int)templateType));
         }
         
         return template;
