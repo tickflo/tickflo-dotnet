@@ -76,7 +76,7 @@
 
 <body data-theme="@theme" class="shell-outer">
     <mini-profiler />
-    @if (Context.Request.Path.Value?.ToLower() == "/login")
+    @if (Context.Request.Path.Value?.ToLower() == "/login" || Context.Request.Path.Value?.ToLower() == "/signup")
     {
         <header class="navbar glass-panel shadow-xl rounded-3xl sticky top-4 max-w-6xl mx-auto px-4 md:px-6">
             <div class="w-full flex items-center gap-4">

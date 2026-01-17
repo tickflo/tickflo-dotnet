@@ -36,7 +36,7 @@ public class ReportRunsBackfillModel : WorkspacePageModel
         Workspace = ws;
         var uid = TryGetUserId(out var idVal) ? idVal : 0;
         if (uid == 0) return Forbid();
-        var data = await _backfillViewService.BuildAsync(ws.Id, uid);
+        var data = await _backfillViewService.BuildAsync(ws!.Id, uid);
         if (EnsurePermissionOrForbid(data.CanEditReports) is IActionResult permCheck) return permCheck;
         Message = null;
         Success = false;
@@ -52,7 +52,7 @@ public class ReportRunsBackfillModel : WorkspacePageModel
         Workspace = ws;
         var uid = TryGetUserId(out var idVal) ? idVal : 0;
         if (uid == 0) return Forbid();
-        var data = await _backfillViewService.BuildAsync(ws.Id, uid);
+        var data = await _backfillViewService.BuildAsync(ws!.Id, uid);
         if (EnsurePermissionOrForbid(data.CanEditReports) is IActionResult permCheck) return permCheck;
         return NotFound();
     }

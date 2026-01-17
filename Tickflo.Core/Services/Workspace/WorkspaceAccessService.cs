@@ -11,6 +11,15 @@ namespace Tickflo.Core.Services.Workspace;
 /// </summary>
 public class WorkspaceAccessService : IWorkspaceAccessService
 {
+    #region Constants
+    private const string ViewAction = "view";
+    private const string CreateAction = "create";
+    private const string EditAction = "edit";
+    private const string AllTicketsScope = "all";
+    private const string UserNotAdminErrorFormat = "User {0} is not an admin of workspace {1}.";
+    private const string UserNoAccessErrorFormat = "User {0} does not have access to workspace {1}.";
+    #endregion
+
     private readonly IUserWorkspaceRepository _userWorkspaceRepository;
     private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepository;
     private readonly IRolePermissionRepository _rolePermissionRepository;
@@ -44,7 +53,6 @@ public class WorkspaceAccessService : IWorkspaceAccessService
 
     public async Task<bool> CanUserPerformActionAsync(int workspaceId, int userId, string resourceType, string action)
     {
-        // Admins can perform any action
         if (await UserIsWorkspaceAdminAsync(userId, workspaceId))
             return true;
 
@@ -52,19 +60,13 @@ public class WorkspaceAccessService : IWorkspaceAccessService
         if (!permissions.TryGetValue(resourceType, out var permission))
             return false;
 
-        return action switch
-        {
-            "view" => permission.CanView,
-            "create" => permission.CanCreate,
-            "edit" => permission.CanEdit,
-            _ => false
-        };
+        return IsActionAllowed(permission, action);
     }
 
     public async Task<string> GetTicketViewScopeAsync(int workspaceId, int userId, bool isAdmin)
     {
         if (isAdmin)
-            return "all";
+            return AllTicketsScope;
 
         return await _rolePermissionRepository.GetTicketViewScopeForUserAsync(workspaceId, userId, isAdmin);
     }
@@ -74,7 +76,7 @@ public class WorkspaceAccessService : IWorkspaceAccessService
         var isAdmin = await UserIsWorkspaceAdminAsync(userId, workspaceId);
         if (!isAdmin)
         {
-            throw new UnauthorizedAccessException($"User {userId} is not an admin of workspace {workspaceId}.");
+            throw new UnauthorizedAccessException(string.Format(UserNotAdminErrorFormat, userId, workspaceId));
         }
     }
 
@@ -83,8 +85,19 @@ public class WorkspaceAccessService : IWorkspaceAccessService
         var hasAccess = await UserHasAccessAsync(userId, workspaceId);
         if (!hasAccess)
         {
-            throw new UnauthorizedAccessException($"User {userId} does not have access to workspace {workspaceId}.");
+            throw new UnauthorizedAccessException(string.Format(UserNoAccessErrorFormat, userId, workspaceId));
         }
+    }
+
+    private bool IsActionAllowed(EffectiveSectionPermission permission, string action)
+    {
+        return action switch
+        {
+            ViewAction => permission.CanView,
+            CreateAction => permission.CanCreate,
+            EditAction => permission.CanEdit,
+            _ => false
+        };
     }
 }
 

@@ -34,4 +34,50 @@ public class TicketUpdateServiceTests
 
         history.Verify(h => h.CreateAsync(It.Is<TicketHistory>(th => th.Action == "priority_changed")), Times.Once);
     }
+
+    [Fact]
+    public async Task UpdatePriorityAsync_Throws_When_Priority_Not_Found()
+    {
+        var ticketRepo = new Mock<ITicketRepository>();
+        ticketRepo.Setup(r => r.FindAsync(1, 3, CancellationToken.None)).ReturnsAsync(new Ticket { Id = 3, StatusId = 1, PriorityId = 1 });
+        var history = new Mock<ITicketHistoryRepository>();
+        var priorityRepo = new Mock<ITicketPriorityRepository>();
+        priorityRepo.Setup(r => r.FindAsync(1, "InvalidPriority")).ReturnsAsync((TicketPriority?)null);
+        var svc = new TicketUpdateService(ticketRepo.Object, history.Object, Mock.Of<ITicketStatusRepository>(), priorityRepo.Object);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.UpdatePriorityAsync(1, 3, "InvalidPriority", "test", 7));
+    }
+
+    [Fact]
+    public async Task UpdateStatusAsync_Succeeds_When_Status_Found()
+    {
+        var ticketRepo = new Mock<ITicketRepository>();
+        var ticket = new Ticket { Id = 2, StatusId = 1 };
+        ticketRepo.Setup(r => r.FindAsync(1, 2, CancellationToken.None)).ReturnsAsync(ticket);
+        var statusRepo = new Mock<ITicketStatusRepository>();
+        statusRepo.Setup(r => r.FindByNameAsync(1, "Resolved")).ReturnsAsync(new TicketStatus { Id = 3, Name = "Resolved", IsClosedState = true });
+        var history = new Mock<ITicketHistoryRepository>();
+        var svc = new TicketUpdateService(ticketRepo.Object, history.Object, statusRepo.Object, Mock.Of<ITicketPriorityRepository>());
+
+        var result = await svc.UpdateStatusAsync(1, 2, "Resolved", "fixed", 7);
+
+        Assert.Equal(3, result.StatusId);
+        history.Verify(h => h.CreateAsync(It.IsAny<TicketHistory>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdatePriorityAsync_Updates_Ticket_Priority()
+    {
+        var ticketRepo = new Mock<ITicketRepository>();
+        var ticket = new Ticket { Id = 3, StatusId = 1, PriorityId = 1 };
+        ticketRepo.Setup(r => r.FindAsync(1, 3, CancellationToken.None)).ReturnsAsync(ticket);
+        var history = new Mock<ITicketHistoryRepository>();
+        var priorityRepo = new Mock<ITicketPriorityRepository>();
+        priorityRepo.Setup(r => r.FindAsync(1, "High")).ReturnsAsync(new TicketPriority { Id = 2, Name = "High" });
+        var svc = new TicketUpdateService(ticketRepo.Object, history.Object, Mock.Of<ITicketStatusRepository>(), priorityRepo.Object);
+
+        var result = await svc.UpdatePriorityAsync(1, 3, "High", "important", 7);
+
+        Assert.Equal(2, result.PriorityId);
+    }
 }

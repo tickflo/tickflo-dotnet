@@ -46,7 +46,7 @@ public class TeamsModel : WorkspacePageModel
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
         Workspace = workspace;
 
-        var viewData = await _viewService.BuildAsync(Workspace.Id, uid);
+        var viewData = await _viewService.BuildAsync(Workspace!.Id, uid);
         
         if (EnsurePermissionOrForbid(viewData.CanViewTeams) is IActionResult permCheck) return permCheck;
 

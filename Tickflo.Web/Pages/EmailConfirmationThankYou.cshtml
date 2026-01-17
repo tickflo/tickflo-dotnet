@@ -1,0 +1,7 @@
+@page "/email-confirmation/thank-you"
+@model Tickflo.Web.Pages.EmailConfirmationThankYouModel
+@{
+    ViewData["Title"] = "Email Confirmed";
+}
+
+@Html.Raw(Model.TemplateContent)

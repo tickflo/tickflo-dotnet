@@ -36,11 +36,13 @@ public class WorkspaceUsersViewService : IWorkspaceUsersViewService
             var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, currentUserId);
             if (eff.TryGetValue("users", out var up))
             {
+                data.CanViewUsers = up.CanView || data.IsWorkspaceAdmin;
                 data.CanCreateUsers = up.CanCreate || data.IsWorkspaceAdmin;
                 data.CanEditUsers = up.CanEdit || data.IsWorkspaceAdmin;
             }
             else
             {
+                data.CanViewUsers = data.IsWorkspaceAdmin;
                 data.CanCreateUsers = data.IsWorkspaceAdmin;
                 data.CanEditUsers = data.IsWorkspaceAdmin;
             }
@@ -59,6 +61,24 @@ public class WorkspaceUsersViewService : IWorkspaceUsersViewService
                 Email = u.Email,
                 CreatedAt = m.CreatedAt,
                 Roles = roles
+            });
+        }
+
+        // Build accepted users
+        foreach (var m in memberships.Where(m => m.Accepted))
+        {
+            var u = await _userRepo.FindByIdAsync(m.UserId);
+            if (u == null) continue;
+            var roles = await _userWorkspaceRoleRepo.GetRoleNamesAsync(u.Id, workspaceId);
+            var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(u.Id, workspaceId);
+            data.AcceptedUsers.Add(new AcceptedUserView
+            {
+                UserId = u.Id,
+                Email = u.Email,
+                Name = u.Name ?? string.Empty,
+                JoinedAt = m.UpdatedAt ?? m.CreatedAt,
+                Roles = roles,
+                IsAdmin = isAdmin
             });
         }
 

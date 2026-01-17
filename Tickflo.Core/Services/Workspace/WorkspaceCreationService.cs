@@ -8,6 +8,18 @@ namespace Tickflo.Core.Services.Workspace;
 /// </summary>
 public class WorkspaceCreationService : IWorkspaceCreationService
 {
+    private const int MaxSlugLength = 30;
+    private const string ErrorWorkspaceNameRequired = "Workspace name is required";
+    private const string ErrorSlugInUse = "Slug '{0}' is already in use";
+    
+    private static readonly (string Name, bool IsAdmin)[] DefaultRoles = new[]
+    {
+        ("Admin", true),
+        ("Manager", false),
+        ("Member", false),
+        ("Viewer", false)
+    };
+
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IRoleRepository _roleRepo;
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
@@ -29,18 +41,11 @@ public class WorkspaceCreationService : IWorkspaceCreationService
     /// Creates a new workspace and initializes default roles.
     /// </summary>
     public async Task<Entities.Workspace> CreateWorkspaceAsync(
-        WorkspaceCreationRequest request, 
+        WorkspaceCreationRequest request,
         int createdByUserId)
     {
-        // Business rule: Workspace name is required
-        if (string.IsNullOrWhiteSpace(request.Name))
-            throw new InvalidOperationException("Workspace name is required");
-
-        // Business rule: Slug must be unique and valid
-        var slug = GenerateSlug(request.Name);
-        var existingSlug = await _workspaceRepo.FindBySlugAsync(slug);
-        if (existingSlug != null)
-            throw new InvalidOperationException($"Slug '{slug}' is already in use");
+        ValidateWorkspaceRequest(request);
+        var slug = await GenerateAndValidateSlugAsync(request.Name);
 
         var workspace = new Entities.Workspace
         {
@@ -51,40 +56,50 @@ public class WorkspaceCreationService : IWorkspaceCreationService
         };
 
         await _workspaceRepo.AddAsync(workspace);
-
-        // Business rule: Create default roles
         await InitializeDefaultRolesAsync(workspace.Id, createdByUserId);
-
-        // Business rule: Add creator as workspace member with admin role
-        var adminRole = await _roleRepo.FindByNameAsync(workspace.Id, "Admin");
-        if (adminRole != null)
-        {
-            await _userWorkspaceRepo.AddAsync(new UserWorkspace
-            {
-                UserId = createdByUserId,
-                WorkspaceId = workspace.Id,
-                Accepted = true,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = createdByUserId
-            });
-
-            await _userRoleRepo.AddAsync(createdByUserId, workspace.Id, adminRole.Id, createdByUserId);
-        }
+        await AddCreatorAsAdminAsync(workspace.Id, createdByUserId);
 
         return workspace;
     }
 
+    private static void ValidateWorkspaceRequest(WorkspaceCreationRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new InvalidOperationException(ErrorWorkspaceNameRequired);
+    }
+
+    private async Task<string> GenerateAndValidateSlugAsync(string name)
+    {
+        var slug = GenerateSlug(name);
+        var existingSlug = await _workspaceRepo.FindBySlugAsync(slug);
+        
+        if (existingSlug != null)
+            throw new InvalidOperationException(string.Format(ErrorSlugInUse, slug));
+
+        return slug;
+    }
+
+    private async Task AddCreatorAsAdminAsync(int workspaceId, int createdByUserId)
+    {
+        var adminRole = await _roleRepo.FindByNameAsync(workspaceId, "Admin");
+        if (adminRole == null)
+            return;
+
+        await _userWorkspaceRepo.AddAsync(new UserWorkspace
+        {
+            UserId = createdByUserId,
+            WorkspaceId = workspaceId,
+            Accepted = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = createdByUserId
+        });
+
+        await _userRoleRepo.AddAsync(createdByUserId, workspaceId, adminRole.Id, createdByUserId);
+    }
+
     private async Task InitializeDefaultRolesAsync(int workspaceId, int createdByUserId)
     {
-        var defaultRoles = new[]
-        {
-            ("Admin", true),
-            ("Manager", false),
-            ("Member", false),
-            ("Viewer", false)
-        };
-
-        foreach (var (name, isAdmin) in defaultRoles)
+        foreach (var (name, isAdmin) in DefaultRoles)
         {
             var existingRole = await _roleRepo.FindByNameAsync(workspaceId, name);
             if (existingRole == null)
@@ -96,15 +111,14 @@ public class WorkspaceCreationService : IWorkspaceCreationService
 
     private static string GenerateSlug(string name)
     {
-        // Convert to lowercase and replace spaces with hyphens
+        var normalizedName = name.ToLowerInvariant().Trim();
         var slug = System.Text.RegularExpressions.Regex.Replace(
-            name.ToLowerInvariant().Trim(),
+            normalizedName,
             @"[^\w\-]",
             string.Empty)
             .Replace(" ", "-");
 
-        // Trim to 30 characters based on the processed slug length to avoid out-of-range errors when characters are removed.
-        return slug.Substring(0, Math.Min(30, slug.Length));
+        return slug.Substring(0, Math.Min(MaxSlugLength, slug.Length));
     }
 }
 

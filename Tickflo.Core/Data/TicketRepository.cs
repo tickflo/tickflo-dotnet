@@ -24,40 +24,75 @@ public class TicketRepository(TickfloDbContext db) : ITicketRepository
     {
         db.Tickets.Add(ticket);
         await db.SaveChangesAsync(ct);
-        // Set TicketId for new TicketInventories and save
-        if (ticket.TicketInventories != null && ticket.TicketInventories.Count > 0)
-        {
-            foreach (var ti in ticket.TicketInventories)
-            {
-                ti.TicketId = ticket.Id;
-                db.TicketInventories.Add(ti);
-            }
-            await db.SaveChangesAsync(ct);
-        }
+        
+        await AddTicketInventoriesAsync(ticket, ct);
+        
         return ticket;
+    }
+
+    private async Task AddTicketInventoriesAsync(Ticket ticket, CancellationToken ct)
+    {
+        if (ticket.TicketInventories == null || ticket.TicketInventories.Count == 0)
+            return;
+
+        foreach (var inventory in ticket.TicketInventories)
+        {
+            inventory.TicketId = ticket.Id;
+            db.TicketInventories.Add(inventory);
+        }
+        
+        await db.SaveChangesAsync(ct);
     }
 
     public async Task<Ticket> UpdateAsync(Ticket ticket, CancellationToken ct = default)
     {
         db.Tickets.Update(ticket);
-        // Remove TicketInventories that are no longer present
-        var existing = db.TicketInventories.Where(ti => ti.TicketId == ticket.Id).ToList();
-        var updatedIds = ticket.TicketInventories.Select(ti => ti.Id).ToHashSet();
-        foreach (var old in existing)
-        {
-            if (!updatedIds.Contains(old.Id))
-                db.TicketInventories.Remove(old);
-        }
-        // Add or update current TicketInventories
-        foreach (var ti in ticket.TicketInventories)
-        {
-            ti.TicketId = ticket.Id;
-            if (ti.Id == 0)
-                db.TicketInventories.Add(ti);
-            else
-                db.TicketInventories.Update(ti);
-        }
+        await SyncTicketInventoriesAsync(ticket, ct);
         await db.SaveChangesAsync(ct);
+        
         return ticket;
+    }
+
+    private async Task SyncTicketInventoriesAsync(Ticket ticket, CancellationToken ct)
+    {
+        await RemoveDeletedInventoriesAsync(ticket);
+        await AddOrUpdateInventoriesAsync(ticket);
+    }
+
+    private async Task RemoveDeletedInventoriesAsync(Ticket ticket)
+    {
+        var existingInventories = db.TicketInventories
+            .Where(ti => ti.TicketId == ticket.Id)
+            .ToList();
+        
+        var currentInventoryIds = ticket.TicketInventories
+            .Select(ti => ti.Id)
+            .ToHashSet();
+
+        var inventoriesToRemove = existingInventories
+            .Where(existing => !currentInventoryIds.Contains(existing.Id));
+
+        foreach (var inventory in inventoriesToRemove)
+        {
+            db.TicketInventories.Remove(inventory);
+        }
+    }
+
+    private async Task AddOrUpdateInventoriesAsync(Ticket ticket)
+    {
+        foreach (var inventory in ticket.TicketInventories)
+        {
+            inventory.TicketId = ticket.Id;
+            
+            if (IsNewInventory(inventory))
+                db.TicketInventories.Add(inventory);
+            else
+                db.TicketInventories.Update(inventory);
+        }
+    }
+
+    private static bool IsNewInventory(TicketInventory inventory)
+    {
+        return inventory.Id == 0;
     }
 }
