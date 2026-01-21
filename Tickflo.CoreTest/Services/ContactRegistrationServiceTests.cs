@@ -8,26 +8,195 @@ namespace Tickflo.CoreTest.Services;
 
 public class ContactRegistrationServiceTests
 {
-    [Fact]
-    public async Task RegisterContactAsync_Throws_When_DuplicateName()
+    private static IContactRegistrationService CreateService(IContactRepository? repo = null)
     {
-        var repo = new Mock<IContactRepository>();
-        repo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(new List<Contact> { new() { Name = "Existing" } });
-        var svc = new ContactRegistrationService(repo.Object);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.RegisterContactAsync(1, new ContactRegistrationRequest { Name = "Existing" }, 9));
+        repo ??= Mock.Of<IContactRepository>();
+        return new ContactRegistrationService(repo);
     }
 
     [Fact]
-    public async Task UpdateContactInformationAsync_Updates_Email_When_Valid()
+    public async Task RegisterContactAsync_CreatesContact()
     {
         var repo = new Mock<IContactRepository>();
-        repo.Setup(r => r.FindAsync(1, 2, CancellationToken.None)).ReturnsAsync(new Contact { Id = 2, Name = "C", Email = "old@test.com" });
-        repo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(new List<Contact> { new() { Id = 2, Name = "C" } });
+        repo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(new List<Contact>());
 
-        var svc = new ContactRegistrationService(repo.Object);
+        var svc = CreateService(repo.Object);
+        var request = new ContactRegistrationRequest
+        {
+            Name = "John Doe",
+            Email = "john@example.com",
+            Phone = "555-0100",
+            Company = "Acme Corp"
+        };
+
+        var result = await svc.RegisterContactAsync(1, request, 9);
+
+        Assert.Equal("John Doe", result.Name);
+        Assert.Equal("john@example.com", result.Email);
+        Assert.Equal("555-0100", result.Phone);
+        Assert.Equal("Acme Corp", result.Company);
+        repo.Verify(r => r.CreateAsync(It.IsAny<Contact>(), CancellationToken.None), Times.Once);
+    }
+
+    [Fact]
+    public async Task RegisterContactAsync_ThrowsWhenNameEmpty()
+    {
+        var svc = CreateService();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => svc.RegisterContactAsync(1, new ContactRegistrationRequest { Name = "" }, 9));
+    }
+
+    [Fact]
+    public async Task RegisterContactAsync_ThrowsWhenDuplicateName()
+    {
+        var repo = new Mock<IContactRepository>();
+        repo.Setup(r => r.ListAsync(1, CancellationToken.None))
+            .ReturnsAsync(new List<Contact> { new() { Name = "Existing" } });
+
+        var svc = CreateService(repo.Object);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => svc.RegisterContactAsync(1, new ContactRegistrationRequest { Name = "Existing" }, 9));
+    }
+
+    [Fact]
+    public async Task RegisterContactAsync_ThrowsWhenInvalidEmail()
+    {
+        var repo = new Mock<IContactRepository>();
+        repo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(new List<Contact>());
+
+        var svc = CreateService(repo.Object);
+        var request = new ContactRegistrationRequest
+        {
+            Name = "John",
+            Email = "not-an-email"
+        };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => svc.RegisterContactAsync(1, request, 9));
+    }
+
+    [Fact]
+    public async Task RegisterContactAsync_AllowsEmptyEmail()
+    {
+        var repo = new Mock<IContactRepository>();
+        repo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(new List<Contact>());
+
+        var svc = CreateService(repo.Object);
+        var request = new ContactRegistrationRequest { Name = "John" };
+
+        var result = await svc.RegisterContactAsync(1, request, 9);
+
+        Assert.Equal("John", result.Name);
+        Assert.Equal(string.Empty, result.Email);
+    }
+
+    [Fact]
+    public async Task RegisterContactAsync_TrimsWhitespace()
+    {
+        var repo = new Mock<IContactRepository>();
+        repo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(new List<Contact>());
+
+        var svc = CreateService(repo.Object);
+        var request = new ContactRegistrationRequest
+        {
+            Name = "  John Doe  ",
+            Email = "  john@example.com  ",
+            Phone = "  555-0100  "
+        };
+
+        var result = await svc.RegisterContactAsync(1, request, 9);
+
+        Assert.Equal("John Doe", result.Name);
+        Assert.Equal("john@example.com", result.Email);
+        Assert.Equal("555-0100", result.Phone);
+    }
+
+    [Fact]
+    public async Task UpdateContactInformationAsync_UpdatesEmail()
+    {
+        var repo = new Mock<IContactRepository>();
+        repo.Setup(r => r.FindAsync(1, 2, CancellationToken.None))
+            .ReturnsAsync(new Contact { Id = 2, Name = "C", Email = "old@test.com" });
+        repo.Setup(r => r.ListAsync(1, CancellationToken.None))
+            .ReturnsAsync(new List<Contact> { new() { Id = 2, Name = "C" } });
+
+        var svc = CreateService(repo.Object);
         var updated = await svc.UpdateContactInformationAsync(1, 2, new ContactUpdateRequest { Email = "new@test.com" }, 5);
 
         Assert.Equal("new@test.com", updated.Email);
         repo.Verify(r => r.UpdateAsync(It.Is<Contact>(c => c.Email == "new@test.com"), CancellationToken.None), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateContactInformationAsync_ThrowsWhenNotFound()
+    {
+        var repo = new Mock<IContactRepository>();
+        repo.Setup(r => r.FindAsync(1, 99, CancellationToken.None))
+            .ReturnsAsync((Contact)null!);
+
+        var svc = CreateService(repo.Object);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => svc.UpdateContactInformationAsync(1, 99, new ContactUpdateRequest(), 5));
+    }
+
+    [Fact]
+    public async Task UpdateContactInformationAsync_ThrowsWhenInvalidEmail()
+    {
+        var repo = new Mock<IContactRepository>();
+        repo.Setup(r => r.FindAsync(1, 2, CancellationToken.None))
+            .ReturnsAsync(new Contact { Id = 2, Name = "C" });
+
+        var svc = CreateService(repo.Object);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => svc.UpdateContactInformationAsync(1, 2, new ContactUpdateRequest { Email = "invalid" }, 5));
+    }
+
+    [Fact]
+    public async Task UpdateContactInformationAsync_UpdatesName()
+    {
+        var repo = new Mock<IContactRepository>();
+        repo.Setup(r => r.FindAsync(1, 2, CancellationToken.None))
+            .ReturnsAsync(new Contact { Id = 2, Name = "Old Name" });
+        repo.Setup(r => r.ListAsync(1, CancellationToken.None))
+            .ReturnsAsync(new List<Contact> { new() { Id = 2, Name = "Old Name" } });
+
+        var svc = CreateService(repo.Object);
+        var updated = await svc.UpdateContactInformationAsync(1, 2, new ContactUpdateRequest { Name = "New Name" }, 5);
+
+        Assert.Equal("New Name", updated.Name);
+    }
+
+    [Fact]
+    public async Task UpdateContactInformationAsync_ThrowsWhenDuplicateName()
+    {
+        var repo = new Mock<IContactRepository>();
+        repo.Setup(r => r.FindAsync(1, 2, CancellationToken.None))
+            .ReturnsAsync(new Contact { Id = 2, Name = "Contact A" });
+        repo.Setup(r => r.ListAsync(1, CancellationToken.None))
+            .ReturnsAsync(new List<Contact>
+            {
+                new() { Id = 1, Name = "Existing" },
+                new() { Id = 2, Name = "Contact A" }
+            });
+
+        var svc = CreateService(repo.Object);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => svc.UpdateContactInformationAsync(1, 2, new ContactUpdateRequest { Name = "Existing" }, 5));
+    }
+
+    [Fact]
+    public async Task RemoveContactAsync_DeletesContact()
+    {
+        var repo = new Mock<IContactRepository>();
+        var svc = CreateService(repo.Object);
+
+        await svc.RemoveContactAsync(1, 5);
+
+        repo.Verify(r => r.DeleteAsync(1, 5, CancellationToken.None), Times.Once);
     }
 }

@@ -204,7 +204,7 @@
                     <!-- Action Buttons -->
                     <div class="flex items-center justify-between pt-2 border-t border-white/10">
                         <label class="label cursor-pointer gap-2">
-                            <input type="checkbox" name="Mine" value="true" class="checkbox checkbox-sm checkbox-primary" @(Model.Mine ? "checked" : "") />
+                            <input type="checkbox" name="Mine" value="true" class="toggle toggle-xs toggle-primary" @(Model.Mine ? "checked" : "") />
                             <span class="label-text">Show only my tickets</span>
                             <span class="badge badge-soft badge-sm rounded-full">@Model.MyCount</span>
                         </label>

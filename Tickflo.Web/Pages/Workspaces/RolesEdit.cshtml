@@ -20,7 +20,7 @@
                     </div>
                     <div class="form-control">
                         <label class="label cursor-pointer justify-start gap-3">
-                            <input type="checkbox" asp-for="Admin" class="toggle toggle-primary" />
+                            <input type="checkbox" asp-for="Admin" class="toggle toggle-xs toggle-primary" />
                             <span class="label-text">Admin</span>
                         </label>
                     </div>
@@ -47,13 +47,13 @@
                                     <td class="capitalize">@p.Section</td>
                                     <td class="text-center">
                                         <input type="hidden" name="Permissions[@i].Section" value="@p.Section" />
-                                        <input type="checkbox" name="Permissions[@i].CanView" checked="@(p.CanView ? "checked" : null)" class="toggle toggle-sm" />
+                                        <input type="checkbox" name="Permissions[@i].CanView" checked="@(p.CanView ? "checked" : null)" class="toggle toggle-xs toggle-primary" />
                                     </td>
                                     <td class="text-center">
-                                        <input type="checkbox" name="Permissions[@i].CanEdit" checked="@(p.CanEdit ? "checked" : null)" class="toggle toggle-sm" />
+                                        <input type="checkbox" name="Permissions[@i].CanEdit" checked="@(p.CanEdit ? "checked" : null)" class="toggle toggle-xs toggle-primary" />
                                     </td>
                                     <td class="text-center">
-                                        <input type="checkbox" name="Permissions[@i].CanCreate" checked="@(p.CanCreate ? "checked" : null)" class="toggle toggle-sm" />
+                                        <input type="checkbox" name="Permissions[@i].CanCreate" checked="@(p.CanCreate ? "checked" : null)" class="toggle toggle-xs toggle-primary" />
                                     </td>
                                     <td>
                                         @if (string.Equals(p.Section, "tickets", StringComparison.OrdinalIgnoreCase))

@@ -10,6 +10,7 @@ using System.Linq;
 
 using Tickflo.Core.Services.Common;
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
 namespace Tickflo.Web.Pages;
 
 [Authorize]
@@ -17,20 +18,24 @@ public class WorkspaceModel : PageModel
 {
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
+    private readonly IUserRepository _users;
     private readonly IWorkspaceDashboardViewService _dashboardViewService;
     private readonly ITeamMemberRepository _teamMembers;
     private readonly SettingsConfig _settingsConfig;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IWorkspaceCreationService _workspaceCreationService;
 
     public Workspace? Workspace { get; set; }
     public bool IsMember { get; set; }
     public List<WorkspaceView> Workspaces { get; set; } = new();
 
+    [BindProperty]
+    public string NewWorkspaceName { get; set; } = string.Empty;
+
     public int TotalTickets { get; set; }
     public int OpenTickets { get; set; }
     public int ResolvedTickets { get; set; }
     public int ActiveMembers { get; set; }
-    public TimeSpan? AvgResolutionTime { get; set; }
     public string AvgResolutionLabel { get; set; } = string.Empty;
 
     public List<TicketListItem> RecentTickets { get; set; } = new();
@@ -44,6 +49,7 @@ public class WorkspaceModel : PageModel
     public bool CanViewDashboard { get; set; }
     public bool CanViewTickets { get; set; }
     public string TicketViewScope { get; set; } = string.Empty;
+    public bool ShowEmailConfirmationPrompt { get; set; }
 
     public Dictionary<string, int> PriorityCounts { get; set; } = new();
     public List<TicketPriority> PriorityList { get; set; } = new();
@@ -66,17 +72,21 @@ public class WorkspaceModel : PageModel
     public WorkspaceModel(
         IWorkspaceRepository workspaceRepo,
         IUserWorkspaceRepository userWorkspaceRepo,
+        IUserRepository users,
         IWorkspaceDashboardViewService dashboardViewService,
         ITeamMemberRepository teamMembers,
         SettingsConfig settingsConfig,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IWorkspaceCreationService workspaceCreationService)
     {
         _workspaceRepo = workspaceRepo;
         _userWorkspaceRepo = userWorkspaceRepo;
+        _users = users;
         _dashboardViewService = dashboardViewService;
         _teamMembers = teamMembers;
         _settingsConfig = settingsConfig;
         _currentUserService = currentUserService;
+        _workspaceCreationService = workspaceCreationService;
 
         InitializeTheme();
     }
@@ -94,28 +104,20 @@ public class WorkspaceModel : PageModel
     public async Task<IActionResult> OnGetAsync(string? slug, int? range, string? assignment)
     {
         RangeDays = NormalizeRange(range);
-        AssignmentFilter = string.IsNullOrEmpty(assignment) ? "all" : assignment.ToLowerInvariant();
-        
-        if (!_currentUserService.TryGetUserId(User, out var userId))
+        AssignmentFilter = NormalizeAssignment(assignment);
+
+        var authContext = await GetAuthenticatedUserAsync();
+        if (authContext is null)
+        {
             return Challenge();
+        }
+
+        var (userId, user) = authContext.Value;
+        ShowEmailConfirmationPrompt = !user.EmailConfirmed;
 
         if (string.IsNullOrEmpty(slug))
         {
-            var memberships = await _userWorkspaceRepo.FindForUserAsync(userId);
-
-            foreach (var m in memberships)
-            {
-                var ws = await _workspaceRepo.FindByIdAsync(m.WorkspaceId);
-                if (ws == null) continue;
-                Workspaces.Add(new WorkspaceView
-                {
-                    Id = ws.Id,
-                    Name = ws.Name,
-                    Slug = ws.Slug,
-                    Accepted = m.Accepted
-                });
-            }
-
+            await LoadUserWorkspacesAsync(userId, null);
             return Page();
         }
 
@@ -126,18 +128,7 @@ public class WorkspaceModel : PageModel
         Workspace = found;
 
         var userMemberships = await _userWorkspaceRepo.FindForUserAsync(userId);
-        foreach (var m in userMemberships)
-        {
-            var w = await _workspaceRepo.FindByIdAsync(m.WorkspaceId);
-            if (w == null) continue;
-            Workspaces.Add(new WorkspaceView
-            {
-                Id = w.Id,
-                Name = w.Name,
-                Slug = w.Slug,
-                Accepted = m.Accepted
-            });
-        }
+        await LoadUserWorkspacesAsync(userId, userMemberships);
 
         IsMember = userMemberships.Any(m => m.WorkspaceId == found.Id && m.Accepted);
 
@@ -153,9 +144,85 @@ public class WorkspaceModel : PageModel
         return Page();
     }
 
+    public async Task<IActionResult> OnPostAsync()
+    {
+        var authContext = await GetAuthenticatedUserAsync();
+        if (authContext is null)
+        {
+            return Challenge();
+        }
+
+        var (userId, user) = authContext.Value;
+        ShowEmailConfirmationPrompt = !user.EmailConfirmed;
+
+        var trimmedName = NewWorkspaceName?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(trimmedName))
+        {
+            ModelState.AddModelError(nameof(NewWorkspaceName), "Workspace name is required");
+            await LoadUserWorkspacesAsync(userId, null);
+            return Page();
+        }
+
+        try
+        {
+            var workspace = await _workspaceCreationService.CreateWorkspaceAsync(
+                new WorkspaceCreationRequest { Name = trimmedName },
+                userId);
+
+            return Redirect($"/workspaces/{workspace.Slug}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            ModelState.AddModelError(nameof(NewWorkspaceName), ex.Message);
+        }
+
+        await LoadUserWorkspacesAsync(userId, null);
+        return Page();
+    }
+
     private int NormalizeRange(int? range)
     {
         return range is 7 or 30 or 90 ? range.Value : 90;
+    }
+
+    private string NormalizeAssignment(string? assignment)
+    {
+        if (string.IsNullOrWhiteSpace(assignment))
+        {
+            return "all";
+        }
+
+        return assignment.ToLowerInvariant();
+    }
+
+    private async Task<(int UserId, User User)?> GetAuthenticatedUserAsync()
+    {
+        if (!_currentUserService.TryGetUserId(User, out var userId))
+        {
+            return null;
+        }
+
+        var user = await _users.FindByIdAsync(userId);
+        return user == null ? null : (userId, user);
+    }
+
+    private async Task LoadUserWorkspacesAsync(int userId, List<UserWorkspace>? memberships)
+    {
+        Workspaces.Clear();
+        var membershipList = memberships ?? await _userWorkspaceRepo.FindForUserAsync(userId);
+
+        foreach (var m in membershipList)
+        {
+            var ws = await _workspaceRepo.FindByIdAsync(m.WorkspaceId);
+            if (ws == null) continue;
+            Workspaces.Add(new WorkspaceView
+            {
+                Id = ws.Id,
+                Name = ws.Name,
+                Slug = ws.Slug,
+                Accepted = m.Accepted
+            });
+        }
     }
 
 
@@ -204,7 +271,6 @@ public class WorkspaceModel : PageModel
         TopMembers = view.TopMembers.Select(m => new MemberStat { UserId = m.UserId, Name = m.Name, ResolvedCount = m.ResolvedCount }).ToList();
 
         AvgResolutionLabel = view.AvgResolutionLabel;
-        AvgResolutionTime = null;
 
         RecentTickets = view.RecentTickets.Select(t => new TicketListItem
         {
@@ -220,18 +286,6 @@ public class WorkspaceModel : PageModel
         }).ToList();
     }
 
-    private static string FormatDuration(TimeSpan ts)
-    {
-        if (ts.TotalDays >= 1)
-            return $"{(int)ts.TotalDays}d {ts.Hours}h";
-        if (ts.TotalHours >= 1)
-            return $"{(int)ts.TotalHours}h {ts.Minutes}m";
-        if (ts.TotalMinutes >= 1)
-            return $"{(int)ts.TotalMinutes}m";
-        return $"{ts.Seconds}s";
-
-    }
-    
     public static string HexToRgba(string hex, double opacity)
     {
         if (string.IsNullOrWhiteSpace(hex) || !hex.StartsWith("#"))

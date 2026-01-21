@@ -16,9 +16,11 @@ public interface IWorkspaceUsersViewService
 public class WorkspaceUsersViewData
 {
     public bool IsWorkspaceAdmin { get; set; }
+    public bool CanViewUsers { get; set; }
     public bool CanCreateUsers { get; set; }
     public bool CanEditUsers { get; set; }
     public List<InviteView> PendingInvites { get; set; } = new();
+    public List<AcceptedUserView> AcceptedUsers { get; set; } = new();
 }
 
 public class InviteView
@@ -27,6 +29,16 @@ public class InviteView
     public string Email { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public List<string> Roles { get; set; } = new();
+}
+
+public class AcceptedUserView
+{
+    public int UserId { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public DateTime JoinedAt { get; set; }
+    public List<string> Roles { get; set; } = new();
+    public bool IsAdmin { get; set; }
 }
 
 

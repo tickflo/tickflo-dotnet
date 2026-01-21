@@ -54,7 +54,7 @@ public class ContactsModel : WorkspacePageModel
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
         Workspace = workspace;
 
-        var viewData = await _viewService.BuildAsync(Workspace.Id, uid, Priority, Query);
+        var viewData = await _viewService.BuildAsync(Workspace!.Id, uid, Priority, Query);
         
         if (EnsurePermissionOrForbid(viewData.CanCreateContacts || viewData.CanEditContacts) is IActionResult permCheck) return permCheck;
 

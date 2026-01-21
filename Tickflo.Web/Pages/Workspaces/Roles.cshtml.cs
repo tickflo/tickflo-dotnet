@@ -44,7 +44,7 @@ public class RolesModel : WorkspacePageModel
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
         Workspace = workspace;
 
-        var viewData = await _viewService.BuildAsync(Workspace.Id, uid);
+        var viewData = await _viewService.BuildAsync(Workspace!.Id, uid);
         
         if (!viewData.IsAdmin) return Forbid();
 

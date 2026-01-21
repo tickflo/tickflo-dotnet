@@ -11,9 +11,9 @@ using System.Security.Cryptography;
 using Tickflo.Core.Data;
 using Tickflo.Core.Services;
 using Microsoft.AspNetCore.Authorization;
-
 using Tickflo.Core.Services.Views;
 using Tickflo.Core.Services.Users;
+
 namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
@@ -24,6 +24,8 @@ public class UsersInviteModel : WorkspacePageModel
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IEmailSender _emailSender;
+    private readonly IEmailTemplateService _emailTemplateService;
+    private readonly INotificationRepository _notificationRepository;
     private readonly ITokenRepository _tokenRepo;
     private readonly IRoleRepository _roleRepo;
     private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
@@ -38,7 +40,7 @@ public class UsersInviteModel : WorkspacePageModel
     [BindProperty]
     public string Role { get; set; } = "Member";
 
-    public UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IPasswordHasher passwordHasher, IEmailSender emailSender, ITokenRepository tokenRepo, IRoleRepository roleRepo, IUserInvitationService invitationService, IWorkspaceUsersInviteViewService viewService)
+    public UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IPasswordHasher passwordHasher, IEmailSender emailSender, INotificationRepository notificationRepository, ITokenRepository tokenRepo, IRoleRepository roleRepo, IUserInvitationService invitationService, IWorkspaceUsersInviteViewService viewService)
     {
         _workspaceRepo = workspaceRepo;
         _userRepo = userRepo;
@@ -46,6 +48,7 @@ public class UsersInviteModel : WorkspacePageModel
         _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
         _passwordHasher = passwordHasher;
         _emailSender = emailSender;
+        _notificationRepository = notificationRepository;
         _tokenRepo = tokenRepo;
         _roleRepo = roleRepo;
         _invitationService = invitationService;
@@ -63,7 +66,7 @@ public class UsersInviteModel : WorkspacePageModel
         var (workspace, userId) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
 
-        var viewData = await _viewService.BuildAsync(Workspace.Id, userId);
+        var viewData = await _viewService.BuildAsync(Workspace!.Id, userId);
         if (EnsurePermissionOrForbid(viewData.CanViewUsers && viewData.CanCreateUsers) is IActionResult permCheck) return permCheck;
 
         CanViewUsers = viewData.CanViewUsers;
@@ -80,7 +83,7 @@ public class UsersInviteModel : WorkspacePageModel
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
         Workspace = workspace;
 
-        var viewData = await _viewService.BuildAsync(Workspace.Id, currentUserId);
+        var viewData = await _viewService.BuildAsync(Workspace!.Id, currentUserId);
         if (EnsurePermissionOrForbid(viewData.CanViewUsers && viewData.CanCreateUsers) is IActionResult permCheck) return permCheck;
 
         CanViewUsers = viewData.CanViewUsers;
@@ -118,17 +121,37 @@ public class UsersInviteModel : WorkspacePageModel
             var confirmationLink = baseUrl + result.ConfirmationLink;
             var acceptLink = baseUrl + result.AcceptLink;
             var setPasswordLink = baseUrl + result.ResetPasswordLink;
-            var subject = $"You're invited to {ws.Name}";
-            var body = $"<div style='font-family:Arial,sans-serif'>"+
-                        $"<h2 style='color:#333'>Workspace Invitation</h2>"+
-                        $"<p>You have been invited to the workspace '<b>{ws.Name}</b>'.</p>"+
-                        $"<p>Temporary password: <code style='font-size:1.1em'>{result.TemporaryPassword}</code></p>"+
-                        $"<p>Please confirm your email: <a href=\"{confirmationLink}\">Confirm Email</a></p>"+
-                        $"<p>Then accept the invite: <a href=\"{acceptLink}\">Accept Invite</a></p>"+
-                        $"<p>Or set your password now: <a href=\"{setPasswordLink}\">Set Password</a></p>"+
-                        $"<hr/><p style='color:#777'>If you did not expect this email, you can ignore it.</p>"+
-                        $"</div>";
+            
+            // Template Type ID 2 = Workspace Invite (new user)
+            var variables = new Dictionary<string, string>
+            {
+                { "WORKSPACE_NAME", ws.Name },
+                { "TEMPORARY_PASSWORD", result.TemporaryPassword },
+                { "CONFIRMATION_LINK", confirmationLink },
+                { "ACCEPT_LINK", acceptLink },
+                { "SET_PASSWORD_LINK", setPasswordLink }
+            };
+            
+            var (subject, body) = await _emailTemplateService.RenderTemplateAsync(EmailTemplateType.WorkspaceInviteNewUser, variables, ws.Id);
             await _emailSender.SendAsync(result.User.Email!, subject, body);
+
+            // Create a notification record in the database
+            var notification = new Notification
+            {
+                UserId = result.User.Id,
+                WorkspaceId = ws.Id,
+                Type = "workspace_invite",
+                DeliveryMethod = "email",
+                Priority = "high",
+                Subject = subject,
+                Body = body,
+                Status = "sent",
+                SentAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = currentUserId
+            };
+
+            await _notificationRepository.AddAsync(notification);
 
             SetSuccessMessage($"Invite created for '{Email}'" + (!string.IsNullOrWhiteSpace(Role) ? $" as {Role}" : "") + ".");
         }

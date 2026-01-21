@@ -13,6 +13,17 @@ public class AuthenticationService(
     IUserWorkspaceRepository? userWorkspaceRepository = null,
     IWorkspaceRoleBootstrapper? workspaceRoleBootstrapper = null) : IAuthenticationService
 {
+    #region Constants
+    private const string InvalidCredentialsError = "Invalid username or password, please try again";
+    private const string AccountExistsError = "An account with that email already exists";
+    private const string WorkspaceRepositoriesNotConfiguredError = "Workspace repositories are not configured.";
+    private const string DummyPasswordHash = "$argon2id$v=19$m=16,t=2,p=1$NlJRdlBSbDZhRVUzdTFYcQ$FbtOcbMs2IMTMHFE8WcSiQ";
+    private const string SlugPattern = "[^a-z0-9\\- ]";
+    private const string WhitespacePattern = "\\s+";
+    private const string HyphenReplacement = "-";
+    private const int MaxSlugLength = 30;
+    #endregion
+
     private readonly IUserRepository _userRepository = userRepository;
         private readonly IPasswordHasher _passwordHasher = passwordHasher;
         private readonly ITokenRepository _tokenRepository = tokenRepository;
@@ -24,45 +35,31 @@ public class AuthenticationService(
     {
         var result = new AuthenticationResult();
         var user = await _userRepository.FindByEmailAsync(email);
+        
         if (user == null)
         {
-            result.ErrorMessage = "Invalid username or password, please try again";
-            _passwordHasher.Verify("password", "$argon2id$v=19$m=16,t=2,p=1$NlJRdlBSbDZhRVUzdTFYcQ$FbtOcbMs2IMTMHFE8WcSiQ");
+            result.ErrorMessage = InvalidCredentialsError;
+            PreventTimingAttack();
             return result;
         }
 
-        // Reject logins where no password hash is set
         if (user.PasswordHash == null)
         {
-            result.ErrorMessage = "Invalid username or password, please try again";
+            result.ErrorMessage = InvalidCredentialsError;
             return result;
         }
 
-        var isValid = _passwordHasher.Verify($"{email}{password}", user.PasswordHash);
-        if (!isValid)
+        if (!_passwordHasher.Verify($"{email}{password}", user.PasswordHash))
         {
-            result.ErrorMessage = "Invalid username or password, please try again";
+            result.ErrorMessage = InvalidCredentialsError;
             return result;
         }
 
         var token = await _tokenRepository.CreateForUserIdAsync(user.Id);
-
         result.Success = true;
         result.UserId = user.Id;
         result.Token = token.Value;
-
-        if (_userWorkspaceRepository != null && _workspaceRepository != null)
-        {
-            var uw = await _userWorkspaceRepository.FindAcceptedForUserAsync(user.Id);
-            if (uw != null)
-            {
-                var ws = await _workspaceRepository.FindByIdAsync(uw.WorkspaceId);
-                if (ws != null)
-                {
-                    result.WorkspaceSlug = ws.Slug;
-                }
-            }
-        }
+        result.WorkspaceSlug = await GetUserWorkspaceSlugAsync(user.Id);
 
         return result;
     }
@@ -71,15 +68,50 @@ public class AuthenticationService(
     {
         var result = new AuthenticationResult();
 
-        // check existing user
-        var existing = await _userRepository.FindByEmailAsync(email);
-        if (existing != null)
+        if (await _userRepository.FindByEmailAsync(email) != null)
         {
-            result.ErrorMessage = "An account with that email already exists";
+            result.ErrorMessage = AccountExistsError;
             return result;
         }
 
-        // create user
+        var user = await CreateUserAsync(name, email, recoveryEmail, password);
+        var workspace = await CreateWorkspaceWithUserAsync(workspaceName, user.Id);
+        
+        if (_workspaceRoleBootstrapper != null)
+        {
+            await _workspaceRoleBootstrapper.BootstrapAdminAsync(workspace.Id, user.Id);
+        }
+
+        var token = await _tokenRepository.CreateForUserIdAsync(user.Id);
+        result.Success = true;
+        result.UserId = user.Id;
+        result.Token = token.Value;
+        result.WorkspaceSlug = workspace.Slug;
+
+        return result;
+    }
+
+    private void PreventTimingAttack()
+    {
+        _passwordHasher.Verify("password", DummyPasswordHash);
+    }
+
+    private async Task<string?> GetUserWorkspaceSlugAsync(int userId)
+    {
+        if (_userWorkspaceRepository != null && _workspaceRepository != null)
+        {
+            var uw = await _userWorkspaceRepository.FindAcceptedForUserAsync(userId);
+            if (uw != null)
+            {
+                var ws = await _workspaceRepository.FindByIdAsync(uw.WorkspaceId);
+                return ws?.Slug;
+            }
+        }
+        return null;
+    }
+
+    private async Task<User> CreateUserAsync(string name, string email, string recoveryEmail, string password)
+    {
         var passwordHash = _passwordHasher.Hash($"{email}{password}");
         var user = new User
         {
@@ -91,77 +123,65 @@ public class AuthenticationService(
         };
 
         await _userRepository.AddAsync(user);
+        return user;
+    }
 
-        // create workspace (unique slug)
-        string Slugify(string s)
+    private async Task<WorkspaceEntity> CreateWorkspaceWithUserAsync(string workspaceName, int userId)
+    {
+        if (_workspaceRepository == null || _userWorkspaceRepository == null)
         {
-            var lower = s.ToLowerInvariant();
-            var chars = System.Text.RegularExpressions.Regex.Replace(lower, "[^a-z0-9\\- ]", "");
-            var collapsed = System.Text.RegularExpressions.Regex.Replace(chars, "\\s+", "-");
-            if (collapsed.Length > 30) collapsed = collapsed.Substring(0, 30);
-            return collapsed.Trim('-');
+            throw new InvalidOperationException(WorkspaceRepositoriesNotConfiguredError);
         }
 
-        var baseSlug = Slugify(workspaceName);
-        var slug = baseSlug;
-        var i = 1;
-            if (_workspaceRepository == null || _userWorkspaceRepository == null)
-            {
-                throw new InvalidOperationException("Workspace repositories are not configured.");
-            }
-
-        while (!string.IsNullOrEmpty(slug) && await _workspaceRepository.FindBySlugAsync(slug) != null)
-        {
-            slug = $"{baseSlug}-{i}";
-            i++;
-        }
-
+        var slug = await GenerateUniqueSlugAsync(workspaceName);
         var workspace = new WorkspaceEntity
         {
             Name = workspaceName,
             Slug = slug,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = user.Id
+            CreatedBy = userId
         };
 
-            await _workspaceRepository.AddAsync(workspace);
+        await _workspaceRepository.AddAsync(workspace);
 
         var userWorkspace = new UserWorkspace
         {
-            UserId = user.Id,
+            UserId = userId,
             WorkspaceId = workspace.Id,
             Accepted = true,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = user.Id
+            CreatedBy = userId
         };
 
-            await _userWorkspaceRepository.AddAsync(userWorkspace);
+        await _userWorkspaceRepository.AddAsync(userWorkspace);
+        return workspace;
+    }
 
-        // create Admin role for the workspace and assign the creator as Admin
-        if (_workspaceRoleBootstrapper != null)
+    private async Task<string> GenerateUniqueSlugAsync(string workspaceName)
+    {
+        var baseSlug = Slugify(workspaceName);
+        var slug = baseSlug;
+        var counter = 1;
+
+        while (!string.IsNullOrEmpty(slug) && await _workspaceRepository!.FindBySlugAsync(slug) != null)
         {
-            await _workspaceRoleBootstrapper.BootstrapAdminAsync(workspace.Id, user.Id);
+            slug = $"{baseSlug}-{counter}";
+            counter++;
         }
 
-        var token = await _tokenRepository.CreateForUserIdAsync(user.Id);
-        result.Success = true;
-        result.UserId = user.Id;
-        result.Token = token.Value;
+        return slug;
+    }
+
+    private static string Slugify(string input)
+    {
+        var lower = input.ToLowerInvariant();
+        var chars = System.Text.RegularExpressions.Regex.Replace(lower, SlugPattern, string.Empty);
+        var collapsed = System.Text.RegularExpressions.Regex.Replace(chars, WhitespacePattern, HyphenReplacement);
         
-        if (_userWorkspaceRepository != null && _workspaceRepository != null)
-        {
-            var uw = await _userWorkspaceRepository.FindAcceptedForUserAsync(user.Id);
-            if (uw != null)
-            {
-                var ws = await _workspaceRepository.FindByIdAsync(uw.WorkspaceId);
-                if (ws != null)
-                {
-                    result.WorkspaceSlug = ws.Slug;
-                }
-            }
-        }
-        result.WorkspaceSlug = workspace.Slug;
-        return result;
+        if (collapsed.Length > MaxSlugLength)
+            collapsed = collapsed.Substring(0, MaxSlugLength);
+        
+        return collapsed.Trim('-');
     }
 }
 

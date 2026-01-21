@@ -11,6 +11,12 @@ namespace Tickflo.Web.Pages.Workspaces;
 [Authorize]
 public class LocationsEditModel : WorkspacePageModel
 {
+    #region Constants
+    private const int NewLocationId = 0;
+    private const string LocationCreatedSuccessfully = "Location '{0}' created successfully.";
+    private const string LocationUpdatedSuccessfully = "Location '{0}' updated successfully.";
+    #endregion
+
     private readonly IWorkspaceRepository _workspaceRepo;
     private readonly IUserWorkspaceRepository _userWorkspaceRepo;
     private readonly ILocationRepository _locationRepo;
@@ -60,7 +66,7 @@ public class LocationsEditModel : WorkspacePageModel
         
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
         Workspace = workspace;
-        var workspaceId = workspace.Id;
+        var workspaceId = workspace!.Id;
         
         var viewData = await _viewService.BuildAsync(workspaceId, uid, locationId);
         CanViewLocations = viewData.CanViewLocations;
@@ -72,25 +78,11 @@ public class LocationsEditModel : WorkspacePageModel
         MemberOptions = viewData.MemberOptions;
         ContactOptions = viewData.ContactOptions;
         
-        if (locationId > 0)
-        {
-            if (viewData.ExistingLocation == null) return NotFound();
-            LocationId = viewData.ExistingLocation.Id;
-            Name = viewData.ExistingLocation.Name ?? string.Empty;
-            Address = viewData.ExistingLocation.Address ?? string.Empty;
-            Active = viewData.ExistingLocation.Active;
-            DefaultAssigneeUserId = viewData.ExistingLocation.DefaultAssigneeUserId;
-            SelectedContactIds = viewData.SelectedContactIds;
-        }
+        if (locationId > NewLocationId)
+            LoadExistingLocationData(viewData);
         else
-        {
-            LocationId = 0;
-            Name = string.Empty;
-            Address = string.Empty;
-            Active = true;
-            DefaultAssigneeUserId = null;
-            SelectedContactIds = new();
-        }
+            InitializeNewLocationForm();
+        
         return Page();
     }
 
@@ -103,53 +95,91 @@ public class LocationsEditModel : WorkspacePageModel
         
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
         Workspace = workspace;
-        var workspaceId = workspace.Id;
+        var workspaceId = workspace!.Id;
         
         var viewData = await _viewService.BuildAsync(workspaceId, uid, LocationId);
         if (EnsureCreateOrEditPermission(LocationId, viewData.CanCreateLocations, viewData.CanEditLocations) is IActionResult permCheck) return permCheck;
         
         if (!ModelState.IsValid) return Page();
 
-        var nameTrim = Name?.Trim() ?? string.Empty;
-        var addressTrim = Address?.Trim() ?? string.Empty;
         int effectiveLocationId = LocationId;
         try
         {
-            if (LocationId == 0)
-            {
-                var created = await _locationSetupService.CreateLocationAsync(workspaceId, new LocationCreationRequest
-                {
-                    Name = nameTrim,
-                    Address = addressTrim
-                }, uid);
-                
-                created.DefaultAssigneeUserId = DefaultAssigneeUserId;
-                created.Active = Active;
-                await _locationRepo.UpdateAsync(created);
-                effectiveLocationId = created.Id;
-                SetSuccessMessage($"Location '{created.Name}' created successfully.");
-            }
+            if (LocationId == NewLocationId)
+                effectiveLocationId = await CreateAndSaveLocationAsync(workspaceId, uid);
             else
-            {
-                var updated = await _locationSetupService.UpdateLocationDetailsAsync(workspaceId, LocationId, new LocationUpdateRequest
-                {
-                    Name = nameTrim,
-                    Address = addressTrim
-                }, uid);
-                
-                updated.DefaultAssigneeUserId = DefaultAssigneeUserId;
-                updated.Active = Active;
-                await _locationRepo.UpdateAsync(updated);
-                effectiveLocationId = updated.Id;
-                SetSuccessMessage($"Location '{updated.Name}' updated successfully.");
-            }
+                effectiveLocationId = await UpdateAndSaveLocationAsync(workspaceId, uid);
         }
         catch (InvalidOperationException ex)
         {
             SetErrorMessage(ex.Message);
             return Page();
         }
+        
         await _locationRepo.SetContactsAsync(workspaceId, effectiveLocationId, SelectedContactIds ?? new List<int>());
+        return RedirectToLocationsWithPreservedFilters(slug);
+    }
+
+    private void LoadExistingLocationData(WorkspaceLocationsEditViewData viewData)
+    {
+        if (viewData.ExistingLocation == null) return;
+        
+        LocationId = viewData.ExistingLocation.Id;
+        Name = viewData.ExistingLocation.Name ?? string.Empty;
+        Address = viewData.ExistingLocation.Address ?? string.Empty;
+        Active = viewData.ExistingLocation.Active;
+        DefaultAssigneeUserId = viewData.ExistingLocation.DefaultAssigneeUserId;
+        SelectedContactIds = viewData.SelectedContactIds;
+    }
+
+    private void InitializeNewLocationForm()
+    {
+        LocationId = NewLocationId;
+        Name = string.Empty;
+        Address = string.Empty;
+        Active = true;
+        DefaultAssigneeUserId = null;
+        SelectedContactIds = new();
+    }
+
+    private async Task<int> CreateAndSaveLocationAsync(int workspaceId, int userId)
+    {
+        var created = await _locationSetupService.CreateLocationAsync(workspaceId, new LocationCreationRequest
+        {
+            Name = Name?.Trim() ?? string.Empty,
+            Address = Address?.Trim() ?? string.Empty
+        }, userId);
+        
+        ApplyLocationSettings(created);
+        await _locationRepo.UpdateAsync(created);
+        SetSuccessMessage(string.Format(LocationCreatedSuccessfully, created.Name));
+        
+        return created.Id;
+    }
+
+    private async Task<int> UpdateAndSaveLocationAsync(int workspaceId, int userId)
+    {
+        var updated = await _locationSetupService.UpdateLocationDetailsAsync(workspaceId, LocationId, new LocationUpdateRequest
+        {
+            Name = Name?.Trim() ?? string.Empty,
+            Address = Address?.Trim() ?? string.Empty
+        }, userId);
+        
+        ApplyLocationSettings(updated);
+        await _locationRepo.UpdateAsync(updated);
+        SetSuccessMessage(string.Format(LocationUpdatedSuccessfully, updated.Name));
+        
+        return updated.Id;
+    }
+
+    private void ApplyLocationSettings(Location location)
+    {
+        location.DefaultAssigneeUserId = DefaultAssigneeUserId;
+        location.Active = Active;
+    }
+
+    private IActionResult RedirectToLocationsWithPreservedFilters(string slug)
+    {
         var queryQ = Request.Query["Query"].ToString();
         var pageQ = Request.Query["PageNumber"].ToString();
         return RedirectToPage("/Workspaces/Locations", new { slug, Query = queryQ, PageNumber = pageQ });

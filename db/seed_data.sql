@@ -564,3 +564,16 @@ INSERT INTO public.user_notification_preferences (user_id, notification_type, em
 -- email_enabled=true, in_app_enabled=true, sms_enabled=false, push_enabled=false
 
 -- =============================================
+-- Email Templates
+-- Global email templates for system-wide messages
+-- Template Type IDs:
+-- 1 = Email Confirmation Thank You
+-- 2 = Workspace Invite (new user)
+-- 3 = Email Confirmation Request
+-- 4 = Workspace Invite Resend
+-- =============================================
+-- =============================================
+-- Email Templates
+-- Email templates are now managed via migrations (see migration 20260116120100)
+-- They are global, versioned, and immutable
+-- =============================================

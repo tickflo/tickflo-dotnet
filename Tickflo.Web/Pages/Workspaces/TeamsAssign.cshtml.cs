@@ -11,6 +11,10 @@ namespace Tickflo.Web.Pages.Workspaces;
 [Authorize]
 public class TeamsAssignModel : WorkspacePageModel
 {
+    #region Constants
+    private const string UserSelectionError = "Please select a user to add.";
+    #endregion
+
     private readonly IWorkspaceRepository _workspaces;
     private readonly ITeamRepository _teams;
     private readonly ITeamMemberRepository _members;
@@ -42,77 +46,113 @@ public class TeamsAssignModel : WorkspacePageModel
     public async Task<IActionResult> OnGetAsync(string slug, int teamId)
     {
         WorkspaceSlug = slug;
-        var ws = await _workspaces.FindBySlugAsync(slug);
-        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
-        if (!TryGetUserId(out var uid)) return Forbid();
-        var data = await _teamsAssignViewService.BuildAsync(ws.Id, uid, teamId);
-        CanViewTeams = data.CanViewTeams;
-        CanEditTeams = data.CanEditTeams;
-        if (EnsurePermissionOrForbid(CanEditTeams) is IActionResult editCheck) return editCheck;
-        Workspace = ws;
-        Team = data.Team;
-        TeamId = teamId;
-        Members = data.Members ?? new();
-        WorkspaceUsers = data.WorkspaceUsers ?? new();
+        
+        if (await AuthorizeAndLoadWorkspaceDataAsync(slug, teamId) is IActionResult authResult)
+            return authResult;
+        
+        if (EnsurePermissionOrForbid(CanEditTeams) is IActionResult editCheck)
+            return editCheck;
+        
         return Page();
     }
 
     public async Task<IActionResult> OnPostAddAsync(string slug)
     {
         WorkspaceSlug = slug;
-        var ws = await _workspaces.FindBySlugAsync(slug);
-        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
-        if (!TryGetUserId(out var uid)) return Forbid();
-        var data = await _teamsAssignViewService.BuildAsync(ws.Id, uid, TeamId);
-        Workspace = ws;
-        Team = data.Team;
-        CanEditTeams = data.CanEditTeams;
+        
+        if (await AuthorizeAndLoadWorkspaceDataAsync(slug, TeamId) is IActionResult authResult)
+            return authResult;
+        
         if (!CanEditTeams) return Forbid();
 
-        if (TeamId <= 0 || SelectedUserId <= 0)
-        {
-            ModelState.AddModelError(string.Empty, "Please select a user to add.");
+        if (!ValidateUserSelection())
             return await OnGetAsync(slug, TeamId);
-        }
-        // Use service to validate and sync single add
-        if (EnsureEntityExistsOrNotFound(Team) is IActionResult teamCheck) return teamCheck;
-        var currentMembers = await _members.ListMembersAsync(TeamId);
-        var desired = currentMembers.Select(m => m.Id).ToList();
-        desired.Add(SelectedUserId);
+        
+        if (EnsureEntityExistsOrNotFound(Team) is IActionResult teamCheck)
+            return teamCheck;
+        
         try
         {
-            await _teamService.SyncTeamMembersAsync(TeamId, Workspace!.Id, desired.Distinct().ToList());
+            await AddUserToTeamAsync(SelectedUserId);
         }
         catch (InvalidOperationException ex)
         {
             SetErrorMessage(ex.Message);
         }
-        return RedirectToPage("/Workspaces/TeamsAssign", new { slug, teamId = TeamId });
+        
+        return RedirectToTeamsAssignPage(slug);
     }
 
     public async Task<IActionResult> OnPostRemoveAsync(string slug, int userId)
     {
         WorkspaceSlug = slug;
-        var ws = await _workspaces.FindBySlugAsync(slug);
-        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
-        if (!TryGetUserId(out var uid)) return Forbid();
-        var data = await _teamsAssignViewService.BuildAsync(ws.Id, uid, TeamId);
-        Workspace = ws;
-        Team = data.Team;
-        CanEditTeams = data.CanEditTeams;
-        if (EnsurePermissionOrForbid(CanEditTeams) is IActionResult editCheck) return editCheck;
+        
+        if (await AuthorizeAndLoadWorkspaceDataAsync(slug, TeamId) is IActionResult authResult)
+            return authResult;
+        
+        if (EnsurePermissionOrForbid(CanEditTeams) is IActionResult editCheck)
+            return editCheck;
 
-        // Use service to validate and sync single remove
-        var currentMembers = await _members.ListMembersAsync(TeamId);
-        var desired = currentMembers.Select(m => m.Id).Where(id => id != userId).ToList();
         try
         {
-            await _teamService.SyncTeamMembersAsync(TeamId, Workspace!.Id, desired);
+            await RemoveUserFromTeamAsync(userId);
         }
         catch (InvalidOperationException ex)
         {
             SetErrorMessage(ex.Message);
         }
+        
+        return RedirectToTeamsAssignPage(slug);
+    }
+
+    private async Task<IActionResult?> AuthorizeAndLoadWorkspaceDataAsync(string slug, int teamId)
+    {
+        var ws = await _workspaces.FindBySlugAsync(slug);
+        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
+            return result;
+        
+        if (!TryGetUserId(out var uid))
+            return Forbid();
+        
+        var data = await _teamsAssignViewService.BuildAsync(ws!.Id, uid, teamId);
+        CanViewTeams = data.CanViewTeams;
+        CanEditTeams = data.CanEditTeams;
+        Workspace = ws;
+        Team = data.Team;
+        TeamId = teamId;
+        Members = data.Members ?? new();
+        WorkspaceUsers = data.WorkspaceUsers ?? new();
+        
+        return null;
+    }
+
+    private bool ValidateUserSelection()
+    {
+        if (TeamId <= 0 || SelectedUserId <= 0)
+        {
+            ModelState.AddModelError(string.Empty, UserSelectionError);
+            return false;
+        }
+        return true;
+    }
+
+    private async Task AddUserToTeamAsync(int userId)
+    {
+        var currentMembers = await _members.ListMembersAsync(TeamId);
+        var desired = currentMembers.Select(m => m.Id).ToList();
+        desired.Add(userId);
+        await _teamService.SyncTeamMembersAsync(TeamId, Workspace!.Id, desired.Distinct().ToList());
+    }
+
+    private async Task RemoveUserFromTeamAsync(int userId)
+    {
+        var currentMembers = await _members.ListMembersAsync(TeamId);
+        var desired = currentMembers.Select(m => m.Id).Where(id => id != userId).ToList();
+        await _teamService.SyncTeamMembersAsync(TeamId, Workspace!.Id, desired);
+    }
+
+    private IActionResult RedirectToTeamsAssignPage(string slug)
+    {
         return RedirectToPage("/Workspaces/TeamsAssign", new { slug, teamId = TeamId });
     }
 
