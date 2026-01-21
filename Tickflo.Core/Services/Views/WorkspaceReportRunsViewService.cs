@@ -6,19 +6,19 @@ using Tickflo.Core.Services.Reporting;
 
 public class WorkspaceReportRunsViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
-    IRolePermissionRepository rolePerms,
+    IRolePermissionRepository rolePermissionRepository,
     IReportRunService reportRunService) : IWorkspaceReportRunsViewService
 {
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePerms = rolePerms;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
     private readonly IReportRunService _reportRunService = reportRunService;
 
     public async Task<WorkspaceReportRunsViewData> BuildAsync(int workspaceId, int userId, int reportId)
     {
         var data = new WorkspaceReportRunsViewData();
 
-        var isAdmin = await this._userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
-        var eff = await this._rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+        var isAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(userId, workspaceId);
+        var eff = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
         data.CanViewReports = isAdmin || (eff.TryGetValue("reports", out var rp) && rp.CanView);
 
         if (!data.CanViewReports)

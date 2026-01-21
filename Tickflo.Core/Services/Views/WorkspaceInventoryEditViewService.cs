@@ -5,21 +5,21 @@ using InventoryEntity = Entities.Inventory;
 
 public class WorkspaceInventoryEditViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
-    IRolePermissionRepository rolePerms,
+    IRolePermissionRepository rolePermissionRepository,
     IInventoryRepository inventoryRepo,
-    ILocationRepository locationRepo) : IWorkspaceInventoryEditViewService
+    ILocationRepository locationRepository) : IWorkspaceInventoryEditViewService
 {
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePerms = rolePerms;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
     private readonly IInventoryRepository _inventoryRepo = inventoryRepo;
-    private readonly ILocationRepository _locationRepo = locationRepo;
+    private readonly ILocationRepository locationRepository = locationRepository;
 
     public async Task<WorkspaceInventoryEditViewData> BuildAsync(int workspaceId, int userId, int inventoryId = 0)
     {
         var data = new WorkspaceInventoryEditViewData();
 
-        var isAdmin = await this._userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
-        var eff = await this._rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+        var isAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(userId, workspaceId);
+        var eff = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
 
         if (isAdmin)
         {
@@ -32,7 +32,7 @@ public class WorkspaceInventoryEditViewService(
             data.CanCreateInventory = ip.CanCreate;
         }
 
-        var locations = await this._locationRepo.ListAsync(workspaceId);
+        var locations = await this.locationRepository.ListAsync(workspaceId);
         data.LocationOptions = locations != null ? [.. locations] : [];
 
         if (inventoryId > 0)

@@ -10,7 +10,7 @@ using Tickflo.Core.Services.Views;
 [Authorize]
 public class ReportRunViewModel(IWorkspaceRepository workspaceRepo, IWorkspaceReportRunViewService runViewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
     private readonly IWorkspaceReportRunViewService _runViewService = runViewService;
 
     [BindProperty(SupportsGet = true)]
@@ -58,7 +58,7 @@ public class ReportRunViewModel(IWorkspaceRepository workspaceRepo, IWorkspaceRe
 
         this.DisplayLimit = this.Take;
 
-        var ws = await this._workspaceRepo.FindBySlugAsync(slug);
+        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
         if (ws == null)
         {
             return this.NotFound();

@@ -1,5 +1,6 @@
 namespace Tickflo.Core.Services.Workspace;
 
+using System.Text;
 using Tickflo.Core.Data;
 
 /// <summary>
@@ -16,25 +17,25 @@ public class WorkspaceAccessService(
     private const string CreateAction = "create";
     private const string EditAction = "edit";
     private const string AllTicketsScope = "all";
-    private const string UserNotAdminErrorFormat = "User {0} is not an admin of workspace {1}.";
-    private const string UserNoAccessErrorFormat = "User {0} does not have access to workspace {1}.";
+    private static readonly CompositeFormat UserNotAdminErrorFormat = CompositeFormat.Parse("User {0} is not an admin of workspace {1}.");
+    private static readonly CompositeFormat UserNoAccessErrorFormat = CompositeFormat.Parse("User {0} does not have access to workspace {1}.");
     #endregion
 
-    private readonly IUserWorkspaceRepository _userWorkspaceRepository = userWorkspaceRepository;
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepository = userWorkspaceRoleRepository;
-    private readonly IRolePermissionRepository _rolePermissionRepository = rolePermissionRepository;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepository;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
 
     public async Task<bool> UserHasAccessAsync(int userId, int workspaceId)
     {
-        var userWorkspace = await this._userWorkspaceRepository.FindAsync(userId, workspaceId);
+        var userWorkspace = await this.userWorkspaceRepository.FindAsync(userId, workspaceId);
         return userWorkspace?.Accepted ?? false;
     }
 
-    public async Task<bool> UserIsWorkspaceAdminAsync(int userId, int workspaceId) => await this._userWorkspaceRoleRepository.IsAdminAsync(userId, workspaceId);
+    public async Task<bool> UserIsWorkspaceAdminAsync(int userId, int workspaceId) => await this.userWorkspaceRoleRepository.IsAdminAsync(userId, workspaceId);
 
     public async Task<Dictionary<string, EffectiveSectionPermission>> GetUserPermissionsAsync(int workspaceId, int userId)
     {
-        var permissions = await this._rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+        var permissions = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
         return permissions;
     }
 
@@ -61,7 +62,7 @@ public class WorkspaceAccessService(
             return AllTicketsScope;
         }
 
-        return await this._rolePermissionRepository.GetTicketViewScopeForUserAsync(workspaceId, userId, isAdmin);
+        return await this.rolePermissionRepository.GetTicketViewScopeForUserAsync(workspaceId, userId, isAdmin);
     }
 
     public async Task EnsureAdminAccessAsync(int userId, int workspaceId)
@@ -69,7 +70,7 @@ public class WorkspaceAccessService(
         var isAdmin = await this.UserIsWorkspaceAdminAsync(userId, workspaceId);
         if (!isAdmin)
         {
-            throw new UnauthorizedAccessException(string.Format(UserNotAdminErrorFormat, userId, workspaceId));
+            throw new UnauthorizedAccessException(string.Format(null, UserNotAdminErrorFormat, userId, workspaceId));
         }
     }
 
@@ -78,7 +79,7 @@ public class WorkspaceAccessService(
         var hasAccess = await this.UserHasAccessAsync(userId, workspaceId);
         if (!hasAccess)
         {
-            throw new UnauthorizedAccessException(string.Format(UserNoAccessErrorFormat, userId, workspaceId));
+            throw new UnauthorizedAccessException(string.Format(null, UserNoAccessErrorFormat, userId, workspaceId));
         }
     }
 

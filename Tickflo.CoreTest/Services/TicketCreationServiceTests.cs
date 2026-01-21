@@ -10,16 +10,16 @@ public class TicketCreationServiceTests
     [Fact]
     public async Task CreateTicketAsyncThrowsForInactiveLocation()
     {
-        var ticketRepo = new Mock<ITicketRepository>();
+        var ticketRepository = new Mock<ITicketRepository>();
         var history = new Mock<ITicketHistoryRepository>();
         var uw = new Mock<IUserWorkspaceRepository>();
         var team = new Mock<ITeamRepository>();
         var location = new Mock<ILocationRepository>();
         location.Setup(r => r.FindAsync(1, 9)).ReturnsAsync(new Location { Id = 9, Active = false });
-        var statusRepo = new Mock<ITicketStatusRepository>();
-        var priorityRepo = new Mock<ITicketPriorityRepository>();
-        var typeRepo = new Mock<ITicketTypeRepository>();
-        var svc = new TicketCreationService(ticketRepo.Object, history.Object, uw.Object, team.Object, location.Object, statusRepo.Object, priorityRepo.Object, typeRepo.Object);
+        var statusRepository = new Mock<ITicketStatusRepository>();
+        var priorityRepository = new Mock<ITicketPriorityRepository>();
+        var ticketTypeRepository = new Mock<ITicketTypeRepository>();
+        var svc = new TicketCreationService(ticketRepository.Object, history.Object, uw.Object, team.Object, location.Object, statusRepository.Object, priorityRepository.Object, ticketTypeRepository.Object);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateTicketAsync(1, new TicketCreationRequest { Subject = "S", LocationId = 9 }, 3));
     }
@@ -27,8 +27,8 @@ public class TicketCreationServiceTests
     [Fact]
     public async Task CreateTicketAsyncSetsDefaultsAndLogsHistory()
     {
-        var ticketRepo = new Mock<ITicketRepository>();
-        ticketRepo.Setup(r => r.CreateAsync(It.IsAny<Ticket>(), It.IsAny<CancellationToken>())).ReturnsAsync((Ticket t, CancellationToken _) =>
+        var ticketRepository = new Mock<ITicketRepository>();
+        ticketRepository.Setup(r => r.CreateAsync(It.IsAny<Ticket>(), It.IsAny<CancellationToken>())).ReturnsAsync((Ticket t, CancellationToken _) =>
         {
             t.Id = 10;
             return t;
@@ -38,13 +38,13 @@ public class TicketCreationServiceTests
         uw.Setup(r => r.FindAsync(It.IsAny<int>(), 1)).ReturnsAsync(new UserWorkspace { WorkspaceId = 1, Accepted = true, UserId = 4 });
         var team = new Mock<ITeamRepository>();
         var location = new Mock<ILocationRepository>();
-        var statusRepo = new Mock<ITicketStatusRepository>();
-        statusRepo.Setup(r => r.FindByNameAsync(1, "New")).ReturnsAsync(new TicketStatus { Id = 1, Name = "New" });
-        var priorityRepo = new Mock<ITicketPriorityRepository>();
-        priorityRepo.Setup(r => r.FindAsync(1, "Normal")).ReturnsAsync(new TicketPriority { Id = 1, Name = "Normal" });
-        var typeRepo = new Mock<ITicketTypeRepository>();
-        typeRepo.Setup(r => r.FindByNameAsync(1, "Standard")).ReturnsAsync(new TicketType { Id = 1, Name = "Standard" });
-        var svc = new TicketCreationService(ticketRepo.Object, history.Object, uw.Object, team.Object, location.Object, statusRepo.Object, priorityRepo.Object, typeRepo.Object);
+        var statusRepository = new Mock<ITicketStatusRepository>();
+        statusRepository.Setup(r => r.FindByNameAsync(1, "New")).ReturnsAsync(new TicketStatus { Id = 1, Name = "New" });
+        var priorityRepository = new Mock<ITicketPriorityRepository>();
+        priorityRepository.Setup(r => r.FindAsync(1, "Normal")).ReturnsAsync(new TicketPriority { Id = 1, Name = "Normal" });
+        var ticketTypeRepository = new Mock<ITicketTypeRepository>();
+        ticketTypeRepository.Setup(r => r.FindByNameAsync(1, "Standard")).ReturnsAsync(new TicketType { Id = 1, Name = "Standard" });
+        var svc = new TicketCreationService(ticketRepository.Object, history.Object, uw.Object, team.Object, location.Object, statusRepository.Object, priorityRepository.Object, ticketTypeRepository.Object);
 
         var ticket = await svc.CreateTicketAsync(1, new TicketCreationRequest { Subject = "New" }, 2);
 

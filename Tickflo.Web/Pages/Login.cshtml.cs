@@ -17,7 +17,7 @@ public class LoginModel(ILogger<LoginModel> logger, IAuthenticationService authS
     private const string NoWorkspaceError = "No workspace found for your account. Please contact support.";
     #endregion
 
-    private readonly ILogger<LoginModel> _logger = logger;
+    private readonly ILogger<LoginModel> logger = logger;
     private readonly IAuthenticationService _authService = authService;
 
     [BindProperty]

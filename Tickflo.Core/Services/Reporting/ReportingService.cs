@@ -7,9 +7,10 @@ using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using InventoryEntity = Entities.Inventory;
 
-public class ReportingService(TickfloDbContext db) : IReportingService
+public class ReportingService(TickfloDbContext dbContext) : IReportingService
 {
-    private readonly TickfloDbContext _db = db;
+    private readonly TickfloDbContext dbContext = dbContext;
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     public IReadOnlyDictionary<string, string[]> GetAvailableSources() => new Dictionary<string, string[]>
     {
@@ -126,7 +127,7 @@ public class ReportingService(TickfloDbContext db) : IReportingService
         }
         try
         {
-            var def = JsonSerializer.Deserialize<ReportDef>(json!, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? throw new Exception("Invalid definition");
+            var def = JsonSerializer.Deserialize<ReportDef>(json, JsonOptions) ?? throw new InvalidOperationException("Failed to parse report definition.");
 
             return def;
         }
@@ -154,13 +155,13 @@ public class ReportingService(TickfloDbContext db) : IReportingService
 
     private async Task<int> QueryTickets(int workspaceId, ReportDef def, CancellationToken ct)
     {
-        var q = this._db.Tickets.AsNoTracking().Where(t => t.WorkspaceId == workspaceId);
+        var q = this.dbContext.Tickets.AsNoTracking().Where(t => t.WorkspaceId == workspaceId);
         var filterLocationIds = ExtractLocationFilterIds(def.Filters);
         var chargeLocationIds = ExtractChargeLocationFilterIds(def.Filters) ?? filterLocationIds;
         q = this.ApplyTicketFilters(q, def.Filters, workspaceId);
         q = ApplyTicketOrdering(q, def.OrderBy);
         var list = await q.ToListAsync(ct);
-        this._currentRows.Clear();
+        this.currentRows.Clear();
         foreach (var t in list)
         {
             var row = new Dictionary<string, object?>();
@@ -184,15 +185,15 @@ public class ReportingService(TickfloDbContext db) : IReportingService
                     _ => null
                 };
             }
-            this._currentRows.Add(row);
+            this.currentRows.Add(row);
         }
-        return this._currentRows.Count;
+        return this.currentRows.Count;
     }
 
     private decimal ComputeTicketCharge(int ticketId, int workspaceId)
     {
-        var query = from ti in this._db.TicketInventories.AsNoTracking()
-                    join inv in this._db.Inventory.AsNoTracking() on ti.InventoryId equals inv.Id
+        var query = from ti in this.dbContext.TicketInventories.AsNoTracking()
+                    join inv in this.dbContext.Inventory.AsNoTracking() on ti.InventoryId equals inv.Id
                     where ti.TicketId == ticketId && inv.WorkspaceId == workspaceId
                     select new { ti.Quantity, ti.UnitPrice, inv.Price };
         var lines = query.ToList();
@@ -208,13 +209,13 @@ public class ReportingService(TickfloDbContext db) : IReportingService
     private decimal ComputeTicketChargeForLocations(int ticketId, List<int>? locationIds, int workspaceId)
     {
         // Pull ticket line items joined to inventory; optionally restrict to a location
-        var query = from ti in this._db.TicketInventories.AsNoTracking()
-                    join inv in this._db.Inventory.AsNoTracking() on ti.InventoryId equals inv.Id
+        var query = from ti in this.dbContext.TicketInventories.AsNoTracking()
+                    join inv in this.dbContext.Inventory.AsNoTracking() on ti.InventoryId equals inv.Id
                     where ti.TicketId == ticketId && inv.WorkspaceId == workspaceId
                     select new { ti.Quantity, ti.UnitPrice, inv.LocationId, inv.Price };
         if (locationIds is { Count: > 0 })
         {
-            query = query.Where(x => x.LocationId != null && locationIds.Contains(x.LocationId!.Value));
+            query = query.Where(x => x.LocationId != null && locationIds.Contains(x.LocationId.Value));
         }
         var lines = query.ToList();
         var sum = 0m;
@@ -228,11 +229,11 @@ public class ReportingService(TickfloDbContext db) : IReportingService
 
     private async Task<int> QueryContacts(int workspaceId, ReportDef def, CancellationToken ct)
     {
-        var q = this._db.Contacts.AsNoTracking().Where(c => c.WorkspaceId == workspaceId);
+        var q = this.dbContext.Contacts.AsNoTracking().Where(c => c.WorkspaceId == workspaceId);
         q = ApplyContactFilters(q, def.Filters);
         q = ApplyContactOrdering(q, def.OrderBy);
         var list = await q.ToListAsync(ct);
-        this._currentRows.Clear();
+        this.currentRows.Clear();
         foreach (var c in list)
         {
             var row = new Dictionary<string, object?>();
@@ -254,24 +255,24 @@ public class ReportingService(TickfloDbContext db) : IReportingService
                     _ => null
                 };
             }
-            this._currentRows.Add(row);
+            this.currentRows.Add(row);
         }
-        return this._currentRows.Count;
+        return this.currentRows.Count;
     }
 
     private async Task<int> QueryLocations(int workspaceId, ReportDef def, CancellationToken ct)
     {
-        var q = this._db.Locations.AsNoTracking().Where(l => l.WorkspaceId == workspaceId);
+        var q = this.dbContext.Locations.AsNoTracking().Where(l => l.WorkspaceId == workspaceId);
         q = ApplyLocationFilters(q, def.Filters);
         var list = await q.ToListAsync(ct);
-        this._currentRows.Clear();
+        this.currentRows.Clear();
         foreach (var l in list)
         {
-            var invCount = await this._db.Inventory.AsNoTracking().CountAsync(i => i.WorkspaceId == workspaceId && i.LocationId == l.Id, ct);
+            var invCount = await this.dbContext.Inventory.AsNoTracking().CountAsync(i => i.WorkspaceId == workspaceId && i.LocationId == l.Id, ct);
             // Tickets counted by InventoryEntity present at this location
-            var ticketJoin = from ti in this._db.TicketInventories.AsNoTracking()
-                             join i in this._db.Inventory.AsNoTracking() on ti.InventoryId equals i.Id
-                             join t in this._db.Tickets.AsNoTracking() on ti.TicketId equals t.Id
+            var ticketJoin = from ti in this.dbContext.TicketInventories.AsNoTracking()
+                             join i in this.dbContext.Inventory.AsNoTracking() on ti.InventoryId equals i.Id
+                             join t in this.dbContext.Tickets.AsNoTracking() on ti.TicketId equals t.Id
                              where i.WorkspaceId == workspaceId && i.LocationId == l.Id && t.WorkspaceId == workspaceId
                              select t;
             var totalTickets = await ticketJoin.Select(t => t.Id).Distinct().CountAsync(ct);
@@ -294,21 +295,21 @@ public class ReportingService(TickfloDbContext db) : IReportingService
                     _ => null
                 };
             }
-            this._currentRows.Add(row);
+            this.currentRows.Add(row);
         }
-        return this._currentRows.Count;
+        return this.currentRows.Count;
     }
 
     private async Task<int> QueryInventory(int workspaceId, ReportDef def, CancellationToken ct)
     {
-        var q = this._db.Inventory.AsNoTracking().Where(i => i.WorkspaceId == workspaceId);
+        var q = this.dbContext.Inventory.AsNoTracking().Where(i => i.WorkspaceId == workspaceId);
         q = ApplyInventoryFilters(q, def.Filters);
         var list = await q.ToListAsync(ct);
-        this._currentRows.Clear();
+        this.currentRows.Clear();
         foreach (var i in list)
         {
-            var ticketJoin = from ti in this._db.TicketInventories.AsNoTracking()
-                             join t in this._db.Tickets.AsNoTracking() on ti.TicketId equals t.Id
+            var ticketJoin = from ti in this.dbContext.TicketInventories.AsNoTracking()
+                             join t in this.dbContext.Tickets.AsNoTracking() on ti.TicketId equals t.Id
                              where ti.InventoryId == i.Id && t.WorkspaceId == workspaceId
                              select t;
             var totalTickets = await ticketJoin.Select(t => t.Id).Distinct().CountAsync(ct);
@@ -341,9 +342,9 @@ public class ReportingService(TickfloDbContext db) : IReportingService
                     _ => null
                 };
             }
-            this._currentRows.Add(row);
+            this.currentRows.Add(row);
         }
-        return this._currentRows.Count;
+        return this.currentRows.Count;
     }
 
     private IQueryable<Ticket> ApplyTicketFilters(IQueryable<Ticket> q, List<FilterDef> filters, int workspaceId)
@@ -405,16 +406,16 @@ public class ReportingService(TickfloDbContext db) : IReportingService
                 case "LocationId":
                     if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var lid))
                     {
-                        q = q.Where(t => this._db.TicketInventories.Any(ti => ti.TicketId == t.Id &&
-                                                              this._db.Inventory.Any(i => i.Id == ti.InventoryId && i.LocationId == lid && i.WorkspaceId == workspaceId)));
+                        q = q.Where(t => this.dbContext.TicketInventories.Any(ti => ti.TicketId == t.Id &&
+                                                              this.dbContext.Inventory.Any(i => i.Id == ti.InventoryId && i.LocationId == lid && i.WorkspaceId == workspaceId)));
                     }
                     else if (f.Op == "in" && f.Value.ValueKind == JsonValueKind.Array)
                     {
                         var lids = ExtractIntArray(f.Value);
                         if (lids.Count > 0)
                         {
-                            q = q.Where(t => this._db.TicketInventories.Any(ti => ti.TicketId == t.Id &&
-                                                          this._db.Inventory.Any(i => i.Id == ti.InventoryId && i.LocationId != null && lids.Contains(i.LocationId.Value) && i.WorkspaceId == workspaceId)));
+                            q = q.Where(t => this.dbContext.TicketInventories.Any(ti => ti.TicketId == t.Id &&
+                                                          this.dbContext.Inventory.Any(i => i.Id == ti.InventoryId && i.LocationId != null && lids.Contains(i.LocationId.Value) && i.WorkspaceId == workspaceId)));
                         }
                     }
                     break;
@@ -634,7 +635,8 @@ public class ReportingService(TickfloDbContext db) : IReportingService
         return q;
     }
 
-    private readonly List<IDictionary<string, object?>> _currentRows = [];
+    // TODO: This is horrible
+    private readonly List<IDictionary<string, object?>> currentRows = [];
 
     private static List<string>? ReadCsvRecord(StreamReader sr)
     {
@@ -721,7 +723,7 @@ public class ReportingService(TickfloDbContext db) : IReportingService
     {
         var sb = new StringBuilder();
         sb.AppendLine(string.Join(',', headers.Select(this.EscapeCsv)));
-        foreach (var row in this._currentRows)
+        foreach (var row in this.currentRows)
         {
             var vals = headers.Select(h => this.EscapeCsv(FormatCsv(row.TryGetValue(h, out var v) ? v : null)));
             sb.AppendLine(string.Join(',', vals));

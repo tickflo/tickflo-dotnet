@@ -8,9 +8,9 @@ using Tickflo.Core.Services.Common;
 using Tickflo.Core.Services.Storage;
 
 [Authorize]
-public class ProfileAvatarUploadModel(IUserRepository userRepo, IImageStorageService imageStorageService, ICurrentUserService currentUserService) : PageModel
+public class ProfileAvatarUploadModel(IUserRepository userRepository, IImageStorageService imageStorageService, ICurrentUserService currentUserService) : PageModel
 {
-    private readonly IUserRepository _userRepo = userRepo;
+    private readonly IUserRepository userRepository = userRepository;
     private readonly IImageStorageService _imageStorageService = imageStorageService;
     private readonly ICurrentUserService _currentUserService = currentUserService;
     public string UserId { get; set; } = "";

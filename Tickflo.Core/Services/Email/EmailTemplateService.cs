@@ -1,15 +1,16 @@
 namespace Tickflo.Core.Services.Email;
 
+using System.Text;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
-public class EmailTemplateService(IEmailTemplateRepository templateRepo) : IEmailTemplateService
+public class EmailTemplateService(IEmailTemplateRepository emailTemplateRepository) : IEmailTemplateService
 {
     #region Constants
-    private const string TemplateNotFoundErrorFormat = "Email template with type ID {0} not found.";
+    private static readonly CompositeFormat TemplateNotFoundErrorFormat = CompositeFormat.Parse("Email template with type ID {0} not found.");
     #endregion
 
-    private readonly IEmailTemplateRepository _templateRepo = templateRepo;
+    private readonly IEmailTemplateRepository emailTemplateRepository = emailTemplateRepository;
 
     public async Task<(string subject, string body)> RenderTemplateAsync(
         EmailTemplateType templateType,
@@ -26,7 +27,7 @@ public class EmailTemplateService(IEmailTemplateRepository templateRepo) : IEmai
 
     private async Task<EmailTemplate> GetTemplateOrThrowAsync(EmailTemplateType templateType, int? workspaceId)
     {
-        var template = await this._templateRepo.FindByTypeAsync(templateType, workspaceId) ?? throw new InvalidOperationException(string.Format(TemplateNotFoundErrorFormat, (int)templateType));
+        var template = await this.emailTemplateRepository.FindByTypeAsync(templateType, workspaceId) ?? throw new InvalidOperationException(string.Format(null, TemplateNotFoundErrorFormat, (int)templateType));
 
         return template;
     }

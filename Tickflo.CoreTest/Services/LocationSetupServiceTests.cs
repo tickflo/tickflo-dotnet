@@ -12,8 +12,8 @@ public class LocationSetupServiceTests
     {
         var repo = new Mock<ILocationRepository>();
         repo.Setup(r => r.ListAsync(1)).ReturnsAsync([new() { Name = "Main" }]);
-        var contactRepo = Mock.Of<IContactRepository>();
-        var svc = new LocationSetupService(repo.Object, contactRepo);
+        var contactRepository = Mock.Of<IContactRepository>();
+        var svc = new LocationSetupService(repo.Object, contactRepository);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateLocationAsync(1, new LocationCreationRequest { Name = "Main" }, 9));
     }

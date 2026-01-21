@@ -5,15 +5,15 @@ using Tickflo.Core.Config;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Utils;
 
-public class TokenRepository(TickfloDbContext db, TickfloConfig config) : ITokenRepository
+public class TokenRepository(TickfloDbContext dbContext, TickfloConfig config) : ITokenRepository
 {
-    private readonly TickfloDbContext _db = db;
+    private readonly TickfloDbContext dbContext = dbContext;
     private readonly TickfloConfig _config = config;
 
     public Task<Token?> FindByUserIdAsync(int userId)
     {
         var now = DateTime.UtcNow;
-        return this._db.Tokens
+        return this.dbContext.Tokens
             .Where(t => t.UserId == userId && now < t.CreatedAt.AddSeconds(t.MaxAge))
             .OrderByDescending(t => t.CreatedAt)
             .FirstOrDefaultAsync();
@@ -22,7 +22,7 @@ public class TokenRepository(TickfloDbContext db, TickfloConfig config) : IToken
     public Task<Token?> FindByValueAsync(string value)
     {
         var now = DateTime.UtcNow;
-        return this._db.Tokens
+        return this.dbContext.Tokens
             .Where(t => t.Value == value && now < t.CreatedAt.AddSeconds(t.MaxAge))
             .OrderByDescending(t => t.CreatedAt)
             .FirstOrDefaultAsync();
@@ -38,8 +38,8 @@ public class TokenRepository(TickfloDbContext db, TickfloConfig config) : IToken
             CreatedAt = DateTime.UtcNow
         };
 
-        this._db.Tokens.Add(token);
-        await this._db.SaveChangesAsync();
+        this.dbContext.Tokens.Add(token);
+        await this.dbContext.SaveChangesAsync();
 
         return token;
     }
@@ -54,8 +54,8 @@ public class TokenRepository(TickfloDbContext db, TickfloConfig config) : IToken
             CreatedAt = DateTime.UtcNow
         };
 
-        this._db.Tokens.Add(token);
-        await this._db.SaveChangesAsync();
+        this.dbContext.Tokens.Add(token);
+        await this.dbContext.SaveChangesAsync();
 
         return token;
     }

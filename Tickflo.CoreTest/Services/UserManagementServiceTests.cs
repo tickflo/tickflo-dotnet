@@ -8,12 +8,12 @@ using Xunit;
 public class UserManagementServiceTests
 {
     private static IUserManagementService CreateService(
-        IUserRepository? userRepo = null,
+        IUserRepository? userRepository = null,
         IPasswordHasher? hasher = null)
     {
-        userRepo ??= Mock.Of<IUserRepository>();
+        userRepository ??= Mock.Of<IUserRepository>();
         hasher ??= new MockPasswordHasher();
-        return new UserManagementService(userRepo, hasher);
+        return new UserManagementService(userRepository, hasher);
     }
 
     [Fact]

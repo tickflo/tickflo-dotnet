@@ -10,9 +10,9 @@ public class WorkspaceAccessServiceTests
     [Fact]
     public async Task EnsureAdminAccessAsyncThrowsWhenNotAdmin()
     {
-        var uwr = new Mock<IUserWorkspaceRoleRepository>();
-        uwr.Setup(r => r.IsAdminAsync(5, 1)).ReturnsAsync(false);
-        var svc = new WorkspaceAccessService(Mock.Of<IUserWorkspaceRepository>(), uwr.Object, Mock.Of<IRolePermissionRepository>());
+        var userWorkspaceRoleRepository = new Mock<IUserWorkspaceRoleRepository>();
+        userWorkspaceRoleRepository.Setup(r => r.IsAdminAsync(5, 1)).ReturnsAsync(false);
+        var svc = new WorkspaceAccessService(Mock.Of<IUserWorkspaceRepository>(), userWorkspaceRoleRepository.Object, Mock.Of<IRolePermissionRepository>());
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.EnsureAdminAccessAsync(5, 1));
     }
@@ -20,13 +20,13 @@ public class WorkspaceAccessServiceTests
     [Fact]
     public async Task EnsureAdminAccessAsyncSucceedsForAdmin()
     {
-        var uwr = new Mock<IUserWorkspaceRoleRepository>();
-        uwr.Setup(r => r.IsAdminAsync(5, 1)).ReturnsAsync(true);
-        var svc = new WorkspaceAccessService(Mock.Of<IUserWorkspaceRepository>(), uwr.Object, Mock.Of<IRolePermissionRepository>());
+        var userWorkspaceRoleRepository = new Mock<IUserWorkspaceRoleRepository>();
+        userWorkspaceRoleRepository.Setup(r => r.IsAdminAsync(5, 1)).ReturnsAsync(true);
+        var svc = new WorkspaceAccessService(Mock.Of<IUserWorkspaceRepository>(), userWorkspaceRoleRepository.Object, Mock.Of<IRolePermissionRepository>());
 
         // Should not throw
         await svc.EnsureAdminAccessAsync(5, 1);
-        uwr.Verify(r => r.IsAdminAsync(5, 1), Times.Once);
+        userWorkspaceRoleRepository.Verify(r => r.IsAdminAsync(5, 1), Times.Once);
     }
 
     [Fact]
@@ -65,9 +65,9 @@ public class WorkspaceAccessServiceTests
     [Fact]
     public async Task UserIsWorkspaceAdminAsyncReturnsTrueForAdmin()
     {
-        var uwr = new Mock<IUserWorkspaceRoleRepository>();
-        uwr.Setup(r => r.IsAdminAsync(5, 1)).ReturnsAsync(true);
-        var svc = new WorkspaceAccessService(Mock.Of<IUserWorkspaceRepository>(), uwr.Object, Mock.Of<IRolePermissionRepository>());
+        var userWorkspaceRoleRepository = new Mock<IUserWorkspaceRoleRepository>();
+        userWorkspaceRoleRepository.Setup(r => r.IsAdminAsync(5, 1)).ReturnsAsync(true);
+        var svc = new WorkspaceAccessService(Mock.Of<IUserWorkspaceRepository>(), userWorkspaceRoleRepository.Object, Mock.Of<IRolePermissionRepository>());
 
         var result = await svc.UserIsWorkspaceAdminAsync(5, 1);
         Assert.True(result);
@@ -76,9 +76,9 @@ public class WorkspaceAccessServiceTests
     [Fact]
     public async Task UserIsWorkspaceAdminAsyncReturnsFalseForNonAdmin()
     {
-        var uwr = new Mock<IUserWorkspaceRoleRepository>();
-        uwr.Setup(r => r.IsAdminAsync(5, 1)).ReturnsAsync(false);
-        var svc = new WorkspaceAccessService(Mock.Of<IUserWorkspaceRepository>(), uwr.Object, Mock.Of<IRolePermissionRepository>());
+        var userWorkspaceRoleRepository = new Mock<IUserWorkspaceRoleRepository>();
+        userWorkspaceRoleRepository.Setup(r => r.IsAdminAsync(5, 1)).ReturnsAsync(false);
+        var svc = new WorkspaceAccessService(Mock.Of<IUserWorkspaceRepository>(), userWorkspaceRoleRepository.Object, Mock.Of<IRolePermissionRepository>());
 
         var result = await svc.UserIsWorkspaceAdminAsync(5, 1);
         Assert.False(result);
@@ -87,15 +87,15 @@ public class WorkspaceAccessServiceTests
     [Fact]
     public async Task GetUserPermissionsAsyncReturnsPermissionsFromRepository()
     {
-        var rolePerms = new Mock<IRolePermissionRepository>();
+        var rolePermissionRepository = new Mock<IRolePermissionRepository>();
 
-        rolePerms.Setup(r => r.GetEffectivePermissionsForUserAsync(1, 5)).ReturnsAsync(
+        rolePermissionRepository.Setup(r => r.GetEffectivePermissionsForUserAsync(1, 5)).ReturnsAsync(
             new Dictionary<string, EffectiveSectionPermission>
             {
                 { "tickets", new EffectiveSectionPermission { Section = "tickets", CanView = true, CanCreate = true, CanEdit = true } }
             });
 
-        var svc = new WorkspaceAccessService(Mock.Of<IUserWorkspaceRepository>(), Mock.Of<IUserWorkspaceRoleRepository>(), rolePerms.Object);
+        var svc = new WorkspaceAccessService(Mock.Of<IUserWorkspaceRepository>(), Mock.Of<IUserWorkspaceRoleRepository>(), rolePermissionRepository.Object);
 
         var result = await svc.GetUserPermissionsAsync(1, 5);
 
@@ -108,10 +108,10 @@ public class WorkspaceAccessServiceTests
     [Fact]
     public async Task CanUserPerformActionAsyncReturnsTrueForAdmin()
     {
-        var uwr = new Mock<IUserWorkspaceRoleRepository>();
-        uwr.Setup(r => r.IsAdminAsync(5, 1)).ReturnsAsync(true);
+        var userWorkspaceRoleRepository = new Mock<IUserWorkspaceRoleRepository>();
+        userWorkspaceRoleRepository.Setup(r => r.IsAdminAsync(5, 1)).ReturnsAsync(true);
 
-        var svc = new WorkspaceAccessService(Mock.Of<IUserWorkspaceRepository>(), uwr.Object, Mock.Of<IRolePermissionRepository>());
+        var svc = new WorkspaceAccessService(Mock.Of<IUserWorkspaceRepository>(), userWorkspaceRoleRepository.Object, Mock.Of<IRolePermissionRepository>());
 
         var result = await svc.CanUserPerformActionAsync(1, 5, "tickets", "view");
         Assert.True(result);

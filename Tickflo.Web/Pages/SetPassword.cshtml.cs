@@ -11,7 +11,7 @@ public class SetPasswordModel(
     ILogger<SetPasswordModel> logger,
     IPasswordSetupService passwordSetupService) : PageModel
 {
-    private readonly ILogger<SetPasswordModel> _logger = logger;
+    private readonly ILogger<SetPasswordModel> logger = logger;
     private readonly IPasswordSetupService _passwordSetupService = passwordSetupService;
 
     [BindProperty]

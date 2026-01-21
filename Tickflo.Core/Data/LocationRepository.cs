@@ -3,18 +3,19 @@ namespace Tickflo.Core.Data;
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
 
-public class LocationRepository(TickfloDbContext db) : ILocationRepository
+public class LocationRepository(TickfloDbContext dbContext) : ILocationRepository
 {
+    private readonly TickfloDbContext dbContext = dbContext;
     public async Task<IReadOnlyList<Location>> ListAsync(int workspaceId)
-        => await db.Locations.Where(l => l.WorkspaceId == workspaceId).OrderBy(l => l.Name).ToListAsync();
+        => await this.dbContext.Locations.Where(l => l.WorkspaceId == workspaceId).OrderBy(l => l.Name).ToListAsync();
 
     public async Task<Location?> FindAsync(int workspaceId, int id)
-        => await db.Locations.FirstOrDefaultAsync(l => l.WorkspaceId == workspaceId && l.Id == id);
+        => await this.dbContext.Locations.FirstOrDefaultAsync(l => l.WorkspaceId == workspaceId && l.Id == id);
 
     public async Task<Location> CreateAsync(Location location)
     {
-        db.Locations.Add(location);
-        await db.SaveChangesAsync();
+        this.dbContext.Locations.Add(location);
+        await this.dbContext.SaveChangesAsync();
         return location;
     }
 
@@ -30,7 +31,7 @@ public class LocationRepository(TickfloDbContext db) : ILocationRepository
         existing.Address = location.Address;
         existing.Active = location.Active;
         existing.DefaultAssigneeUserId = location.DefaultAssigneeUserId;
-        await db.SaveChangesAsync();
+        await this.dbContext.SaveChangesAsync();
         return existing;
     }
 
@@ -42,20 +43,20 @@ public class LocationRepository(TickfloDbContext db) : ILocationRepository
             return false;
         }
 
-        db.Locations.Remove(loc);
-        await db.SaveChangesAsync();
+        this.dbContext.Locations.Remove(loc);
+        await this.dbContext.SaveChangesAsync();
         return true;
     }
 
     public async Task<IReadOnlyList<int>> ListContactIdsAsync(int workspaceId, int locationId)
-        => await db.ContactLocations
+        => await this.dbContext.ContactLocations
             .Where(cl => cl.WorkspaceId == workspaceId && cl.LocationId == locationId)
             .Select(cl => cl.ContactId)
             .ToListAsync();
 
     public async Task SetContactsAsync(int workspaceId, int locationId, IReadOnlyList<int> contactIds)
     {
-        var existing = await db.ContactLocations
+        var existing = await this.dbContext.ContactLocations
             .Where(cl => cl.WorkspaceId == workspaceId && cl.LocationId == locationId)
             .ToListAsync();
         var newSet = contactIds.Distinct().ToHashSet();
@@ -63,7 +64,7 @@ public class LocationRepository(TickfloDbContext db) : ILocationRepository
         {
             if (!newSet.Contains(row.ContactId))
             {
-                db.ContactLocations.Remove(row);
+                this.dbContext.ContactLocations.Remove(row);
             }
         }
         var existingSet = existing.Select(e => e.ContactId).ToHashSet();
@@ -71,19 +72,19 @@ public class LocationRepository(TickfloDbContext db) : ILocationRepository
         {
             if (!existingSet.Contains(cid))
             {
-                db.ContactLocations.Add(new ContactLocation { WorkspaceId = workspaceId, LocationId = locationId, ContactId = cid });
+                this.dbContext.ContactLocations.Add(new ContactLocation { WorkspaceId = workspaceId, LocationId = locationId, ContactId = cid });
             }
         }
-        await db.SaveChangesAsync();
+        await this.dbContext.SaveChangesAsync();
     }
 
     public async Task<IReadOnlyList<string>> ListContactNamesAsync(int workspaceId, int locationId, int limit = 3)
     {
-        var query = from cl in db.ContactLocations
-                    join c in db.Contacts on new { cl.WorkspaceId, cl.ContactId } equals new { c.WorkspaceId, ContactId = c.Id }
+        var query = from cl in this.dbContext.ContactLocations
+                    join c in this.dbContext.Contacts on new { cl.WorkspaceId, cl.ContactId } equals new { c.WorkspaceId, ContactId = c.Id }
                     where cl.WorkspaceId == workspaceId && cl.LocationId == locationId
                     orderby c.Name
-                    select (c.Name ?? c.Email)!
+                    select (c.Name ?? c.Email)
                     ;
         if (limit > 0)
         {

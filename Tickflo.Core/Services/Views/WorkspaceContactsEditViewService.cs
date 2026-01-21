@@ -4,21 +4,21 @@ using Tickflo.Core.Data;
 
 public class WorkspaceContactsEditViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
-    IRolePermissionRepository rolePerms,
-    IContactRepository contactRepo,
-    ITicketPriorityRepository priorityRepo) : IWorkspaceContactsEditViewService
+    IRolePermissionRepository rolePermissionRepository,
+    IContactRepository contactRepository,
+    ITicketPriorityRepository priorityRepository) : IWorkspaceContactsEditViewService
 {
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePerms = rolePerms;
-    private readonly IContactRepository _contactRepo = contactRepo;
-    private readonly ITicketPriorityRepository _priorityRepo = priorityRepo;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
+    private readonly IContactRepository contactRepository = contactRepository;
+    private readonly ITicketPriorityRepository priorityRepository = priorityRepository;
 
     public async Task<WorkspaceContactsEditViewData> BuildAsync(int workspaceId, int userId, int contactId = 0)
     {
         var data = new WorkspaceContactsEditViewData();
 
-        var isAdmin = await this._userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
-        var eff = await this._rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+        var isAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(userId, workspaceId);
+        var eff = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
 
         if (isAdmin)
         {
@@ -31,12 +31,12 @@ public class WorkspaceContactsEditViewService(
             data.CanCreateContacts = cp.CanCreate;
         }
 
-        var priorities = await this._priorityRepo.ListAsync(workspaceId);
+        var priorities = await this.priorityRepository.ListAsync(workspaceId);
         data.Priorities = priorities != null ? [.. priorities] : [];
 
         if (contactId > 0)
         {
-            data.ExistingContact = await this._contactRepo.FindAsync(workspaceId, contactId);
+            data.ExistingContact = await this.contactRepository.FindAsync(workspaceId, contactId);
         }
 
         return data;

@@ -23,9 +23,9 @@ public class InventoryAllocationServiceTests
     {
         var repo = new Mock<IInventoryRepository>();
         repo.Setup(r => r.FindAsync(1, 5)).ReturnsAsync(new Inventory { Id = 5 });
-        var locationRepo = new Mock<ILocationRepository>();
-        locationRepo.Setup(r => r.FindAsync(1, 9)).ReturnsAsync(new Location { Id = 9, Active = false });
-        var svc = new InventoryAllocationService(repo.Object, locationRepo.Object);
+        var locationRepository = new Mock<ILocationRepository>();
+        locationRepository.Setup(r => r.FindAsync(1, 9)).ReturnsAsync(new Location { Id = 9, Active = false });
+        var svc = new InventoryAllocationService(repo.Object, locationRepository.Object);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => svc.AllocateToLocationAsync(1, 5, 9, 3));
     }

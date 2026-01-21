@@ -22,7 +22,7 @@ public class TicketCommentService(ITicketCommentRepository commentRepo) : ITicke
         // Business rule: Client view shows only comments marked as client-visible
         if (isClientView)
         {
-            return comments.Where(c => c.IsVisibleToClient).ToList();
+            return [.. comments.Where(c => c.IsVisibleToClient)];
         }
 
         // Internal view shows all comments (no filtering)

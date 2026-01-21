@@ -1,5 +1,6 @@
 namespace Tickflo.Core.Services.Tickets;
 
+using System.Text;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
@@ -7,10 +8,10 @@ using Tickflo.Core.Entities;
 /// Handles the business workflow of updating ticket information and tracking changes.
 /// </summary>
 public class TicketUpdateService(
-    ITicketRepository ticketRepo,
-    ITicketHistoryRepository historyRepo,
-    ITicketStatusRepository statusRepo,
-    ITicketPriorityRepository priorityRepo) : ITicketUpdateService
+    ITicketRepository ticketRepository,
+    ITicketHistoryRepository historyRepository,
+    ITicketStatusRepository statusRepository,
+    ITicketPriorityRepository priorityRepository) : ITicketUpdateService
 {
     private const string ActionUpdated = "updated";
     private const string ActionPriorityChanged = "priority_changed";
@@ -19,21 +20,21 @@ public class TicketUpdateService(
 
     private const string ErrorTicketNotFound = "Ticket not found";
     private const string ErrorPriorityEmpty = "Priority cannot be empty";
-    private const string ErrorPriorityNotFound = "Priority '{0}' not found in workspace";
+    private static readonly CompositeFormat ErrorPriorityNotFound = CompositeFormat.Parse("Priority '{0}' not found in workspace");
     private const string ErrorStatusEmpty = "Status cannot be empty";
-    private const string ErrorStatusNotFound = "Status '{0}' not found in workspace";
+    private static readonly CompositeFormat ErrorStatusNotFound = CompositeFormat.Parse("Status '{0}' not found in workspace");
     private const string ErrorNoteEmpty = "Note cannot be empty";
 
-    private readonly ITicketRepository _ticketRepo = ticketRepo;
-    private readonly ITicketHistoryRepository _historyRepo = historyRepo;
-    private readonly ITicketStatusRepository _statusRepo = statusRepo;
-    private readonly ITicketPriorityRepository _priorityRepo = priorityRepo;
+    private readonly ITicketRepository ticketRepository = ticketRepository;
+    private readonly ITicketHistoryRepository historyRepository = historyRepository;
+    private readonly ITicketStatusRepository statusRepository = statusRepository;
+    private readonly ITicketPriorityRepository priorityRepository = priorityRepository;
 
     // Backward-compatible constructor
     public TicketUpdateService(
-        ITicketRepository ticketRepo,
-        ITicketHistoryRepository historyRepo)
-        : this(ticketRepo, historyRepo, statusRepo: null!, priorityRepo: null!)
+        ITicketRepository ticketRepository,
+        ITicketHistoryRepository historyRepository)
+        : this(ticketRepository, historyRepository, statusRepository: null!, priorityRepository: null!)
     { }
 
     /// <summary>
@@ -52,7 +53,7 @@ public class TicketUpdateService(
         {
             ApplyTicketChanges(ticket, request);
             ticket.UpdatedAt = DateTime.UtcNow;
-            await this._ticketRepo.UpdateAsync(ticket);
+            await this.ticketRepository.UpdateAsync(ticket);
             await this.LogChangesAsync(workspaceId, ticketId, updatedByUserId, changes);
         }
 
@@ -61,7 +62,7 @@ public class TicketUpdateService(
 
     private async Task<Ticket> GetTicketOrThrowAsync(int workspaceId, int ticketId)
     {
-        var ticket = await this._ticketRepo.FindAsync(workspaceId, ticketId) ?? throw new InvalidOperationException(ErrorTicketNotFound);
+        var ticket = await this.ticketRepository.FindAsync(workspaceId, ticketId) ?? throw new InvalidOperationException(ErrorTicketNotFound);
 
         return ticket;
     }
@@ -124,7 +125,7 @@ public class TicketUpdateService(
         }
     }
 
-    private async Task LogChangesAsync(int workspaceId, int ticketId, int updatedByUserId, List<string> changes) => await this._historyRepo.CreateAsync(new TicketHistory
+    private async Task LogChangesAsync(int workspaceId, int ticketId, int updatedByUserId, List<string> changes) => await this.historyRepository.CreateAsync(new TicketHistory
     {
         WorkspaceId = workspaceId,
         TicketId = ticketId,
@@ -151,7 +152,7 @@ public class TicketUpdateService(
         ticket.PriorityId = priority.Id;
         ticket.UpdatedAt = DateTime.UtcNow;
 
-        await this._ticketRepo.UpdateAsync(ticket);
+        await this.ticketRepository.UpdateAsync(ticket);
         await this.LogPriorityChangeAsync(workspaceId, ticketId, updatedByUserId, priority.Name, reason);
 
         return ticket;
@@ -159,7 +160,7 @@ public class TicketUpdateService(
 
     private async Task<TicketPriority> GetPriorityOrThrowAsync(int workspaceId, string priorityName)
     {
-        var priority = await this._priorityRepo.FindAsync(workspaceId, priorityName.Trim()) ?? throw new InvalidOperationException(string.Format(ErrorPriorityNotFound, priorityName));
+        var priority = await this.priorityRepository.FindAsync(workspaceId, priorityName.Trim()) ?? throw new InvalidOperationException(string.Format(null, ErrorPriorityNotFound, priorityName));
 
         return priority;
     }
@@ -173,7 +174,7 @@ public class TicketUpdateService(
     {
         var note = BuildChangeNote($"Priority changed to '{priorityName}'", reason);
 
-        await this._historyRepo.CreateAsync(new TicketHistory
+        await this.historyRepository.CreateAsync(new TicketHistory
         {
             WorkspaceId = workspaceId,
             TicketId = ticketId,
@@ -201,7 +202,7 @@ public class TicketUpdateService(
         ticket.StatusId = status.Id;
         ticket.UpdatedAt = DateTime.UtcNow;
 
-        await this._ticketRepo.UpdateAsync(ticket);
+        await this.ticketRepository.UpdateAsync(ticket);
         await this.LogStatusChangeAsync(workspaceId, ticketId, updatedByUserId, status.Name, reason);
 
         return ticket;
@@ -209,7 +210,7 @@ public class TicketUpdateService(
 
     private async Task<TicketStatus> GetStatusOrThrowAsync(int workspaceId, string statusName)
     {
-        var status = await this._statusRepo.FindByNameAsync(workspaceId, statusName.Trim()) ?? throw new InvalidOperationException(string.Format(ErrorStatusNotFound, statusName));
+        var status = await this.statusRepository.FindByNameAsync(workspaceId, statusName.Trim()) ?? throw new InvalidOperationException(string.Format(null, ErrorStatusNotFound, statusName));
 
         return status;
     }
@@ -223,7 +224,7 @@ public class TicketUpdateService(
     {
         var note = BuildChangeNote($"Status changed to '{statusName}'", reason);
 
-        await this._historyRepo.CreateAsync(new TicketHistory
+        await this.historyRepository.CreateAsync(new TicketHistory
         {
             WorkspaceId = workspaceId,
             TicketId = ticketId,
@@ -245,7 +246,7 @@ public class TicketUpdateService(
         var ticket = await this.GetTicketOrThrowAsync(workspaceId, ticketId);
         ValidateNotEmpty(note, ErrorNoteEmpty);
 
-        await this._historyRepo.CreateAsync(new TicketHistory
+        await this.historyRepository.CreateAsync(new TicketHistory
         {
             WorkspaceId = workspaceId,
             TicketId = ticketId,

@@ -24,11 +24,11 @@ public class ExportServiceTests
     public async Task ExportTicketsAsyncUsesFormatAndValidatesAccess()
     {
         var tickets = new List<Ticket> { new() { Id = 1, Subject = "S" } };
-        var ticketRepo = new Mock<ITicketRepository>();
-        ticketRepo.Setup(r => r.ListAsync(2, CancellationToken.None)).ReturnsAsync(tickets);
+        var ticketRepository = new Mock<ITicketRepository>();
+        ticketRepository.Setup(r => r.ListAsync(2, CancellationToken.None)).ReturnsAsync(tickets);
         var uw = new Mock<IUserWorkspaceRepository>();
         uw.Setup(r => r.FindAsync(9, 2)).ReturnsAsync(new UserWorkspace { Accepted = true });
-        var svc = new ExportService(ticketRepo.Object, Mock.Of<IContactRepository>(), Mock.Of<IInventoryRepository>(), Mock.Of<ITicketHistoryRepository>(), uw.Object);
+        var svc = new ExportService(ticketRepository.Object, Mock.Of<IContactRepository>(), Mock.Of<IInventoryRepository>(), Mock.Of<ITicketHistoryRepository>(), uw.Object);
 
         var result = await svc.ExportTicketsAsync(2, new ExportRequest { EntityType = "tickets", Format = ExportFormat.CSV, Fields = ["Id"] }, 9);
 

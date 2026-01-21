@@ -6,30 +6,30 @@ using Tickflo.Core.Services.Reporting;
 
 public class WorkspaceReportRunViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
-    IRolePermissionRepository rolePerms,
-    IReportRepository reportRepo,
+    IRolePermissionRepository rolePermissionRepository,
+    IReportRepository reporyRepository,
     IReportRunRepository reportRunRepo,
     IReportingService reportingService) : IWorkspaceReportRunViewService
 {
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePerms = rolePerms;
-    private readonly IReportRepository _reportRepo = reportRepo;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
+    private readonly IReportRepository reporyRepository = reporyRepository;
     private readonly IReportRunRepository _reportRunRepo = reportRunRepo;
-    private readonly IReportingService _reportingService = reportingService;
+    private readonly IReportingService reportingService = reportingService;
 
     public async Task<WorkspaceReportRunViewData> BuildAsync(int workspaceId, int userId, int reportId, int runId, int page, int take)
     {
         var data = new WorkspaceReportRunViewData();
 
-        var isAdmin = await this._userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
-        var eff = await this._rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+        var isAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(userId, workspaceId);
+        var eff = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
         data.CanViewReports = isAdmin || (eff.TryGetValue("reports", out var rp) && rp.CanView);
         if (!data.CanViewReports)
         {
             return data;
         }
 
-        var rep = await this._reportRepo.FindAsync(workspaceId, reportId);
+        var rep = await this.reporyRepository.FindAsync(workspaceId, reportId);
         if (rep == null)
         {
             return data;
@@ -45,7 +45,7 @@ public class WorkspaceReportRunViewService(
 
         data.Run = run;
 
-        var pageResult = await this._reportingService.GetRunPageAsync(run, page, take);
+        var pageResult = await this.reportingService.GetRunPageAsync(run, page, take);
         data.PageData = new ReportRunPageData
         {
             Page = pageResult.Page,

@@ -153,7 +153,7 @@ builder.Services.AddScoped<Tickflo.Core.Services.Storage.IImageStorageService, T
 builder.Services.AddScoped<IEmailSenderService, EmailSenderService>();
 builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
 builder.Services.AddDbContext<TickfloDbContext>(options =>
-    options.UseNpgsql(connectionString!)
+    options.UseNpgsql(connectionString)
         .UseSnakeCaseNamingConvention());
 
 builder.Services.AddRazorPages(options =>
@@ -179,7 +179,8 @@ builder.Services.AddSession(options =>
 builder.Services.AddAuthentication("TokenAuth")
     .AddScheme<AuthenticationSchemeOptions, TokenAuthenticationHandler>("TokenAuth", options => options.TimeProvider = TimeProvider.System);
 
-builder.Services.AddAuthorization(options => options.FallbackPolicy = new AuthorizationPolicyBuilder("TokenAuth")
+builder.Services.AddAuthorizationBuilder()
+    .AddDefaultPolicy("AuthenticationPolicy", new AuthorizationPolicyBuilder("TokenAuth")
         .RequireAuthenticatedUser()
         .Build());
 

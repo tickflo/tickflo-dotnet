@@ -10,12 +10,12 @@ using Tickflo.Core.Services.Views;
 [Authorize]
 public class TeamsModel(
     IWorkspaceRepository workspaces,
-    IUserWorkspaceRepository userWorkspaceRepo,
+    IUserWorkspaceRepository userWorkspaceRepository,
     ICurrentUserService currentUserService,
     IWorkspaceTeamsViewService viewService) : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaces = workspaces;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly ICurrentUserService _currentUserService = currentUserService;
     private readonly IWorkspaceTeamsViewService _viewService = viewService;
 
@@ -30,7 +30,7 @@ public class TeamsModel(
     {
         this.WorkspaceSlug = slug;
 
-        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaces, this._userWorkspaceRepo, slug);
+        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaces, this.userWorkspaceRepository, slug);
         if (result is IActionResult actionResult)
         {
             return actionResult;

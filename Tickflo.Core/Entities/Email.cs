@@ -4,7 +4,7 @@ public class Email
 {
     public int Id { get; set; }
     public int TemplateId { get; set; }
-    public Dictionary<string, string> Vars { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Vars { get; set; } = [];
     public string From { get; set; } = string.Empty;
     public string To { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }

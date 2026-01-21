@@ -9,8 +9,8 @@ using Tickflo.Core.Services.Views;
 [Authorize]
 public class UsersEditModel(
     IWorkspaceRepository workspaceRepo,
-    IUserRepository userRepo,
-    IUserWorkspaceRepository userWorkspaceRepo,
+    IUserRepository userRepository,
+    IUserWorkspaceRepository userWorkspaceRepository,
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
     IRoleRepository roleRepo,
     IWorkspaceUsersManageViewService manageViewService) : WorkspacePageModel
@@ -29,11 +29,11 @@ public class UsersEditModel(
     private const string RoleRemovedMessage = "Role removed successfully.";
     #endregion
 
-    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
-    private readonly IUserRepository _userRepo = userRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-    private readonly IRoleRepository _roleRepo = roleRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IUserRepository userRepository = userRepository;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
+    private readonly IRoleRepository roleRepository = roleRepo;
     private readonly IWorkspaceUsersManageViewService _manageViewService = manageViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
@@ -58,7 +58,7 @@ public class UsersEditModel(
             return result;
         }
 
-        var user = await this._userRepo.FindByIdAsync(userId);
+        var user = await this.userRepository.FindByIdAsync(userId);
         if (user == null)
         {
             return this.NotFound();
@@ -66,10 +66,10 @@ public class UsersEditModel(
 
         this.UserName = user.Name ?? string.Empty;
         this.UserEmail = user.Email;
-        this.IsAdmin = await this._userWorkspaceRoleRepo.IsAdminAsync(userId, this.Workspace!.Id);
+        this.IsAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(userId, this.Workspace!.Id);
 
-        this.AvailableRoles = await this._roleRepo.ListForWorkspaceAsync(this.Workspace.Id);
-        this.CurrentRoles = await this._userWorkspaceRoleRepo.GetRolesAsync(userId, this.Workspace.Id);
+        this.AvailableRoles = await this.roleRepository.ListForWorkspaceAsync(this.Workspace.Id);
+        this.CurrentRoles = await this.userWorkspaceRoleRepository.GetRolesAsync(userId, this.Workspace.Id);
 
         return this.Page();
     }
@@ -107,7 +107,7 @@ public class UsersEditModel(
             return this.RedirectToPage("/Workspaces/UsersEdit", new { slug, userId });
         }
 
-        var existingRoles = await this._userWorkspaceRoleRepo.GetRolesAsync(userId, this.Workspace!.Id);
+        var existingRoles = await this.userWorkspaceRoleRepository.GetRolesAsync(userId, this.Workspace!.Id);
         if (existingRoles.Any(r => r.Id == roleId))
         {
             this.SetErrorMessage(UserAlreadyHasRoleError);
@@ -115,7 +115,7 @@ public class UsersEditModel(
         }
 
         var currentUserId = this.TryGetUserId(out var uid) ? uid : 0;
-        await this._userWorkspaceRoleRepo.AddAsync(userId, this.Workspace.Id, roleId, currentUserId);
+        await this.userWorkspaceRoleRepository.AddAsync(userId, this.Workspace.Id, roleId, currentUserId);
         this.SetSuccessMessage(RoleAssignedMessage);
         return this.RedirectToPage("/Workspaces/UsersEdit", new { slug, userId });
     }
@@ -131,14 +131,14 @@ public class UsersEditModel(
             return result;
         }
 
-        await this._userWorkspaceRoleRepo.RemoveAsync(userId, this.Workspace!.Id, roleId);
+        await this.userWorkspaceRoleRepository.RemoveAsync(userId, this.Workspace!.Id, roleId);
         this.SetSuccessMessage(RoleRemovedMessage);
         return this.RedirectToPage("/Workspaces/UsersEdit", new { slug, userId });
     }
 
     private async Task<IActionResult?> AuthorizeAndLoadWorkspaceAsync(string slug, int userId, bool isEditingRoles)
     {
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (loadResult is IActionResult actionResult)
         {
             return actionResult;
@@ -158,25 +158,25 @@ public class UsersEditModel(
 
     private async Task HandleAdminRoleChangeAsync(int userId)
     {
-        var adminRole = await this._roleRepo.FindByNameAsync(this.Workspace!.Id, AdminRoleName);
+        var adminRole = await this.roleRepository.FindByNameAsync(this.Workspace!.Id, AdminRoleName);
         if (adminRole == null)
         {
             this.SetErrorMessage(AdminRoleNotFound);
             return;
         }
 
-        var currentRoles = await this._userWorkspaceRoleRepo.GetRolesAsync(userId, this.Workspace.Id);
+        var currentRoles = await this.userWorkspaceRoleRepository.GetRolesAsync(userId, this.Workspace.Id);
         var hasAdminRole = currentRoles.Any(r => r.Id == adminRole.Id);
         var currentUserId = this.TryGetUserId(out var uid) ? uid : 0;
 
         if (this.IsAdmin && !hasAdminRole)
         {
-            await this._userWorkspaceRoleRepo.AddAsync(userId, this.Workspace.Id, adminRole.Id, currentUserId);
+            await this.userWorkspaceRoleRepository.AddAsync(userId, this.Workspace.Id, adminRole.Id, currentUserId);
             this.SetSuccessMessage(UserPromotedMessage);
         }
         else if (!this.IsAdmin && hasAdminRole)
         {
-            await this._userWorkspaceRoleRepo.RemoveAsync(userId, this.Workspace.Id, adminRole.Id);
+            await this.userWorkspaceRoleRepository.RemoveAsync(userId, this.Workspace.Id, adminRole.Id);
             this.SetSuccessMessage(AdminPrivilegesRemovedMessage);
         }
         else
@@ -192,7 +192,7 @@ public class UsersEditModel(
             return (true, InvalidRoleError);
         }
 
-        var role = await this._roleRepo.FindByIdAsync(roleId);
+        var role = await this.roleRepository.FindByIdAsync(roleId);
         if (role == null || role.WorkspaceId != this.Workspace!.Id)
         {
             return (true, InvalidRoleSelectionError);

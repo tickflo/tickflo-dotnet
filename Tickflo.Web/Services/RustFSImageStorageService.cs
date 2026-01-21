@@ -8,7 +8,7 @@ using Tickflo.Core.Services.Storage;
 public class RustFSImageStorageService(IFileStorageService storageService, ILogger<RustFSImageStorageService> logger) : IImageStorageService
 {
     private readonly IFileStorageService _storageService = storageService;
-    private readonly ILogger<RustFSImageStorageService> _logger = logger;
+    private readonly ILogger<RustFSImageStorageService> logger = logger;
 
     private const string AvatarDirectory = "user-data";
     private const string LogoDirectory = "workspace-data";
@@ -24,7 +24,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, $"Error uploading avatar for user {userId}");
+            this.logger.LogError(ex, $"Error uploading avatar for user {userId}");
             throw;
         }
     }
@@ -38,7 +38,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, $"Error deleting avatar for user {userId}");
+            this.logger.LogError(ex, $"Error deleting avatar for user {userId}");
             return false;
         }
     }
@@ -58,7 +58,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, $"Error uploading logo for workspace {workspaceId}");
+            this.logger.LogError(ex, $"Error uploading logo for workspace {workspaceId}");
             throw;
         }
     }
@@ -72,7 +72,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, $"Error deleting logo for workspace {workspaceId}");
+            this.logger.LogError(ex, $"Error deleting logo for workspace {workspaceId}");
             return false;
         }
     }
@@ -92,7 +92,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, $"Error uploading banner for workspace {workspaceId}");
+            this.logger.LogError(ex, $"Error uploading banner for workspace {workspaceId}");
             throw;
         }
     }
@@ -106,7 +106,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, $"Error deleting banner for workspace {workspaceId}");
+            this.logger.LogError(ex, $"Error deleting banner for workspace {workspaceId}");
             return false;
         }
     }
@@ -126,7 +126,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, $"Error uploading document image for workspace {workspaceId} at {documentPath}");
+            this.logger.LogError(ex, $"Error uploading document image for workspace {workspaceId} at {documentPath}");
             throw;
         }
     }
@@ -140,7 +140,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, $"Error deleting document image for workspace {workspaceId} at {documentPath}");
+            this.logger.LogError(ex, $"Error deleting document image for workspace {workspaceId} at {documentPath}");
             return false;
         }
     }

@@ -9,20 +9,20 @@ using Tickflo.Core.Entities;
 /// </summary>
 public class NotificationTriggerService(
     INotificationRepository notificationRepo,
-    IUserRepository userRepo,
-    ITeamRepository teamRepo,
-    ILocationRepository locationRepo,
-    IUserWorkspaceRepository userWorkspaceRepo,
+    IUserRepository userRepository,
+    ITeamRepository teamRepository,
+    ILocationRepository locationRepository,
+    IUserWorkspaceRepository userWorkspaceRepository,
     IWorkspaceRepository workspaceRepo,
-    IContactRepository contactRepo) : INotificationTriggerService
+    IContactRepository contactRepository) : INotificationTriggerService
 {
     private readonly INotificationRepository _notificationRepo = notificationRepo;
-    private readonly IUserRepository _userRepo = userRepo;
-    private readonly ITeamRepository _teamRepo = teamRepo;
-    private readonly ILocationRepository _locationRepo = locationRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
-    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
-    private readonly IContactRepository _contactRepo = contactRepo;
+    private readonly IUserRepository userRepository = userRepository;
+    private readonly ITeamRepository teamRepository = teamRepository;
+    private readonly ILocationRepository locationRepository = locationRepository;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IContactRepository contactRepository = contactRepository;
 
     public async Task NotifyTicketCreatedAsync(
         int workspaceId,
@@ -30,10 +30,10 @@ public class NotificationTriggerService(
         int createdByUserId)
     {
         var notifications = new List<Notification>();
-        var creator = await this._userRepo.FindByIdAsync(createdByUserId);
+        var creator = await this.userRepository.FindByIdAsync(createdByUserId);
         var creatorName = creator?.Name ?? creator?.Email ?? "Someone";
 
-        var workspace = await this._workspaceRepo.FindByIdAsync(workspaceId);
+        var workspace = await this.workspaceRepository.FindByIdAsync(workspaceId);
         var ticketData = System.Text.Json.JsonSerializer.Serialize(new { ticketId = ticket.Id, workspaceSlug = workspace?.Slug });
 
         // Notify assigned user
@@ -58,7 +58,7 @@ public class NotificationTriggerService(
         // Notify team members if assigned to team
         if (ticket.AssignedTeamId.HasValue)
         {
-            var team = await this._teamRepo.FindByIdAsync(ticket.AssignedTeamId.Value);
+            var team = await this.teamRepository.FindByIdAsync(ticket.AssignedTeamId.Value);
             if (team != null)
             {
                 // Team notification - would need ITeamMemberRepository for this
@@ -93,10 +93,10 @@ public class NotificationTriggerService(
         int changedByUserId)
     {
         var notifications = new List<Notification>();
-        var changer = await this._userRepo.FindByIdAsync(changedByUserId);
+        var changer = await this.userRepository.FindByIdAsync(changedByUserId);
         var changerName = changer?.Name ?? changer?.Email ?? "Someone";
 
-        var workspace = await this._workspaceRepo.FindByIdAsync(workspaceId);
+        var workspace = await this.workspaceRepository.FindByIdAsync(workspaceId);
         var ticketData = System.Text.Json.JsonSerializer.Serialize(new { ticketId = ticket.Id, workspaceSlug = workspace?.Slug });
 
         // Notify previously assigned user (unassigned)
@@ -151,10 +151,10 @@ public class NotificationTriggerService(
         int changedByUserId)
     {
         var notifications = new List<Notification>();
-        var changer = await this._userRepo.FindByIdAsync(changedByUserId);
+        var changer = await this.userRepository.FindByIdAsync(changedByUserId);
         var changerName = changer?.Name ?? changer?.Email ?? "Someone";
 
-        var workspace = await this._workspaceRepo.FindByIdAsync(workspaceId);
+        var workspace = await this.workspaceRepository.FindByIdAsync(workspaceId);
         var ticketData = System.Text.Json.JsonSerializer.Serialize(new { ticketId = ticket.Id, workspaceSlug = workspace?.Slug });
 
         // Notify assigned user/team about status change
@@ -178,7 +178,7 @@ public class NotificationTriggerService(
 
         if (ticket.AssignedTeamId.HasValue)
         {
-            var team = await this._teamRepo.FindByIdAsync(ticket.AssignedTeamId.Value);
+            var team = await this.teamRepository.FindByIdAsync(ticket.AssignedTeamId.Value);
             if (team != null)
             {
                 // Team notification queued
@@ -210,10 +210,10 @@ public class NotificationTriggerService(
         bool isVisibleToClient)
     {
         var notifications = new List<Notification>();
-        var commenter = await this._userRepo.FindByIdAsync(commentedByUserId);
+        var commenter = await this.userRepository.FindByIdAsync(commentedByUserId);
         var commenterName = commenter?.Name ?? commenter?.Email ?? "Someone";
 
-        var workspace = await this._workspaceRepo.FindByIdAsync(workspaceId);
+        var workspace = await this.workspaceRepository.FindByIdAsync(workspaceId);
         var ticketData = System.Text.Json.JsonSerializer.Serialize(new { ticketId = ticket.Id, workspaceSlug = workspace?.Slug });
 
         // Collect recipients: assigned user and contact's assigned user (if any)
@@ -221,7 +221,7 @@ public class NotificationTriggerService(
 
         if (ticket.ContactId.HasValue)
         {
-            var contact = await this._contactRepo.FindAsync(workspaceId, ticket.ContactId.Value);
+            var contact = await this.contactRepository.FindAsync(workspaceId, ticket.ContactId.Value);
             if (contact?.AssignedUserId.HasValue == true)
             {
                 recipientIds.Add(contact.AssignedUserId);
@@ -244,7 +244,7 @@ public class NotificationTriggerService(
             // Skip notifying contact-assigned user if comment is internal-only (not visible to client)
             if (!isVisibleToClient && ticket.ContactId.HasValue)
             {
-                var contact = await this._contactRepo.FindAsync(workspaceId, ticket.ContactId.Value);
+                var contact = await this.contactRepository.FindAsync(workspaceId, ticket.ContactId.Value);
                 if (contact?.AssignedUserId == recipientId.Value)
                 {
                     continue;
@@ -295,7 +295,7 @@ public class NotificationTriggerService(
         int userId,
         int addedByUserId)
     {
-        var adder = await this._userRepo.FindByIdAsync(addedByUserId);
+        var adder = await this.userRepository.FindByIdAsync(addedByUserId);
         var adderName = adder?.Name ?? adder?.Email ?? "Someone";
 
         // Notify the invited user

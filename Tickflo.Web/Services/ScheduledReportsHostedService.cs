@@ -8,7 +8,7 @@ using Tickflo.Core.Services.Reporting;
 public class ScheduledReportsHostedService(IServiceProvider sp, ILogger<ScheduledReportsHostedService> logger) : BackgroundService
 {
     private readonly IServiceProvider _sp = sp;
-    private readonly ILogger<ScheduledReportsHostedService> _logger = logger;
+    private readonly ILogger<ScheduledReportsHostedService> logger = logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -38,7 +38,7 @@ public class ScheduledReportsHostedService(IServiceProvider sp, ILogger<Schedule
             }
             catch (Exception ex)
             {
-                this._logger.LogError(ex, "Error running scheduled reports");
+                this.logger.LogError(ex, "Error running scheduled reports");
             }
 
             await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);

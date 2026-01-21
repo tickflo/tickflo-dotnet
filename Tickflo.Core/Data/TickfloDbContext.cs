@@ -71,7 +71,7 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
             .IsUnique();
 
         modelBuilder.Entity<UserWorkspaceRole>()
-            .HasKey(uwr => new { uwr.UserId, uwr.WorkspaceId, uwr.RoleId });
+            .HasKey(userWorkspaceRoleRepository => new { userWorkspaceRoleRepository.UserId, userWorkspaceRoleRepository.WorkspaceId, userWorkspaceRoleRepository.RoleId });
 
         modelBuilder.Entity<Workspace>()
             .HasIndex(w => w.Slug)

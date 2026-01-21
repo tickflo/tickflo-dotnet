@@ -9,7 +9,7 @@ using Tickflo.Core.Services.Tickets;
 using Tickflo.Core.Services.Views;
 
 [Authorize]
-public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketRepository ticketRepo, ITicketManagementService ticketService, IWorkspaceTicketDetailsViewService viewService, IRolePermissionRepository rolePerms, ITeamRepository teamRepo, IUserWorkspaceRoleRepository roles, IWorkspaceTicketsSaveViewService savingViewService, ITicketCommentService commentService, IUserRepository userRepo, INotificationTriggerService notificationTrigger) : WorkspacePageModel
+public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepository, ITicketRepository ticketRepository, ITicketManagementService ticketService, IWorkspaceTicketDetailsViewService viewService, IRolePermissionRepository rolePermissionRepository, ITeamRepository teamRepository, IUserWorkspaceRoleRepository roles, IWorkspaceTicketsSaveViewService savingViewService, ITicketCommentService commentService, IUserRepository userRepository, INotificationTriggerService notificationTrigger) : WorkspacePageModel
 {
     #region Constants
     private const string DefaultTicketType = "Standard";
@@ -32,17 +32,17 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
         public int quantity { get; set; }
         public decimal unitPrice { get; set; }
     }
-    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
-    private readonly ITicketRepository _ticketRepo = ticketRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly ITicketRepository ticketRepository = ticketRepository;
     private readonly ITicketManagementService _ticketService = ticketService;
     private readonly IWorkspaceTicketDetailsViewService _viewService = viewService;
-    private readonly IRolePermissionRepository _rolePerms = rolePerms;
-    private readonly ITeamRepository _teamRepo = teamRepo;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
+    private readonly ITeamRepository teamRepository = teamRepository;
     private readonly IUserWorkspaceRoleRepository _roles = roles;
     private readonly IWorkspaceTicketsSaveViewService _savingViewService = savingViewService;
     private readonly ITicketCommentService _commentService = commentService;
-    private readonly IUserRepository _userRepo = userRepo;
+    private readonly IUserRepository userRepository = userRepository;
     private readonly INotificationTriggerService _notificationTrigger = notificationTrigger;
 
     public List<Inventory> InventoryItems { get; private set; } = [];
@@ -111,7 +111,7 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
     public async Task<IActionResult> OnGetAsync(string slug, int id)
     {
         this.WorkspaceSlug = slug;
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (loadResult is IActionResult actionResult)
         {
             return actionResult;
@@ -167,7 +167,7 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
     public async Task<IActionResult> OnPostAddCommentAsync(string slug, int id, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Realtime.TicketsHub> hub)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -200,7 +200,7 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
                 this.NewCommentContent.Trim(),
                 this.NewCommentIsVisibleToClient);
 
-            var ticket = await this._ticketRepo.FindAsync(this.Workspace.Id, id);
+            var ticket = await this.ticketRepository.FindAsync(this.Workspace.Id, id);
             if (ticket != null)
             {
                 await this._notificationTrigger.NotifyTicketCommentAddedAsync(
@@ -244,7 +244,7 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
     public async Task<IActionResult> OnPostSaveAsync(string slug, int id, int? assignedUserId, int? assignedTeamId, int? locationId, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Realtime.TicketsHub> hub)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -260,7 +260,7 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
         var inventories = this.ParseInventoriesFromJson();
         var resolvedId = this.ResolveTicketId(id);
         var isNew = resolvedId <= InvalidTicketId;
-        var existing = !isNew ? await this._ticketRepo.FindAsync(workspaceId, resolvedId) : null;
+        var existing = !isNew ? await this.ticketRepository.FindAsync(workspaceId, resolvedId) : null;
 
         var saveViewData = await this._savingViewService.BuildAsync(workspaceId, currentUserId, isNew, existing);
         var authCheck = this.ValidateTicketPermissions(isNew, saveViewData);
@@ -451,7 +451,7 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
             : null;
 
         var assignedTeamName = ticket.AssignedTeamId.HasValue
-            ? (await this._teamRepo.FindByIdAsync(ticket.AssignedTeamId.Value))?.Name
+            ? (await this.teamRepository.FindByIdAsync(ticket.AssignedTeamId.Value))?.Name
             : null;
 
         var (invSummary, invDetails) = await this._ticketService.GenerateInventorySummaryAsync(

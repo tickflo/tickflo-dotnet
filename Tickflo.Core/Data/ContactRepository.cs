@@ -3,25 +3,27 @@ namespace Tickflo.Core.Data;
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
 
-public class ContactRepository(TickfloDbContext db) : IContactRepository
+public class ContactRepository(TickfloDbContext dbContext) : IContactRepository
 {
+    private readonly TickfloDbContext dbContext = dbContext;
+
     public async Task<IReadOnlyList<Contact>> ListAsync(int workspaceId, CancellationToken ct = default)
-        => await db.Contacts.Where(c => c.WorkspaceId == workspaceId).OrderBy(c => c.Name).ToListAsync(ct);
+        => await this.dbContext.Contacts.Where(c => c.WorkspaceId == workspaceId).OrderBy(c => c.Name).ToListAsync(ct);
 
     public async Task<Contact?> FindAsync(int workspaceId, int id, CancellationToken ct = default)
-        => await db.Contacts.FirstOrDefaultAsync(c => c.WorkspaceId == workspaceId && c.Id == id, ct);
+        => await this.dbContext.Contacts.FirstOrDefaultAsync(c => c.WorkspaceId == workspaceId && c.Id == id, ct);
 
     public async Task<Contact> CreateAsync(Contact contact, CancellationToken ct = default)
     {
-        db.Contacts.Add(contact);
-        await db.SaveChangesAsync(ct);
+        this.dbContext.Contacts.Add(contact);
+        await this.dbContext.SaveChangesAsync(ct);
         return contact;
     }
 
     public async Task<Contact> UpdateAsync(Contact contact, CancellationToken ct = default)
     {
-        db.Contacts.Update(contact);
-        await db.SaveChangesAsync(ct);
+        this.dbContext.Contacts.Update(contact);
+        await this.dbContext.SaveChangesAsync(ct);
         return contact;
     }
 
@@ -33,7 +35,7 @@ public class ContactRepository(TickfloDbContext db) : IContactRepository
             return;
         }
 
-        db.Contacts.Remove(entity);
-        await db.SaveChangesAsync(ct);
+        this.dbContext.Contacts.Remove(entity);
+        await this.dbContext.SaveChangesAsync(ct);
     }
 }

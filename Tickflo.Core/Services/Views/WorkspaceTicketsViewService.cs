@@ -8,29 +8,29 @@ using Tickflo.Core.Entities;
 /// Aggregates tickets metadata and permissions for list display.
 /// </summary>
 public class WorkspaceTicketsViewService(
-    ITicketStatusRepository statusRepo,
-    ITicketPriorityRepository priorityRepo,
-    ITicketTypeRepository typeRepo,
-    ITeamRepository teamRepo,
-    IContactRepository contactRepo,
-    IUserWorkspaceRepository userWorkspaceRepo,
-    IUserRepository userRepo,
-    ILocationRepository locationRepo,
+    ITicketStatusRepository statusRepository,
+    ITicketPriorityRepository priorityRepository,
+    ITicketTypeRepository ticketTypeRepository,
+    ITeamRepository teamRepository,
+    IContactRepository contactRepository,
+    IUserWorkspaceRepository userWorkspaceRepository,
+    IUserRepository userRepository,
+    ILocationRepository locationRepository,
     IRolePermissionRepository rolePermissionRepo,
     ITeamMemberRepository teamMemberRepo,
-    IUserWorkspaceRoleRepository uwr) : IWorkspaceTicketsViewService
+    IUserWorkspaceRoleRepository userWorkspaceRoleRepository) : IWorkspaceTicketsViewService
 {
-    private readonly ITicketStatusRepository _statusRepo = statusRepo;
-    private readonly ITicketPriorityRepository _priorityRepo = priorityRepo;
-    private readonly ITicketTypeRepository _typeRepo = typeRepo;
-    private readonly ITeamRepository _teamRepo = teamRepo;
-    private readonly IContactRepository _contactRepo = contactRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
-    private readonly IUserRepository _userRepo = userRepo;
-    private readonly ILocationRepository _locationRepo = locationRepo;
+    private readonly ITicketStatusRepository statusRepository = statusRepository;
+    private readonly ITicketPriorityRepository priorityRepository = priorityRepository;
+    private readonly ITicketTypeRepository ticketTypeRepository = ticketTypeRepository;
+    private readonly ITeamRepository teamRepository = teamRepository;
+    private readonly IContactRepository contactRepository = contactRepository;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IUserRepository userRepository = userRepository;
+    private readonly ILocationRepository locationRepository = locationRepository;
     private readonly IRolePermissionRepository _rolePermissionRepo = rolePermissionRepo;
-    private readonly ITeamMemberRepository _teamMemberRepo = teamMemberRepo;
-    private readonly IUserWorkspaceRoleRepository _uwr = uwr;
+    private readonly ITeamMemberRepository teamMemberRepository = teamMemberRepo;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepository;
 
     public async Task<WorkspaceTicketsViewData> BuildAsync(
         int workspaceId,
@@ -38,11 +38,11 @@ public class WorkspaceTicketsViewService(
         CancellationToken cancellationToken = default)
     {
         // Determine if user is admin
-        var isAdmin = userId > 0 && await this._uwr.IsAdminAsync(userId, workspaceId);
+        var isAdmin = userId > 0 && await this.userWorkspaceRoleRepository.IsAdminAsync(userId, workspaceId);
         var data = new WorkspaceTicketsViewData();
 
         // Load statuses with fallback defaults
-        var statuses = await this._statusRepo.ListAsync(workspaceId, cancellationToken);
+        var statuses = await this.statusRepository.ListAsync(workspaceId, cancellationToken);
         var statusList = statuses.Count > 0
             ? statuses
             :
@@ -57,7 +57,7 @@ public class WorkspaceTicketsViewService(
             .ToDictionary(g => g.Key, g => string.IsNullOrWhiteSpace(g.Last().Color) ? "neutral" : g.Last().Color);
 
         // Load priorities with fallback defaults
-        var priorities = await this._priorityRepo.ListAsync(workspaceId, cancellationToken);
+        var priorities = await this.priorityRepository.ListAsync(workspaceId, cancellationToken);
         var priorityList = priorities.Count > 0
             ? priorities
             :
@@ -72,7 +72,7 @@ public class WorkspaceTicketsViewService(
             .ToDictionary(g => g.Key, g => string.IsNullOrWhiteSpace(g.Last().Color) ? "neutral" : g.Last().Color);
 
         // Load types with fallback defaults
-        var types = await this._typeRepo.ListAsync(workspaceId, cancellationToken);
+        var types = await this.ticketTypeRepository.ListAsync(workspaceId, cancellationToken);
         var typeList = types.Count > 0
             ? types
             :
@@ -87,20 +87,20 @@ public class WorkspaceTicketsViewService(
             .ToDictionary(g => g.Key, g => string.IsNullOrWhiteSpace(g.Last().Color) ? "neutral" : g.Last().Color);
 
         // Load teams
-        var teams = await this._teamRepo.ListForWorkspaceAsync(workspaceId);
+        var teams = await this.teamRepository.ListForWorkspaceAsync(workspaceId);
         data.TeamsById = teams.ToDictionary(t => t.Id, t => t);
 
         // Load contacts
-        var contacts = await this._contactRepo.ListAsync(workspaceId, cancellationToken);
+        var contacts = await this.contactRepository.ListAsync(workspaceId, cancellationToken);
         data.ContactsById = contacts.ToDictionary(c => c.Id, c => c);
 
         // Load workspace members
-        var memberships = await this._userWorkspaceRepo.FindForWorkspaceAsync(workspaceId);
+        var memberships = await this.userWorkspaceRepository.FindForWorkspaceAsync(workspaceId);
         var userIds = memberships.Select(m => m.UserId).Distinct().ToList();
         var users = new List<User>();
         foreach (var id in userIds)
         {
-            var user = await this._userRepo.FindByIdAsync(id);
+            var user = await this.userRepository.FindByIdAsync(id);
             if (user != null)
             {
                 users.Add(user);
@@ -109,7 +109,7 @@ public class WorkspaceTicketsViewService(
         data.UsersById = users.ToDictionary(u => u.Id, u => u);
 
         // Load locations
-        var locations = await this._locationRepo.ListAsync(workspaceId);
+        var locations = await this.locationRepository.ListAsync(workspaceId);
         data.LocationOptions = [.. locations];
         data.LocationsById = locations.ToDictionary(l => l.Id, l => l);
 
@@ -134,7 +134,7 @@ public class WorkspaceTicketsViewService(
         data.TicketViewScope = scope;
         if (scope == "team" && userId > 0)
         {
-            var userTeams = await this._teamMemberRepo.ListTeamsForUserAsync(workspaceId, userId);
+            var userTeams = await this.teamMemberRepository.ListTeamsForUserAsync(workspaceId, userId);
             data.UserTeamIds = [.. userTeams.Select(t => t.Id)];
         }
 

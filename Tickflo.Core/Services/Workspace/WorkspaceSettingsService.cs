@@ -1,5 +1,6 @@
 namespace Tickflo.Core.Services.Workspace;
 
+using System.Text;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using WorkspaceEntity = Entities.Workspace;
@@ -9,23 +10,23 @@ using WorkspaceEntity = Entities.Workspace;
 /// </summary>
 public class WorkspaceSettingsService(
     IWorkspaceRepository workspaceRepo,
-    ITicketStatusRepository statusRepo,
-    ITicketPriorityRepository priorityRepo,
-    ITicketTypeRepository typeRepo) : IWorkspaceSettingsService
+    ITicketStatusRepository statusRepository,
+    ITicketPriorityRepository priorityRepository,
+    ITicketTypeRepository ticketTypeRepository) : IWorkspaceSettingsService
 {
     #region Constants
     private const string WorkspaceNotFoundError = "Workspace not found";
     private const string SlugInUseError = "Slug is already in use";
-    private const string NameRequiredError = "{0} name is required";
-    private const string AlreadyExistsError = "{0} '{1}' already exists";
-    private const string NotFoundError = "{0} not found";
+    private static readonly CompositeFormat NameRequiredError = CompositeFormat.Parse("{0} name is required");
+    private static readonly CompositeFormat AlreadyExistsError = CompositeFormat.Parse("{0} '{1}' already exists");
+    private static readonly CompositeFormat NotFoundError = CompositeFormat.Parse("{0} not found");
     private const string DefaultColor = "neutral";
     #endregion
 
-    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
-    private readonly ITicketStatusRepository _statusRepo = statusRepo;
-    private readonly ITicketPriorityRepository _priorityRepo = priorityRepo;
-    private readonly ITicketTypeRepository _typeRepo = typeRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly ITicketStatusRepository statusRepository = statusRepository;
+    private readonly ITicketPriorityRepository priorityRepository = priorityRepository;
+    private readonly ITicketTypeRepository ticketTypeRepository = ticketTypeRepository;
 
     public async Task<WorkspaceEntity> UpdateWorkspaceBasicSettingsAsync(int workspaceId, string name, string slug)
     {
@@ -39,14 +40,14 @@ public class WorkspaceSettingsService(
             workspace.Slug = newSlug;
         }
 
-        await this._workspaceRepo.UpdateAsync(workspace);
+        await this.workspaceRepository.UpdateAsync(workspace);
         return workspace;
     }
 
     public async Task EnsureDefaultsExistAsync(int workspaceId)
     {
         // Bootstrap statuses
-        var statuses = await this._statusRepo.ListAsync(workspaceId);
+        var statuses = await this.statusRepository.ListAsync(workspaceId);
         if (statuses.Count == 0)
         {
             var defaults = new[]
@@ -58,12 +59,12 @@ public class WorkspaceSettingsService(
 
             foreach (var status in defaults)
             {
-                await this._statusRepo.CreateAsync(status);
+                await this.statusRepository.CreateAsync(status);
             }
         }
 
         // Bootstrap priorities
-        var priorities = await this._priorityRepo.ListAsync(workspaceId);
+        var priorities = await this.priorityRepository.ListAsync(workspaceId);
         if (priorities.Count == 0)
         {
             var defaults = new[]
@@ -75,12 +76,12 @@ public class WorkspaceSettingsService(
 
             foreach (var priority in defaults)
             {
-                await this._priorityRepo.CreateAsync(priority);
+                await this.priorityRepository.CreateAsync(priority);
             }
         }
 
         // Bootstrap types
-        var types = await this._typeRepo.ListAsync(workspaceId);
+        var types = await this.ticketTypeRepository.ListAsync(workspaceId);
         if (types.Count == 0)
         {
             var defaults = new[]
@@ -92,7 +93,7 @@ public class WorkspaceSettingsService(
 
             foreach (var type in defaults)
             {
-                await this._typeRepo.CreateAsync(type);
+                await this.ticketTypeRepository.CreateAsync(type);
             }
         }
     }
@@ -102,10 +103,10 @@ public class WorkspaceSettingsService(
         var trimmedName = ValidateAndTrimName(name, "Status");
         var trimmedColor = TrimColorOrDefault(color);
 
-        await EnsureNameIsUniqueAsync(workspaceId, trimmedName, "Status",
-            () => this._statusRepo.FindByNameAsync(workspaceId, trimmedName));
+        await EnsureNameIsUniqueAsync(trimmedName, "Status",
+            () => this.statusRepository.FindByNameAsync(workspaceId, trimmedName));
 
-        var maxOrder = await GetMaxSortOrderAsync(() => this._statusRepo.ListAsync(workspaceId), s => s.SortOrder);
+        var maxOrder = await GetMaxSortOrderAsync(() => this.statusRepository.ListAsync(workspaceId), s => s.SortOrder);
 
         var status = new TicketStatus
         {
@@ -116,7 +117,7 @@ public class WorkspaceSettingsService(
             IsClosedState = isClosedState
         };
 
-        await this._statusRepo.CreateAsync(status);
+        await this.statusRepository.CreateAsync(status);
         return status;
     }
 
@@ -128,28 +129,28 @@ public class WorkspaceSettingsService(
         int sortOrder,
         bool isClosedState)
     {
-        var status = await this._statusRepo.FindByIdAsync(workspaceId, statusId) ?? throw new InvalidOperationException(string.Format(NotFoundError, "Status"));
+        var status = await this.statusRepository.FindByIdAsync(workspaceId, statusId) ?? throw new InvalidOperationException(string.Format(null, NotFoundError, "Status"));
 
         status.Name = ValidateAndTrimName(name, "Status");
         status.Color = TrimColorOrDefault(color);
         status.SortOrder = sortOrder;
         status.IsClosedState = isClosedState;
 
-        await this._statusRepo.UpdateAsync(status);
+        await this.statusRepository.UpdateAsync(status);
         return status;
     }
 
-    public async Task DeleteStatusAsync(int workspaceId, int statusId) => await this._statusRepo.DeleteAsync(workspaceId, statusId);
+    public async Task DeleteStatusAsync(int workspaceId, int statusId) => await this.statusRepository.DeleteAsync(workspaceId, statusId);
 
     public async Task<TicketPriority> AddPriorityAsync(int workspaceId, string name, string color)
     {
         var trimmedName = ValidateAndTrimName(name, "Priority");
         var trimmedColor = TrimColorOrDefault(color);
 
-        await EnsureNameIsUniqueAsync(workspaceId, trimmedName, "Priority",
-            () => this._priorityRepo.FindAsync(workspaceId, trimmedName));
+        await EnsureNameIsUniqueAsync(trimmedName, "Priority",
+            () => this.priorityRepository.FindAsync(workspaceId, trimmedName));
 
-        var maxOrder = await GetMaxSortOrderAsync(() => this._priorityRepo.ListAsync(workspaceId), p => p.SortOrder);
+        var maxOrder = await GetMaxSortOrderAsync(() => this.priorityRepository.ListAsync(workspaceId), p => p.SortOrder);
 
         var priority = new TicketPriority
         {
@@ -159,7 +160,7 @@ public class WorkspaceSettingsService(
             SortOrder = maxOrder + 1
         };
 
-        await this._priorityRepo.CreateAsync(priority);
+        await this.priorityRepository.CreateAsync(priority);
         return priority;
     }
 
@@ -170,28 +171,28 @@ public class WorkspaceSettingsService(
         string color,
         int sortOrder)
     {
-        var priorities = await this._priorityRepo.ListAsync(workspaceId);
-        var priority = priorities.FirstOrDefault(p => p.Id == priorityId) ?? throw new InvalidOperationException(string.Format(NotFoundError, "Priority"));
+        var priorities = await this.priorityRepository.ListAsync(workspaceId);
+        var priority = priorities.FirstOrDefault(p => p.Id == priorityId) ?? throw new InvalidOperationException(string.Format(null, NotFoundError, "Priority"));
 
         priority.Name = ValidateAndTrimName(name, "Priority");
         priority.Color = TrimColorOrDefault(color);
         priority.SortOrder = sortOrder;
 
-        await this._priorityRepo.UpdateAsync(priority);
+        await this.priorityRepository.UpdateAsync(priority);
         return priority;
     }
 
-    public async Task DeletePriorityAsync(int workspaceId, int priorityId) => await this._priorityRepo.DeleteAsync(workspaceId, priorityId);
+    public async Task DeletePriorityAsync(int workspaceId, int priorityId) => await this.priorityRepository.DeleteAsync(workspaceId, priorityId);
 
     public async Task<TicketType> AddTypeAsync(int workspaceId, string name, string color)
     {
         var trimmedName = ValidateAndTrimName(name, "Type");
         var trimmedColor = TrimColorOrDefault(color);
 
-        await EnsureNameIsUniqueAsync(workspaceId, trimmedName, "Type",
-            () => this._typeRepo.FindByNameAsync(workspaceId, trimmedName));
+        await EnsureNameIsUniqueAsync(trimmedName, "Type",
+            () => this.ticketTypeRepository.FindByNameAsync(workspaceId, trimmedName));
 
-        var maxOrder = await GetMaxSortOrderAsync(() => this._typeRepo.ListAsync(workspaceId), t => t.SortOrder);
+        var maxOrder = await GetMaxSortOrderAsync(() => this.ticketTypeRepository.ListAsync(workspaceId), t => t.SortOrder);
 
         var type = new TicketType
         {
@@ -201,7 +202,7 @@ public class WorkspaceSettingsService(
             SortOrder = maxOrder + 1
         };
 
-        await this._typeRepo.CreateAsync(type);
+        await this.ticketTypeRepository.CreateAsync(type);
         return type;
     }
 
@@ -212,29 +213,29 @@ public class WorkspaceSettingsService(
         string color,
         int sortOrder)
     {
-        var types = await this._typeRepo.ListAsync(workspaceId);
-        var type = types.FirstOrDefault(t => t.Id == typeId) ?? throw new InvalidOperationException(string.Format(NotFoundError, "Type"));
+        var types = await this.ticketTypeRepository.ListAsync(workspaceId);
+        var type = types.FirstOrDefault(t => t.Id == typeId) ?? throw new InvalidOperationException(string.Format(null, NotFoundError, "Type"));
 
         type.Name = ValidateAndTrimName(name, "Type");
         type.Color = TrimColorOrDefault(color);
         type.SortOrder = sortOrder;
 
-        await this._typeRepo.UpdateAsync(type);
+        await this.ticketTypeRepository.UpdateAsync(type);
         return type;
     }
 
-    public async Task DeleteTypeAsync(int workspaceId, int typeId) => await this._typeRepo.DeleteAsync(workspaceId, typeId);
+    public async Task DeleteTypeAsync(int workspaceId, int typeId) => await this.ticketTypeRepository.DeleteAsync(workspaceId, typeId);
 
     private async Task<WorkspaceEntity> GetWorkspaceOrThrowAsync(int workspaceId)
     {
-        var workspace = await this._workspaceRepo.FindByIdAsync(workspaceId) ?? throw new InvalidOperationException(WorkspaceNotFoundError);
+        var workspace = await this.workspaceRepository.FindByIdAsync(workspaceId) ?? throw new InvalidOperationException(WorkspaceNotFoundError);
 
         return workspace;
     }
 
     private async Task ValidateSlugIsAvailableAsync(string slug, int workspaceId)
     {
-        var existing = await this._workspaceRepo.FindBySlugAsync(slug);
+        var existing = await this.workspaceRepository.FindBySlugAsync(slug);
         if (existing != null && existing.Id != workspaceId)
         {
             throw new InvalidOperationException(SlugInUseError);
@@ -245,7 +246,7 @@ public class WorkspaceSettingsService(
     {
         if (string.IsNullOrWhiteSpace(name))
         {
-            throw new InvalidOperationException(string.Format(NameRequiredError, entityType));
+            throw new InvalidOperationException(string.Format(null, NameRequiredError, entityType));
         }
 
         return name.Trim();
@@ -253,12 +254,12 @@ public class WorkspaceSettingsService(
 
     private static string TrimColorOrDefault(string color) => string.IsNullOrWhiteSpace(color) ? DefaultColor : color.Trim();
 
-    private static async Task EnsureNameIsUniqueAsync<T>(int workspaceId, string name, string entityType, Func<Task<T?>> findExisting) where T : class
+    private static async Task EnsureNameIsUniqueAsync<T>(string name, string entityType, Func<Task<T?>> findExisting) where T : class
     {
         var existing = await findExisting();
         if (existing != null)
         {
-            throw new InvalidOperationException(string.Format(AlreadyExistsError, entityType, name));
+            throw new InvalidOperationException(string.Format(null, AlreadyExistsError, entityType, name));
         }
     }
 

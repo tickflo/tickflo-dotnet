@@ -5,15 +5,15 @@ using Tickflo.Core.Entities;
 
 public class WorkspaceLocationsEditViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
-    IRolePermissionRepository rolePerms,
-    ILocationRepository locationRepo,
+    IRolePermissionRepository rolePermissionRepository,
+    ILocationRepository locationRepository,
     IUserWorkspaceRepository userWorkspaces,
     IUserRepository users,
     IContactRepository contacts) : IWorkspaceLocationsEditViewService
 {
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePerms = rolePerms;
-    private readonly ILocationRepository _locationRepo = locationRepo;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
+    private readonly ILocationRepository locationRepository = locationRepository;
     private readonly IUserWorkspaceRepository _userWorkspaces = userWorkspaces;
     private readonly IUserRepository _users = users;
     private readonly IContactRepository _contacts = contacts;
@@ -22,8 +22,8 @@ public class WorkspaceLocationsEditViewService(
     {
         var data = new WorkspaceLocationsEditViewData();
 
-        var isAdmin = await this._userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
-        var eff = await this._rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+        var isAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(userId, workspaceId);
+        var eff = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
 
         if (isAdmin)
         {
@@ -56,10 +56,10 @@ public class WorkspaceLocationsEditViewService(
 
         if (locationId > 0)
         {
-            data.ExistingLocation = await this._locationRepo.FindAsync(workspaceId, locationId);
+            data.ExistingLocation = await this.locationRepository.FindAsync(workspaceId, locationId);
             if (data.ExistingLocation != null)
             {
-                var selected = await this._locationRepo.ListContactIdsAsync(workspaceId, locationId);
+                var selected = await this.locationRepository.ListContactIdsAsync(workspaceId, locationId);
                 data.SelectedContactIds = [.. selected];
             }
         }

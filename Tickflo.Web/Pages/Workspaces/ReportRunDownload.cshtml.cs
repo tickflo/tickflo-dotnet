@@ -9,12 +9,12 @@ using Tickflo.Core.Services.Views;
 [Authorize]
 public class ReportRunDownloadModel(IWorkspaceRepository workspaceRepo, IWorkspaceReportRunDownloadViewService downloadViewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
     private readonly IWorkspaceReportRunDownloadViewService _downloadViewService = downloadViewService;
 
     public async Task<IActionResult> OnGetAsync(string slug, int reportId, int runId)
     {
-        var ws = await this._workspaceRepo.FindBySlugAsync(slug);
+        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
         if (ws == null)
         {
             return this.NotFound();

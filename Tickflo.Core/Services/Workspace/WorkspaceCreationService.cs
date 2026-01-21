@@ -1,5 +1,6 @@
 namespace Tickflo.Core.Services.Workspace;
 
+using System.Text;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
@@ -7,14 +8,14 @@ using Tickflo.Core.Entities;
 /// Handles workspace creation and initialization workflows.
 /// </summary>
 public partial class WorkspaceCreationService(
-    IWorkspaceRepository workspaceRepo,
+    IWorkspaceRepository workspaceRepository,
     IRoleRepository roleRepo,
-    IUserWorkspaceRepository userWorkspaceRepo,
-    IUserWorkspaceRoleRepository userRoleRepo) : IWorkspaceCreationService
+    IUserWorkspaceRepository userWorkspaceRepository,
+    IUserWorkspaceRoleRepository userWorkspaceRoleRepository) : IWorkspaceCreationService
 {
     private const int MaxSlugLength = 30;
     private const string ErrorWorkspaceNameRequired = "Workspace name is required";
-    private const string ErrorSlugInUse = "Slug '{0}' is already in use";
+    private static readonly CompositeFormat ErrorSlugInUse = CompositeFormat.Parse("Slug '{0}' is already in use");
 
     private static readonly (string Name, bool IsAdmin)[] DefaultRoles =
     [
@@ -24,10 +25,10 @@ public partial class WorkspaceCreationService(
         ("Viewer", false)
     ];
 
-    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
-    private readonly IRoleRepository _roleRepo = roleRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
-    private readonly IUserWorkspaceRoleRepository _userRoleRepo = userRoleRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly IRoleRepository roleRepository = roleRepo;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepository;
 
     /// <summary>
     /// Creates a new workspace and initializes default roles.
@@ -47,7 +48,7 @@ public partial class WorkspaceCreationService(
             CreatedBy = createdByUserId
         };
 
-        await this._workspaceRepo.AddAsync(workspace);
+        await this.workspaceRepository.AddAsync(workspace);
         await this.InitializeDefaultRolesAsync(workspace.Id, createdByUserId);
         await this.AddCreatorAsAdminAsync(workspace.Id, createdByUserId);
 
@@ -65,11 +66,11 @@ public partial class WorkspaceCreationService(
     private async Task<string> GenerateAndValidateSlugAsync(string name)
     {
         var slug = GenerateSlug(name);
-        var existingSlug = await this._workspaceRepo.FindBySlugAsync(slug);
+        var existingSlug = await this.workspaceRepository.FindBySlugAsync(slug);
 
         if (existingSlug != null)
         {
-            throw new InvalidOperationException(string.Format(ErrorSlugInUse, slug));
+            throw new InvalidOperationException(string.Format(null, ErrorSlugInUse, slug));
         }
 
         return slug;
@@ -77,13 +78,13 @@ public partial class WorkspaceCreationService(
 
     private async Task AddCreatorAsAdminAsync(int workspaceId, int createdByUserId)
     {
-        var adminRole = await this._roleRepo.FindByNameAsync(workspaceId, "Admin");
+        var adminRole = await this.roleRepository.FindByNameAsync(workspaceId, "Admin");
         if (adminRole == null)
         {
             return;
         }
 
-        await this._userWorkspaceRepo.AddAsync(new UserWorkspace
+        await this.userWorkspaceRepository.AddAsync(new UserWorkspace
         {
             UserId = createdByUserId,
             WorkspaceId = workspaceId,
@@ -92,17 +93,17 @@ public partial class WorkspaceCreationService(
             CreatedBy = createdByUserId
         });
 
-        await this._userRoleRepo.AddAsync(createdByUserId, workspaceId, adminRole.Id, createdByUserId);
+        await this.userWorkspaceRoleRepository.AddAsync(createdByUserId, workspaceId, adminRole.Id, createdByUserId);
     }
 
     private async Task InitializeDefaultRolesAsync(int workspaceId, int createdByUserId)
     {
         foreach (var (name, isAdmin) in DefaultRoles)
         {
-            var existingRole = await this._roleRepo.FindByNameAsync(workspaceId, name);
+            var existingRole = await this.roleRepository.FindByNameAsync(workspaceId, name);
             if (existingRole == null)
             {
-                await this._roleRepo.AddAsync(workspaceId, name, isAdmin, createdByUserId);
+                await this.roleRepository.AddAsync(workspaceId, name, isAdmin, createdByUserId);
             }
         }
     }

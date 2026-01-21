@@ -7,15 +7,13 @@ using Xunit;
 
 public class ValidationServiceTests
 {
-    private static IValidationService CreateService(
-        IUserRepository? userRepo = null,
-        IRoleRepository? roleRepo = null,
-        ITeamRepository? teamRepo = null)
+    private static ValidationService CreateService(
+        IUserRepository? userRepository = null,
+        IRoleRepository? roleRepo = null)
     {
-        userRepo ??= Mock.Of<IUserRepository>();
+        userRepository ??= Mock.Of<IUserRepository>();
         roleRepo ??= Mock.Of<IRoleRepository>();
-        teamRepo ??= Mock.Of<ITeamRepository>();
-        return new ValidationService(userRepo, roleRepo, teamRepo);
+        return new ValidationService(userRepository, roleRepo);
     }
 
     [Fact]

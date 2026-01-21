@@ -9,7 +9,7 @@ using Tickflo.Core.Services.Views;
 using Tickflo.Core.Utils;
 
 [Authorize]
-public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IEmailSenderService emailSender, IEmailTemplateService emailTemplateService, INotificationRepository notificationRepository, IWorkspaceUsersViewService viewService, IWorkspaceUsersManageViewService manageViewService) : WorkspacePageModel
+public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepository, IUserWorkspaceRepository userWorkspaceRepository, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IEmailSenderService emailSender, IEmailTemplateService emailTemplateService, INotificationRepository notificationRepository, IWorkspaceUsersViewService viewService, IWorkspaceUsersManageViewService manageViewService) : WorkspacePageModel
 {
     #region Constants
     private const string InviteAcceptedMessage = "Invite accepted.";
@@ -20,10 +20,10 @@ public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository user
     private const string SentStatus = "sent";
     #endregion
 
-    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
-    private readonly IUserRepository _userRepo = userRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IUserRepository userRepository = userRepository;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
     private readonly IEmailSenderService _emailSender = emailSender;
     private readonly IEmailTemplateService _emailTemplateService = emailTemplateService;
     private readonly INotificationRepository _notificationRepository = notificationRepository;
@@ -39,7 +39,7 @@ public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository user
     public async Task<IActionResult> OnGetAsync(string slug)
     {
         this.WorkspaceSlug = slug;
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (loadResult is IActionResult actionResult)
         {
             return actionResult;
@@ -77,14 +77,14 @@ public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository user
             return authResult;
         }
 
-        var uw = await this._userWorkspaceRepo.FindAsync(userId, this.Workspace!.Id);
+        var uw = await this.userWorkspaceRepository.FindAsync(userId, this.Workspace!.Id);
         if (uw == null)
         {
             return this.NotFound();
         }
 
         AcceptUserInvite(uw);
-        await this._userWorkspaceRepo.UpdateAsync(uw);
+        await this.userWorkspaceRepository.UpdateAsync(uw);
 
         this.SetSuccessMessage(InviteAcceptedMessage);
         return this.RedirectToUsersPage(slug);
@@ -93,7 +93,7 @@ public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository user
     public async Task<IActionResult> OnPostResendAsync(string slug, int userId)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.EnsureWorkspaceExistsOrNotFound(this.Workspace) is IActionResult result)
         {
             return result;
@@ -110,13 +110,13 @@ public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository user
             return permCheck;
         }
 
-        var uw = await this._userWorkspaceRepo.FindAsync(userId, this.Workspace.Id);
+        var uw = await this.userWorkspaceRepository.FindAsync(userId, this.Workspace.Id);
         if (uw == null || uw.Accepted)
         {
             return this.NotFound();
         }
 
-        var user = await this._userRepo.FindByIdAsync(userId);
+        var user = await this.userRepository.FindByIdAsync(userId);
         if (this.EnsureEntityExistsOrNotFound(user) is IActionResult userCheck)
         {
             return userCheck;
@@ -132,7 +132,7 @@ public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository user
 
     private async Task<IActionResult?> AuthorizeWorkspaceAccessAsync(string slug)
     {
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (loadResult is IActionResult actionResult)
         {
             return actionResult;
@@ -160,7 +160,7 @@ public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository user
     {
         var newCode = TokenGenerator.GenerateToken(16);
         user.EmailConfirmationCode = newCode;
-        await this._userRepo.UpdateAsync(user);
+        await this.userRepository.UpdateAsync(user);
     }
 
     private static string BuildConfirmationLink(User user) => $"/email-confirmation/confirm?email={Uri.EscapeDataString(user.Email)}&code={Uri.EscapeDataString(user.EmailConfirmationCode ?? string.Empty)}";

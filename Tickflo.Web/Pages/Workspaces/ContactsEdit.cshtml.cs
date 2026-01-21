@@ -10,9 +10,9 @@ using Tickflo.Core.Services.Views;
 [Authorize]
 public class ContactsEditModel(
     IWorkspaceRepository workspaceRepo,
-    IUserWorkspaceRepository userWorkspaceRepo,
+    IUserWorkspaceRepository userWorkspaceRepository,
     IWorkspaceContactsEditViewService viewService,
-    IContactRepository contactRepo,
+    IContactRepository contactRepository,
     IContactRegistrationService contactRegistrationService) : WorkspacePageModel
 {
     #region Constants
@@ -21,10 +21,10 @@ public class ContactsEditModel(
     private const string ContactUpdatedMessage = "Contact '{0}' updated.";
     #endregion
 
-    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly IWorkspaceContactsEditViewService _viewService = viewService;
-    private readonly IContactRepository _contactRepo = contactRepo;
+    private readonly IContactRepository contactRepository = contactRepository;
     private readonly IContactRegistrationService _contactRegistrationService = contactRegistrationService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
@@ -49,7 +49,7 @@ public class ContactsEditModel(
         this.WorkspaceSlug = slug;
         this.Id = id;
 
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (loadResult is IActionResult actionResult)
         {
             return actionResult;
@@ -83,7 +83,7 @@ public class ContactsEditModel(
         this.WorkspaceSlug = slug;
         this.Id = id;
 
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (loadResult is IActionResult actionResult)
         {
             return actionResult;
@@ -158,7 +158,7 @@ public class ContactsEditModel(
         created.Tags = trimmedFields.Tags;
         created.PreferredChannel = trimmedFields.PreferredChannel;
         created.Priority = trimmedFields.Priority;
-        await this._contactRepo.UpdateAsync(created);
+        await this.contactRepository.UpdateAsync(created);
 
         this.SetSuccessMessage(string.Format(ContactCreatedMessage, created.Name));
         return created;
@@ -181,7 +181,7 @@ public class ContactsEditModel(
         updated.Tags = trimmedFields.Tags;
         updated.PreferredChannel = trimmedFields.PreferredChannel;
         updated.Priority = trimmedFields.Priority;
-        await this._contactRepo.UpdateAsync(updated);
+        await this.contactRepository.UpdateAsync(updated);
 
         this.SetSuccessMessage(string.Format(ContactUpdatedMessage, updated.Name));
         return updated;

@@ -4,25 +4,25 @@ using Tickflo.Core.Data;
 
 public class WorkspaceTeamsEditViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
-    IRolePermissionRepository rolePerms,
-    ITeamRepository teamRepo,
+    IRolePermissionRepository rolePermissionRepository,
+    ITeamRepository teamRepository,
     IUserWorkspaceRepository userWorkspaces,
-    IUserRepository userRepo,
+    IUserRepository userRepository,
     ITeamMemberRepository teamMembers) : IWorkspaceTeamsEditViewService
 {
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePerms = rolePerms;
-    private readonly ITeamRepository _teamRepo = teamRepo;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
+    private readonly ITeamRepository teamRepository = teamRepository;
     private readonly IUserWorkspaceRepository _userWorkspaces = userWorkspaces;
-    private readonly IUserRepository _userRepo = userRepo;
-    private readonly ITeamMemberRepository _teamMembers = teamMembers;
+    private readonly IUserRepository userRepository = userRepository;
+    private readonly ITeamMemberRepository teamMemberRepository = teamMembers;
 
     public async Task<WorkspaceTeamsEditViewData> BuildAsync(int workspaceId, int userId, int teamId = 0)
     {
         var data = new WorkspaceTeamsEditViewData();
 
-        var isAdmin = await this._userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
-        var eff = await this._rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+        var isAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(userId, workspaceId);
+        var eff = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
 
         if (isAdmin)
         {
@@ -41,7 +41,7 @@ public class WorkspaceTeamsEditViewService(
         {
             foreach (var m in memberships.Select(m => m.UserId).Distinct())
             {
-                var u = await this._userRepo.FindByIdAsync(m);
+                var u = await this.userRepository.FindByIdAsync(m);
                 if (u != null)
                 {
                     data.WorkspaceUsers.Add(u);
@@ -51,10 +51,10 @@ public class WorkspaceTeamsEditViewService(
 
         if (teamId > 0)
         {
-            data.ExistingTeam = await this._teamRepo.FindByIdAsync(teamId);
+            data.ExistingTeam = await this.teamRepository.FindByIdAsync(teamId);
             if (data.ExistingTeam != null)
             {
-                var members = await this._teamMembers.ListMembersAsync(teamId);
+                var members = await this.teamMemberRepository.ListMembersAsync(teamId);
                 data.ExistingMemberIds = [.. members.Select(m => m.Id)];
             }
         }

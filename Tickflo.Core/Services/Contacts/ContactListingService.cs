@@ -4,20 +4,20 @@ using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
 public class ContactListingService(
-    IContactRepository contactRepo,
-    ITicketPriorityRepository priorityRepo) : IContactListingService
+    IContactRepository contactRepository,
+    ITicketPriorityRepository priorityRepository) : IContactListingService
 {
-    private readonly IContactRepository _contactRepo = contactRepo;
-    private readonly ITicketPriorityRepository _priorityRepo = priorityRepo;
+    private readonly IContactRepository contactRepository = contactRepository;
+    private readonly ITicketPriorityRepository priorityRepository = priorityRepository;
 
     public async Task<(IReadOnlyList<Contact> Items, IReadOnlyList<TicketPriority> Priorities)> GetListAsync(
         int workspaceId,
         string? priorityFilter = null,
         string? searchQuery = null)
     {
-        var allContacts = await this._contactRepo.ListAsync(workspaceId);
+        var allContacts = await this.contactRepository.ListAsync(workspaceId);
         var filtered = FilterContacts(allContacts, priorityFilter, searchQuery);
-        var priorities = await this._priorityRepo.ListAsync(workspaceId);
+        var priorities = await this.priorityRepository.ListAsync(workspaceId);
 
         return (filtered.ToList(), priorities.ToList());
     }

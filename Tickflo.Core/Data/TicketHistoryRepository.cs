@@ -3,17 +3,17 @@ namespace Tickflo.Core.Data;
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
 
-public class TicketHistoryRepository(TickfloDbContext db) : ITicketHistoryRepository
+public class TicketHistoryRepository(TickfloDbContext dbContext) : ITicketHistoryRepository
 {
-    private readonly TickfloDbContext _db = db;
+    private readonly TickfloDbContext dbContext = dbContext;
 
     public async Task CreateAsync(TicketHistory history)
     {
-        this._db.Add(history);
-        await this._db.SaveChangesAsync();
+        this.dbContext.Add(history);
+        await this.dbContext.SaveChangesAsync();
     }
 
-    public async Task<IReadOnlyList<TicketHistory>> ListForTicketAsync(int workspaceId, int ticketId) => await this._db.Set<TicketHistory>()
+    public async Task<IReadOnlyList<TicketHistory>> ListForTicketAsync(int workspaceId, int ticketId) => await this.dbContext.Set<TicketHistory>()
             .Where(h => h.WorkspaceId == workspaceId && h.TicketId == ticketId)
             .OrderByDescending(h => h.CreatedAt)
             .ToListAsync();

@@ -7,23 +7,23 @@ using Tickflo.Core.Services.Workspace;
 public class WorkspaceSettingsViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
     IRolePermissionRepository rolePermRepo,
-    ITicketStatusRepository statusRepo,
-    ITicketPriorityRepository priorityRepo,
-    ITicketTypeRepository typeRepo,
+    ITicketStatusRepository statusRepository,
+    ITicketPriorityRepository priorityRepository,
+    ITicketTypeRepository ticketTypeRepository,
     IWorkspaceSettingsService settingsService) : IWorkspaceSettingsViewService
 {
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
     private readonly IRolePermissionRepository _rolePermRepo = rolePermRepo;
-    private readonly ITicketStatusRepository _statusRepo = statusRepo;
-    private readonly ITicketPriorityRepository _priorityRepo = priorityRepo;
-    private readonly ITicketTypeRepository _typeRepo = typeRepo;
+    private readonly ITicketStatusRepository statusRepository = statusRepository;
+    private readonly ITicketPriorityRepository priorityRepository = priorityRepository;
+    private readonly ITicketTypeRepository ticketTypeRepository = ticketTypeRepository;
     private readonly IWorkspaceSettingsService _settingsService = settingsService;
 
     public async Task<WorkspaceSettingsViewData> BuildAsync(int workspaceId, int userId)
     {
         var data = new WorkspaceSettingsViewData();
 
-        var isAdmin = await this._userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
+        var isAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(userId, workspaceId);
         if (isAdmin)
         {
             data.CanViewSettings = data.CanEditSettings = data.CanCreateSettings = true;
@@ -41,9 +41,9 @@ public class WorkspaceSettingsViewService(
 
         // Ensure defaults and load lists
         await this._settingsService.EnsureDefaultsExistAsync(workspaceId);
-        data.Statuses = await this._statusRepo.ListAsync(workspaceId);
-        data.Priorities = await this._priorityRepo.ListAsync(workspaceId);
-        data.Types = await this._typeRepo.ListAsync(workspaceId);
+        data.Statuses = await this.statusRepository.ListAsync(workspaceId);
+        data.Priorities = await this.priorityRepository.ListAsync(workspaceId);
+        data.Types = await this.ticketTypeRepository.ListAsync(workspaceId);
 
         // Notification defaults (placeholder until persisted storage exists)
         data.NotificationsEnabled = true;

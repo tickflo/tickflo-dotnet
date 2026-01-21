@@ -12,8 +12,8 @@ using Tickflo.Core.Services.Workspace;
 [Authorize]
 public class LocationsModel(
     IWorkspaceRepository workspaceRepo,
-    IUserWorkspaceRepository userWorkspaceRepo,
-    ILocationRepository locationRepo,
+    IUserWorkspaceRepository userWorkspaceRepository,
+    ILocationRepository locationRepository,
     ICurrentUserService currentUserService,
     IWorkspaceAccessService workspaceAccessService,
     IWorkspaceLocationsViewService viewService) : WorkspacePageModel
@@ -25,9 +25,9 @@ public class LocationsModel(
     private const string EditAction = "edit";
     #endregion
 
-    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
-    private readonly ILocationRepository _locationRepo = locationRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly ILocationRepository locationRepository = locationRepository;
     private readonly ICurrentUserService _currentUserService = currentUserService;
     private readonly IWorkspaceAccessService _workspaceAccessService = workspaceAccessService;
     private readonly IWorkspaceLocationsViewService _viewService = viewService;
@@ -42,7 +42,7 @@ public class LocationsModel(
     {
         this.WorkspaceSlug = slug;
 
-        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (result is IActionResult actionResult)
         {
             return actionResult;
@@ -62,7 +62,7 @@ public class LocationsModel(
     public async Task<IActionResult> OnPostDeleteAsync(string slug, int locationId)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.EnsureWorkspaceExistsOrNotFound(this.Workspace) is IActionResult result)
         {
             return result;
@@ -78,7 +78,7 @@ public class LocationsModel(
             return this.Forbid();
         }
 
-        var ok = await this._locationRepo.DeleteAsync(this.Workspace!.Id, locationId);
+        var ok = await this.locationRepository.DeleteAsync(this.Workspace!.Id, locationId);
         this.SetSuccessMessage(ok
             ? string.Format(LocationDeletedFormat, locationId)
             : LocationNotFoundMessage);

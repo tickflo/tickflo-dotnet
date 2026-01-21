@@ -11,7 +11,7 @@ public class RoleManagementService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepository,
     IRoleRepository roleRepository) : IRoleManagementService
 {
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepository = userWorkspaceRoleRepository;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepository;
     private readonly IRoleRepository _roleRepository = roleRepository;
 
     public async Task<UserWorkspaceRole> AssignRoleToUserAsync(int userId, int workspaceId, int roleId, int assignedByUserId)
@@ -24,7 +24,7 @@ public class RoleManagementService(
         }
 
         // Add the assignment
-        await this._userWorkspaceRoleRepository.AddAsync(userId, workspaceId, roleId, assignedByUserId);
+        await this.userWorkspaceRoleRepository.AddAsync(userId, workspaceId, roleId, assignedByUserId);
 
         // Return the created assignment
         var assignment = new UserWorkspaceRole
@@ -43,7 +43,7 @@ public class RoleManagementService(
     {
         try
         {
-            await this._userWorkspaceRoleRepository.RemoveAsync(userId, workspaceId, roleId);
+            await this.userWorkspaceRoleRepository.RemoveAsync(userId, workspaceId, roleId);
             return true;
         }
         catch
@@ -52,7 +52,7 @@ public class RoleManagementService(
         }
     }
 
-    public async Task<int> CountRoleAssignmentsAsync(int workspaceId, int roleId) => await this._userWorkspaceRoleRepository.CountAssignmentsForRoleAsync(workspaceId, roleId);
+    public async Task<int> CountRoleAssignmentsAsync(int workspaceId, int roleId) => await this.userWorkspaceRoleRepository.CountAssignmentsForRoleAsync(workspaceId, roleId);
 
     public async Task<bool> RoleBelongsToWorkspaceAsync(int roleId, int workspaceId)
     {
@@ -62,7 +62,7 @@ public class RoleManagementService(
 
     public async Task<List<Role>> GetWorkspaceRolesAsync(int workspaceId) => await this._roleRepository.ListForWorkspaceAsync(workspaceId);
 
-    public async Task<List<Role>> GetUserRolesAsync(int userId, int workspaceId) => await this._userWorkspaceRoleRepository.GetRolesAsync(userId, workspaceId);
+    public async Task<List<Role>> GetUserRolesAsync(int userId, int workspaceId) => await this.userWorkspaceRoleRepository.GetRolesAsync(userId, workspaceId);
 
     public async Task EnsureRoleCanBeDeletedAsync(int workspaceId, int roleId, string roleName)
     {

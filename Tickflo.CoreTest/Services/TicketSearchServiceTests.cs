@@ -10,10 +10,10 @@ public class TicketSearchServiceTests
     [Fact]
     public async Task SearchAsyncThrowsWhenNoAccess()
     {
-        var ticketRepo = new Mock<ITicketRepository>();
+        var ticketRepository = new Mock<ITicketRepository>();
         var uw = new Mock<IUserWorkspaceRepository>();
         uw.Setup(r => r.FindAsync(5, 1)).ReturnsAsync((UserWorkspace?)null);
-        var svc = new TicketSearchService(ticketRepo.Object, uw.Object, Mock.Of<ITeamMemberRepository>(), Mock.Of<ITicketStatusRepository>(), Mock.Of<ITicketPriorityRepository>());
+        var svc = new TicketSearchService(ticketRepository.Object, uw.Object, Mock.Of<ITeamMemberRepository>(), Mock.Of<ITicketStatusRepository>(), Mock.Of<ITicketPriorityRepository>());
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => svc.SearchAsync(1, new TicketSearchCriteria { PageNumber = 1, PageSize = 10 }, 5));
     }
@@ -26,14 +26,14 @@ public class TicketSearchServiceTests
             new() { Id = 1, AssignedUserId = null, AssignedTeamId = null, StatusId = 1 },
             new() { Id = 2, AssignedUserId = 3, StatusId = 1 }
         };
-        var ticketRepo = new Mock<ITicketRepository>();
-        ticketRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(tickets);
-        var statusRepo = new Mock<ITicketStatusRepository>();
-        statusRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(
+        var ticketRepository = new Mock<ITicketRepository>();
+        ticketRepository.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(tickets);
+        var statusRepository = new Mock<ITicketStatusRepository>();
+        statusRepository.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(
         [
             new() { Id = 1, Name = "Open", IsClosedState = false }
         ]);
-        var svc = new TicketSearchService(ticketRepo.Object, Mock.Of<IUserWorkspaceRepository>(), Mock.Of<ITeamMemberRepository>(), statusRepo.Object, Mock.Of<ITicketPriorityRepository>());
+        var svc = new TicketSearchService(ticketRepository.Object, Mock.Of<IUserWorkspaceRepository>(), Mock.Of<ITeamMemberRepository>(), statusRepository.Object, Mock.Of<ITicketPriorityRepository>());
 
         var result = await svc.GetUnassignedTicketsAsync(1);
 

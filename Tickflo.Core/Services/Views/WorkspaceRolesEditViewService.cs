@@ -5,17 +5,17 @@ using Tickflo.Core.Data;
 public class WorkspaceRolesEditViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
     IRoleRepository roleRepo,
-    IRolePermissionRepository rolePerms) : IWorkspaceRolesEditViewService
+    IRolePermissionRepository rolePermissionRepository) : IWorkspaceRolesEditViewService
 {
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-    private readonly IRoleRepository _roleRepo = roleRepo;
-    private readonly IRolePermissionRepository _rolePerms = rolePerms;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
+    private readonly IRoleRepository roleRepository = roleRepo;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
 
     public async Task<WorkspaceRolesEditViewData> BuildAsync(int workspaceId, int userId, int roleId = 0)
     {
         var data = new WorkspaceRolesEditViewData();
 
-        var isAdmin = await this._userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
+        var isAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(userId, workspaceId);
         data.IsAdmin = isAdmin;
 
         if (!isAdmin)
@@ -25,11 +25,11 @@ public class WorkspaceRolesEditViewService(
 
         if (roleId > 0)
         {
-            var role = await this._roleRepo.FindByIdAsync(roleId);
+            var role = await this.roleRepository.FindByIdAsync(roleId);
             if (role != null && role.WorkspaceId == workspaceId)
             {
                 data.ExistingRole = role;
-                var perms = await this._rolePerms.ListByRoleAsync(roleId);
+                var perms = await this.rolePermissionRepository.ListByRoleAsync(roleId);
                 data.ExistingPermissions = [.. perms];
             }
         }

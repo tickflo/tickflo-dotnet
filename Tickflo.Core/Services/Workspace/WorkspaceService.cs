@@ -13,9 +13,9 @@ public class WorkspaceService(
     IUserWorkspaceRepository userWorkspaceRepository) : IWorkspaceService
 {
     private readonly IWorkspaceRepository _workspaceRepository = workspaceRepository;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
 
-    public async Task<List<UserWorkspace>> GetUserWorkspacesAsync(int userId) => await this._userWorkspaceRepository.FindForUserAsync(userId);
+    public async Task<List<UserWorkspace>> GetUserWorkspacesAsync(int userId) => await this.userWorkspaceRepository.FindForUserAsync(userId);
 
     public async Task<List<UserWorkspace>> GetAcceptedWorkspacesAsync(int userId)
     {
@@ -29,11 +29,11 @@ public class WorkspaceService(
 
     public async Task<bool> UserHasMembershipAsync(int userId, int workspaceId)
     {
-        var membership = await this._userWorkspaceRepository.FindAsync(userId, workspaceId);
+        var membership = await this.userWorkspaceRepository.FindAsync(userId, workspaceId);
         return membership?.Accepted ?? false;
     }
 
-    public async Task<UserWorkspace?> GetMembershipAsync(int userId, int workspaceId) => await this._userWorkspaceRepository.FindAsync(userId, workspaceId);
+    public async Task<UserWorkspace?> GetMembershipAsync(int userId, int workspaceId) => await this.userWorkspaceRepository.FindAsync(userId, workspaceId);
 }
 
 

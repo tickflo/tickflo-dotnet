@@ -4,14 +4,14 @@ using Tickflo.Core.Data;
 
 public class WorkspaceTeamsAssignViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
-    IRolePermissionRepository rolePerms,
+    IRolePermissionRepository rolePermissionRepository,
     ITeamRepository teams,
     ITeamMemberRepository members,
     IUserWorkspaceRepository userWorkspaces,
     IUserRepository users) : IWorkspaceTeamsAssignViewService
 {
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePerms = rolePerms;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
     private readonly ITeamRepository _teams = teams;
     private readonly ITeamMemberRepository _members = members;
     private readonly IUserWorkspaceRepository _userWorkspaces = userWorkspaces;
@@ -21,8 +21,8 @@ public class WorkspaceTeamsAssignViewService(
     {
         var data = new WorkspaceTeamsAssignViewData();
 
-        var isAdmin = await this._userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
-        var eff = await this._rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+        var isAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(userId, workspaceId);
+        var eff = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
         data.CanViewTeams = isAdmin || (eff.TryGetValue("teams", out var tp) && tp.CanView);
         data.CanEditTeams = isAdmin || (eff.TryGetValue("teams", out var tp2) && tp2.CanEdit);
         if (!data.CanViewTeams)

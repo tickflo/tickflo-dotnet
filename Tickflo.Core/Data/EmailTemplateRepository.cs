@@ -3,25 +3,26 @@ namespace Tickflo.Core.Data;
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
 
-public class EmailTemplateRepository(TickfloDbContext db) : IEmailTemplateRepository
+public class EmailTemplateRepository(TickfloDbContext dbContext) : IEmailTemplateRepository
 {
+    private readonly TickfloDbContext dbContext = dbContext;
     public async Task<EmailTemplate?> FindByTypeAsync(EmailTemplateType templateType, int? workspaceId = null, CancellationToken ct = default) =>
         // Get the template with the highest version for the given template type
         // workspaceId parameter is kept for interface compatibility but no longer used
         // (templates are now global with versioning)
-        await db.EmailTemplates
+        await this.dbContext.EmailTemplates
             .Where(t => t.TemplateTypeId == (int)templateType)
             .OrderByDescending(t => t.Version)
             .FirstOrDefaultAsync(ct);
 
-    public async Task<EmailTemplate?> FindByIdAsync(int id, CancellationToken ct = default) => await db.EmailTemplates
+    public async Task<EmailTemplate?> FindByIdAsync(int id, CancellationToken ct = default) => await this.dbContext.EmailTemplates
             .FirstOrDefaultAsync(t => t.Id == id, ct);
 
     public async Task<List<EmailTemplate>> ListAsync(int? workspaceId = null, CancellationToken ct = default)
     {
         // workspaceId parameter is kept for interface compatibility but no longer used
         // Returns all templates, grouped by template type with only the latest version
-        var allTemplates = await db.EmailTemplates
+        var allTemplates = await this.dbContext.EmailTemplates
             .OrderByDescending(t => t.Version)
             .ToListAsync(ct);
 
@@ -32,38 +33,38 @@ public class EmailTemplateRepository(TickfloDbContext db) : IEmailTemplateReposi
             .OrderBy(t => t.TemplateTypeId)];
     }
 
-    public async Task<EmailTemplate> CreateAsync(EmailTemplate template, CancellationToken ct = default)
+    public async Task<EmailTemplate> CreateAsync(EmailTemplate emailTemplate, CancellationToken ct = default)
     {
         // Templates are immutable and versioned
         // If a template with this template_type_id already exists, create a new version
-        var latestVersion = await db.EmailTemplates
-            .Where(t => t.TemplateTypeId == template.TemplateTypeId)
+        var latestVersion = await this.dbContext.EmailTemplates
+            .Where(t => t.TemplateTypeId == emailTemplate.TemplateTypeId)
             .OrderByDescending(t => t.Version)
             .Select(t => t.Version)
             .FirstOrDefaultAsync(ct);
 
         // Set the version to the next version number
-        template.Version = latestVersion + 1;
+        emailTemplate.Version = latestVersion + 1;
 
-        db.EmailTemplates.Add(template);
-        await db.SaveChangesAsync(ct);
-        return template;
+        this.dbContext.EmailTemplates.Add(emailTemplate);
+        await this.dbContext.SaveChangesAsync(ct);
+        return emailTemplate;
     }
 
-    public async Task<EmailTemplate> UpdateAsync(EmailTemplate template, CancellationToken ct = default)
+    public async Task<EmailTemplate> UpdateAsync(EmailTemplate emailTemplate, CancellationToken ct = default)
     {
         // Templates are immutable - updates create new versions instead
         // Find the current template to get its template_type_id
-        var currentTemplate = await this.FindByIdAsync(template.Id, ct) ?? throw new InvalidOperationException($"Template with ID {template.Id} not found");
+        var currentTemplate = await this.FindByIdAsync(emailTemplate.Id, ct) ?? throw new InvalidOperationException($"Template with ID {emailTemplate.Id} not found");
 
         // Create a new version with the updated content
         var newVersion = new EmailTemplate
         {
             TemplateTypeId = currentTemplate.TemplateTypeId,
-            Subject = template.Subject,
-            Body = template.Body,
+            Subject = emailTemplate.Subject,
+            Body = emailTemplate.Body,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = template.UpdatedBy,
+            CreatedBy = emailTemplate.UpdatedBy,
             UpdatedAt = null,
             UpdatedBy = null
         };
@@ -76,8 +77,8 @@ public class EmailTemplateRepository(TickfloDbContext db) : IEmailTemplateReposi
         var template = await this.FindByIdAsync(id, ct);
         if (template != null)
         {
-            db.EmailTemplates.Remove(template);
-            await db.SaveChangesAsync(ct);
+            this.dbContext.EmailTemplates.Remove(template);
+            await this.dbContext.SaveChangesAsync(ct);
         }
     }
 }

@@ -4,23 +4,23 @@ using Tickflo.Core.Data;
 
 public class WorkspaceUsersManageViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
-    IRolePermissionRepository rolePerms) : IWorkspaceUsersManageViewService
+    IRolePermissionRepository rolePermissionRepository) : IWorkspaceUsersManageViewService
 {
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePerms = rolePerms;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
 
     public async Task<WorkspaceUsersManageViewData> BuildAsync(int workspaceId, int userId)
     {
         var data = new WorkspaceUsersManageViewData();
 
-        var isAdmin = await this._userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
+        var isAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(userId, workspaceId);
         if (isAdmin)
         {
             data.CanEditUsers = true;
         }
         else
         {
-            var eff = await this._rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+            var eff = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
             data.CanEditUsers = eff.TryGetValue("users", out var up) && up.CanEdit;
         }
 

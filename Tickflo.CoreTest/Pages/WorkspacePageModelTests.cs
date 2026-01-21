@@ -202,20 +202,20 @@ public class WorkspacePageModelTests
     {
         public void SetUserWithId(int userId)
         {
-            var identity = new ClaimsIdentity(new[]
-            {
+            var identity = new ClaimsIdentity(
+            [
                 new Claim(ClaimTypes.NameIdentifier, userId.ToString())
-            }, "TestAuthType");
+            ], "TestAuthType");
             var principal = new ClaimsPrincipal(identity);
             this.SetupPageContext(principal);
         }
 
         public void SetUserWithInvalidId(string invalidId)
         {
-            var identity = new ClaimsIdentity(new[]
-            {
+            var identity = new ClaimsIdentity(
+            [
                 new Claim(ClaimTypes.NameIdentifier, invalidId)
-            }, "TestAuthType");
+            ], "TestAuthType");
             var principal = new ClaimsPrincipal(identity);
             this.SetupPageContext(principal);
         }
@@ -246,7 +246,7 @@ public class WorkspacePageModelTests
 
         public async Task<object> PublicLoadWorkspaceAndValidateUserMembershipAsync(
             IWorkspaceRepository workspaceRepo,
-            IUserWorkspaceRepository userWorkspaceRepo,
-            string slug) => await this.LoadWorkspaceAndValidateUserMembershipAsync(workspaceRepo, userWorkspaceRepo, slug);
+            IUserWorkspaceRepository userWorkspaceRepository,
+            string slug) => await this.LoadWorkspaceAndValidateUserMembershipAsync(workspaceRepo, userWorkspaceRepository, slug);
     }
 }

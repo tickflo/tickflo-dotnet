@@ -18,7 +18,7 @@ public class SignupModel(ILogger<SignupModel> logger, IAuthenticationService aut
     private const string RecoveryEmailFieldName = "Input.RecoveryEmail";
     #endregion
 
-    private readonly ILogger<SignupModel> _logger = logger;
+    private readonly ILogger<SignupModel> logger = logger;
     private readonly IAuthenticationService _authService = authService;
 
     [BindProperty]

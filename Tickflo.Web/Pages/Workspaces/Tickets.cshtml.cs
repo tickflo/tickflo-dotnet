@@ -9,16 +9,16 @@ using Tickflo.Core.Services.Tickets;
 using Tickflo.Core.Services.Views;
 
 [Authorize]
-public class TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketRepository ticketRepo, ITicketFilterService filterService, IWorkspaceTicketsViewService viewService, INotificationTriggerService notificationTrigger) : WorkspacePageModel
+public class TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepository, ITicketRepository ticketRepository, ITicketFilterService filterService, IWorkspaceTicketsViewService viewService, INotificationTriggerService notificationTrigger) : WorkspacePageModel
 {
     private const int DefaultPageSize = 25;
     private const int MaxPageSize = 200;
     private const int MinPageNumber = 1;
     private const string OpenStatusFilter = "Open";
 
-    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
-    private readonly ITicketRepository _ticketRepo = ticketRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly ITicketRepository ticketRepository = ticketRepository;
     private readonly ITicketFilterService _filterService = filterService;
     private readonly IWorkspaceTicketsViewService _viewService = viewService;
     private readonly INotificationTriggerService _notificationTrigger = notificationTrigger;
@@ -72,7 +72,7 @@ public class TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepo
     {
         this.WorkspaceSlug = slug;
 
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (loadResult is IActionResult actionResult)
         {
             return actionResult;
@@ -88,7 +88,7 @@ public class TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepo
 
         await this.LoadViewDataAsync(this.Workspace.Id, currentUserId);
 
-        var allTickets = await this._ticketRepo.ListAsync(this.Workspace.Id);
+        var allTickets = await this.ticketRepository.ListAsync(this.Workspace.Id);
         var scopedTickets = this._filterService.ApplyScopeFilter(allTickets, currentUserId,
             this._ticketViewScope ?? string.Empty,
             this._userTeamIds);
@@ -238,7 +238,7 @@ public class TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepo
         var pageNumber = NormalizePageNumber(this.PageNumber);
 
         var startIndex = (pageNumber - 1) * pageSize;
-        this.Tickets = filteredTickets.Skip(startIndex).Take(pageSize).ToList();
+        this.Tickets = [.. filteredTickets.Skip(startIndex).Take(pageSize)];
     }
 
     private static int NormalizePageSize(int pageSize) => pageSize <= 0 ? DefaultPageSize : Math.Min(pageSize, MaxPageSize);
@@ -249,7 +249,7 @@ public class TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepo
     {
         this.WorkspaceSlug = slug;
 
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (loadResult is IActionResult actionResult)
         {
             return actionResult;
@@ -258,7 +258,7 @@ public class TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepo
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
         this.Workspace = workspace;
 
-        var ticket = await this._ticketRepo.FindAsync(this.Workspace!.Id, id);
+        var ticket = await this.ticketRepository.FindAsync(this.Workspace!.Id, id);
         if (ticket == null)
         {
             return this.NotFound();
@@ -295,7 +295,7 @@ public class TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepo
 
         ticket.AssignedUserId = newAssignedUserId;
         ticket.UpdatedAt = DateTime.UtcNow;
-        await this._ticketRepo.UpdateAsync(ticket);
+        await this.ticketRepository.UpdateAsync(ticket);
 
         await this.NotifyAssignmentChangeAsync(ticket, oldAssignedUserId, currentUserId);
     }

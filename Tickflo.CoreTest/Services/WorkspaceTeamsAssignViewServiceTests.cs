@@ -10,14 +10,14 @@ public class WorkspaceTeamsAssignViewServiceTests
     [Fact]
     public async Task BuildAsyncReturnsUsersAndMembersWhenAdmin()
     {
-        var uwr = new Mock<IUserWorkspaceRoleRepository>();
+        var userWorkspaceRoleRepository = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
         var teams = new Mock<ITeamRepository>();
         var membersRepo = new Mock<ITeamMemberRepository>();
         var userWorkspaces = new Mock<IUserWorkspaceRepository>();
         var users = new Mock<IUserRepository>();
 
-        uwr.Setup(x => x.IsAdminAsync(1, 10)).ReturnsAsync(true);
+        userWorkspaceRoleRepository.Setup(x => x.IsAdminAsync(1, 10)).ReturnsAsync(true);
 
         var team = new Team { Id = 3, WorkspaceId = 10, Name = "Ops" };
         teams.Setup(x => x.FindByIdAsync(3)).ReturnsAsync(team);
@@ -35,7 +35,7 @@ public class WorkspaceTeamsAssignViewServiceTests
         users.Setup(x => x.FindByIdAsync(2)).ReturnsAsync(new User { Id = 2, Name = "Alice" });
         users.Setup(x => x.FindByIdAsync(4)).ReturnsAsync(new User { Id = 4, Name = "Bob" });
 
-        var svc = new WorkspaceTeamsAssignViewService(uwr.Object, perms.Object, teams.Object, membersRepo.Object, userWorkspaces.Object, users.Object);
+        var svc = new WorkspaceTeamsAssignViewService(userWorkspaceRoleRepository.Object, perms.Object, teams.Object, membersRepo.Object, userWorkspaces.Object, users.Object);
         var result = await svc.BuildAsync(10, 1, 3);
 
         Assert.True(result.CanViewTeams);
@@ -49,18 +49,18 @@ public class WorkspaceTeamsAssignViewServiceTests
     [Fact]
     public async Task BuildAsyncDeniesWhenUserCannotView()
     {
-        var uwr = new Mock<IUserWorkspaceRoleRepository>();
+        var userWorkspaceRoleRepository = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
         var teams = new Mock<ITeamRepository>();
         var membersRepo = new Mock<ITeamMemberRepository>();
         var userWorkspaces = new Mock<IUserWorkspaceRepository>();
         var users = new Mock<IUserRepository>();
 
-        uwr.Setup(x => x.IsAdminAsync(2, 10)).ReturnsAsync(false);
+        userWorkspaceRoleRepository.Setup(x => x.IsAdminAsync(2, 10)).ReturnsAsync(false);
         perms.Setup(x => x.GetEffectivePermissionsForUserAsync(10, 2))
             .ReturnsAsync([]);
 
-        var svc = new WorkspaceTeamsAssignViewService(uwr.Object, perms.Object, teams.Object, membersRepo.Object, userWorkspaces.Object, users.Object);
+        var svc = new WorkspaceTeamsAssignViewService(userWorkspaceRoleRepository.Object, perms.Object, teams.Object, membersRepo.Object, userWorkspaces.Object, users.Object);
         var result = await svc.BuildAsync(10, 2, 3);
 
         Assert.False(result.CanViewTeams);
@@ -73,14 +73,14 @@ public class WorkspaceTeamsAssignViewServiceTests
     [Fact]
     public async Task BuildAsyncEmptyWhenTeamNotInWorkspace()
     {
-        var uwr = new Mock<IUserWorkspaceRoleRepository>();
+        var userWorkspaceRoleRepository = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
         var teams = new Mock<ITeamRepository>();
         var membersRepo = new Mock<ITeamMemberRepository>();
         var userWorkspaces = new Mock<IUserWorkspaceRepository>();
         var users = new Mock<IUserRepository>();
 
-        uwr.Setup(x => x.IsAdminAsync(3, 10)).ReturnsAsync(false);
+        userWorkspaceRoleRepository.Setup(x => x.IsAdminAsync(3, 10)).ReturnsAsync(false);
         perms.Setup(x => x.GetEffectivePermissionsForUserAsync(10, 3))
             .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>
             {
@@ -90,7 +90,7 @@ public class WorkspaceTeamsAssignViewServiceTests
         var team = new Team { Id = 5, WorkspaceId = 11, Name = "Other" };
         teams.Setup(x => x.FindByIdAsync(5)).ReturnsAsync(team);
 
-        var svc = new WorkspaceTeamsAssignViewService(uwr.Object, perms.Object, teams.Object, membersRepo.Object, userWorkspaces.Object, users.Object);
+        var svc = new WorkspaceTeamsAssignViewService(userWorkspaceRoleRepository.Object, perms.Object, teams.Object, membersRepo.Object, userWorkspaces.Object, users.Object);
         var result = await svc.BuildAsync(10, 3, 5);
 
         Assert.True(result.CanViewTeams);

@@ -13,11 +13,11 @@ using Tickflo.Core.Services.Workspace;
 [Authorize]
 public class WorkspaceModel : PageModel
 {
-    private readonly IWorkspaceRepository _workspaceRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository;
     private readonly IUserRepository _users;
     private readonly IWorkspaceDashboardViewService _dashboardViewService;
-    private readonly ITeamMemberRepository _teamMembers;
+    private readonly ITeamMemberRepository teamMemberRepository;
     private readonly SettingsConfig _settingsConfig;
     private readonly ICurrentUserService _currentUserService;
     private readonly IWorkspaceCreationService _workspaceCreationService;
@@ -68,7 +68,7 @@ public class WorkspaceModel : PageModel
 
     public WorkspaceModel(
         IWorkspaceRepository workspaceRepo,
-        IUserWorkspaceRepository userWorkspaceRepo,
+        IUserWorkspaceRepository userWorkspaceRepository,
         IUserRepository users,
         IWorkspaceDashboardViewService dashboardViewService,
         ITeamMemberRepository teamMembers,
@@ -76,11 +76,11 @@ public class WorkspaceModel : PageModel
         ICurrentUserService currentUserService,
         IWorkspaceCreationService workspaceCreationService)
     {
-        this._workspaceRepo = workspaceRepo;
-        this._userWorkspaceRepo = userWorkspaceRepo;
+        this.workspaceRepository = workspaceRepo;
+        this.userWorkspaceRepository = userWorkspaceRepository;
         this._users = users;
         this._dashboardViewService = dashboardViewService;
-        this._teamMembers = teamMembers;
+        this.teamMemberRepository = teamMembers;
         this._settingsConfig = settingsConfig;
         this._currentUserService = currentUserService;
         this._workspaceCreationService = workspaceCreationService;
@@ -118,7 +118,7 @@ public class WorkspaceModel : PageModel
             return this.Page();
         }
 
-        var found = await this._workspaceRepo.FindBySlugAsync(slug);
+        var found = await this.workspaceRepository.FindBySlugAsync(slug);
         if (found == null)
         {
             return this.NotFound();
@@ -126,7 +126,7 @@ public class WorkspaceModel : PageModel
 
         this.Workspace = found;
 
-        var userMemberships = await this._userWorkspaceRepo.FindForUserAsync(userId);
+        var userMemberships = await this.userWorkspaceRepository.FindForUserAsync(userId);
         await this.LoadUserWorkspacesAsync(userId, userMemberships);
 
         this.IsMember = userMemberships.Any(m => m.WorkspaceId == found.Id && m.Accepted);
@@ -205,11 +205,11 @@ public class WorkspaceModel : PageModel
     private async Task LoadUserWorkspacesAsync(int userId, List<UserWorkspace>? memberships)
     {
         this.Workspaces.Clear();
-        var membershipList = memberships ?? await this._userWorkspaceRepo.FindForUserAsync(userId);
+        var membershipList = memberships ?? await this.userWorkspaceRepository.FindForUserAsync(userId);
 
         foreach (var m in membershipList)
         {
-            var ws = await this._workspaceRepo.FindByIdAsync(m.WorkspaceId);
+            var ws = await this.workspaceRepository.FindByIdAsync(m.WorkspaceId);
             if (ws == null)
             {
                 continue;
@@ -239,7 +239,7 @@ public class WorkspaceModel : PageModel
         // If scope is team, rebuild with actual team IDs
         if (view.TicketViewScope == "team")
         {
-            var myTeams = await this._teamMembers.ListTeamsForUserAsync(workspaceId, userId);
+            var myTeams = await this.teamMemberRepository.ListTeamsForUserAsync(workspaceId, userId);
             var teamIds = myTeams.Select(t => t.Id).ToList();
             view = await this._dashboardViewService.BuildAsync(workspaceId, userId, view.TicketViewScope, teamIds, rangeDays, assignmentFilter);
         }

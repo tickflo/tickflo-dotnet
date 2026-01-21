@@ -6,27 +6,27 @@ using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Common;
 
 public class WorkspaceDashboardViewService(
-    ITicketRepository ticketRepo,
-    ITicketStatusRepository statusRepo,
-    ITicketTypeRepository typeRepo,
-    ITicketPriorityRepository priorityRepo,
-    IUserRepository userRepo,
-    ITeamRepository teamRepo,
-    IUserWorkspaceRepository userWorkspaceRepo,
+    ITicketRepository ticketRepository,
+    ITicketStatusRepository statusRepository,
+    ITicketTypeRepository ticketTypeRepository,
+    ITicketPriorityRepository priorityRepository,
+    IUserRepository userRepository,
+    ITeamRepository teamRepository,
+    IUserWorkspaceRepository userWorkspaceRepository,
     IDashboardService dashboardService,
-    IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
-    IRolePermissionRepository rolePerms) : IWorkspaceDashboardViewService
+    IUserWorkspaceRoleRepository userWorkspaceRoleRepository,
+    IRolePermissionRepository rolePermissionRepository) : IWorkspaceDashboardViewService
 {
-    private readonly ITicketRepository _ticketRepo = ticketRepo;
-    private readonly ITicketStatusRepository _statusRepo = statusRepo;
-    private readonly ITicketTypeRepository _typeRepo = typeRepo;
-    private readonly ITicketPriorityRepository _priorityRepo = priorityRepo;
-    private readonly IUserRepository _userRepo = userRepo;
-    private readonly ITeamRepository _teamRepo = teamRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
-    private readonly IDashboardService _dashboardService = dashboardService;
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePerms = rolePerms;
+    private readonly ITicketRepository ticketRepository = ticketRepository;
+    private readonly ITicketStatusRepository statusRepository = statusRepository;
+    private readonly ITicketTypeRepository ticketTypeRepository = ticketTypeRepository;
+    private readonly ITicketPriorityRepository priorityRepository = priorityRepository;
+    private readonly IUserRepository userRepository = userRepository;
+    private readonly ITeamRepository teamRepository = teamRepository;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IDashboardService dashboardService = dashboardService;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepository;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
 
     public async Task<WorkspaceDashboardView> BuildAsync(
         int workspaceId,
@@ -36,16 +36,16 @@ public class WorkspaceDashboardViewService(
         int rangeDays,
         string assignmentFilter)
     {
-        var stats = await this._dashboardService.GetTicketStatsAsync(workspaceId, userId, scope, [.. teamIds]);
+        var stats = await this.dashboardService.GetTicketStatsAsync(workspaceId, userId, scope, [.. teamIds]);
 
-        var statusList = (await this._statusRepo.ListAsync(workspaceId)).ToList();
-        var typeList = (await this._typeRepo.ListAsync(workspaceId)).ToList();
-        var priorityList = (await this._priorityRepo.ListAsync(workspaceId)).ToList();
-        var priorityCounts = await this._dashboardService.GetPriorityCountsAsync(workspaceId, userId, scope, [.. teamIds]);
+        var statusList = (await this.statusRepository.ListAsync(workspaceId)).ToList();
+        var typeList = (await this.ticketTypeRepository.ListAsync(workspaceId)).ToList();
+        var priorityList = (await this.priorityRepository.ListAsync(workspaceId)).ToList();
+        var priorityCounts = await this.dashboardService.GetPriorityCountsAsync(workspaceId, userId, scope, [.. teamIds]);
 
         var (primaryColor, primaryIsHex, successColor, successIsHex) = ResolveColors(statusList);
 
-        var acceptedUserIds = (await this._userWorkspaceRepo.FindForWorkspaceAsync(workspaceId))
+        var acceptedUserIds = (await this.userWorkspaceRepository.FindForWorkspaceAsync(workspaceId))
             .Where(m => m.Accepted)
             .Select(m => m.UserId)
             .Distinct()
@@ -54,27 +54,27 @@ public class WorkspaceDashboardViewService(
         var members = new List<User>();
         foreach (var uid in acceptedUserIds)
         {
-            var user = await this._userRepo.FindByIdAsync(uid);
+            var user = await this.userRepository.FindByIdAsync(uid);
             if (user != null)
             {
                 members.Add(user);
             }
         }
 
-        var teams = await this._teamRepo.ListForWorkspaceAsync(workspaceId);
+        var teams = await this.teamRepository.ListForWorkspaceAsync(workspaceId);
 
-        var activityData = await this._dashboardService.GetActivitySeriesAsync(workspaceId, userId, scope, [.. teamIds], rangeDays);
+        var activityData = await this.dashboardService.GetActivitySeriesAsync(workspaceId, userId, scope, [.. teamIds], rangeDays);
         var activitySeries = activityData.Select(a => new DashboardActivityPoint(a.Date, a.Created, a.Closed)).ToList();
 
-        var topMembers = await this._dashboardService.GetTopMembersAsync(workspaceId, userId, scope, [.. teamIds], topN: 5);
+        var topMembers = await this.dashboardService.GetTopMembersAsync(workspaceId, userId, scope, [.. teamIds], topN: 5);
         var topMemberStats = topMembers.Select(m => new DashboardMemberStat(m.UserId, m.Name, m.ClosedCount)).ToList();
 
-        var avgResolutionLabel = await this._dashboardService.GetAverageResolutionTimeAsync(workspaceId, userId, scope, [.. teamIds]);
+        var avgResolutionLabel = await this.dashboardService.GetAverageResolutionTimeAsync(workspaceId, userId, scope, [.. teamIds]);
 
         var recentTickets = await this.GetRecentTicketsAsync(workspaceId, userId, scope, teamIds, assignmentFilter, statusList, typeList);
 
         // Compute permissions
-        var isAdmin = await this._userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
+        var isAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(userId, workspaceId);
         var canViewDashboard = false;
         var canViewTickets = false;
         var ticketViewScope = scope;
@@ -87,7 +87,7 @@ public class WorkspaceDashboardViewService(
         }
         else
         {
-            var eff = await this._rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+            var eff = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
             if (eff.TryGetValue("dashboard", out var dp))
             {
                 canViewDashboard = dp.CanView;
@@ -98,7 +98,7 @@ public class WorkspaceDashboardViewService(
                 canViewTickets = tp.CanView;
             }
 
-            ticketViewScope = await this._rolePerms.GetTicketViewScopeForUserAsync(workspaceId, userId, isAdmin);
+            ticketViewScope = await this.rolePermissionRepository.GetTicketViewScopeForUserAsync(workspaceId, userId, isAdmin);
         }
 
         return new WorkspaceDashboardView(
@@ -135,7 +135,7 @@ public class WorkspaceDashboardViewService(
         IReadOnlyList<TicketType> typeList)
     {
         var scopedTickets = await this.ApplyTicketScopeAsync(workspaceId, userId, scope, teamIds);
-        var allTickets = this._dashboardService.FilterTicketsByAssignment(scopedTickets, assignmentFilter, userId);
+        var allTickets = this.dashboardService.FilterTicketsByAssignment(scopedTickets, assignmentFilter, userId);
 
         var statusColor = statusList.GroupBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First().Color, StringComparer.OrdinalIgnoreCase);
@@ -158,7 +158,7 @@ public class WorkspaceDashboardViewService(
         var assigneeNames = new Dictionary<int, string>();
         foreach (var uid in assigneeIds)
         {
-            var u = await this._userRepo.FindByIdAsync(uid);
+            var u = await this.userRepository.FindByIdAsync(uid);
             if (u != null)
             {
                 assigneeNames[uid] = u.Name;
@@ -191,7 +191,7 @@ public class WorkspaceDashboardViewService(
         string scope,
         IReadOnlyList<int> teamIds)
     {
-        var tickets = await this._ticketRepo.ListAsync(workspaceId);
+        var tickets = await this.ticketRepository.ListAsync(workspaceId);
 
         if (scope == "mine")
         {
@@ -219,13 +219,13 @@ public class WorkspaceDashboardViewService(
         if (openStatus != null && !string.IsNullOrWhiteSpace(openStatus.Color))
         {
             primaryColor = openStatus.Color;
-            primaryIsHex = openStatus.Color.StartsWith("#");
+            primaryIsHex = openStatus.Color.StartsWith('#');
         }
 
         if (closedStatus != null && !string.IsNullOrWhiteSpace(closedStatus.Color))
         {
             successColor = closedStatus.Color;
-            successIsHex = closedStatus.Color.StartsWith("#");
+            successIsHex = closedStatus.Color.StartsWith('#');
         }
 
         return (primaryColor, primaryIsHex, successColor, successIsHex);

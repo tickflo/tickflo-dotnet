@@ -9,13 +9,13 @@ using Tickflo.Core.Services.Views;
 [Authorize]
 public class ReportRunModel(IWorkspaceRepository workspaceRepo, IReportRunService reportRunService, IWorkspaceReportRunExecuteViewService viewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
     private readonly IReportRunService _reportRunService = reportRunService;
     private readonly IWorkspaceReportRunExecuteViewService _viewService = viewService;
 
     public async Task<IActionResult> OnPostAsync(string slug, int reportId)
     {
-        var ws = await this._workspaceRepo.FindBySlugAsync(slug);
+        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
         if (ws == null)
         {
             return this.NotFound();

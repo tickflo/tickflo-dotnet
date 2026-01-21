@@ -7,18 +7,18 @@ using Tickflo.Core.Entities;
 /// Service for managing ticket lifecycle operations including creation, updates, and history tracking.
 /// </summary>
 public class TicketManagementService(
-    ITicketRepository ticketRepo,
-    ITicketHistoryRepository historyRepo,
-    IUserRepository userRepo,
-    IUserWorkspaceRepository userWorkspaceRepo,
-    ITeamRepository teamRepo,
+    ITicketRepository ticketRepository,
+    ITicketHistoryRepository historyRepository,
+    IUserRepository userRepository,
+    IUserWorkspaceRepository userWorkspaceRepository,
+    ITeamRepository teamRepository,
     ITeamMemberRepository teamMemberRepo,
-    ILocationRepository locationRepo,
+    ILocationRepository locationRepository,
     IInventoryRepository inventoryRepo,
     IRolePermissionRepository rolePermRepo,
-    ITicketTypeRepository typeRepo,
-    ITicketPriorityRepository priorityRepo,
-    ITicketStatusRepository statusRepo) : ITicketManagementService
+    ITicketTypeRepository ticketTypeRepository,
+    ITicketPriorityRepository priorityRepository,
+    ITicketStatusRepository statusRepository) : ITicketManagementService
 {
     private const string DefaultTicketType = "Standard";
     private const string DefaultPriority = "Normal";
@@ -26,18 +26,18 @@ public class TicketManagementService(
     private const string HistoryActionCreated = "created";
     private const string HistoryActionFieldChanged = "field_changed";
 
-    private readonly ITicketRepository _ticketRepo = ticketRepo;
-    private readonly ITicketHistoryRepository _historyRepo = historyRepo;
-    private readonly IUserRepository _userRepo = userRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
-    private readonly ITeamRepository _teamRepo = teamRepo;
-    private readonly ITeamMemberRepository _teamMemberRepo = teamMemberRepo;
-    private readonly ILocationRepository _locationRepo = locationRepo;
+    private readonly ITicketRepository ticketRepository = ticketRepository;
+    private readonly ITicketHistoryRepository historyRepository = historyRepository;
+    private readonly IUserRepository userRepository = userRepository;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly ITeamRepository teamRepository = teamRepository;
+    private readonly ITeamMemberRepository teamMemberRepository = teamMemberRepo;
+    private readonly ILocationRepository locationRepository = locationRepository;
     private readonly IInventoryRepository _inventoryRepo = inventoryRepo;
     private readonly IRolePermissionRepository _rolePermRepo = rolePermRepo;
-    private readonly ITicketTypeRepository _typeRepo = typeRepo;
-    private readonly ITicketPriorityRepository _priorityRepo = priorityRepo;
-    private readonly ITicketStatusRepository _statusRepo = statusRepo;
+    private readonly ITicketTypeRepository ticketTypeRepository = ticketTypeRepository;
+    private readonly ITicketPriorityRepository priorityRepository = priorityRepository;
+    private readonly ITicketStatusRepository statusRepository = statusRepository;
 
     public async Task<Ticket> CreateTicketAsync(CreateTicketRequest request)
     {
@@ -61,7 +61,7 @@ public class TicketManagementService(
         await this.AssignTicketUserAsync(ticket, request.AssignedUserId, request.LocationId, request.WorkspaceId);
         await this.AssignTicketTeamAsync(ticket, request.AssignedTeamId, request.WorkspaceId);
 
-        await this._ticketRepo.CreateAsync(ticket);
+        await this.ticketRepository.CreateAsync(ticket);
         await this.CreateTicketHistoryAsync(request.WorkspaceId, ticket.Id, request.CreatedByUserId);
 
         return ticket;
@@ -71,14 +71,14 @@ public class TicketManagementService(
     {
         if (!string.IsNullOrWhiteSpace(typeName))
         {
-            var type = await this._typeRepo.FindByNameAsync(workspaceId, typeName.Trim());
+            var type = await this.ticketTypeRepository.FindByNameAsync(workspaceId, typeName.Trim());
             if (type != null)
             {
                 return type.Id;
             }
         }
 
-        var defaultType = await this._typeRepo.FindByNameAsync(workspaceId, DefaultTicketType);
+        var defaultType = await this.ticketTypeRepository.FindByNameAsync(workspaceId, DefaultTicketType);
         return defaultType?.Id;
     }
 
@@ -86,14 +86,14 @@ public class TicketManagementService(
     {
         if (!string.IsNullOrWhiteSpace(priorityName))
         {
-            var priority = await this._priorityRepo.FindAsync(workspaceId, priorityName.Trim());
+            var priority = await this.priorityRepository.FindAsync(workspaceId, priorityName.Trim());
             if (priority != null)
             {
                 return priority.Id;
             }
         }
 
-        var defaultPriority = await this._priorityRepo.FindAsync(workspaceId, DefaultPriority);
+        var defaultPriority = await this.priorityRepository.FindAsync(workspaceId, DefaultPriority);
         return defaultPriority?.Id;
     }
 
@@ -101,14 +101,14 @@ public class TicketManagementService(
     {
         if (!string.IsNullOrWhiteSpace(statusName))
         {
-            var status = await this._statusRepo.FindByNameAsync(workspaceId, statusName.Trim());
+            var status = await this.statusRepository.FindByNameAsync(workspaceId, statusName.Trim());
             if (status != null)
             {
                 return status.Id;
             }
         }
 
-        var defaultStatus = await this._statusRepo.FindByNameAsync(workspaceId, DefaultStatus);
+        var defaultStatus = await this.statusRepository.FindByNameAsync(workspaceId, DefaultStatus);
         return defaultStatus?.Id;
     }
 
@@ -138,7 +138,7 @@ public class TicketManagementService(
         }
     }
 
-    private async Task CreateTicketHistoryAsync(int workspaceId, int ticketId, int createdByUserId) => await this._historyRepo.CreateAsync(new TicketHistory
+    private async Task CreateTicketHistoryAsync(int workspaceId, int ticketId, int createdByUserId) => await this.historyRepository.CreateAsync(new TicketHistory
     {
         WorkspaceId = workspaceId,
         TicketId = ticketId,
@@ -149,7 +149,7 @@ public class TicketManagementService(
 
     public async Task<Ticket> UpdateTicketAsync(UpdateTicketRequest request)
     {
-        var ticket = await this._ticketRepo.FindAsync(request.WorkspaceId, request.TicketId) ?? throw new InvalidOperationException("Ticket not found");
+        var ticket = await this.ticketRepository.FindAsync(request.WorkspaceId, request.TicketId) ?? throw new InvalidOperationException("Ticket not found");
 
         var changeTracker = new TicketChangeTracker(ticket);
 
@@ -161,7 +161,7 @@ public class TicketManagementService(
             ticket.TicketInventories = request.Inventories;
         }
 
-        await this._ticketRepo.UpdateAsync(ticket);
+        await this.ticketRepository.UpdateAsync(ticket);
         await this.LogTicketChangesAsync(changeTracker, ticket, request);
 
         return ticket;
@@ -181,7 +181,7 @@ public class TicketManagementService(
 
         if (!string.IsNullOrWhiteSpace(request.Type))
         {
-            var type = await this._typeRepo.FindByNameAsync(request.WorkspaceId, request.Type.Trim());
+            var type = await this.ticketTypeRepository.FindByNameAsync(request.WorkspaceId, request.Type.Trim());
             if (type != null)
             {
                 ticket.TicketTypeId = type.Id;
@@ -190,7 +190,7 @@ public class TicketManagementService(
 
         if (!string.IsNullOrWhiteSpace(request.Priority))
         {
-            var priority = await this._priorityRepo.FindAsync(request.WorkspaceId, request.Priority.Trim());
+            var priority = await this.priorityRepository.FindAsync(request.WorkspaceId, request.Priority.Trim());
             if (priority != null)
             {
                 ticket.PriorityId = priority.Id;
@@ -199,7 +199,7 @@ public class TicketManagementService(
 
         if (!string.IsNullOrWhiteSpace(request.Status))
         {
-            var status = await this._statusRepo.FindByNameAsync(request.WorkspaceId, request.Status.Trim());
+            var status = await this.statusRepository.FindByNameAsync(request.WorkspaceId, request.Status.Trim());
             if (status != null)
             {
                 ticket.StatusId = status.Id;
@@ -258,19 +258,19 @@ public class TicketManagementService(
 
     public async Task<bool> ValidateUserAssignmentAsync(int userId, int workspaceId)
     {
-        var memberships = await this._userWorkspaceRepo.FindForWorkspaceAsync(workspaceId);
+        var memberships = await this.userWorkspaceRepository.FindForWorkspaceAsync(workspaceId);
         return memberships.Any(m => m.UserId == userId && m.Accepted);
     }
 
     public async Task<bool> ValidateTeamAssignmentAsync(int teamId, int workspaceId)
     {
-        var team = await this._teamRepo.FindByIdAsync(teamId);
+        var team = await this.teamRepository.FindByIdAsync(teamId);
         return team != null && team.WorkspaceId == workspaceId;
     }
 
     public async Task<int?> ResolveDefaultAssigneeAsync(int locationId, int workspaceId)
     {
-        var location = await this._locationRepo.FindAsync(workspaceId, locationId);
+        var location = await this.locationRepository.FindAsync(workspaceId, locationId);
         if (location?.DefaultAssigneeUserId == null)
         {
             return null;
@@ -319,13 +319,13 @@ public class TicketManagementService(
             return false;
         }
 
-        var myTeams = await this._teamMemberRepo.ListTeamsForUserAsync(workspaceId, userId);
+        var myTeams = await this.teamMemberRepository.ListTeamsForUserAsync(workspaceId, userId);
         return myTeams.Any(t => t.Id == ticket.AssignedTeamId.Value);
     }
 
     public async Task<string?> GetAssigneeDisplayNameAsync(int userId)
     {
-        var user = await this._userRepo.FindByIdAsync(userId);
+        var user = await this.userRepository.FindByIdAsync(userId);
         if (user == null)
         {
             return null;
@@ -401,7 +401,7 @@ public class TicketManagementService(
             return;
         }
 
-        await this._historyRepo.CreateAsync(new TicketHistory
+        await this.historyRepository.CreateAsync(new TicketHistory
         {
             WorkspaceId = workspaceId,
             TicketId = ticketId,

@@ -1,6 +1,8 @@
 namespace Tickflo.Core.Data;
 
+#pragma warning disable CA1711
 public class EffectiveSectionPermission
+#pragma warning restore CA1711
 {
     public string Section { get; set; } = string.Empty;
     public bool CanView { get; set; }

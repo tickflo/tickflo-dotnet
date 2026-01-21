@@ -11,12 +11,12 @@ using Tickflo.Core.Services.Views;
 [Authorize]
 public class ReportsModel(
     IWorkspaceRepository workspaceRepo,
-    IUserWorkspaceRepository userWorkspaceRepo,
+    IUserWorkspaceRepository userWorkspaceRepository,
     ICurrentUserService currentUserService,
     IWorkspaceReportsViewService viewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly ICurrentUserService _currentUserService = currentUserService;
     private readonly IWorkspaceReportsViewService _viewService = viewService;
 
@@ -30,7 +30,7 @@ public class ReportsModel(
     {
         this.WorkspaceSlug = slug;
 
-        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (result is IActionResult actionResult)
         {
             return actionResult;

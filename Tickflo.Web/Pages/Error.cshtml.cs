@@ -17,9 +17,9 @@ public class ErrorModel(ILogger<ErrorModel> logger, ICurrentUserService currentU
     public bool IsAdmin { get; set; }
     public bool ShowRequestId => !string.IsNullOrEmpty(this.RequestId);
 
-    private readonly ILogger<ErrorModel> _logger = logger;
+    private readonly ILogger<ErrorModel> logger = logger;
     private readonly ICurrentUserService _currentUserService = currentUserService;
-    private readonly IUserRepository _userRepository = userRepository;
+    private readonly IUserRepository userRepository = userRepository;
 
     public async Task OnGetAsync()
     {
@@ -28,7 +28,7 @@ public class ErrorModel(ILogger<ErrorModel> logger, ICurrentUserService currentU
         // Check if user is a system admin
         if (this._currentUserService.TryGetUserId(this.User, out var userId))
         {
-            var user = await this._userRepository.FindByIdAsync(userId);
+            var user = await this.userRepository.FindByIdAsync(userId);
             this.IsAdmin = user?.SystemAdmin ?? false;
         }
 
@@ -42,7 +42,7 @@ public class ErrorModel(ILogger<ErrorModel> logger, ICurrentUserService currentU
             {
                 this.ExceptionDetails = BuildExceptionDetails(ex);
             }
-            this._logger.LogError(ex, "Unhandled exception occurred. Request ID: {RequestId}", this.RequestId);
+            this.logger.LogError(ex, "Unhandled exception occurred. Request ID: {RequestId}", this.RequestId);
         }
 
         // Try to get status code

@@ -10,7 +10,7 @@ using Tickflo.Core.Services.Common;
 public class GlobalExceptionHandlerMiddleware(RequestDelegate next, ILogger<GlobalExceptionHandlerMiddleware> logger)
 {
     private readonly RequestDelegate _next = next;
-    private readonly ILogger<GlobalExceptionHandlerMiddleware> _logger = logger;
+    private readonly ILogger<GlobalExceptionHandlerMiddleware> logger = logger;
 
     public async Task InvokeAsync(HttpContext context, ICurrentUserService currentUserService, IUserRepository userRepository)
     {
@@ -20,7 +20,7 @@ public class GlobalExceptionHandlerMiddleware(RequestDelegate next, ILogger<Glob
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, "Unhandled exception occurred. Request ID: {TraceId}", context.TraceIdentifier);
+            this.logger.LogError(ex, "Unhandled exception occurred. Request ID: {TraceId}", context.TraceIdentifier);
 
             // Check if user is admin
             var isAdmin = false;
@@ -33,7 +33,7 @@ public class GlobalExceptionHandlerMiddleware(RequestDelegate next, ILogger<Glob
                 }
                 catch (Exception uex)
                 {
-                    this._logger.LogError(uex, "Error retrieving user info for exception handling");
+                    this.logger.LogError(uex, "Error retrieving user info for exception handling");
                 }
             }
 
@@ -44,7 +44,7 @@ public class GlobalExceptionHandlerMiddleware(RequestDelegate next, ILogger<Glob
 
             if (context.Response.HasStarted)
             {
-                this._logger.LogWarning("Response has already started, cannot redirect to error page");
+                this.logger.LogWarning("Response has already started, cannot redirect to error page");
                 throw;
             }
 

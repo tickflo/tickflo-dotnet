@@ -3,18 +3,19 @@ namespace Tickflo.Core.Data;
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
 
-public class ReportRepository(TickfloDbContext db) : IReportRepository
+public class ReportRepository(TickfloDbContext dbContext) : IReportRepository
 {
+    private readonly TickfloDbContext dbContext = dbContext;
     public async Task<IReadOnlyList<Report>> ListAsync(int workspaceId)
-        => await db.Reports.Where(r => r.WorkspaceId == workspaceId).OrderBy(r => r.Name).ToListAsync();
+        => await this.dbContext.Reports.Where(r => r.WorkspaceId == workspaceId).OrderBy(r => r.Name).ToListAsync();
 
     public async Task<Report?> FindAsync(int workspaceId, int id)
-        => await db.Reports.FirstOrDefaultAsync(r => r.WorkspaceId == workspaceId && r.Id == id);
+        => await this.dbContext.Reports.FirstOrDefaultAsync(r => r.WorkspaceId == workspaceId && r.Id == id);
 
     public async Task<Report> CreateAsync(Report report)
     {
-        db.Reports.Add(report);
-        await db.SaveChangesAsync();
+        this.dbContext.Reports.Add(report);
+        await this.dbContext.SaveChangesAsync();
         return report;
     }
 
@@ -35,7 +36,7 @@ public class ReportRepository(TickfloDbContext db) : IReportRepository
         existing.ScheduleTime = report.ScheduleTime;
         existing.ScheduleDayOfWeek = report.ScheduleDayOfWeek;
         existing.ScheduleDayOfMonth = report.ScheduleDayOfMonth;
-        await db.SaveChangesAsync();
+        await this.dbContext.SaveChangesAsync();
         return existing;
     }
 
@@ -47,8 +48,8 @@ public class ReportRepository(TickfloDbContext db) : IReportRepository
             return false;
         }
 
-        db.Reports.Remove(rep);
-        await db.SaveChangesAsync();
+        this.dbContext.Reports.Remove(rep);
+        await this.dbContext.SaveChangesAsync();
         return true;
     }
 }

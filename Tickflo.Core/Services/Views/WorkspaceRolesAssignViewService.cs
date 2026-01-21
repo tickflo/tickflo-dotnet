@@ -5,19 +5,19 @@ using Tickflo.Core.Data;
 public class WorkspaceRolesAssignViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
     IUserWorkspaceRepository userWorkspaces,
-    IUserRepository userRepo,
+    IUserRepository userRepository,
     IRoleRepository roleRepo) : IWorkspaceRolesAssignViewService
 {
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
     private readonly IUserWorkspaceRepository _userWorkspaces = userWorkspaces;
-    private readonly IUserRepository _userRepo = userRepo;
-    private readonly IRoleRepository _roleRepo = roleRepo;
+    private readonly IUserRepository userRepository = userRepository;
+    private readonly IRoleRepository roleRepository = roleRepo;
 
     public async Task<WorkspaceRolesAssignViewData> BuildAsync(int workspaceId, int userId)
     {
         var data = new WorkspaceRolesAssignViewData();
 
-        var isAdmin = await this._userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
+        var isAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(userId, workspaceId);
         data.IsAdmin = isAdmin;
         if (!isAdmin)
         {
@@ -28,18 +28,18 @@ public class WorkspaceRolesAssignViewService(
         var userIds = memberships.Select(m => m.UserId).Distinct().ToList();
         foreach (var id in userIds)
         {
-            var u = await this._userRepo.FindByIdAsync(id);
+            var u = await this.userRepository.FindByIdAsync(id);
             if (u != null)
             {
                 data.Members.Add(u);
             }
         }
 
-        data.Roles = await this._roleRepo.ListForWorkspaceAsync(workspaceId);
+        data.Roles = await this.roleRepository.ListForWorkspaceAsync(workspaceId);
 
         foreach (var id in userIds)
         {
-            var roles = await this._userWorkspaceRoleRepo.GetRolesAsync(id, workspaceId);
+            var roles = await this.userWorkspaceRoleRepository.GetRolesAsync(id, workspaceId);
             data.UserRoles[id] = roles;
         }
 

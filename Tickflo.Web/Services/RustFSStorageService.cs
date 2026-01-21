@@ -14,7 +14,7 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
 {
     private readonly IAmazonS3 _s3Client = s3Client;
     private readonly TickfloConfig _config = config;
-    private readonly ILogger<RustFSStorageService> _logger = logger;
+    private readonly ILogger<RustFSStorageService> logger = logger;
 
     public async Task<string> UploadFileAsync(string filePath, Stream fileStream, string contentType, bool compress = false)
     {
@@ -36,12 +36,12 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
 
             await this._s3Client.PutObjectAsync(putRequest);
 
-            this._logger.LogInformation($"File uploaded successfully: {filePath}");
+            this.logger.LogInformation($"File uploaded successfully: {filePath}");
             return this.GetFileUrl(filePath);
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, $"Error uploading file: {filePath}");
+            this.logger.LogError(ex, $"Error uploading file: {filePath}");
             throw;
         }
     }
@@ -68,12 +68,12 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
 
             await this._s3Client.PutObjectAsync(putRequest);
 
-            this._logger.LogInformation($"Image uploaded and compressed: {imagePath}");
+            this.logger.LogInformation($"Image uploaded and compressed: {imagePath}");
             return this.GetFileUrl(imagePath);
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, $"Error uploading image: {imagePath}");
+            this.logger.LogError(ex, $"Error uploading image: {imagePath}");
             throw;
         }
     }
@@ -111,12 +111,12 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
 
             await this._s3Client.PutObjectAsync(putRequest);
 
-            this._logger.LogInformation($"Thumbnail generated: {thumbnailPath}");
+            this.logger.LogInformation($"Thumbnail generated: {thumbnailPath}");
             return this.GetFileUrl(thumbnailPath);
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, $"Error generating thumbnail: {imagePath}");
+            this.logger.LogError(ex, $"Error generating thumbnail: {imagePath}");
             throw;
         }
     }
@@ -136,17 +136,17 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
             await response.ResponseStream.CopyToAsync(memoryStream);
             memoryStream.Position = 0;
 
-            this._logger.LogInformation($"File downloaded: {filePath}");
+            this.logger.LogInformation($"File downloaded: {filePath}");
             return memoryStream;
         }
         catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
-            this._logger.LogWarning($"File not found: {filePath}");
+            this.logger.LogWarning($"File not found: {filePath}");
             throw new FileNotFoundException($"File not found: {filePath}");
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, $"Error downloading file: {filePath}");
+            this.logger.LogError(ex, $"Error downloading file: {filePath}");
             throw;
         }
     }
@@ -163,12 +163,12 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
 
             await this._s3Client.DeleteObjectAsync(deleteRequest);
 
-            this._logger.LogInformation($"File deleted: {filePath}");
+            this.logger.LogInformation($"File deleted: {filePath}");
             return true;
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, $"Error deleting file: {filePath}");
+            this.logger.LogError(ex, $"Error deleting file: {filePath}");
             return false;
         }
     }
@@ -192,7 +192,7 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, $"Error checking file existence: {filePath}");
+            this.logger.LogError(ex, $"Error checking file existence: {filePath}");
             return false;
         }
     }
@@ -220,7 +220,7 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, $"Error getting file metadata: {filePath}");
+            this.logger.LogError(ex, $"Error getting file metadata: {filePath}");
             return null;
         }
     }
@@ -245,12 +245,12 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
             var response = await this._s3Client.ListObjectsV2Async(listRequest);
             var files = response.S3Objects.Select(obj => obj.Key).ToList();
 
-            this._logger.LogInformation($"Listed {files.Count} files with prefix: {prefix}");
+            this.logger.LogInformation($"Listed {files.Count} files with prefix: {prefix}");
             return files.AsReadOnly();
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, $"Error listing files with prefix: {prefix}");
+            this.logger.LogError(ex, $"Error listing files with prefix: {prefix}");
             throw;
         }
     }

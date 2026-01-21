@@ -1,18 +1,19 @@
 namespace Tickflo.Core.Services.Contacts;
 
+using System.Text;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
-public class ContactRegistrationService(IContactRepository contactRepo) : IContactRegistrationService
+public class ContactRegistrationService(IContactRepository contactRepository) : IContactRegistrationService
 {
     #region Constants
     private const string ContactNameRequiredError = "Contact name is required";
-    private const string ContactAlreadyExistsError = "Contact '{0}' already exists in this workspace";
+    private static readonly CompositeFormat ContactAlreadyExistsError = CompositeFormat.Parse("Contact '{0}' already exists in this workspace");
     private const string InvalidEmailFormatError = "Invalid email format";
     private const string ContactNotFoundError = "Contact not found";
     #endregion
 
-    private readonly IContactRepository _contactRepo = contactRepo;
+    private readonly IContactRepository contactRepository = contactRepository;
 
     public async Task<Contact> RegisterContactAsync(int workspaceId, ContactRegistrationRequest request, int createdByUserId)
     {
@@ -21,7 +22,7 @@ public class ContactRegistrationService(IContactRepository contactRepo) : IConta
         ValidateEmailIfProvided(request.Email);
 
         var contact = CreateContactEntity(workspaceId, request, name);
-        await this._contactRepo.CreateAsync(contact);
+        await this.contactRepository.CreateAsync(contact);
         return contact;
     }
 
@@ -44,11 +45,11 @@ public class ContactRegistrationService(IContactRepository contactRepo) : IConta
         UpdateContactCompany(contact, request.Company);
         UpdateContactNotes(contact, request.Notes);
 
-        await this._contactRepo.UpdateAsync(contact);
+        await this.contactRepository.UpdateAsync(contact);
         return contact;
     }
 
-    public async Task RemoveContactAsync(int workspaceId, int contactId) => await this._contactRepo.DeleteAsync(workspaceId, contactId);
+    public async Task RemoveContactAsync(int workspaceId, int contactId) => await this.contactRepository.DeleteAsync(workspaceId, contactId);
 
     private static string ValidateAndGetContactName(string? name)
     {
@@ -62,14 +63,14 @@ public class ContactRegistrationService(IContactRepository contactRepo) : IConta
 
     private async Task EnsureContactNameIsUniqueAsync(int workspaceId, string name, int? excludeContactId = null)
     {
-        var existingContacts = await this._contactRepo.ListAsync(workspaceId);
+        var existingContacts = await this.contactRepository.ListAsync(workspaceId);
         var isDuplicate = existingContacts.Any(c =>
             (excludeContactId == null || c.Id != excludeContactId) &&
             string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
 
         if (isDuplicate)
         {
-            throw new InvalidOperationException(string.Format(ContactAlreadyExistsError, name));
+            throw new InvalidOperationException(string.Format(null, ContactAlreadyExistsError, name));
         }
     }
 
@@ -95,7 +96,7 @@ public class ContactRegistrationService(IContactRepository contactRepo) : IConta
 
     private async Task<Contact> GetContactOrThrowAsync(int workspaceId, int contactId)
     {
-        var contact = await this._contactRepo.FindAsync(workspaceId, contactId) ?? throw new InvalidOperationException(ContactNotFoundError);
+        var contact = await this.contactRepository.FindAsync(workspaceId, contactId) ?? throw new InvalidOperationException(ContactNotFoundError);
 
         return contact;
     }

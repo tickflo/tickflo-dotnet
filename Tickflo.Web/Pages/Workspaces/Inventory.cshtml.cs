@@ -12,7 +12,7 @@ using Tickflo.Core.Services.Workspace;
 [Authorize]
 public class InventoryModel(
     IWorkspaceRepository workspaces,
-    IUserWorkspaceRepository userWorkspaceRepo,
+    IUserWorkspaceRepository userWorkspaceRepository,
     IInventoryRepository inventoryRepo,
     ICurrentUserService currentUserService,
     IWorkspaceAccessService workspaceAccessService,
@@ -28,7 +28,7 @@ public class InventoryModel(
     #endregion
 
     private readonly IWorkspaceRepository _workspaces = workspaces;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly IInventoryRepository _inventoryRepo = inventoryRepo;
     private readonly ICurrentUserService _currentUserService = currentUserService;
     private readonly IWorkspaceAccessService _workspaceAccessService = workspaceAccessService;
@@ -51,7 +51,7 @@ public class InventoryModel(
     {
         this.WorkspaceSlug = slug;
 
-        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaces, this._userWorkspaceRepo, slug);
+        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaces, this.userWorkspaceRepository, slug);
         if (result is IActionResult actionResult)
         {
             return actionResult;
@@ -68,11 +68,11 @@ public class InventoryModel(
         this.Items = viewData.Items;
         if (!string.IsNullOrWhiteSpace(this.Query))
         {
-            this.Items = this.Items.Where(i => i.Name?.Contains(this.Query, StringComparison.OrdinalIgnoreCase) ?? false).ToList();
+            this.Items = [.. this.Items.Where(i => i.Name?.Contains(this.Query, StringComparison.OrdinalIgnoreCase) ?? false)];
         }
         if (!string.IsNullOrWhiteSpace(this.Status))
         {
-            this.Items = this.Items.Where(i => i.Status == this.Status).ToList();
+            this.Items = [.. this.Items.Where(i => i.Status == this.Status)];
         }
 
         return this.Page();

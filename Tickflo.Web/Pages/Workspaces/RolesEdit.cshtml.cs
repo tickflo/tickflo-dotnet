@@ -8,7 +8,7 @@ using Tickflo.Core.Services.Roles;
 using Tickflo.Core.Services.Views;
 
 [Authorize]
-public class RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository roles, IRolePermissionRepository rolePerms, IRoleManagementService roleService, IWorkspaceRolesEditViewService rolesEditViewService) : WorkspacePageModel
+public class RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository roles, IRolePermissionRepository rolePermissionRepository, IRoleManagementService roleService, IWorkspaceRolesEditViewService rolesEditViewService) : WorkspacePageModel
 {
     #region Constants
     private const int NewRoleId = 0;
@@ -23,7 +23,7 @@ public class RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository rol
 
     private readonly IWorkspaceRepository _workspaces = workspaces;
     private readonly IRoleRepository _roles = roles;
-    private readonly IRolePermissionRepository _rolePerms = rolePerms;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
     private readonly IRoleManagementService _roleService = roleService;
     private readonly IWorkspaceRolesEditViewService _rolesEditViewService = rolesEditViewService;
 
@@ -175,7 +175,7 @@ public class RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository rol
             throw new InvalidOperationException(RoleCreationFailed);
         }
 
-        await this._rolePerms.UpsertAsync(createdId, this.MapEffectivePermissions(), userId);
+        await this.rolePermissionRepository.UpsertAsync(createdId, this.MapEffectivePermissions(), userId);
     }
 
     private async Task UpdateExistingRoleAsync(int id, int workspaceId, int userId, WorkspaceRolesEditViewData viewData)
@@ -200,7 +200,7 @@ public class RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository rol
         role!.Name = nameTrim;
         role.Admin = this.Admin;
         await this._roles.UpdateAsync(role);
-        await this._rolePerms.UpsertAsync(role.Id, this.MapEffectivePermissions(), userId);
+        await this.rolePermissionRepository.UpsertAsync(role.Id, this.MapEffectivePermissions(), userId);
     }
 
     private void ApplyExistingPermissions(IEnumerable<EffectiveSectionPermission> existingPerms)

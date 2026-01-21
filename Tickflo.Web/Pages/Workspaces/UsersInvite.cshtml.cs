@@ -11,18 +11,18 @@ using Tickflo.Core.Services.Users;
 using Tickflo.Core.Services.Views;
 
 [Authorize]
-public class UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IPasswordHasher passwordHasher, IEmailSenderService emailSender, INotificationRepository notificationRepository, ITokenRepository tokenRepo, IRoleRepository roleRepo, IUserInvitationService invitationService, IWorkspaceUsersInviteViewService viewService) : WorkspacePageModel
+public class UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepository, IUserWorkspaceRepository userWorkspaceRepository, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IPasswordHasher passwordHasher, IEmailSenderService emailSender, INotificationRepository notificationRepository, ITokenRepository tokenRepo, IRoleRepository roleRepo, IUserInvitationService invitationService, IWorkspaceUsersInviteViewService viewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
-    private readonly IUserRepository _userRepo = userRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
-    private readonly IPasswordHasher _passwordHasher = passwordHasher;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IUserRepository userRepository = userRepository;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IPasswordHasher passwordHasher = passwordHasher;
     private readonly IEmailSenderService _emailSender = emailSender;
     private readonly IEmailTemplateService _emailTemplateService;
     private readonly INotificationRepository _notificationRepository = notificationRepository;
     private readonly ITokenRepository _tokenRepo = tokenRepo;
-    private readonly IRoleRepository _roleRepo = roleRepo;
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
+    private readonly IRoleRepository roleRepository = roleRepo;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
     private readonly IUserInvitationService _invitationService = invitationService;
     private readonly IWorkspaceUsersInviteViewService _viewService = viewService;
     public string WorkspaceSlug { get; private set; } = string.Empty;
@@ -39,7 +39,7 @@ public class UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepositor
     public async Task<IActionResult> OnGetAsync(string slug)
     {
         this.WorkspaceSlug = slug;
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (loadResult is IActionResult actionResult)
         {
             return actionResult;
@@ -62,7 +62,7 @@ public class UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepositor
     public async Task<IActionResult> OnPostAsync(string slug)
     {
         this.WorkspaceSlug = slug;
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (loadResult is IActionResult actionResult)
         {
             return actionResult;
@@ -97,11 +97,11 @@ public class UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepositor
             var selectedRoleName = this.Role?.Trim();
             if (!string.IsNullOrWhiteSpace(selectedRoleName))
             {
-                var role = await this._roleRepo.FindByNameAsync(ws.Id, selectedRoleName);
+                var role = await this.roleRepository.FindByNameAsync(ws.Id, selectedRoleName);
                 if (role == null)
                 {
                     var adminFlag = string.Equals(selectedRoleName, "Admin", StringComparison.OrdinalIgnoreCase);
-                    role = await this._roleRepo.AddAsync(ws.Id, selectedRoleName, adminFlag, currentUserId);
+                    role = await this.roleRepository.AddAsync(ws.Id, selectedRoleName, adminFlag, currentUserId);
                 }
                 roleIds = [role.Id];
             }

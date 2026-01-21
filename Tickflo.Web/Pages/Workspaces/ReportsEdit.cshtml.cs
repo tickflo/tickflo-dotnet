@@ -9,7 +9,7 @@ using Tickflo.Core.Services.Reporting;
 using Tickflo.Core.Services.Views;
 
 [Authorize]
-public class ReportsEditModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, IReportCommandService reportCommandService, IReportDefinitionValidator defValidator, IWorkspaceReportsEditViewService reportsEditViewService) : WorkspacePageModel
+public class ReportsEditModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepository, IReportCommandService reportCommandService, IReportDefinitionValidator defValidator, IWorkspaceReportsEditViewService reportsEditViewService) : WorkspacePageModel
 {
     #region Constants
     private const int NewReportId = 0;
@@ -20,8 +20,8 @@ public class ReportsEditModel(IWorkspaceRepository workspaceRepo, IUserWorkspace
     private const string ReportUpdatedSuccessfully = "Report '{0}' updated successfully.";
     #endregion
 
-    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly IReportCommandService _reportCommandService = reportCommandService;
     private readonly IReportDefinitionValidator _defValidator = defValidator;
     private readonly IWorkspaceReportsEditViewService _reportsEditViewService = reportsEditViewService;
@@ -61,7 +61,7 @@ public class ReportsEditModel(IWorkspaceRepository workspaceRepo, IUserWorkspace
     public async Task<IActionResult> OnGetAsync(string slug, int reportId = 0)
     {
         this.WorkspaceSlug = slug;
-        var workspaceLoadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        var workspaceLoadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (workspaceLoadResult is IActionResult actionResult)
         {
             return actionResult;
@@ -98,7 +98,7 @@ public class ReportsEditModel(IWorkspaceRepository workspaceRepo, IUserWorkspace
     {
         this.WorkspaceSlug = slug;
 
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (loadResult is IActionResult actionResult)
         {
             return actionResult;

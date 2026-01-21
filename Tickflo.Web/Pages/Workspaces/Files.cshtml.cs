@@ -10,11 +10,11 @@ using Tickflo.Core.Services.Views;
 [Authorize]
 public class FilesModel(
     IWorkspaceRepository workspaceRepository,
-    IUserWorkspaceRepository userWorkspaceRepo,
+    IUserWorkspaceRepository userWorkspaceRepository,
     IWorkspaceFilesViewService filesViewService) : WorkspacePageModel
 {
     private readonly IWorkspaceRepository _workspaceRepository = workspaceRepository;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly IWorkspaceFilesViewService _filesViewService = filesViewService;
 
     public Workspace? Workspace { get; set; }
@@ -22,7 +22,7 @@ public class FilesModel(
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {
-        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepository, this._userWorkspaceRepo, slug);
+        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepository, this.userWorkspaceRepository, slug);
         if (result is IActionResult actionResult)
         {
             return actionResult;

@@ -8,11 +8,11 @@ using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Common;
 
 public class ProfileModel(
-    IUserRepository userRepo,
+    IUserRepository userRepository,
     ICurrentUserService currentUserService,
     INotificationPreferenceService notificationPreferenceService) : PageModel
 {
-    private readonly IUserRepository _userRepo = userRepo;
+    private readonly IUserRepository userRepository = userRepository;
     private readonly ICurrentUserService _currentUserService = currentUserService;
     private readonly INotificationPreferenceService _notificationPreferenceService = notificationPreferenceService;
 
@@ -41,7 +41,7 @@ public class ProfileModel(
             return;
         }
 
-        var user = await this._userRepo.FindByIdAsync(uid);
+        var user = await this.userRepository.FindByIdAsync(uid);
         if (user == null)
         {
             return;
@@ -88,12 +88,12 @@ public class ProfileModel(
         }
 
         // Update user profile
-        var user = await this._userRepo.FindByIdAsync(uid);
+        var user = await this.userRepository.FindByIdAsync(uid);
         if (user != null)
         {
             user.Name = this.UserName;
             user.Email = this.Email;
-            await this._userRepo.UpdateAsync(user);
+            await this.userRepository.UpdateAsync(user);
         }
 
         // Collect and save preferences

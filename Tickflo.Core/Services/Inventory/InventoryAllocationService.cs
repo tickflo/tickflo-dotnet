@@ -8,10 +8,10 @@ using InventoryEntity = Entities.Inventory;
 /// </summary>
 public class InventoryAllocationService(
     IInventoryRepository inventoryRepo,
-    ILocationRepository locationRepo) : IInventoryAllocationService
+    ILocationRepository locationRepository) : IInventoryAllocationService
 {
     private readonly IInventoryRepository _inventoryRepo = inventoryRepo;
-    private readonly ILocationRepository _locationRepo = locationRepo;
+    private readonly ILocationRepository locationRepository = locationRepository;
 
     /// <summary>
     /// Registers a new inventory item in the system.
@@ -50,7 +50,7 @@ public class InventoryAllocationService(
         // Validate location if specified
         if (request.LocationId.HasValue)
         {
-            var location = await this._locationRepo.FindAsync(workspaceId, request.LocationId.Value) ?? throw new InvalidOperationException("Specified location does not exist");
+            var location = await this.locationRepository.FindAsync(workspaceId, request.LocationId.Value) ?? throw new InvalidOperationException("Specified location does not exist");
 
             if (!location.Active)
             {
@@ -87,7 +87,7 @@ public class InventoryAllocationService(
         var inventory = await this._inventoryRepo.FindAsync(workspaceId, inventoryId) ?? throw new InvalidOperationException("Inventory item not found");
 
         // Validate location
-        var location = await this._locationRepo.FindAsync(workspaceId, locationId) ?? throw new InvalidOperationException("Location not found");
+        var location = await this.locationRepository.FindAsync(workspaceId, locationId) ?? throw new InvalidOperationException("Location not found");
 
         if (!location.Active)
         {

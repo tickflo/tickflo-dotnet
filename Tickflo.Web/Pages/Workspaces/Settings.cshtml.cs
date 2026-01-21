@@ -9,16 +9,16 @@ using Tickflo.Core.Services.Views;
 using Tickflo.Core.Services.Workspace;
 
 [Authorize]
-public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, IWorkspaceSettingsService settingsService, IWorkspaceSettingsViewService settingsViewService, IUserRepository userRepo) : WorkspacePageModel
+public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepository, ITicketStatusRepository statusRepository, ITicketPriorityRepository priorityRepository, ITicketTypeRepository ticketTypeRepository, IWorkspaceSettingsService settingsService, IWorkspaceSettingsViewService settingsViewService, IUserRepository userRepository) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
-    private readonly ITicketStatusRepository _statusRepo = statusRepo;
-    private readonly ITicketPriorityRepository _priorityRepo = priorityRepo;
-    private readonly ITicketTypeRepository _typeRepo = typeRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly ITicketStatusRepository statusRepository = statusRepository;
+    private readonly ITicketPriorityRepository priorityRepository = priorityRepository;
+    private readonly ITicketTypeRepository ticketTypeRepository = ticketTypeRepository;
     private readonly IWorkspaceSettingsService _settingsService = settingsService;
     private readonly IWorkspaceSettingsViewService _settingsViewService = settingsViewService;
-    private readonly IUserRepository _userRepo = userRepo;
+    private readonly IUserRepository userRepository = userRepository;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
@@ -49,7 +49,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
             return false;
         }
 
-        var user = await this._userRepo.FindByIdAsync(userId);
+        var user = await this.userRepository.FindByIdAsync(userId);
         this.IsSystemAdmin = user?.SystemAdmin == true;
         var data = await this._settingsViewService.BuildAsync(this.Workspace.Id, userId);
         this.CanViewSettings = data.CanViewSettings;
@@ -80,7 +80,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
     public async Task<IActionResult> OnPostAsync([FromRoute] string slug)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -139,7 +139,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
     public async Task<IActionResult> OnGetAsync(string slug)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -163,7 +163,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
     public async Task<IActionResult> OnPostAddStatusAsync([FromRoute] string slug)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -203,7 +203,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
     public async Task<IActionResult> OnPostAddPriorityAsync([FromRoute] string slug)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -243,7 +243,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
     public async Task<IActionResult> OnPostAddTypeAsync([FromRoute] string slug)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -283,7 +283,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
     public async Task<IActionResult> OnPostUpdateStatusAsync([FromRoute] string slug, [FromForm] int id, [FromForm] string name, [FromForm] string color, [FromForm] int sortOrder)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -318,7 +318,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
     public async Task<IActionResult> OnPostUpdatePriorityAsync([FromRoute] string slug, [FromForm] int id, [FromForm] string name, [FromForm] string color, [FromForm] int sortOrder)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -351,7 +351,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
     public async Task<IActionResult> OnPostUpdateTypeAsync([FromRoute] string slug, [FromForm] int id, [FromForm] string name, [FromForm] string color, [FromForm] int sortOrder)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -384,7 +384,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
     public async Task<IActionResult> OnPostDeleteStatusAsync([FromRoute] string slug, [FromForm] int id)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -410,7 +410,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
     public async Task<IActionResult> OnPostDeletePriorityAsync([FromRoute] string slug, [FromForm] int id)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -436,7 +436,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
     public async Task<IActionResult> OnPostDeleteTypeAsync([FromRoute] string slug, [FromForm] int id)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -462,7 +462,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
     public async Task<IActionResult> OnPostSaveNotificationSettingsAsync([FromRoute] string slug)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -487,7 +487,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
     public async Task<IActionResult> OnPostSaveAllAsync([FromRoute] string slug)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -524,7 +524,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
                 var newSlug = workspaceSlug.Trim();
                 if (newSlug != this.Workspace.Slug)
                 {
-                    var existing = await this._workspaceRepo.FindBySlugAsync(newSlug);
+                    var existing = await this.workspaceRepository.FindBySlugAsync(newSlug);
                     if (existing != null)
                     {
                         this.SetErrorMessage("Slug is already in use. Please choose a different one.");
@@ -535,7 +535,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
                 }
             }
 
-            await this._workspaceRepo.UpdateAsync(this.Workspace);
+            await this.workspaceRepository.UpdateAsync(this.Workspace);
             changedCount++;
 
             var statusMatches = form.Keys
@@ -546,7 +546,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
             foreach (var group in statusMatches)
             {
                 var statusId = group.Key;
-                var status = await this._statusRepo.FindByIdAsync(this.Workspace.Id, statusId);
+                var status = await this.statusRepository.FindByIdAsync(this.Workspace.Id, statusId);
                 if (status == null)
                 {
                     continue;
@@ -555,7 +555,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
                 var deleteFlag = form[$"statuses[{statusId}].delete"].ToString();
                 if (!string.IsNullOrEmpty(deleteFlag))
                 {
-                    await this._statusRepo.DeleteAsync(this.Workspace.Id, statusId);
+                    await this.statusRepository.DeleteAsync(this.Workspace.Id, statusId);
                     changedCount++;
                     continue;
                 }
@@ -580,7 +580,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
                 }
 
                 status.IsClosedState = closed is "true" or "on";
-                await this._statusRepo.UpdateAsync(status);
+                await this.statusRepository.UpdateAsync(status);
                 changedCount++;
             }
 
@@ -588,11 +588,11 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
             var newStatusColor = (form["NewStatusColor"].ToString() ?? "neutral").Trim();
             if (!string.IsNullOrWhiteSpace(newStatusName))
             {
-                var exists = await this._statusRepo.FindByNameAsync(this.Workspace.Id, newStatusName);
+                var exists = await this.statusRepository.FindByNameAsync(this.Workspace.Id, newStatusName);
                 if (exists == null)
                 {
-                    var maxOrder = (await this._statusRepo.ListAsync(this.Workspace.Id)).DefaultIfEmpty().Max(s => s?.SortOrder ?? 0);
-                    await this._statusRepo.CreateAsync(new TicketStatus
+                    var maxOrder = (await this.statusRepository.ListAsync(this.Workspace.Id)).DefaultIfEmpty().Max(s => s?.SortOrder ?? 0);
+                    await this.statusRepository.CreateAsync(new TicketStatus
                     {
                         WorkspaceId = this.Workspace.Id,
                         Name = newStatusName,
@@ -612,7 +612,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
                 .Where(m => m.Success)
                 .GroupBy(m => int.Parse(m.Groups[1].Value));
 
-            var priorityList = await this._priorityRepo.ListAsync(this.Workspace.Id);
+            var priorityList = await this.priorityRepository.ListAsync(this.Workspace.Id);
 
             foreach (var group in priorityMatches)
             {
@@ -626,7 +626,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
                 var deleteFlag = form[$"priorities[{priorityId}].delete"].ToString();
                 if (!string.IsNullOrEmpty(deleteFlag))
                 {
-                    await this._priorityRepo.DeleteAsync(this.Workspace.Id, priorityId);
+                    await this.priorityRepository.DeleteAsync(this.Workspace.Id, priorityId);
                     changedCount++;
                     continue;
                 }
@@ -649,7 +649,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
                     priority.SortOrder = sortOrder;
                 }
 
-                await this._priorityRepo.UpdateAsync(priority);
+                await this.priorityRepository.UpdateAsync(priority);
                 changedCount++;
             }
 
@@ -657,11 +657,11 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
             var newPriorityColor = (form["NewPriorityColor"].ToString() ?? "neutral").Trim();
             if (!string.IsNullOrWhiteSpace(newPriorityName))
             {
-                var exists = await this._priorityRepo.FindAsync(this.Workspace.Id, newPriorityName);
+                var exists = await this.priorityRepository.FindAsync(this.Workspace.Id, newPriorityName);
                 if (exists == null)
                 {
-                    var maxOrder = (await this._priorityRepo.ListAsync(this.Workspace.Id)).DefaultIfEmpty().Max(p => p?.SortOrder ?? 0);
-                    await this._priorityRepo.CreateAsync(new TicketPriority
+                    var maxOrder = (await this.priorityRepository.ListAsync(this.Workspace.Id)).DefaultIfEmpty().Max(p => p?.SortOrder ?? 0);
+                    await this.priorityRepository.CreateAsync(new TicketPriority
                     {
                         WorkspaceId = this.Workspace.Id,
                         Name = newPriorityName,
@@ -677,14 +677,14 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
             }
 
             var typeMatches = form.Keys
-                .Select(k => Regex.Match(k, @"^types\[(\d+)\]\.(.+)$"))
+                .Select(k => MyRegex2().Match(k))
                 .Where(m => m.Success)
                 .GroupBy(m => int.Parse(m.Groups[1].Value));
 
             foreach (var group in typeMatches)
             {
                 var typeId = group.Key;
-                var type = await this._typeRepo.FindByIdAsync(this.Workspace.Id, typeId);
+                var type = await this.ticketTypeRepository.FindByIdAsync(this.Workspace.Id, typeId);
                 if (type == null)
                 {
                     continue;
@@ -693,7 +693,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
                 var deleteFlag = form[$"types[{typeId}].delete"].ToString();
                 if (!string.IsNullOrEmpty(deleteFlag))
                 {
-                    await this._typeRepo.DeleteAsync(this.Workspace.Id, typeId);
+                    await this.ticketTypeRepository.DeleteAsync(this.Workspace.Id, typeId);
                     changedCount++;
                     continue;
                 }
@@ -716,7 +716,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
                     type.SortOrder = sortOrder;
                 }
 
-                await this._typeRepo.UpdateAsync(type);
+                await this.ticketTypeRepository.UpdateAsync(type);
                 changedCount++;
             }
 
@@ -724,11 +724,11 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
             var newTypeColor = (form["NewTypeColor"].ToString() ?? "neutral").Trim();
             if (!string.IsNullOrWhiteSpace(newTypeName))
             {
-                var exists = await this._typeRepo.FindByNameAsync(this.Workspace.Id, newTypeName);
+                var exists = await this.ticketTypeRepository.FindByNameAsync(this.Workspace.Id, newTypeName);
                 if (exists == null)
                 {
-                    var maxOrder = (await this._typeRepo.ListAsync(this.Workspace.Id)).DefaultIfEmpty().Max(t => t?.SortOrder ?? 0);
-                    await this._typeRepo.CreateAsync(new TicketType
+                    var maxOrder = (await this.ticketTypeRepository.ListAsync(this.Workspace.Id)).DefaultIfEmpty().Max(t => t?.SortOrder ?? 0);
+                    await this.ticketTypeRepository.CreateAsync(new TicketType
                     {
                         WorkspaceId = this.Workspace.Id,
                         Name = newTypeName,
@@ -761,6 +761,8 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
     private static partial Regex MyRegex();
     [GeneratedRegex(@"^priorities\[(\d+)\]\.(.+)$")]
     private static partial Regex MyRegex1();
+    [GeneratedRegex(@"^types\[(\d+)\]\.(.+)$")]
+    private static partial Regex MyRegex2();
 }
 
 

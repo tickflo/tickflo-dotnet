@@ -2,7 +2,6 @@ namespace Tickflo.Core.Services.Notifications;
 
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Email;
 
 public interface INotificationService
 {

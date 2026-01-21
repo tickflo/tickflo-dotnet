@@ -8,17 +8,17 @@ using Tickflo.Core.Entities;
 /// Optimized for complex queries and reporting scenarios.
 /// </summary>
 public class TicketSearchService(
-    ITicketRepository ticketRepo,
-    IUserWorkspaceRepository userWorkspaceRepo,
+    ITicketRepository ticketRepository,
+    IUserWorkspaceRepository userWorkspaceRepository,
     ITeamMemberRepository teamMemberRepo,
-    ITicketStatusRepository statusRepo,
-    ITicketPriorityRepository priorityRepo) : ITicketSearchService
+    ITicketStatusRepository statusRepository,
+    ITicketPriorityRepository priorityRepository) : ITicketSearchService
 {
-    private readonly ITicketRepository _ticketRepo = ticketRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
-    private readonly ITeamMemberRepository _teamMemberRepo = teamMemberRepo;
-    private readonly ITicketStatusRepository _statusRepo = statusRepo;
-    private readonly ITicketPriorityRepository _priorityRepo = priorityRepo;
+    private readonly ITicketRepository ticketRepository = ticketRepository;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly ITeamMemberRepository teamMemberRepository = teamMemberRepo;
+    private readonly ITicketStatusRepository statusRepository = statusRepository;
+    private readonly ITicketPriorityRepository priorityRepository = priorityRepository;
 
     public async Task<TicketSearchResult> SearchAsync(
         int workspaceId,
@@ -26,14 +26,14 @@ public class TicketSearchService(
         int requestingUserId)
     {
         // Validation: User has access to workspace
-        var userAccess = await this._userWorkspaceRepo.FindAsync(requestingUserId, workspaceId);
+        var userAccess = await this.userWorkspaceRepository.FindAsync(requestingUserId, workspaceId);
         if (userAccess == null || !userAccess.Accepted)
         {
             throw new InvalidOperationException("User does not have access to this workspace.");
         }
 
         // Get all tickets in workspace
-        var allTickets = (await this._ticketRepo.ListAsync(workspaceId)).ToList();
+        var allTickets = (await this.ticketRepository.ListAsync(workspaceId)).ToList();
 
         // Apply filters
         var filtered = ApplyFilters(allTickets, criteria);
@@ -60,7 +60,7 @@ public class TicketSearchService(
         int userId,
         string? statusFilter = null)
     {
-        var allTickets = (await this._ticketRepo.ListAsync(workspaceId)).ToList();
+        var allTickets = (await this.ticketRepository.ListAsync(workspaceId)).ToList();
 
         var myTickets = allTickets
             .Where(t => t.AssignedUserId == userId ||
@@ -70,7 +70,7 @@ public class TicketSearchService(
 
         if (!string.IsNullOrEmpty(statusFilter))
         {
-            var statusId = (await this._statusRepo.FindByNameAsync(workspaceId, statusFilter))?.Id;
+            var statusId = (await this.statusRepository.FindByNameAsync(workspaceId, statusFilter))?.Id;
             if (statusId.HasValue)
             {
                 myTickets = [.. myTickets.Where(t => t.StatusId == statusId.Value)];
@@ -84,8 +84,8 @@ public class TicketSearchService(
         int workspaceId,
         int? limitToTeamId = null)
     {
-        var allTickets = (await this._ticketRepo.ListAsync(workspaceId)).ToList();
-        var statuses = await this._statusRepo.ListAsync(workspaceId);
+        var allTickets = (await this.ticketRepository.ListAsync(workspaceId)).ToList();
+        var statuses = await this.statusRepository.ListAsync(workspaceId);
         var closedIds = statuses.Where(s => s.IsClosedState).Select(s => s.Id).ToHashSet();
 
         var active = allTickets
@@ -106,7 +106,7 @@ public class TicketSearchService(
         int take = 20)
     {
         var cutoffDate = DateTime.UtcNow.AddDays(-limitToLastDays);
-        var allTickets = (await this._ticketRepo.ListAsync(workspaceId)).ToList();
+        var allTickets = (await this.ticketRepository.ListAsync(workspaceId)).ToList();
 
         var recent = allTickets
             .Where(t => t.UpdatedAt.HasValue && t.UpdatedAt.Value >= cutoffDate)
@@ -121,9 +121,9 @@ public class TicketSearchService(
         int workspaceId,
         int? limitToTeamId = null)
     {
-        var allTickets = (await this._ticketRepo.ListAsync(workspaceId)).ToList();
-        var priorities = await this._priorityRepo.ListAsync(workspaceId);
-        var statuses = await this._statusRepo.ListAsync(workspaceId);
+        var allTickets = (await this.ticketRepository.ListAsync(workspaceId)).ToList();
+        var priorities = await this.priorityRepository.ListAsync(workspaceId);
+        var statuses = await this.statusRepository.ListAsync(workspaceId);
         var highPriorityIds = priorities.Where(p => p.Name is "Critical" or "High").Select(p => p.Id).ToHashSet();
         var closedIds = statuses.Where(s => s.IsClosedState).Select(s => s.Id).ToHashSet();
 
@@ -145,7 +145,7 @@ public class TicketSearchService(
         int workspaceId,
         int contactId)
     {
-        var allTickets = (await this._ticketRepo.ListAsync(workspaceId)).ToList();
+        var allTickets = (await this.ticketRepository.ListAsync(workspaceId)).ToList();
 
         return [.. allTickets
             .Where(t => t.ContactId == contactId)
@@ -156,8 +156,8 @@ public class TicketSearchService(
         int workspaceId,
         int? limitToTeamId = null)
     {
-        var allTickets = (await this._ticketRepo.ListAsync(workspaceId)).ToList();
-        var statuses = await this._statusRepo.ListAsync(workspaceId);
+        var allTickets = (await this.ticketRepository.ListAsync(workspaceId)).ToList();
+        var statuses = await this.statusRepository.ListAsync(workspaceId);
         var closedIds = statuses.Where(s => s.IsClosedState).Select(s => s.Id).ToHashSet();
 
         var unassigned = allTickets
@@ -178,8 +178,8 @@ public class TicketSearchService(
         int workspaceId,
         int hoursUntilDueWarning = 24)
     {
-        var allTickets = (await this._ticketRepo.ListAsync(workspaceId)).ToList();
-        var statuses = await this._statusRepo.ListAsync(workspaceId);
+        var allTickets = (await this.ticketRepository.ListAsync(workspaceId)).ToList();
+        var statuses = await this.statusRepository.ListAsync(workspaceId);
         var closedIds = statuses.Where(s => s.IsClosedState).Select(s => s.Id).ToHashSet();
         var warningThreshold = DateTime.UtcNow.AddHours(hoursUntilDueWarning);
 
@@ -202,8 +202,8 @@ public class TicketSearchService(
         TicketSearchCriteria criteria)
     {
         var searchResult = await this.SearchAsync(workspaceId, criteria, 0); // System execution
-        var statuses = await this._statusRepo.ListAsync(workspaceId);
-        var priorities = await this._priorityRepo.ListAsync(workspaceId);
+        var statuses = await this.statusRepository.ListAsync(workspaceId);
+        var priorities = await this.priorityRepository.ListAsync(workspaceId);
         var statusMap = statuses.ToDictionary(s => s.Id, s => s.Name);
         var priorityMap = priorities.ToDictionary(p => p.Id, p => p.Name);
 
@@ -297,7 +297,7 @@ public class TicketSearchService(
 
     private async Task<bool> IsUserInTeam(int userId, int teamId)
     {
-        var members = await this._teamMemberRepo.ListMembersAsync(teamId);
+        var members = await this.teamMemberRepository.ListMembersAsync(teamId);
         return members.Any(m => m.Id == userId);
     }
 }

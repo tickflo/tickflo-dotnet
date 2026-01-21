@@ -14,9 +14,9 @@ public class StatusCodeModel(ILogger<StatusCodeModel> logger, ICurrentUserServic
     public string StatusDescription { get; set; } = string.Empty;
     public string? TraceId { get; set; }
 
-    private readonly ILogger<StatusCodeModel> _logger = logger;
+    private readonly ILogger<StatusCodeModel> logger = logger;
     private readonly ICurrentUserService _currentUserService = currentUserService;
-    private readonly IUserRepository _userRepository = userRepository;
+    private readonly IUserRepository userRepository = userRepository;
 
     public async Task OnGetAsync(int code)
     {
@@ -38,6 +38,6 @@ public class StatusCodeModel(ILogger<StatusCodeModel> logger, ICurrentUserServic
             _ => ("Error", "An unexpected error occurred. Please try again.")
         };
 
-        this._logger.LogWarning("Status code {StatusCode} - {StatusMessage}. Trace ID: {TraceId}", this.HttpStatusCode, this.StatusMessage, this.TraceId);
+        this.logger.LogWarning("Status code {StatusCode} - {StatusMessage}. Trace ID: {TraceId}", this.HttpStatusCode, this.StatusMessage, this.TraceId);
     }
 }

@@ -10,7 +10,7 @@ using Tickflo.Core.Services.Views;
 [Authorize]
 public class InventoryEditModel(
     IWorkspaceRepository workspaces,
-    IUserWorkspaceRepository userWorkspaceRepo,
+    IUserWorkspaceRepository userWorkspaceRepository,
     IWorkspaceInventoryEditViewService viewService,
     IInventoryRepository inventory,
     IInventoryAllocationService inventoryAllocationService) : WorkspacePageModel
@@ -21,7 +21,7 @@ public class InventoryEditModel(
     #endregion
 
     private readonly IWorkspaceRepository _workspaces = workspaces;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly IWorkspaceInventoryEditViewService _viewService = viewService;
     private readonly IInventoryRepository _inventory = inventory;
     private readonly IInventoryAllocationService _inventoryAllocationService = inventoryAllocationService;
@@ -40,7 +40,7 @@ public class InventoryEditModel(
     public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
     {
         this.WorkspaceSlug = slug;
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaces, this._userWorkspaceRepo, slug);
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaces, this.userWorkspaceRepository, slug);
         if (loadResult is IActionResult actionResult)
         {
             return actionResult;
@@ -68,7 +68,7 @@ public class InventoryEditModel(
     public async Task<IActionResult> OnPostAsync(string slug, int id = 0)
     {
         this.WorkspaceSlug = slug;
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaces, this._userWorkspaceRepo, slug);
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaces, this.userWorkspaceRepository, slug);
         if (loadResult is IActionResult actionResult)
         {
             return actionResult;

@@ -10,28 +10,28 @@ public class DashboardServiceTests
     [Fact]
     public async Task GetTicketStatsAsyncComputesOpenAndResolved()
     {
-        var ticketRepo = new Mock<ITicketRepository>();
-        var statusRepo = new Mock<ITicketStatusRepository>();
-        var priorityRepo = new Mock<ITicketPriorityRepository>();
-        var userRepo = new Mock<IUserRepository>();
+        var ticketRepository = new Mock<ITicketRepository>();
+        var statusRepository = new Mock<ITicketStatusRepository>();
+        var priorityRepository = new Mock<ITicketPriorityRepository>();
+        var userRepository = new Mock<IUserRepository>();
         var uwRepo = new Mock<IUserWorkspaceRepository>();
         var teamMembers = new Mock<ITeamMemberRepository>();
-        var uwr = new Mock<IUserWorkspaceRoleRepository>();
-        var rolePerms = new Mock<IRolePermissionRepository>();
+        var userWorkspaceRoleRepository = new Mock<IUserWorkspaceRoleRepository>();
+        var rolePermissionRepository = new Mock<IRolePermissionRepository>();
 
-        ticketRepo.Setup(r => r.ListAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(
+        ticketRepository.Setup(r => r.ListAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(
         [
             new() { Id = 1, WorkspaceId = 1, StatusId = 1 },
             new() { Id = 2, WorkspaceId = 1, StatusId = 2 }
         ]);
-        statusRepo.Setup(r => r.ListAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(
+        statusRepository.Setup(r => r.ListAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(
         [
             new() { Id = 1, Name = "Open", IsClosedState = false },
             new() { Id = 2, Name = "Closed", IsClosedState = true }
         ]);
         uwRepo.Setup(r => r.FindForWorkspaceAsync(1)).ReturnsAsync([new() { Accepted = true }]);
 
-        var svc = new DashboardService(ticketRepo.Object, statusRepo.Object, priorityRepo.Object, userRepo.Object, uwRepo.Object, teamMembers.Object, uwr.Object, rolePerms.Object);
+        var svc = new DashboardService(ticketRepository.Object, statusRepository.Object, priorityRepository.Object, userRepository.Object, uwRepo.Object, teamMembers.Object, userWorkspaceRoleRepository.Object, rolePermissionRepository.Object);
         var result = await svc.GetTicketStatsAsync(1, 7, "all", []);
 
         Assert.Equal(2, result.TotalTickets);

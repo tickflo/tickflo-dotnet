@@ -23,8 +23,8 @@ public class TicketManagementServiceTests
     {
         var ticket = new Ticket { AssignedUserId = 5 };
         var teamMembers = new Mock<ITeamMemberRepository>();
-        var rolePerms = new Mock<IRolePermissionRepository>();
-        var svc = new TicketManagementService(Mock.Of<ITicketRepository>(), Mock.Of<ITicketHistoryRepository>(), Mock.Of<IUserRepository>(), Mock.Of<IUserWorkspaceRepository>(), Mock.Of<ITeamRepository>(), teamMembers.Object, Mock.Of<ILocationRepository>(), Mock.Of<IInventoryRepository>(), rolePerms.Object, Mock.Of<ITicketTypeRepository>(), Mock.Of<ITicketPriorityRepository>(), Mock.Of<ITicketStatusRepository>());
+        var rolePermissionRepository = new Mock<IRolePermissionRepository>();
+        var svc = new TicketManagementService(Mock.Of<ITicketRepository>(), Mock.Of<ITicketHistoryRepository>(), Mock.Of<IUserRepository>(), Mock.Of<IUserWorkspaceRepository>(), Mock.Of<ITeamRepository>(), teamMembers.Object, Mock.Of<ILocationRepository>(), Mock.Of<IInventoryRepository>(), rolePermissionRepository.Object, Mock.Of<ITicketTypeRepository>(), Mock.Of<ITicketPriorityRepository>(), Mock.Of<ITicketStatusRepository>());
 
         var allowed = await svc.CanUserAccessTicketAsync(ticket, 5, 1, isAdmin: true);
         Assert.True(allowed);

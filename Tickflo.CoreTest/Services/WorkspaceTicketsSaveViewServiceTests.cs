@@ -10,13 +10,13 @@ public class WorkspaceTicketsSaveViewServiceTests
     [Fact]
     public async Task BuildAsyncAdminCanCreateAndEdit()
     {
-        var uwr = new Mock<IUserWorkspaceRoleRepository>();
+        var userWorkspaceRoleRepository = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
         var ticketService = new Mock<ITicketManagementService>();
 
-        uwr.Setup(x => x.IsAdminAsync(1, 10)).ReturnsAsync(true);
+        userWorkspaceRoleRepository.Setup(x => x.IsAdminAsync(1, 10)).ReturnsAsync(true);
 
-        var svc = new WorkspaceTicketsSaveViewService(uwr.Object, perms.Object, ticketService.Object);
+        var svc = new WorkspaceTicketsSaveViewService(userWorkspaceRoleRepository.Object, perms.Object, ticketService.Object);
         var result = await svc.BuildAsync(10, 1, true);
 
         Assert.True(result.CanCreateTickets);
@@ -27,18 +27,18 @@ public class WorkspaceTicketsSaveViewServiceTests
     [Fact]
     public async Task BuildAsyncNonAdminCreateWithPerms()
     {
-        var uwr = new Mock<IUserWorkspaceRoleRepository>();
+        var userWorkspaceRoleRepository = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
         var ticketService = new Mock<ITicketManagementService>();
 
-        uwr.Setup(x => x.IsAdminAsync(2, 10)).ReturnsAsync(false);
+        userWorkspaceRoleRepository.Setup(x => x.IsAdminAsync(2, 10)).ReturnsAsync(false);
         perms.Setup(x => x.GetEffectivePermissionsForUserAsync(10, 2))
             .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>
             {
                 { "tickets", new EffectiveSectionPermission { Section = "tickets", CanCreate = true, CanEdit = false } }
             });
 
-        var svc = new WorkspaceTicketsSaveViewService(uwr.Object, perms.Object, ticketService.Object);
+        var svc = new WorkspaceTicketsSaveViewService(userWorkspaceRoleRepository.Object, perms.Object, ticketService.Object);
         var result = await svc.BuildAsync(10, 2, true);
 
         Assert.True(result.CanCreateTickets);
@@ -49,11 +49,11 @@ public class WorkspaceTicketsSaveViewServiceTests
     [Fact]
     public async Task BuildAsyncNonAdminEditWithPermsAndAccess()
     {
-        var uwr = new Mock<IUserWorkspaceRoleRepository>();
+        var userWorkspaceRoleRepository = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
         var ticketService = new Mock<ITicketManagementService>();
 
-        uwr.Setup(x => x.IsAdminAsync(3, 10)).ReturnsAsync(false);
+        userWorkspaceRoleRepository.Setup(x => x.IsAdminAsync(3, 10)).ReturnsAsync(false);
         perms.Setup(x => x.GetEffectivePermissionsForUserAsync(10, 3))
             .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>
             {
@@ -64,7 +64,7 @@ public class WorkspaceTicketsSaveViewServiceTests
         ticketService.Setup(x => x.CanUserAccessTicketAsync(ticket, 3, 10, false))
             .ReturnsAsync(true);
 
-        var svc = new WorkspaceTicketsSaveViewService(uwr.Object, perms.Object, ticketService.Object);
+        var svc = new WorkspaceTicketsSaveViewService(userWorkspaceRoleRepository.Object, perms.Object, ticketService.Object);
         var result = await svc.BuildAsync(10, 3, false, ticket);
 
         Assert.False(result.CanCreateTickets);
@@ -75,15 +75,15 @@ public class WorkspaceTicketsSaveViewServiceTests
     [Fact]
     public async Task BuildAsyncNonAdminDeniedEditNoPerms()
     {
-        var uwr = new Mock<IUserWorkspaceRoleRepository>();
+        var userWorkspaceRoleRepository = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
         var ticketService = new Mock<ITicketManagementService>();
 
-        uwr.Setup(x => x.IsAdminAsync(4, 10)).ReturnsAsync(false);
+        userWorkspaceRoleRepository.Setup(x => x.IsAdminAsync(4, 10)).ReturnsAsync(false);
         perms.Setup(x => x.GetEffectivePermissionsForUserAsync(10, 4))
             .ReturnsAsync([]);
 
-        var svc = new WorkspaceTicketsSaveViewService(uwr.Object, perms.Object, ticketService.Object);
+        var svc = new WorkspaceTicketsSaveViewService(userWorkspaceRoleRepository.Object, perms.Object, ticketService.Object);
         var result = await svc.BuildAsync(10, 4, false);
 
         Assert.False(result.CanCreateTickets);
@@ -94,11 +94,11 @@ public class WorkspaceTicketsSaveViewServiceTests
     [Fact]
     public async Task BuildAsyncNonAdminEditDeniedByScope()
     {
-        var uwr = new Mock<IUserWorkspaceRoleRepository>();
+        var userWorkspaceRoleRepository = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
         var ticketService = new Mock<ITicketManagementService>();
 
-        uwr.Setup(x => x.IsAdminAsync(5, 10)).ReturnsAsync(false);
+        userWorkspaceRoleRepository.Setup(x => x.IsAdminAsync(5, 10)).ReturnsAsync(false);
         perms.Setup(x => x.GetEffectivePermissionsForUserAsync(10, 5))
             .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>
             {
@@ -109,7 +109,7 @@ public class WorkspaceTicketsSaveViewServiceTests
         ticketService.Setup(x => x.CanUserAccessTicketAsync(ticket, 5, 10, false))
             .ReturnsAsync(false);
 
-        var svc = new WorkspaceTicketsSaveViewService(uwr.Object, perms.Object, ticketService.Object);
+        var svc = new WorkspaceTicketsSaveViewService(userWorkspaceRoleRepository.Object, perms.Object, ticketService.Object);
         var result = await svc.BuildAsync(10, 5, false, ticket);
 
         Assert.False(result.CanCreateTickets);

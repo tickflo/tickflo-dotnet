@@ -16,7 +16,7 @@ public class WorkspaceUsersViewServiceTests
         var uwRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
         var rolePermRepo = new Mock<IRolePermissionRepository>();
         var uwRepo = new Mock<IUserWorkspaceRepository>();
-        var userRepo = new Mock<IUserRepository>();
+        var userRepository = new Mock<IUserRepository>();
 
         uwRoleRepo.Setup(r => r.IsAdminAsync(userId, workspaceId)).ReturnsAsync(false);
         rolePermRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
@@ -30,14 +30,14 @@ public class WorkspaceUsersViewServiceTests
             new UserWorkspace { UserId = 20, WorkspaceId = workspaceId, Accepted = false, CreatedAt = new DateTime(2024,1,1) }
         ]);
 
-        userRepo.Setup(r => r.FindByIdAsync(20)).ReturnsAsync(new User { Id = 20, Email = "a@test.com" });
+        userRepository.Setup(r => r.FindByIdAsync(20)).ReturnsAsync(new User { Id = 20, Email = "a@test.com" });
         uwRoleRepo.Setup(r => r.GetRoleNamesAsync(20, workspaceId)).ReturnsAsync(["member"]);
 
         var service = new WorkspaceUsersViewService(
             uwRoleRepo.Object,
             rolePermRepo.Object,
             uwRepo.Object,
-            userRepo.Object);
+            userRepository.Object);
 
         var view = await service.BuildAsync(workspaceId, userId);
 
@@ -59,7 +59,7 @@ public class WorkspaceUsersViewServiceTests
         var uwRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
         var rolePermRepo = new Mock<IRolePermissionRepository>();
         var uwRepo = new Mock<IUserWorkspaceRepository>();
-        var userRepo = new Mock<IUserRepository>();
+        var userRepository = new Mock<IUserRepository>();
 
         uwRoleRepo.Setup(r => r.IsAdminAsync(userId, workspaceId)).ReturnsAsync(true);
         rolePermRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
@@ -71,7 +71,7 @@ public class WorkspaceUsersViewServiceTests
             uwRoleRepo.Object,
             rolePermRepo.Object,
             uwRepo.Object,
-            userRepo.Object);
+            userRepository.Object);
 
         var view = await service.BuildAsync(workspaceId, userId);
 

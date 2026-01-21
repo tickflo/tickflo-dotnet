@@ -3,19 +3,19 @@ namespace Tickflo.Core.Data;
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
 
-public class RolePermissionRepository(TickfloDbContext db, IUserWorkspaceRoleRepository uwrRepo) : IRolePermissionRepository
+public class RolePermissionRepository(TickfloDbContext dbContext, IUserWorkspaceRoleRepository userWorkspaceRoleRepository) : IRolePermissionRepository
 {
-    private readonly TickfloDbContext _db = db;
-    private readonly IUserWorkspaceRoleRepository _uwrRepo = uwrRepo;
+    private readonly TickfloDbContext dbContext = dbContext;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepository;
 
     private static readonly string[] ManagedSections = ["dashboard", "contacts", "inventory", "locations", "reports", "roles", "teams", "tickets", "users", "settings"];
 
     public async Task<List<EffectiveSectionPermission>> ListByRoleAsync(int roleId)
     {
         // Join role_permissions -> permissions and aggregate by resource
-        var links = await this._db.RolePermissions.Where(rp => rp.RoleId == roleId).ToListAsync();
+        var links = await this.dbContext.RolePermissions.Where(rp => rp.RoleId == roleId).ToListAsync();
         var permIds = links.Select(l => l.PermissionId).Distinct().ToList();
-        var perms = await this._db.Permissions.Where(p => permIds.Contains(p.Id)).ToListAsync();
+        var perms = await this.dbContext.Permissions.Where(p => permIds.Contains(p.Id)).ToListAsync();
         var result = new List<EffectiveSectionPermission>();
         foreach (var section in ManagedSections)
         {
@@ -39,7 +39,7 @@ public class RolePermissionRepository(TickfloDbContext db, IUserWorkspaceRoleRep
     public async Task UpsertAsync(int roleId, IEnumerable<EffectiveSectionPermission> permissions, int? actorUserId = null)
     {
         // Ensure permission catalog rows exist, then set role links accordingly.
-        var catalog = await this._db.Permissions.ToListAsync();
+        var catalog = await this.dbContext.Permissions.ToListAsync();
         var actor = actorUserId;
 
         // Build desired permission set for this role
@@ -69,15 +69,15 @@ public class RolePermissionRepository(TickfloDbContext db, IUserWorkspaceRoleRep
 
             if (section == "tickets")
             {
-                var scope = string.IsNullOrWhiteSpace(p.TicketViewScope) ? "all" : p.TicketViewScope!.ToLowerInvariant();
+                var scope = string.IsNullOrWhiteSpace(p.TicketViewScope) ? "all" : p.TicketViewScope.ToLowerInvariant();
                 // choose only one scope; store desired scope
                 desired.Add(await this.EnsurePermissionIdAsync(catalog, "tickets_scope", scope));
             }
         }
 
         // Current links for managed resources
-        var currentLinks = await this._db.RolePermissions.Where(rp => rp.RoleId == roleId).ToListAsync();
-        var currentPerms = await this._db.Permissions.Where(p => currentLinks.Select(cl => cl.PermissionId).Contains(p.Id)).ToListAsync();
+        var currentLinks = await this.dbContext.RolePermissions.Where(rp => rp.RoleId == roleId).ToListAsync();
+        var currentPerms = await this.dbContext.Permissions.Where(p => currentLinks.Select(cl => cl.PermissionId).Contains(p.Id)).ToListAsync();
 
         // Filter to links related to our managed resources to avoid touching unrelated permissions
         var managedCurrentLinkIds = currentLinks
@@ -92,14 +92,14 @@ public class RolePermissionRepository(TickfloDbContext db, IUserWorkspaceRoleRep
         var toRemove = currentLinks.Where(l => managedCurrentLinkIds.Contains(l.PermissionId) && !desiredSet.Contains(l.PermissionId)).ToList();
         if (toRemove.Count > 0)
         {
-            this._db.RolePermissions.RemoveRange(toRemove);
+            this.dbContext.RolePermissions.RemoveRange(toRemove);
         }
 
         // Add new links
         var toAdd = desiredSet.Except(currentSet).ToList();
         foreach (var pid in toAdd)
         {
-            this._db.RolePermissions.Add(new RolePermissionLink
+            this.dbContext.RolePermissions.Add(new RolePermissionLink
             {
                 RoleId = roleId,
                 PermissionId = pid,
@@ -108,7 +108,7 @@ public class RolePermissionRepository(TickfloDbContext db, IUserWorkspaceRoleRep
             });
         }
 
-        await this._db.SaveChangesAsync();
+        await this.dbContext.SaveChangesAsync();
     }
 
     private async Task<int> EnsurePermissionIdAsync(List<Permission> catalog, string resource, string action)
@@ -120,15 +120,15 @@ public class RolePermissionRepository(TickfloDbContext db, IUserWorkspaceRoleRep
         }
 
         var p = new Permission { Resource = resource, Action = action };
-        this._db.Permissions.Add(p);
-        await this._db.SaveChangesAsync();
+        this.dbContext.Permissions.Add(p);
+        await this.dbContext.SaveChangesAsync();
         catalog.Add(p);
         return p.Id;
     }
 
     public async Task<Dictionary<string, EffectiveSectionPermission>> GetEffectivePermissionsForUserAsync(int workspaceId, int userId)
     {
-        var roles = await this._uwrRepo.GetRolesAsync(userId, workspaceId);
+        var roles = await this.userWorkspaceRoleRepository.GetRolesAsync(userId, workspaceId);
         var roleIds = roles.Select(r => r.Id).ToList();
         var isAdmin = roles.Any(r => r.Admin);
         var result = new Dictionary<string, EffectiveSectionPermission>(StringComparer.OrdinalIgnoreCase);
@@ -140,9 +140,9 @@ public class RolePermissionRepository(TickfloDbContext db, IUserWorkspaceRoleRep
             }
             return result;
         }
-        var links = await this._db.RolePermissions.Where(rp => roleIds.Contains(rp.RoleId)).ToListAsync();
+        var links = await this.dbContext.RolePermissions.Where(rp => roleIds.Contains(rp.RoleId)).ToListAsync();
         var permIds = links.Select(l => l.PermissionId).Distinct().ToList();
-        var perms = await this._db.Permissions.Where(p => permIds.Contains(p.Id)).ToListAsync();
+        var perms = await this.dbContext.Permissions.Where(p => permIds.Contains(p.Id)).ToListAsync();
         foreach (var s in ManagedSections)
         {
             var eff = new EffectiveSectionPermission
@@ -169,11 +169,11 @@ public class RolePermissionRepository(TickfloDbContext db, IUserWorkspaceRoleRep
             return "all";
         }
 
-        var roles = await this._uwrRepo.GetRolesAsync(userId, workspaceId);
+        var roles = await this.userWorkspaceRoleRepository.GetRolesAsync(userId, workspaceId);
         var roleIds = roles.Select(r => r.Id).ToList();
-        var links = await this._db.RolePermissions.Where(rp => roleIds.Contains(rp.RoleId)).ToListAsync();
+        var links = await this.dbContext.RolePermissions.Where(rp => roleIds.Contains(rp.RoleId)).ToListAsync();
         var permIds = links.Select(l => l.PermissionId).Distinct().ToList();
-        var scopes = await this._db.Permissions
+        var scopes = await this.dbContext.Permissions
             .Where(p => permIds.Contains(p.Id) && p.Resource == "tickets_scope")
             .Select(p => p.Action.ToLowerInvariant())
             .ToListAsync();

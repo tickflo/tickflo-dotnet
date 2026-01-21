@@ -9,17 +9,17 @@ using Tickflo.Core.Services.Authentication;
 /// Service for managing user invitations and onboarding workflows.
 /// </summary>
 public class UserInvitationService(
-    IUserRepository userRepo,
-    IUserWorkspaceRepository userWorkspaceRepo,
+    IUserRepository userRepository,
+    IUserWorkspaceRepository userWorkspaceRepository,
     IUserWorkspaceRoleRepository roleRepo,
     IRoleRepository rolesRepo,
     IPasswordHasher passwordHasher) : IUserInvitationService
 {
-    private readonly IUserRepository _userRepo = userRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
-    private readonly IUserWorkspaceRoleRepository _roleRepo = roleRepo;
+    private readonly IUserRepository userRepository = userRepository;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IUserWorkspaceRoleRepository roleRepository = roleRepo;
     private readonly IRoleRepository _rolesRepo = rolesRepo;
-    private readonly IPasswordHasher _passwordHasher = passwordHasher;
+    private readonly IPasswordHasher passwordHasher = passwordHasher;
 
     public async Task<UserInvitationResult> InviteUserAsync(
         int workspaceId,
@@ -38,7 +38,7 @@ public class UserInvitationService(
         var tempPassword = this.GenerateTemporaryPassword(12);
 
         // Check if user already exists
-        var existingUser = await this._userRepo.FindByEmailAsync(email);
+        var existingUser = await this.userRepository.FindByEmailAsync(email);
         User user;
 
         if (existingUser == null)
@@ -48,13 +48,13 @@ public class UserInvitationService(
             {
                 Name = email.Split('@')[0], // Default name from email
                 Email = email,
-                PasswordHash = this._passwordHasher.Hash(tempPassword),
+                PasswordHash = this.passwordHasher.Hash(tempPassword),
                 EmailConfirmed = false,
                 SystemAdmin = false,
                 CreatedAt = DateTime.UtcNow
             };
 
-            await this._userRepo.AddAsync(user);
+            await this.userRepository.AddAsync(user);
         }
         else
         {
@@ -65,7 +65,7 @@ public class UserInvitationService(
         var confirmationCode = GenerateConfirmationCode();
 
         // Create or update workspace membership
-        var existingMembership = await this._userWorkspaceRepo.FindAsync(user.Id, workspaceId);
+        var existingMembership = await this.userWorkspaceRepository.FindAsync(user.Id, workspaceId);
 
         if (existingMembership == null)
         {
@@ -78,7 +78,7 @@ public class UserInvitationService(
                 CreatedAt = DateTime.UtcNow
             };
 
-            await this._userWorkspaceRepo.AddAsync(membership);
+            await this.userWorkspaceRepository.AddAsync(membership);
         }
 
         // Assign roles if provided
@@ -91,7 +91,7 @@ public class UserInvitationService(
                 if (role != null && role.WorkspaceId == workspaceId)
                 {
                     // Add role using repository method
-                    await this._roleRepo.AddAsync(user.Id, workspaceId, roleId, invitedByUserId);
+                    await this.roleRepository.AddAsync(user.Id, workspaceId, roleId, invitedByUserId);
                 }
             }
         }
@@ -112,7 +112,7 @@ public class UserInvitationService(
 
     public async Task<string> ResendInvitationAsync(int workspaceId, int userId, int resentByUserId)
     {
-        var membership = await this._userWorkspaceRepo.FindAsync(userId, workspaceId) ?? throw new InvalidOperationException("User is not invited to this workspace");
+        var membership = await this.userWorkspaceRepository.FindAsync(userId, workspaceId) ?? throw new InvalidOperationException("User is not invited to this workspace");
 
         // Generate new confirmation code
         var confirmationCode = GenerateConfirmationCode();
@@ -126,10 +126,10 @@ public class UserInvitationService(
 
     public async Task AcceptInvitationAsync(int workspaceId, int userId)
     {
-        var membership = await this._userWorkspaceRepo.FindAsync(userId, workspaceId) ?? throw new InvalidOperationException("Invitation not found");
+        var membership = await this.userWorkspaceRepository.FindAsync(userId, workspaceId) ?? throw new InvalidOperationException("Invitation not found");
 
         membership.Accepted = true;
-        await this._userWorkspaceRepo.UpdateAsync(membership);
+        await this.userWorkspaceRepository.UpdateAsync(membership);
     }
 
     public string GenerateTemporaryPassword(int length = 12)

@@ -10,8 +10,8 @@ using Tickflo.Core.Services.Views;
 [Authorize]
 public class LocationsEditModel(
     IWorkspaceRepository workspaceRepo,
-    IUserWorkspaceRepository userWorkspaceRepo,
-    ILocationRepository locationRepo,
+    IUserWorkspaceRepository userWorkspaceRepository,
+    ILocationRepository locationRepository,
     IWorkspaceLocationsEditViewService viewService,
     ILocationSetupService locationSetupService) : WorkspacePageModel
 {
@@ -21,9 +21,9 @@ public class LocationsEditModel(
     private const string LocationUpdatedSuccessfully = "Location '{0}' updated successfully.";
     #endregion
 
-    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
-    private readonly ILocationRepository _locationRepo = locationRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly ILocationRepository locationRepository = locationRepository;
     private readonly IWorkspaceLocationsEditViewService _viewService = viewService;
     private readonly ILocationSetupService _locationSetupService = locationSetupService;
     public string WorkspaceSlug { get; private set; } = string.Empty;
@@ -51,7 +51,7 @@ public class LocationsEditModel(
     {
         this.WorkspaceSlug = slug;
 
-        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (result is IActionResult actionResult)
         {
             return actionResult;
@@ -90,7 +90,7 @@ public class LocationsEditModel(
     {
         this.WorkspaceSlug = slug;
 
-        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (result is IActionResult actionResult)
         {
             return actionResult;
@@ -129,7 +129,7 @@ public class LocationsEditModel(
             return this.Page();
         }
 
-        await this._locationRepo.SetContactsAsync(workspaceId, effectiveLocationId, this.SelectedContactIds ?? []);
+        await this.locationRepository.SetContactsAsync(workspaceId, effectiveLocationId, this.SelectedContactIds ?? []);
         return this.RedirectToLocationsWithPreservedFilters(slug);
     }
 
@@ -167,7 +167,7 @@ public class LocationsEditModel(
         }, userId);
 
         this.ApplyLocationSettings(created);
-        await this._locationRepo.UpdateAsync(created);
+        await this.locationRepository.UpdateAsync(created);
         this.SetSuccessMessage(string.Format(LocationCreatedSuccessfully, created.Name));
 
         return created.Id;
@@ -182,7 +182,7 @@ public class LocationsEditModel(
         }, userId);
 
         this.ApplyLocationSettings(updated);
-        await this._locationRepo.UpdateAsync(updated);
+        await this.locationRepository.UpdateAsync(updated);
         this.SetSuccessMessage(string.Format(LocationUpdatedSuccessfully, updated.Name));
 
         return updated.Id;

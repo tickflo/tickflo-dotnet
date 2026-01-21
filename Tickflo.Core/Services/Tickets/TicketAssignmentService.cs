@@ -7,17 +7,17 @@ using Tickflo.Core.Entities;
 /// Handles the business workflow of assigning tickets to users and teams.
 /// </summary>
 public class TicketAssignmentService(
-    ITicketRepository ticketRepo,
-    ITicketHistoryRepository historyRepo,
-    IUserWorkspaceRepository userWorkspaceRepo,
-    ITeamRepository teamRepo,
+    ITicketRepository ticketRepository,
+    ITicketHistoryRepository historyRepository,
+    IUserWorkspaceRepository userWorkspaceRepository,
+    ITeamRepository teamRepository,
     ITeamMemberRepository teamMemberRepo) : ITicketAssignmentService
 {
-    private readonly ITicketRepository _ticketRepo = ticketRepo;
-    private readonly ITicketHistoryRepository _historyRepo = historyRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
-    private readonly ITeamRepository _teamRepo = teamRepo;
-    private readonly ITeamMemberRepository _teamMemberRepo = teamMemberRepo;
+    private readonly ITicketRepository ticketRepository = ticketRepository;
+    private readonly ITicketHistoryRepository historyRepository = historyRepository;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly ITeamRepository teamRepository = teamRepository;
+    private readonly ITeamMemberRepository teamMemberRepository = teamMemberRepo;
 
     /// <summary>
     /// Assigns a ticket to a specific user.
@@ -28,10 +28,10 @@ public class TicketAssignmentService(
         int assigneeUserId,
         int assignedByUserId)
     {
-        var ticket = await this._ticketRepo.FindAsync(workspaceId, ticketId) ?? throw new InvalidOperationException("Ticket not found");
+        var ticket = await this.ticketRepository.FindAsync(workspaceId, ticketId) ?? throw new InvalidOperationException("Ticket not found");
 
         // Business rule: Validate user has access to workspace
-        var userWorkspace = await this._userWorkspaceRepo.FindAsync(assigneeUserId, workspaceId) ?? throw new InvalidOperationException("User does not have access to this workspace");
+        var userWorkspace = await this.userWorkspaceRepository.FindAsync(assigneeUserId, workspaceId) ?? throw new InvalidOperationException("User does not have access to this workspace");
 
         if (!userWorkspace.Accepted)
         {
@@ -43,10 +43,10 @@ public class TicketAssignmentService(
         ticket.AssignedUserId = assigneeUserId;
         ticket.UpdatedAt = DateTime.UtcNow;
 
-        await this._ticketRepo.UpdateAsync(ticket);
+        await this.ticketRepository.UpdateAsync(ticket);
 
         // Log assignment change
-        await this._historyRepo.CreateAsync(new TicketHistory
+        await this.historyRepository.CreateAsync(new TicketHistory
         {
             WorkspaceId = workspaceId,
             TicketId = ticketId,
@@ -70,10 +70,10 @@ public class TicketAssignmentService(
         int teamId,
         int assignedByUserId)
     {
-        var ticket = await this._ticketRepo.FindAsync(workspaceId, ticketId) ?? throw new InvalidOperationException("Ticket not found");
+        var ticket = await this.ticketRepository.FindAsync(workspaceId, ticketId) ?? throw new InvalidOperationException("Ticket not found");
 
         // Business rule: Validate team belongs to workspace
-        var team = await this._teamRepo.FindByIdAsync(teamId) ?? throw new InvalidOperationException("Team not found");
+        var team = await this.teamRepository.FindByIdAsync(teamId) ?? throw new InvalidOperationException("Team not found");
 
         if (team.WorkspaceId != workspaceId)
         {
@@ -85,10 +85,10 @@ public class TicketAssignmentService(
         ticket.AssignedTeamId = teamId;
         ticket.UpdatedAt = DateTime.UtcNow;
 
-        await this._ticketRepo.UpdateAsync(ticket);
+        await this.ticketRepository.UpdateAsync(ticket);
 
         // Log team assignment
-        await this._historyRepo.CreateAsync(new TicketHistory
+        await this.historyRepository.CreateAsync(new TicketHistory
         {
             WorkspaceId = workspaceId,
             TicketId = ticketId,
@@ -111,7 +111,7 @@ public class TicketAssignmentService(
         int ticketId,
         int unassignedByUserId)
     {
-        var ticket = await this._ticketRepo.FindAsync(workspaceId, ticketId) ?? throw new InvalidOperationException("Ticket not found");
+        var ticket = await this.ticketRepository.FindAsync(workspaceId, ticketId) ?? throw new InvalidOperationException("Ticket not found");
 
         if (!ticket.AssignedUserId.HasValue)
         {
@@ -123,9 +123,9 @@ public class TicketAssignmentService(
         ticket.AssignedUserId = null;
         ticket.UpdatedAt = DateTime.UtcNow;
 
-        await this._ticketRepo.UpdateAsync(ticket);
+        await this.ticketRepository.UpdateAsync(ticket);
 
-        await this._historyRepo.CreateAsync(new TicketHistory
+        await this.historyRepository.CreateAsync(new TicketHistory
         {
             WorkspaceId = workspaceId,
             TicketId = ticketId,
@@ -147,7 +147,7 @@ public class TicketAssignmentService(
         int reassignedByUserId,
         string? reason = null)
     {
-        var ticket = await this._ticketRepo.FindAsync(workspaceId, ticketId) ?? throw new InvalidOperationException("Ticket not found");
+        var ticket = await this.ticketRepository.FindAsync(workspaceId, ticketId) ?? throw new InvalidOperationException("Ticket not found");
 
         var previousAssignee = ticket.AssignedUserId;
 
@@ -156,7 +156,7 @@ public class TicketAssignmentService(
 
         if (!string.IsNullOrWhiteSpace(reason))
         {
-            await this._historyRepo.CreateAsync(new TicketHistory
+            await this.historyRepository.CreateAsync(new TicketHistory
             {
                 WorkspaceId = workspaceId,
                 TicketId = ticketId,
@@ -177,12 +177,12 @@ public class TicketAssignmentService(
         int ticketId,
         int triggeredByUserId)
     {
-        var ticket = await this._ticketRepo.FindAsync(workspaceId, ticketId) ?? throw new InvalidOperationException("Ticket not found");
+        var ticket = await this.ticketRepository.FindAsync(workspaceId, ticketId) ?? throw new InvalidOperationException("Ticket not found");
 
         // Business rule: Try team-based assignment first
         if (ticket.AssignedTeamId.HasValue)
         {
-            var teamMembers = await this._teamMemberRepo.ListMembersAsync(ticket.AssignedTeamId.Value);
+            var teamMembers = await this.teamMemberRepository.ListMembersAsync(ticket.AssignedTeamId.Value);
             if (teamMembers.Count != 0)
             {
                 // Simple round-robin: assign to first available member

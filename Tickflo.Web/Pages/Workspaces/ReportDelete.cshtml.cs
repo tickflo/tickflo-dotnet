@@ -9,20 +9,20 @@ using Tickflo.Core.Services.Views;
 [Authorize]
 public class ReportDeleteModel(
     IWorkspaceRepository workspaceRepo,
-    IReportRepository reportRepo,
+    IReportRepository reporyRepository,
     IReportRunRepository reportRunRepo,
     IWorkspaceReportDeleteViewService deleteViewService,
     IWebHostEnvironment env) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
-    private readonly IReportRepository _reportRepo = reportRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IReportRepository reporyRepository = reporyRepository;
     private readonly IReportRunRepository _reportRunRepo = reportRunRepo;
     private readonly IWorkspaceReportDeleteViewService _deleteViewService = deleteViewService;
     private readonly IWebHostEnvironment _env = env;
 
     public async Task<IActionResult> OnPostAsync(string slug, int reportId)
     {
-        var ws = await this._workspaceRepo.FindBySlugAsync(slug);
+        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
         if (ws == null)
         {
             return this.NotFound();
@@ -58,7 +58,7 @@ public class ReportDeleteModel(
         catch { /* ignore cleanup errors */ }
 
         await this._reportRunRepo.DeleteForReportAsync(ws.Id, reportId);
-        var ok = await this._reportRepo.DeleteAsync(ws.Id, reportId);
+        var ok = await this.reporyRepository.DeleteAsync(ws.Id, reportId);
         if (ok)
         {
             this.TempData["Success"] = "Report deleted.";

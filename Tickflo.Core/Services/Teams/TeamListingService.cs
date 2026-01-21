@@ -4,15 +4,15 @@ using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
 public class TeamListingService(
-    ITeamRepository teamRepo,
+    ITeamRepository teamRepository,
     ITeamMemberRepository memberRepo) : ITeamListingService
 {
-    private readonly ITeamRepository _teamRepo = teamRepo;
+    private readonly ITeamRepository teamRepository = teamRepository;
     private readonly ITeamMemberRepository _memberRepo = memberRepo;
 
     public async Task<(IReadOnlyList<Team> Teams, IReadOnlyDictionary<int, int> MemberCounts)> GetListAsync(int workspaceId)
     {
-        var teams = await this._teamRepo.ListForWorkspaceAsync(workspaceId);
+        var teams = await this.teamRepository.ListForWorkspaceAsync(workspaceId);
         var memberCounts = new Dictionary<int, int>();
 
         foreach (var team in teams)

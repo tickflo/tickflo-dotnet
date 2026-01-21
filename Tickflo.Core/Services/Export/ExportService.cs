@@ -9,17 +9,17 @@ using Tickflo.Core.Entities;
 /// Handles formatting and streaming of large datasets.
 /// </summary>
 public class ExportService(
-    ITicketRepository ticketRepo,
-    IContactRepository contactRepo,
+    ITicketRepository ticketRepository,
+    IContactRepository contactRepository,
     IInventoryRepository inventoryRepo,
-    ITicketHistoryRepository historyRepo,
-    IUserWorkspaceRepository userWorkspaceRepo) : IExportService
+    ITicketHistoryRepository historyRepository,
+    IUserWorkspaceRepository userWorkspaceRepository) : IExportService
 {
-    private readonly ITicketRepository _ticketRepo = ticketRepo;
-    private readonly IContactRepository _contactRepo = contactRepo;
+    private readonly ITicketRepository ticketRepository = ticketRepository;
+    private readonly IContactRepository contactRepository = contactRepository;
     private readonly IInventoryRepository _inventoryRepo = inventoryRepo;
-    private readonly ITicketHistoryRepository _historyRepo = historyRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
+    private readonly ITicketHistoryRepository historyRepository = historyRepository;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
 
     public async Task<ExportResult> ExportTicketsAsync(
         int workspaceId,
@@ -27,19 +27,19 @@ public class ExportService(
         int exportingUserId)
     {
         // Validate access
-        var userAccess = await this._userWorkspaceRepo.FindAsync(exportingUserId, workspaceId);
+        var userAccess = await this.userWorkspaceRepository.FindAsync(exportingUserId, workspaceId);
         if (userAccess == null || !userAccess.Accepted)
         {
             throw new InvalidOperationException("User does not have access to this workspace.");
         }
 
-        var tickets = (await this._ticketRepo.ListAsync(workspaceId)).ToList();
+        var tickets = (await this.ticketRepository.ListAsync(workspaceId)).ToList();
 
         return request.Format switch
         {
             ExportFormat.CSV => ExportToCSV(tickets, request),
             ExportFormat.JSON => ExportToJSON(tickets, request),
-            ExportFormat.Excel => this.ExportToExcel(tickets, request),
+            ExportFormat.Excel => ExportToExcel(tickets, request),
             _ => throw new InvalidOperationException("Unsupported format.")
         };
     }
@@ -49,13 +49,13 @@ public class ExportService(
         ExportRequest request,
         int exportingUserId)
     {
-        var userAccess = await this._userWorkspaceRepo.FindAsync(exportingUserId, workspaceId);
+        var userAccess = await this.userWorkspaceRepository.FindAsync(exportingUserId, workspaceId);
         if (userAccess == null || !userAccess.Accepted)
         {
             throw new InvalidOperationException("User does not have access to this workspace.");
         }
 
-        var contacts = (await this._contactRepo.ListAsync(workspaceId)).ToList();
+        var contacts = (await this.contactRepository.ListAsync(workspaceId)).ToList();
 
         return request.Format switch
         {
@@ -71,7 +71,7 @@ public class ExportService(
         ExportRequest request,
         int exportingUserId)
     {
-        var userAccess = await this._userWorkspaceRepo.FindAsync(exportingUserId, workspaceId);
+        var userAccess = await this.userWorkspaceRepository.FindAsync(exportingUserId, workspaceId);
         if (userAccess == null || !userAccess.Accepted)
         {
             throw new InvalidOperationException("User does not have access to this workspace.");
@@ -94,7 +94,7 @@ public class ExportService(
         DateTime toDate,
         int exportingUserId)
     {
-        var userAccess = await this._userWorkspaceRepo.FindAsync(exportingUserId, workspaceId);
+        var userAccess = await this.userWorkspaceRepository.FindAsync(exportingUserId, workspaceId);
         if (userAccess == null || !userAccess.Accepted)
         {
             throw new InvalidOperationException("User does not have access to this workspace.");
@@ -119,7 +119,7 @@ public class ExportService(
         ExportRequest request,
         int requestingUserId)
     {
-        var userAccess = await this._userWorkspaceRepo.FindAsync(requestingUserId, workspaceId);
+        var userAccess = await this.userWorkspaceRepository.FindAsync(requestingUserId, workspaceId);
         if (userAccess == null || !userAccess.Accepted)
         {
             return (false, "User does not have access to this workspace.");
@@ -181,7 +181,7 @@ public class ExportService(
         };
     }
 
-    private ExportResult ExportToExcel(List<Ticket> tickets, ExportRequest request) =>
+    private static ExportResult ExportToExcel(List<Ticket> tickets, ExportRequest request) =>
         // Excel export would require a library like EPPlus or OfficeOpenXml
         // For now, return a CSV as placeholder
         ExportToCSV(tickets, request);

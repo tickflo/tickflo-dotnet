@@ -35,9 +35,8 @@ public interface IValidationService
 }
 
 public partial class ValidationService(
-    IUserRepository userRepo,
-    IRoleRepository roleRepo,
-    ITeamRepository teamRepo) : IValidationService
+    IUserRepository userRepository,
+    IRoleRepository roleRepo) : IValidationService
 {
     private const int MaxSlugLength = 30;
     private const int MaxSubjectLength = 255;
@@ -45,7 +44,7 @@ public partial class ValidationService(
     private const int MaxContactNameLength = 100;
     private const int MaxTeamNameLength = 100;
     private const string SlugPattern = @"^[a-z0-9\-]+$";
-    private static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> AllowedStatusTransitions = new Dictionary<string, IReadOnlyList<string>>
+    private static readonly Dictionary<string, IReadOnlyList<string>> AllowedStatusTransitions = new()
     {
         { "New", new[] { "Open", "Cancelled" } },
         { "Open", new[] { "InProgress", "Resolved", "Cancelled" } },
@@ -56,9 +55,8 @@ public partial class ValidationService(
         { "Cancelled", new[] { "Open" } }
     };
 
-    private readonly IUserRepository _userRepo = userRepo;
-    private readonly IRoleRepository _roleRepo = roleRepo;
-    private readonly ITeamRepository _teamRepo = teamRepo;
+    private readonly IUserRepository userRepository = userRepository;
+    private readonly IRoleRepository roleRepository = roleRepo;
 
     public async Task<ValidationResult> ValidateEmailAsync(string email, bool checkUniqueness = false)
     {
@@ -69,7 +67,7 @@ public partial class ValidationService(
             return result;
         }
 
-        if (!this.ValidateEmailFormat(email, result))
+        if (!ValidateEmailFormat(email, result))
         {
             return result;
         }
@@ -84,7 +82,7 @@ public partial class ValidationService(
 
     private async Task<bool> IsEmailAlreadyInUseAsync(string email)
     {
-        var existing = await this._userRepo.FindByEmailAsync(email);
+        var existing = await this.userRepository.FindByEmailAsync(email);
         return existing != null;
     }
 
@@ -111,7 +109,7 @@ public partial class ValidationService(
     }
 
     public ValidationResult ValidateTicketSubject(string subject)
-        => this.ValidateRequiredField("Subject", subject, MaxSubjectLength);
+        => ValidateRequiredField("Subject", subject, MaxSubjectLength);
 
     public ValidationResult ValidateQuantity(int quantity)
     {
@@ -172,12 +170,12 @@ public partial class ValidationService(
 
     private async Task<bool> IsRoleNameDuplicateAsync(int workspaceId, string roleName, int? excludeRoleId)
     {
-        var existing = await this._roleRepo.FindByNameAsync(workspaceId, roleName);
+        var existing = await this.roleRepository.FindByNameAsync(workspaceId, roleName);
         return existing != null && (excludeRoleId == null || existing.Id != excludeRoleId.Value);
     }
 
     public ValidationResult ValidateContactName(string name)
-        => this.ValidateRequiredField("Name", name, MaxContactNameLength);
+        => ValidateRequiredField("Name", name, MaxContactNameLength);
 
     public ValidationResult ValidatePriceValue(decimal price)
     {
@@ -226,7 +224,7 @@ public partial class ValidationService(
         return false;
     }
 
-    private bool ValidateEmailFormat(string email, ValidationResult result)
+    private static bool ValidateEmailFormat(string email, ValidationResult result)
     {
         try
         {
@@ -240,7 +238,7 @@ public partial class ValidationService(
         }
     }
 
-    private ValidationResult ValidateRequiredField(string fieldName, string value, int maxLength)
+    private static ValidationResult ValidateRequiredField(string fieldName, string value, int maxLength)
     {
         var result = new ValidationResult();
 

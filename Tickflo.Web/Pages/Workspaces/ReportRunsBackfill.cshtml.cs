@@ -9,7 +9,7 @@ using Tickflo.Core.Services.Views;
 [Authorize]
 public class ReportRunsBackfillModel(IWorkspaceRepository workspaceRepo, IWorkspaceReportRunsBackfillViewService backfillViewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
     private readonly IWorkspaceReportRunsBackfillViewService _backfillViewService = backfillViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
@@ -24,7 +24,7 @@ public class ReportRunsBackfillModel(IWorkspaceRepository workspaceRepo, IWorksp
     public async Task<IActionResult> OnGetAsync(string slug)
     {
         this.WorkspaceSlug = slug;
-        var ws = await this._workspaceRepo.FindBySlugAsync(slug);
+        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
         {
             return result;
@@ -52,7 +52,7 @@ public class ReportRunsBackfillModel(IWorkspaceRepository workspaceRepo, IWorksp
     public async Task<IActionResult> OnPostAsync(string slug)
     {
         this.WorkspaceSlug = slug;
-        var ws = await this._workspaceRepo.FindBySlugAsync(slug);
+        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
         {
             return result;

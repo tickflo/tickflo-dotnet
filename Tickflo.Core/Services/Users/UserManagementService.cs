@@ -1,17 +1,18 @@
 namespace Tickflo.Core.Services.Users;
 
+using System.Text;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Authentication;
 
 public class UserManagementService(IUserRepository userRepository, IPasswordHasher passwordHasher) : IUserManagementService
 {
-    private const string ErrorEmailAlreadyExists = "A user with email '{0}' already exists.";
-    private const string ErrorUserNotFound = "User {0} not found.";
+    private static readonly CompositeFormat ErrorEmailAlreadyExists = CompositeFormat.Parse("A user with email '{0}' already exists.");
+    private static readonly CompositeFormat ErrorUserNotFound = CompositeFormat.Parse("User {0} not found.");
     private const string ErrorRecoveryEmailSame = "Recovery email must be different from your login email.";
 
-    private readonly IUserRepository _userRepository = userRepository;
-    private readonly IPasswordHasher _passwordHasher = passwordHasher;
+    private readonly IUserRepository userRepository = userRepository;
+    private readonly IPasswordHasher passwordHasher = passwordHasher;
 
     public async Task<User> CreateUserAsync(string name, string email, string? recoveryEmail, string password, bool systemAdmin = false)
     {
@@ -20,7 +21,7 @@ public class UserManagementService(IUserRepository userRepository, IPasswordHash
         await this.EnsureEmailNotInUseAsync(normalizedEmail, email);
 
         var user = this.BuildNewUser(name, normalizedEmail, recoveryEmail, password, systemAdmin);
-        await this._userRepository.AddAsync(user);
+        await this.userRepository.AddAsync(user);
 
         return user;
     }
@@ -33,7 +34,7 @@ public class UserManagementService(IUserRepository userRepository, IPasswordHash
 
         var user = await this.GetUserOrThrowAsync(userId);
         UpdateUserFields(user, name, normalizedEmail, recoveryEmail);
-        await this._userRepository.UpdateAsync(user);
+        await this.userRepository.UpdateAsync(user);
 
         return user;
     }
@@ -46,12 +47,12 @@ public class UserManagementService(IUserRepository userRepository, IPasswordHash
             return false;
         }
 
-        var existing = await this._userRepository.FindByEmailAsync(normalizedEmail);
+        var existing = await this.userRepository.FindByEmailAsync(normalizedEmail);
 
         return existing != null && existing.Id != excludeUserId;
     }
 
-    public async Task<User?> GetUserAsync(int userId) => await this._userRepository.FindByIdAsync(userId);
+    public async Task<User?> GetUserAsync(int userId) => await this.userRepository.FindByIdAsync(userId);
 
     public string? ValidateRecoveryEmailDifference(string email, string recoveryEmail)
     {
@@ -67,16 +68,16 @@ public class UserManagementService(IUserRepository userRepository, IPasswordHash
 
     private async Task EnsureEmailNotInUseAsync(string normalizedEmail, string originalEmail, int? excludeUserId = null)
     {
-        var existing = await this._userRepository.FindByEmailAsync(normalizedEmail);
+        var existing = await this.userRepository.FindByEmailAsync(normalizedEmail);
         if (existing != null && existing.Id != excludeUserId)
         {
-            throw new InvalidOperationException(string.Format(ErrorEmailAlreadyExists, originalEmail));
+            throw new InvalidOperationException(string.Format(null, ErrorEmailAlreadyExists, originalEmail));
         }
     }
 
     private async Task<User> GetUserOrThrowAsync(int userId)
     {
-        var user = await this._userRepository.FindByIdAsync(userId) ?? throw new InvalidOperationException(string.Format(ErrorUserNotFound, userId));
+        var user = await this.userRepository.FindByIdAsync(userId) ?? throw new InvalidOperationException(string.Format(null, ErrorUserNotFound, userId));
         return user;
     }
 
@@ -87,7 +88,7 @@ public class UserManagementService(IUserRepository userRepository, IPasswordHash
         RecoveryEmail = NormalizeEmail(recoveryEmail),
         SystemAdmin = systemAdmin,
         EmailConfirmed = false,
-        PasswordHash = this._passwordHasher.Hash(password),
+        PasswordHash = this.passwordHasher.Hash(password),
         CreatedAt = DateTime.UtcNow,
         UpdatedAt = DateTime.UtcNow
     };

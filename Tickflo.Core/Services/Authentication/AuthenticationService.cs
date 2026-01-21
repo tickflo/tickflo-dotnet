@@ -24,17 +24,17 @@ public partial class AuthenticationService(
     private const int MaxSlugLength = 30;
     #endregion
 
-    private readonly IUserRepository _userRepository = userRepository;
-    private readonly IPasswordHasher _passwordHasher = passwordHasher;
+    private readonly IUserRepository userRepository = userRepository;
+    private readonly IPasswordHasher passwordHasher = passwordHasher;
     private readonly ITokenRepository _tokenRepository = tokenRepository;
     private readonly IWorkspaceRepository? _workspaceRepository = workspaceRepository;
-    private readonly IUserWorkspaceRepository? _userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IUserWorkspaceRepository? userWorkspaceRepository = userWorkspaceRepository;
     private readonly IWorkspaceRoleBootstrapper? _workspaceRoleBootstrapper = workspaceRoleBootstrapper;
 
     public async Task<AuthenticationResult> AuthenticateAsync(string email, string password)
     {
         var result = new AuthenticationResult();
-        var user = await this._userRepository.FindByEmailAsync(email);
+        var user = await this.userRepository.FindByEmailAsync(email);
 
         if (user == null)
         {
@@ -49,7 +49,7 @@ public partial class AuthenticationService(
             return result;
         }
 
-        if (!this._passwordHasher.Verify($"{email}{password}", user.PasswordHash))
+        if (!this.passwordHasher.Verify($"{email}{password}", user.PasswordHash))
         {
             result.ErrorMessage = InvalidCredentialsError;
             return result;
@@ -68,7 +68,7 @@ public partial class AuthenticationService(
     {
         var result = new AuthenticationResult();
 
-        if (await this._userRepository.FindByEmailAsync(email) != null)
+        if (await this.userRepository.FindByEmailAsync(email) != null)
         {
             result.ErrorMessage = AccountExistsError;
             return result;
@@ -91,13 +91,13 @@ public partial class AuthenticationService(
         return result;
     }
 
-    private void PreventTimingAttack() => this._passwordHasher.Verify("password", DummyPasswordHash);
+    private void PreventTimingAttack() => this.passwordHasher.Verify("password", DummyPasswordHash);
 
     private async Task<string?> GetUserWorkspaceSlugAsync(int userId)
     {
-        if (this._userWorkspaceRepository != null && this._workspaceRepository != null)
+        if (this.userWorkspaceRepository != null && this._workspaceRepository != null)
         {
-            var uw = await this._userWorkspaceRepository.FindAcceptedForUserAsync(userId);
+            var uw = await this.userWorkspaceRepository.FindAcceptedForUserAsync(userId);
             if (uw != null)
             {
                 var ws = await this._workspaceRepository.FindByIdAsync(uw.WorkspaceId);
@@ -109,7 +109,7 @@ public partial class AuthenticationService(
 
     private async Task<User> CreateUserAsync(string name, string email, string recoveryEmail, string password)
     {
-        var passwordHash = this._passwordHasher.Hash($"{email}{password}");
+        var passwordHash = this.passwordHasher.Hash($"{email}{password}");
         var user = new User
         {
             Name = name,
@@ -119,13 +119,13 @@ public partial class AuthenticationService(
             CreatedAt = DateTime.UtcNow
         };
 
-        await this._userRepository.AddAsync(user);
+        await this.userRepository.AddAsync(user);
         return user;
     }
 
     private async Task<WorkspaceEntity> CreateWorkspaceWithUserAsync(string workspaceName, int userId)
     {
-        if (this._workspaceRepository == null || this._userWorkspaceRepository == null)
+        if (this._workspaceRepository == null || this.userWorkspaceRepository == null)
         {
             throw new InvalidOperationException(WorkspaceRepositoriesNotConfiguredError);
         }
@@ -150,7 +150,7 @@ public partial class AuthenticationService(
             CreatedBy = userId
         };
 
-        await this._userWorkspaceRepository.AddAsync(userWorkspace);
+        await this.userWorkspaceRepository.AddAsync(userWorkspace);
         return workspace;
     }
 

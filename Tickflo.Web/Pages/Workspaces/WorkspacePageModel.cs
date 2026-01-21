@@ -148,12 +148,12 @@ public abstract class WorkspacePageModel : PageModel
     /// Returns NotFound if workspace doesn't exist, Forbid if user is not a member or cannot be identified.
     /// </summary>
     /// <param name="workspaceRepo">The workspace repository</param>
-    /// <param name="userWorkspaceRepo">The user workspace repository for membership validation</param>
+    /// <param name="userWorkspaceRepository">The user workspace repository for membership validation</param>
     /// <param name="slug">The workspace slug</param>
     /// <returns>WorkspaceUserLoadResult on success, or IActionResult (NotFound/Forbid) on failure</returns>
     protected async Task<object> LoadWorkspaceAndValidateUserMembershipAsync(
         IWorkspaceRepository workspaceRepo,
-        IUserWorkspaceRepository userWorkspaceRepo,
+        IUserWorkspaceRepository userWorkspaceRepository,
         string slug)
     {
         var workspace = await workspaceRepo.FindBySlugAsync(slug);
@@ -168,7 +168,7 @@ public abstract class WorkspacePageModel : PageModel
         }
 
         // Validate that the user is a member of this workspace
-        var membership = await userWorkspaceRepo.FindAsync(userId, workspace.Id);
+        var membership = await userWorkspaceRepository.FindAsync(userId, workspace.Id);
         if (membership == null)
         {
             return this.Forbid();
