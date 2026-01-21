@@ -1,7 +1,7 @@
+namespace Tickflo.Core.Services.Tickets;
+
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.Core.Services.Tickets;
 
 /// <summary>
 /// Handles the business logic for managing ticket comments with dual visibility support.
@@ -18,13 +18,13 @@ public class TicketCommentService(ITicketCommentRepository commentRepo) : ITicke
         ValidateIdentifiers(workspaceId, ticketId);
 
         var comments = await commentRepo.ListByTicketAsync(workspaceId, ticketId, ct);
-        
+
         // Business rule: Client view shows only comments marked as client-visible
         if (isClientView)
         {
             return comments.Where(c => c.IsVisibleToClient).ToList();
         }
-        
+
         // Internal view shows all comments (no filtering)
         return comments;
     }
@@ -37,11 +37,15 @@ public class TicketCommentService(ITicketCommentRepository commentRepo) : ITicke
         // Business rule: All identifiers must be positive
         ValidateIdentifiers(workspaceId, ticketId);
         if (createdByUserId <= 0)
+        {
             throw new InvalidOperationException("Invalid user ID for comment creator");
+        }
 
         // Business rule: Comment content is required and must be non-empty
         if (string.IsNullOrWhiteSpace(content))
+        {
             throw new InvalidOperationException("Comment content cannot be empty");
+        }
 
         var comment = new TicketComment
         {
@@ -65,11 +69,15 @@ public class TicketCommentService(ITicketCommentRepository commentRepo) : ITicke
         // Business rule: All identifiers must be positive
         ValidateIdentifiers(workspaceId, ticketId);
         if (contactId <= 0)
+        {
             throw new InvalidOperationException("Invalid contact ID for comment creator");
+        }
 
         // Business rule: Comment content is required and must be non-empty
         if (string.IsNullOrWhiteSpace(content))
+        {
             throw new InvalidOperationException("Comment content cannot be empty");
+        }
 
         // Use a system user ID (1) for client comments, track actual contact via CreatedByContactId
         var comment = new TicketComment
@@ -94,17 +102,17 @@ public class TicketCommentService(ITicketCommentRepository commentRepo) : ITicke
         // Business rule: All identifiers must be positive
         ValidateIdentifiers(workspaceId, commentId);
         if (updatedByUserId <= 0)
+        {
             throw new InvalidOperationException("Invalid user ID for comment updater");
+        }
 
         // Business rule: Updated content is required and must be non-empty
         if (string.IsNullOrWhiteSpace(content))
+        {
             throw new InvalidOperationException("Comment content cannot be empty");
+        }
 
-        var comment = await commentRepo.FindAsync(workspaceId, commentId, ct);
-        
-        // Business rule: Comment must exist in the workspace
-        if (comment == null)
-            throw new InvalidOperationException($"Comment {commentId} not found in workspace {workspaceId}");
+        var comment = await commentRepo.FindAsync(workspaceId, commentId, ct) ?? throw new InvalidOperationException($"Comment {commentId} not found in workspace {workspaceId}");
 
         // Update comment with new content and audit metadata
         comment.Content = content.Trim();
@@ -133,8 +141,13 @@ public class TicketCommentService(ITicketCommentRepository commentRepo) : ITicke
     private static void ValidateIdentifiers(int workspaceId, int entityId)
     {
         if (workspaceId <= 0)
+        {
             throw new InvalidOperationException("Invalid workspace ID");
+        }
+
         if (entityId <= 0)
+        {
             throw new InvalidOperationException("Invalid entity ID");
+        }
     }
 }

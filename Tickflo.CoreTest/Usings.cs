@@ -1,4 +1,4 @@
-﻿global using Tickflo.Core.Services.Authentication;
+global using Tickflo.Core.Services.Authentication;
 global using Tickflo.Core.Services.Common;
 global using Tickflo.Core.Services.Contacts;
 global using Tickflo.Core.Services.Email;

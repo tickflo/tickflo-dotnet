@@ -1,14 +1,13 @@
-﻿using Moq;
-using Xunit;
-using Tickflo.Core.Data;
-using Tickflo.Core.Entities;
-
 namespace Tickflo.CoreTest.Services;
+
+using Moq;
+using Tickflo.Core.Data;
+using Xunit;
 
 public class WorkspaceLocationsEditViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_ForAdmin_GrantsAllPermissions()
+    public async Task BuildAsyncForAdminGrantsAllPermissions()
     {
         // Arrange
         var mockUserWorkspaceRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
@@ -32,7 +31,7 @@ public class WorkspaceLocationsEditViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_ForNonAdminWithoutPermission_DeniesAllPermissions()
+    public async Task BuildAsyncForNonAdminWithoutPermissionDeniesAllPermissions()
     {
         // Arrange
         var mockUserWorkspaceRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
@@ -44,7 +43,7 @@ public class WorkspaceLocationsEditViewServiceTests
 
         mockUserWorkspaceRoleRepo.Setup(x => x.IsAdminAsync(2, 1)).ReturnsAsync(false);
         mockRolePerms.Setup(x => x.GetEffectivePermissionsForUserAsync(1, 2))
-            .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>());
+            .ReturnsAsync([]);
 
         var service = new WorkspaceLocationsEditViewService(mockUserWorkspaceRoleRepo.Object, mockRolePerms.Object, mockLocationRepo.Object, mockUserWorkspaces.Object, mockUsers.Object, mockContacts.Object);
 
@@ -58,7 +57,7 @@ public class WorkspaceLocationsEditViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_CreatesDefaultLocationForNewEntry()
+    public async Task BuildAsyncCreatesDefaultLocationForNewEntry()
     {
         // Arrange
         var mockUserWorkspaceRoleRepo = new Mock<IUserWorkspaceRoleRepository>();

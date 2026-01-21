@@ -7,7 +7,7 @@ public class WorkspaceReportDeleteViewData
 
 public interface IWorkspaceReportDeleteViewService
 {
-    Task<WorkspaceReportDeleteViewData> BuildAsync(int workspaceId, int userId);
+    public Task<WorkspaceReportDeleteViewData> BuildAsync(int workspaceId, int userId);
 }
 
 

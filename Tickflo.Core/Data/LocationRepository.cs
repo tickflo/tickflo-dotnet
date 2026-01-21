@@ -1,7 +1,7 @@
+namespace Tickflo.Core.Data;
+
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.Core.Data;
 
 public class LocationRepository(TickfloDbContext db) : ILocationRepository
 {
@@ -20,8 +20,12 @@ public class LocationRepository(TickfloDbContext db) : ILocationRepository
 
     public async Task<Location?> UpdateAsync(Location location)
     {
-        var existing = await FindAsync(location.WorkspaceId, location.Id);
-        if (existing == null) return null;
+        var existing = await this.FindAsync(location.WorkspaceId, location.Id);
+        if (existing == null)
+        {
+            return null;
+        }
+
         existing.Name = location.Name;
         existing.Address = location.Address;
         existing.Active = location.Active;
@@ -32,8 +36,12 @@ public class LocationRepository(TickfloDbContext db) : ILocationRepository
 
     public async Task<bool> DeleteAsync(int workspaceId, int id)
     {
-        var loc = await FindAsync(workspaceId, id);
-        if (loc == null) return false;
+        var loc = await this.FindAsync(workspaceId, id);
+        if (loc == null)
+        {
+            return false;
+        }
+
         db.Locations.Remove(loc);
         await db.SaveChangesAsync();
         return true;
@@ -53,14 +61,17 @@ public class LocationRepository(TickfloDbContext db) : ILocationRepository
         var newSet = contactIds.Distinct().ToHashSet();
         foreach (var row in existing)
         {
-            if (!newSet.Contains(row.ContactId)) db.ContactLocations.Remove(row);
+            if (!newSet.Contains(row.ContactId))
+            {
+                db.ContactLocations.Remove(row);
+            }
         }
         var existingSet = existing.Select(e => e.ContactId).ToHashSet();
         foreach (var cid in newSet)
         {
             if (!existingSet.Contains(cid))
             {
-                db.ContactLocations.Add(new ContactLocation{ WorkspaceId = workspaceId, LocationId = locationId, ContactId = cid });
+                db.ContactLocations.Add(new ContactLocation { WorkspaceId = workspaceId, LocationId = locationId, ContactId = cid });
             }
         }
         await db.SaveChangesAsync();
@@ -69,12 +80,16 @@ public class LocationRepository(TickfloDbContext db) : ILocationRepository
     public async Task<IReadOnlyList<string>> ListContactNamesAsync(int workspaceId, int locationId, int limit = 3)
     {
         var query = from cl in db.ContactLocations
-                    join c in db.Contacts on new { cl.WorkspaceId, ContactId = cl.ContactId } equals new { c.WorkspaceId, ContactId = c.Id }
+                    join c in db.Contacts on new { cl.WorkspaceId, cl.ContactId } equals new { c.WorkspaceId, ContactId = c.Id }
                     where cl.WorkspaceId == workspaceId && cl.LocationId == locationId
                     orderby c.Name
                     select (c.Name ?? c.Email)!
                     ;
-        if (limit > 0) query = query.Take(limit);
+        if (limit > 0)
+        {
+            query = query.Take(limit);
+        }
+
         return await query.ToListAsync();
     }
 }

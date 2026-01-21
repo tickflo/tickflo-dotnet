@@ -7,7 +7,7 @@ public class WorkspaceReportRunsBackfillViewData
 
 public interface IWorkspaceReportRunsBackfillViewService
 {
-    Task<WorkspaceReportRunsBackfillViewData> BuildAsync(int workspaceId, int userId);
+    public Task<WorkspaceReportRunsBackfillViewData> BuildAsync(int workspaceId, int userId);
 }
 
 

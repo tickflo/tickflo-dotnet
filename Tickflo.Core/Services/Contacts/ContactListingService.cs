@@ -1,30 +1,24 @@
+namespace Tickflo.Core.Services.Contacts;
+
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
-namespace Tickflo.Core.Services.Contacts;
-
-public class ContactListingService : IContactListingService
+public class ContactListingService(
+    IContactRepository contactRepo,
+    ITicketPriorityRepository priorityRepo) : IContactListingService
 {
-    private readonly IContactRepository _contactRepo;
-    private readonly ITicketPriorityRepository _priorityRepo;
-
-    public ContactListingService(
-        IContactRepository contactRepo,
-        ITicketPriorityRepository priorityRepo)
-    {
-        _contactRepo = contactRepo;
-        _priorityRepo = priorityRepo;
-    }
+    private readonly IContactRepository _contactRepo = contactRepo;
+    private readonly ITicketPriorityRepository _priorityRepo = priorityRepo;
 
     public async Task<(IReadOnlyList<Contact> Items, IReadOnlyList<TicketPriority> Priorities)> GetListAsync(
         int workspaceId,
         string? priorityFilter = null,
         string? searchQuery = null)
     {
-        var allContacts = await _contactRepo.ListAsync(workspaceId);
+        var allContacts = await this._contactRepo.ListAsync(workspaceId);
         var filtered = FilterContacts(allContacts, priorityFilter, searchQuery);
-        var priorities = await _priorityRepo.ListAsync(workspaceId);
-        
+        var priorities = await this._priorityRepo.ListAsync(workspaceId);
+
         return (filtered.ToList(), priorities.ToList());
     }
 
@@ -37,7 +31,7 @@ public class ContactListingService : IContactListingService
 
         if (!string.IsNullOrWhiteSpace(priorityFilter))
         {
-            result = result.Where(c => 
+            result = result.Where(c =>
                 string.Equals(c.Priority, priorityFilter, StringComparison.OrdinalIgnoreCase));
         }
 

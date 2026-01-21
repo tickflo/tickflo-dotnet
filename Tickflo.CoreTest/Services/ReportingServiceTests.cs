@@ -1,14 +1,16 @@
-﻿using System.Text;
+namespace Tickflo.CoreTest.Services;
+
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
 using Xunit;
 
-namespace Tickflo.CoreTest.Services;
-
 public class ReportingServiceTests
 {
+    private static readonly string[] expected = ["3", "C"];
+
     [Fact]
-    public async Task GetRunPageAsync_PaginatesCsv()
+    public async Task GetRunPageAsyncPaginatesCsv()
     {
         var ctx = CreateContext();
         var svc = new ReportingService(ctx);
@@ -28,11 +30,11 @@ public class ReportingServiceTests
             h => Assert.Equal("Id", h),
             h => Assert.Equal("Name", h));
         Assert.Single(page.Rows);
-        Assert.Equal(new[] { "3", "C" }, page.Rows[0]);
+        Assert.Equal(expected, page.Rows[0]);
     }
 
     [Fact]
-    public async Task GetRunPageAsync_NoContent_ReturnsEmpty()
+    public async Task GetRunPageAsyncNoContentReturnsEmpty()
     {
         var ctx = CreateContext();
         var svc = new ReportingService(ctx);
@@ -47,12 +49,12 @@ public class ReportingServiceTests
         Assert.Equal(0, page.ToRow);
     }
 
-    private static Tickflo.Core.Data.TickfloDbContext CreateContext()
+    private static Core.Data.TickfloDbContext CreateContext()
     {
-        var options = new DbContextOptionsBuilder<Tickflo.Core.Data.TickfloDbContext>()
+        var options = new DbContextOptionsBuilder<Core.Data.TickfloDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
-        return new Tickflo.Core.Data.TickfloDbContext(options);
+        return new Core.Data.TickfloDbContext(options);
     }
 }
 

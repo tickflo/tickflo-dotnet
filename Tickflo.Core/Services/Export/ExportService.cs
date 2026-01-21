@@ -1,34 +1,25 @@
-using System.Text;
-using Tickflo.Core.Entities;
-using Tickflo.Core.Data;
-
 namespace Tickflo.Core.Services.Export;
+
+using System.Text;
+using Tickflo.Core.Data;
+using Tickflo.Core.Entities;
 
 /// <summary>
 /// Implementation of data export service.
 /// Handles formatting and streaming of large datasets.
 /// </summary>
-public class ExportService : IExportService
+public class ExportService(
+    ITicketRepository ticketRepo,
+    IContactRepository contactRepo,
+    IInventoryRepository inventoryRepo,
+    ITicketHistoryRepository historyRepo,
+    IUserWorkspaceRepository userWorkspaceRepo) : IExportService
 {
-    private readonly ITicketRepository _ticketRepo;
-    private readonly IContactRepository _contactRepo;
-    private readonly IInventoryRepository _inventoryRepo;
-    private readonly ITicketHistoryRepository _historyRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
-
-    public ExportService(
-        ITicketRepository ticketRepo,
-        IContactRepository contactRepo,
-        IInventoryRepository inventoryRepo,
-        ITicketHistoryRepository historyRepo,
-        IUserWorkspaceRepository userWorkspaceRepo)
-    {
-        _ticketRepo = ticketRepo;
-        _contactRepo = contactRepo;
-        _inventoryRepo = inventoryRepo;
-        _historyRepo = historyRepo;
-        _userWorkspaceRepo = userWorkspaceRepo;
-    }
+    private readonly ITicketRepository _ticketRepo = ticketRepo;
+    private readonly IContactRepository _contactRepo = contactRepo;
+    private readonly IInventoryRepository _inventoryRepo = inventoryRepo;
+    private readonly ITicketHistoryRepository _historyRepo = historyRepo;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
 
     public async Task<ExportResult> ExportTicketsAsync(
         int workspaceId,
@@ -36,19 +27,19 @@ public class ExportService : IExportService
         int exportingUserId)
     {
         // Validate access
-        var userAccess = await _userWorkspaceRepo.FindAsync(exportingUserId, workspaceId);
+        var userAccess = await this._userWorkspaceRepo.FindAsync(exportingUserId, workspaceId);
         if (userAccess == null || !userAccess.Accepted)
         {
             throw new InvalidOperationException("User does not have access to this workspace.");
         }
 
-        var tickets = (await _ticketRepo.ListAsync(workspaceId)).ToList();
+        var tickets = (await this._ticketRepo.ListAsync(workspaceId)).ToList();
 
         return request.Format switch
         {
             ExportFormat.CSV => ExportToCSV(tickets, request),
             ExportFormat.JSON => ExportToJSON(tickets, request),
-            ExportFormat.Excel => ExportToExcel(tickets, request),
+            ExportFormat.Excel => this.ExportToExcel(tickets, request),
             _ => throw new InvalidOperationException("Unsupported format.")
         };
     }
@@ -58,18 +49,19 @@ public class ExportService : IExportService
         ExportRequest request,
         int exportingUserId)
     {
-        var userAccess = await _userWorkspaceRepo.FindAsync(exportingUserId, workspaceId);
+        var userAccess = await this._userWorkspaceRepo.FindAsync(exportingUserId, workspaceId);
         if (userAccess == null || !userAccess.Accepted)
         {
             throw new InvalidOperationException("User does not have access to this workspace.");
         }
 
-        var contacts = (await _contactRepo.ListAsync(workspaceId)).ToList();
+        var contacts = (await this._contactRepo.ListAsync(workspaceId)).ToList();
 
         return request.Format switch
         {
             ExportFormat.CSV => ExportContactsToCSV(contacts, request),
             ExportFormat.JSON => ExportContactsToJSON(contacts, request),
+            ExportFormat.Excel => throw new NotImplementedException(),
             _ => throw new InvalidOperationException("Unsupported format.")
         };
     }
@@ -79,18 +71,19 @@ public class ExportService : IExportService
         ExportRequest request,
         int exportingUserId)
     {
-        var userAccess = await _userWorkspaceRepo.FindAsync(exportingUserId, workspaceId);
+        var userAccess = await this._userWorkspaceRepo.FindAsync(exportingUserId, workspaceId);
         if (userAccess == null || !userAccess.Accepted)
         {
             throw new InvalidOperationException("User does not have access to this workspace.");
         }
 
-        var inventory = (await _inventoryRepo.ListAsync(workspaceId)).ToList();
+        var inventory = (await this._inventoryRepo.ListAsync(workspaceId)).ToList();
 
         return request.Format switch
         {
             ExportFormat.CSV => ExportInventoryItemsToCSV(inventory, request),
             ExportFormat.JSON => ExportInventoryItemsToJSON(inventory, request),
+            ExportFormat.Excel => throw new NotImplementedException(),
             _ => throw new InvalidOperationException("Unsupported format.")
         };
     }
@@ -101,7 +94,7 @@ public class ExportService : IExportService
         DateTime toDate,
         int exportingUserId)
     {
-        var userAccess = await _userWorkspaceRepo.FindAsync(exportingUserId, workspaceId);
+        var userAccess = await this._userWorkspaceRepo.FindAsync(exportingUserId, workspaceId);
         if (userAccess == null || !userAccess.Accepted)
         {
             throw new InvalidOperationException("User does not have access to this workspace.");
@@ -126,7 +119,7 @@ public class ExportService : IExportService
         ExportRequest request,
         int requestingUserId)
     {
-        var userAccess = await _userWorkspaceRepo.FindAsync(requestingUserId, workspaceId);
+        var userAccess = await this._userWorkspaceRepo.FindAsync(requestingUserId, workspaceId);
         if (userAccess == null || !userAccess.Accepted)
         {
             return (false, "User does not have access to this workspace.");
@@ -137,7 +130,7 @@ public class ExportService : IExportService
             return (false, "Entity type is required.");
         }
 
-        if (!Enum.IsDefined(typeof(ExportFormat), request.Format))
+        if (!Enum.IsDefined(request.Format))
         {
             return (false, "Invalid export format.");
         }
@@ -145,13 +138,13 @@ public class ExportService : IExportService
         return (true, string.Empty);
     }
 
-    private ExportResult ExportToCSV(List<Ticket> tickets, ExportRequest request)
+    private static ExportResult ExportToCSV(List<Ticket> tickets, ExportRequest request)
     {
         var sb = new StringBuilder();
-        
+
         // Header
-        var fields = request.Fields.Count > 0 ? request.Fields : 
-            new List<string> { "Id", "Subject", "Status", "Priority", "Type", "CreatedAt" };
+        var fields = request.Fields.Count > 0 ? request.Fields :
+            ["Id", "Subject", "Status", "Priority", "Type", "CreatedAt"];
         sb.AppendLine(string.Join(",", fields.Select(f => $"\"{f}\"")));
 
         // Rows
@@ -176,7 +169,7 @@ public class ExportService : IExportService
         };
     }
 
-    private ExportResult ExportToJSON(List<Ticket> tickets, ExportRequest request)
+    private static ExportResult ExportToJSON(List<Ticket> tickets, ExportRequest request)
     {
         var content = Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(tickets));
         return new ExportResult
@@ -188,14 +181,12 @@ public class ExportService : IExportService
         };
     }
 
-    private ExportResult ExportToExcel(List<Ticket> tickets, ExportRequest request)
-    {
+    private ExportResult ExportToExcel(List<Ticket> tickets, ExportRequest request) =>
         // Excel export would require a library like EPPlus or OfficeOpenXml
         // For now, return a CSV as placeholder
-        return ExportToCSV(tickets, request);
-    }
+        ExportToCSV(tickets, request);
 
-    private ExportResult ExportContactsToCSV(List<Contact> contacts, ExportRequest request)
+    private static ExportResult ExportContactsToCSV(List<Contact> contacts, ExportRequest request)
     {
         var sb = new StringBuilder();
         sb.AppendLine("Id,Name,Email,Phone,Company,CreatedAt");
@@ -215,7 +206,7 @@ public class ExportService : IExportService
         };
     }
 
-    private ExportResult ExportContactsToJSON(List<Contact> contacts, ExportRequest request)
+    private static ExportResult ExportContactsToJSON(List<Contact> contacts, ExportRequest request)
     {
         var content = Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(contacts));
         return new ExportResult
@@ -227,7 +218,7 @@ public class ExportService : IExportService
         };
     }
 
-    private ExportResult ExportInventoryItemsToCSV(List<Entities.Inventory> inventory, ExportRequest request)
+    private static ExportResult ExportInventoryItemsToCSV(List<Inventory> inventory, ExportRequest request)
     {
         var sb = new StringBuilder();
         sb.AppendLine("Id,SKU,Name,Quantity,Cost,LocationId,CreatedAt");
@@ -247,7 +238,7 @@ public class ExportService : IExportService
         };
     }
 
-    private ExportResult ExportInventoryItemsToJSON(List<Entities.Inventory> inventory, ExportRequest request)
+    private static ExportResult ExportInventoryItemsToJSON(List<Inventory> inventory, ExportRequest request)
     {
         var content = Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(inventory));
         return new ExportResult
@@ -259,23 +250,20 @@ public class ExportService : IExportService
         };
     }
 
-    private object? GetFieldValue(Ticket ticket, string fieldName)
+    private static object? GetFieldValue(Ticket ticket, string fieldName) => fieldName switch
     {
-        return fieldName switch
-        {
-            "Id" => ticket.Id,
-            "Subject" => ticket.Subject,
-            "Description" => ticket.Description,
-            "StatusId" => ticket.StatusId,
-            "PriorityId" => ticket.PriorityId,
-            "TicketTypeId" => ticket.TicketTypeId,
-            "CreatedAt" => ticket.CreatedAt,
-            "UpdatedAt" => ticket.UpdatedAt,
-            "ContactId" => ticket.ContactId,
-            "LocationId" => ticket.LocationId,
-            "AssignedUserId" => ticket.AssignedUserId,
-            "AssignedTeamId" => ticket.AssignedTeamId,
-            _ => null
-        };
-    }
+        "Id" => ticket.Id,
+        "Subject" => ticket.Subject,
+        "Description" => ticket.Description,
+        "StatusId" => ticket.StatusId,
+        "PriorityId" => ticket.PriorityId,
+        "TicketTypeId" => ticket.TicketTypeId,
+        "CreatedAt" => ticket.CreatedAt,
+        "UpdatedAt" => ticket.UpdatedAt,
+        "ContactId" => ticket.ContactId,
+        "LocationId" => ticket.LocationId,
+        "AssignedUserId" => ticket.AssignedUserId,
+        "AssignedTeamId" => ticket.AssignedTeamId,
+        _ => null
+    };
 }

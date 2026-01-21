@@ -1,14 +1,14 @@
-﻿using Moq;
-using Xunit;
+namespace Tickflo.CoreTest.Services;
+
+using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.CoreTest.Services;
+using Xunit;
 
 public class WorkspaceInventoryViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_LoadsInventoryWithPermissions()
+    public async Task BuildAsyncLoadsInventoryWithPermissions()
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
@@ -21,8 +21,8 @@ public class WorkspaceInventoryViewServiceTests
 
         var inventoryItems = new List<Inventory>
         {
-            new Inventory { Id = 1, WorkspaceId = 1, Name = "Widget A", Status = "active" },
-            new Inventory { Id = 2, WorkspaceId = 1, Name = "Widget B", Status = "active" }
+            new() { Id = 1, WorkspaceId = 1, Name = "Widget A", Status = "active" },
+            new() { Id = 2, WorkspaceId = 1, Name = "Widget B", Status = "active" }
         };
 
         accessService.Setup(x => x.UserIsWorkspaceAdminAsync(100, 1))
@@ -48,7 +48,7 @@ public class WorkspaceInventoryViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_AdminOverridesPermissions()
+    public async Task BuildAsyncAdminOverridesPermissions()
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
@@ -63,7 +63,7 @@ public class WorkspaceInventoryViewServiceTests
             .ReturnsAsync(permissions);
 
         listingService.Setup(x => x.GetListAsync(1, null, null))
-            .ReturnsAsync(new List<Inventory>());
+            .ReturnsAsync([]);
 
         var service = new WorkspaceInventoryViewService(accessService.Object, listingService.Object);
 
@@ -77,7 +77,7 @@ public class WorkspaceInventoryViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_DefaultsPermissionsWhenNotFound()
+    public async Task BuildAsyncDefaultsPermissionsWhenNotFound()
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
@@ -92,7 +92,7 @@ public class WorkspaceInventoryViewServiceTests
             .ReturnsAsync(permissions);
 
         listingService.Setup(x => x.GetListAsync(1, null, null))
-            .ReturnsAsync(new List<Inventory>());
+            .ReturnsAsync([]);
 
         var service = new WorkspaceInventoryViewService(accessService.Object, listingService.Object);
 

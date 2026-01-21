@@ -7,7 +7,7 @@ public class WorkspaceUsersManageViewData
 
 public interface IWorkspaceUsersManageViewService
 {
-    Task<WorkspaceUsersManageViewData> BuildAsync(int workspaceId, int userId);
+    public Task<WorkspaceUsersManageViewData> BuildAsync(int workspaceId, int userId);
 }
 
 

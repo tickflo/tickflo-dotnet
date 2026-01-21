@@ -1,14 +1,14 @@
-﻿using Moq;
-using Xunit;
+namespace Tickflo.CoreTest.Services;
+
+using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.CoreTest.Services;
+using Xunit;
 
 public class WorkspaceContactsViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_LoadsContactsWithPermissions()
+    public async Task BuildAsyncLoadsContactsWithPermissions()
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
@@ -21,14 +21,14 @@ public class WorkspaceContactsViewServiceTests
 
         var contacts = new List<Contact>
         {
-            new Contact { Id = 1, WorkspaceId = 1, Name = "John Doe" },
-            new Contact { Id = 2, WorkspaceId = 1, Name = "Jane Smith" }
+            new() { Id = 1, WorkspaceId = 1, Name = "John Doe" },
+            new() { Id = 2, WorkspaceId = 1, Name = "Jane Smith" }
         };
 
         var priorities = new List<TicketPriority>
         {
-            new TicketPriority { Id = 1, Name = "High", Color = "red" },
-            new TicketPriority { Id = 2, Name = "Low", Color = string.Empty }
+            new() { Id = 1, Name = "High", Color = "red" },
+            new() { Id = 2, Name = "Low", Color = string.Empty }
         };
 
         accessService.Setup(x => x.GetUserPermissionsAsync(1, 100))
@@ -53,7 +53,7 @@ public class WorkspaceContactsViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_DefaultsPermissionsWhenNotFound()
+    public async Task BuildAsyncDefaultsPermissionsWhenNotFound()
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
@@ -80,7 +80,7 @@ public class WorkspaceContactsViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_HandlesColorMappingCorrectly()
+    public async Task BuildAsyncHandlesColorMappingCorrectly()
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
@@ -93,9 +93,9 @@ public class WorkspaceContactsViewServiceTests
 
         var priorities = new List<TicketPriority>
         {
-            new TicketPriority { Id = 1, Name = "Critical", Color = "dark-red" },
-            new TicketPriority { Id = 2, Name = "Normal", Color = string.Empty },
-            new TicketPriority { Id = 3, Name = "Minor", Color = string.Empty }
+            new() { Id = 1, Name = "Critical", Color = "dark-red" },
+            new() { Id = 2, Name = "Normal", Color = string.Empty },
+            new() { Id = 3, Name = "Minor", Color = string.Empty }
         };
 
         accessService.Setup(x => x.GetUserPermissionsAsync(1, 100))

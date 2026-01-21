@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Views;
+
+using Tickflo.Core.Entities;
 
 public class WorkspaceReportRunDownloadViewData
 {
@@ -10,7 +10,7 @@ public class WorkspaceReportRunDownloadViewData
 
 public interface IWorkspaceReportRunDownloadViewService
 {
-    Task<WorkspaceReportRunDownloadViewData> BuildAsync(int workspaceId, int userId, int reportId, int runId);
+    public Task<WorkspaceReportRunDownloadViewData> BuildAsync(int workspaceId, int userId, int reportId, int runId);
 }
 
 

@@ -1,14 +1,14 @@
-﻿using Moq;
-using Xunit;
+namespace Tickflo.CoreTest.Services;
+
+using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.CoreTest.Services;
+using Xunit;
 
 public class WorkspaceReportRunsViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_ReturnsReportAndRuns_WhenUserCanView()
+    public async Task BuildAsyncReturnsReportAndRunsWhenUserCanView()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
@@ -24,11 +24,11 @@ public class WorkspaceReportRunsViewServiceTests
         var report = new Report { Id = 5, WorkspaceId = 10, Name = "Test", Ready = true, DefinitionJson = "{}" };
         var runs = new List<ReportRun>
         {
-            new ReportRun { Id = 7, ReportId = 5, WorkspaceId = 10, Status = "completed" },
-            new ReportRun { Id = 8, ReportId = 5, WorkspaceId = 10, Status = "running" }
+            new() { Id = 7, ReportId = 5, WorkspaceId = 10, Status = "completed" },
+            new() { Id = 8, ReportId = 5, WorkspaceId = 10, Status = "running" }
         };
 
-        reportRunService.Setup(x => x.GetReportRunsAsync(10, 5, 100, It.IsAny<System.Threading.CancellationToken>()))
+        reportRunService.Setup(x => x.GetReportRunsAsync(10, 5, 100, It.IsAny<CancellationToken>()))
             .ReturnsAsync((report, (IReadOnlyList<ReportRun>)runs));
 
         var svc = new WorkspaceReportRunsViewService(uwr.Object, perms.Object, reportRunService.Object);
@@ -41,7 +41,7 @@ public class WorkspaceReportRunsViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_Denies_WhenUserCannotView()
+    public async Task BuildAsyncDeniesWhenUserCannotView()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
@@ -49,7 +49,7 @@ public class WorkspaceReportRunsViewServiceTests
 
         uwr.Setup(x => x.IsAdminAsync(2, 10)).ReturnsAsync(false);
         perms.Setup(x => x.GetEffectivePermissionsForUserAsync(10, 2))
-            .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>());
+            .ReturnsAsync([]);
 
         var svc = new WorkspaceReportRunsViewService(uwr.Object, perms.Object, reportRunService.Object);
         var result = await svc.BuildAsync(10, 2, 5);
@@ -60,7 +60,7 @@ public class WorkspaceReportRunsViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_Empty_WhenReportNotFound()
+    public async Task BuildAsyncEmptyWhenReportNotFound()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
@@ -68,8 +68,8 @@ public class WorkspaceReportRunsViewServiceTests
 
         uwr.Setup(x => x.IsAdminAsync(3, 10)).ReturnsAsync(true);
 
-        reportRunService.Setup(x => x.GetReportRunsAsync(10, 5, 100, It.IsAny<System.Threading.CancellationToken>()))
-            .ReturnsAsync(((Report?)null, (IReadOnlyList<ReportRun>)new List<ReportRun>()));
+        reportRunService.Setup(x => x.GetReportRunsAsync(10, 5, 100, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((null, (IReadOnlyList<ReportRun>)[]));
 
         var svc = new WorkspaceReportRunsViewService(uwr.Object, perms.Object, reportRunService.Object);
         var result = await svc.BuildAsync(10, 3, 5);

@@ -1,19 +1,19 @@
+namespace Tickflo.Core.Services.Common;
+
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.Core.Services.Common;
 
 /// <summary>
 /// Implementation of INotificationPreferenceService.
 /// Manages user notification preferences and default initialization.
 /// </summary>
-public class NotificationPreferenceService : INotificationPreferenceService
+public class NotificationPreferenceService(IUserNotificationPreferenceRepository preferenceRepository) : INotificationPreferenceService
 {
-    private readonly IUserNotificationPreferenceRepository _preferenceRepository;
+    private readonly IUserNotificationPreferenceRepository _preferenceRepository = preferenceRepository;
 
     // Define all notification types as a constant to be reused
-    private static readonly NotificationTypeDefinition[] DefaultNotificationTypes = new[]
-    {
+    private static readonly NotificationTypeDefinition[] DefaultNotificationTypes =
+    [
         new NotificationTypeDefinition { Type = "workspace_invite", Label = "Workspace Invitation" },
         new NotificationTypeDefinition { Type = "ticket_assigned", Label = "Ticket Assigned to You" },
         new NotificationTypeDefinition { Type = "ticket_comment", Label = "Comments on Your Tickets" },
@@ -22,26 +22,18 @@ public class NotificationPreferenceService : INotificationPreferenceService
         new NotificationTypeDefinition { Type = "mention", Label = "Mentions in Comments" },
         new NotificationTypeDefinition { Type = "ticket_summary", Label = "Daily Ticket Summary" },
         new NotificationTypeDefinition { Type = "password_reset", Label = "Password Reset Confirmation" },
-    };
+    ];
 
-    public NotificationPreferenceService(IUserNotificationPreferenceRepository preferenceRepository)
-    {
-        _preferenceRepository = preferenceRepository;
-    }
-
-    public List<NotificationTypeDefinition> GetNotificationTypeDefinitions()
-    {
-        return DefaultNotificationTypes.ToList();
-    }
+    public List<NotificationTypeDefinition> GetNotificationTypeDefinitions() => [.. DefaultNotificationTypes];
 
     public async Task<List<UserNotificationPreference>> GetUserPreferencesAsync(int userId)
     {
-        var existing = await _preferenceRepository.GetPreferencesForUserAsync(userId);
-        
+        var existing = await this._preferenceRepository.GetPreferencesForUserAsync(userId);
+
         if (existing.Count == 0)
         {
             // Initialize defaults if no preferences exist
-            return await InitializeDefaultPreferencesAsync(userId);
+            return await this.InitializeDefaultPreferencesAsync(userId);
         }
 
         // Ensure all notification types have preferences (fill in missing ones with defaults)
@@ -81,7 +73,7 @@ public class NotificationPreferenceService : INotificationPreferenceService
         {
             pref.UserId = userId;
             pref.UpdatedAt = DateTime.UtcNow;
-            
+
             // Set CreatedAt if not already set
             if (pref.CreatedAt == default)
             {
@@ -89,7 +81,7 @@ public class NotificationPreferenceService : INotificationPreferenceService
             }
         }
 
-        await _preferenceRepository.SavePreferencesAsync(preferences);
+        await this._preferenceRepository.SavePreferencesAsync(preferences);
         return preferences;
     }
 
@@ -109,7 +101,7 @@ public class NotificationPreferenceService : INotificationPreferenceService
             })
             .ToList();
 
-        await _preferenceRepository.SavePreferencesAsync(preferences);
+        await this._preferenceRepository.SavePreferencesAsync(preferences);
         return preferences;
     }
 }

@@ -1,13 +1,13 @@
-﻿using Moq;
-using Xunit;
-using Tickflo.Core.Data;
-
 namespace Tickflo.CoreTest.Services;
+
+using Moq;
+using Tickflo.Core.Data;
+using Xunit;
 
 public class WorkspaceLocationsViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_LoadsLocationsWithPermissions()
+    public async Task BuildAsyncLoadsLocationsWithPermissions()
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
@@ -20,8 +20,8 @@ public class WorkspaceLocationsViewServiceTests
 
         var locationItems = new List<ILocationListingService.LocationItem>
         {
-            new ILocationListingService.LocationItem { Id = 1, Name = "New York" },
-            new ILocationListingService.LocationItem { Id = 2, Name = "San Francisco" }
+            new() { Id = 1, Name = "New York" },
+            new() { Id = 2, Name = "San Francisco" }
         };
 
         accessService.Setup(x => x.GetUserPermissionsAsync(1, 100))
@@ -43,7 +43,7 @@ public class WorkspaceLocationsViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_DefaultsPermissionsWhenNotFound()
+    public async Task BuildAsyncDefaultsPermissionsWhenNotFound()
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
@@ -55,7 +55,7 @@ public class WorkspaceLocationsViewServiceTests
             .ReturnsAsync(permissions);
 
         listingService.Setup(x => x.GetListAsync(1))
-            .ReturnsAsync(new List<ILocationListingService.LocationItem>());
+            .ReturnsAsync([]);
 
         var service = new WorkspaceLocationsViewService(accessService.Object, listingService.Object);
 

@@ -4,9 +4,9 @@ public record ReportDefinition(string Source, string[] Fields, string? FiltersJs
 
 public interface IReportDefinitionValidator
 {
-    ReportDefinition Parse(string? json);
-    string BuildJson(string source, string fieldsCsv, string? filtersJson);
-    IReadOnlyDictionary<string, string[]> GetAvailableSources();
+    public ReportDefinition Parse(string? json);
+    public string BuildJson(string source, string fieldsCsv, string? filtersJson);
+    public IReadOnlyDictionary<string, string[]> GetAvailableSources();
 }
 
 

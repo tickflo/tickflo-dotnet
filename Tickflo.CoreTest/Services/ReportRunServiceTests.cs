@@ -1,15 +1,15 @@
-﻿using Microsoft.Extensions.Logging;
+namespace Tickflo.CoreTest.Services;
+
+using Microsoft.Extensions.Logging;
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Xunit;
 
-namespace Tickflo.CoreTest.Services;
-
 public class ReportRunServiceTests
 {
     [Fact]
-    public async Task RunReportAsync_Succeeds_CompletesRun()
+    public async Task RunReportAsyncSucceedsCompletesRun()
     {
         var report = new Report { Id = 10, WorkspaceId = 7, Name = "Test" };
         var createdRunId = 42;
@@ -22,7 +22,7 @@ public class ReportRunServiceTests
         runRepo.Setup(r => r.CreateAsync(It.IsAny<ReportRun>())).ReturnsAsync((ReportRun rr) => { rr.Id = createdRunId; return rr; });
         runRepo.Setup(r => r.MarkRunningAsync(createdRunId)).ReturnsAsync(true);
         reporting.Setup(r => r.ExecuteAsync(report.WorkspaceId, report, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ReportExecutionResult(5, string.Empty, new byte[] { 1, 2 }, "file.csv", "text/csv"));
+            .ReturnsAsync(new ReportExecutionResult(5, string.Empty, [1, 2], "file.csv", "text/csv"));
         runRepo.Setup(r => r.CompleteAsync(createdRunId, "Succeeded", 5, null, It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(true);
         reportRepo.Setup(r => r.UpdateAsync(It.IsAny<Report>())).ReturnsAsync(report);
@@ -40,7 +40,7 @@ public class ReportRunServiceTests
     }
 
     [Fact]
-    public async Task RunReportAsync_ReportMissing_ReturnsNull()
+    public async Task RunReportAsyncReportMissingReturnsNull()
     {
         var reportRepo = new Mock<IReportRepository>();
         var runRepo = new Mock<IReportRunRepository>(MockBehavior.Strict);
@@ -59,7 +59,7 @@ public class ReportRunServiceTests
     }
 
     [Fact]
-    public async Task GetReportRunsAsync_ReturnsReportAndRuns()
+    public async Task GetReportRunsAsyncReturnsReportAndRuns()
     {
         var reportRepo = new Mock<IReportRepository>();
         var runRepo = new Mock<IReportRunRepository>();
@@ -82,7 +82,7 @@ public class ReportRunServiceTests
     }
 
     [Fact]
-    public async Task GetRunAsync_ReturnsRun()
+    public async Task GetRunAsyncReturnsRun()
     {
         var reportRepo = new Mock<IReportRepository>(MockBehavior.Strict);
         var runRepo = new Mock<IReportRunRepository>();

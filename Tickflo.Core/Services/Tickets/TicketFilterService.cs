@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Tickets;
+
+using Tickflo.Core.Entities;
 
 /// <summary>
 /// Service for filtering and searching tickets based on multiple criteria.
@@ -9,15 +9,15 @@ public class TicketFilterService : ITicketFilterService
 {
     public List<Ticket> ApplyFilters(IEnumerable<Ticket> tickets, TicketFilterCriteria filter)
     {
-        IEnumerable<Ticket> filtered = tickets;
+        var filtered = tickets;
 
         // Text search filter
         if (!string.IsNullOrWhiteSpace(filter.Query))
         {
             var query = filter.Query.Trim().ToLowerInvariant();
             filtered = filtered.Where(t =>
-                (t.Subject ?? string.Empty).ToLowerInvariant().Contains(query) ||
-                (t.Description ?? string.Empty).ToLowerInvariant().Contains(query));
+                (t.Subject ?? string.Empty).Contains(query, StringComparison.InvariantCultureIgnoreCase) ||
+                (t.Description ?? string.Empty).Contains(query, StringComparison.InvariantCultureIgnoreCase));
         }
 
         // Status filter (now by ID)
@@ -54,7 +54,7 @@ public class TicketFilterService : ITicketFilterService
         // Note: This requires loading teams which should be done before calling
         // For now, filter by the stored name if teams have been pre-loaded
         // This is a limitation - might need to pass team ID instead
-        
+
         // Location filter
         if (filter.LocationId.HasValue)
         {
@@ -67,7 +67,7 @@ public class TicketFilterService : ITicketFilterService
             filtered = filtered.Where(t => t.AssignedUserId == filter.CurrentUserId.Value);
         }
 
-        return filtered.ToList();
+        return [.. filtered];
     }
 
     public List<Ticket> ApplyScopeFilter(
@@ -76,7 +76,7 @@ public class TicketFilterService : ITicketFilterService
         string scope,
         List<int> userTeamIds)
     {
-        IEnumerable<Ticket> filtered = tickets;
+        var filtered = tickets;
 
         var normalizedScope = scope?.ToLowerInvariant() ?? "all";
 
@@ -91,16 +91,15 @@ public class TicketFilterService : ITicketFilterService
                     t.AssignedUserId == userId ||
                     (t.AssignedTeamId.HasValue && teamIds.Contains(t.AssignedTeamId.Value)));
                 break;
-            // "all" - no filter
+            default:
+                break;
+                // "all" - no filter
         }
 
-        return filtered.ToList();
+        return [.. filtered];
     }
 
-    public int CountMyTickets(IEnumerable<Ticket> tickets, int userId)
-    {
-        return tickets.Count(t => t.AssignedUserId == userId);
-    }
+    public int CountMyTickets(IEnumerable<Ticket> tickets, int userId) => tickets.Count(t => t.AssignedUserId == userId);
 }
 
 

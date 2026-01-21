@@ -1,15 +1,14 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Reporting;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 public class ReportExecutionServiceTests
 {
     [Fact]
-    public async Task ExecuteReportAsync_Throws_When_NoWorkspaceAccess()
+    public async Task ExecuteReportAsyncThrowsWhenNoWorkspaceAccess()
     {
         var reportRepo = Mock.Of<IReportRepository>();
         var runRepo = Mock.Of<IReportRunRepository>();
@@ -22,7 +21,7 @@ public class ReportExecutionServiceTests
     }
 
     [Fact]
-    public async Task ExecuteReportAsync_Delegates_To_ReportingService()
+    public async Task ExecuteReportAsyncDelegatesToReportingService()
     {
         var reportRepo = new Mock<IReportRepository>();
         reportRepo.Setup(r => r.FindAsync(1, 2)).ReturnsAsync(new Report { Id = 2, WorkspaceId = 1 });
@@ -31,7 +30,7 @@ public class ReportExecutionServiceTests
         wsRepo.Setup(r => r.FindAsync(9, 1)).ReturnsAsync(new UserWorkspace { UserId = 9, WorkspaceId = 1, Accepted = true });
         var reporting = new Mock<IReportingService>();
         reporting.Setup(r => r.ExecuteAsync(1, It.IsAny<Report>(), CancellationToken.None))
-            .ReturnsAsync(new ReportExecutionResult(1, "path", Array.Empty<byte>(), "report.csv", "text/csv"));
+            .ReturnsAsync(new ReportExecutionResult(1, "path", [], "report.csv", "text/csv"));
         var svc = new ReportExecutionService(reportRepo.Object, runRepo, wsRepo.Object, reporting.Object);
 
         var result = await svc.ExecuteReportAsync(9, 1, 2);

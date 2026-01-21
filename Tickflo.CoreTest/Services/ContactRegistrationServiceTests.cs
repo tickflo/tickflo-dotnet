@@ -1,10 +1,9 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Contacts;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 public class ContactRegistrationServiceTests
 {
@@ -15,10 +14,10 @@ public class ContactRegistrationServiceTests
     }
 
     [Fact]
-    public async Task RegisterContactAsync_CreatesContact()
+    public async Task RegisterContactAsyncCreatesContact()
     {
         var repo = new Mock<IContactRepository>();
-        repo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(new List<Contact>());
+        repo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync([]);
 
         var svc = CreateService(repo.Object);
         var request = new ContactRegistrationRequest
@@ -39,7 +38,7 @@ public class ContactRegistrationServiceTests
     }
 
     [Fact]
-    public async Task RegisterContactAsync_ThrowsWhenNameEmpty()
+    public async Task RegisterContactAsyncThrowsWhenNameEmpty()
     {
         var svc = CreateService();
 
@@ -48,11 +47,11 @@ public class ContactRegistrationServiceTests
     }
 
     [Fact]
-    public async Task RegisterContactAsync_ThrowsWhenDuplicateName()
+    public async Task RegisterContactAsyncThrowsWhenDuplicateName()
     {
         var repo = new Mock<IContactRepository>();
         repo.Setup(r => r.ListAsync(1, CancellationToken.None))
-            .ReturnsAsync(new List<Contact> { new() { Name = "Existing" } });
+            .ReturnsAsync([new() { Name = "Existing" }]);
 
         var svc = CreateService(repo.Object);
 
@@ -61,10 +60,10 @@ public class ContactRegistrationServiceTests
     }
 
     [Fact]
-    public async Task RegisterContactAsync_ThrowsWhenInvalidEmail()
+    public async Task RegisterContactAsyncThrowsWhenInvalidEmail()
     {
         var repo = new Mock<IContactRepository>();
-        repo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(new List<Contact>());
+        repo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync([]);
 
         var svc = CreateService(repo.Object);
         var request = new ContactRegistrationRequest
@@ -78,10 +77,10 @@ public class ContactRegistrationServiceTests
     }
 
     [Fact]
-    public async Task RegisterContactAsync_AllowsEmptyEmail()
+    public async Task RegisterContactAsyncAllowsEmptyEmail()
     {
         var repo = new Mock<IContactRepository>();
-        repo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(new List<Contact>());
+        repo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync([]);
 
         var svc = CreateService(repo.Object);
         var request = new ContactRegistrationRequest { Name = "John" };
@@ -93,10 +92,10 @@ public class ContactRegistrationServiceTests
     }
 
     [Fact]
-    public async Task RegisterContactAsync_TrimsWhitespace()
+    public async Task RegisterContactAsyncTrimsWhitespace()
     {
         var repo = new Mock<IContactRepository>();
-        repo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(new List<Contact>());
+        repo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync([]);
 
         var svc = CreateService(repo.Object);
         var request = new ContactRegistrationRequest
@@ -114,13 +113,13 @@ public class ContactRegistrationServiceTests
     }
 
     [Fact]
-    public async Task UpdateContactInformationAsync_UpdatesEmail()
+    public async Task UpdateContactInformationAsyncUpdatesEmail()
     {
         var repo = new Mock<IContactRepository>();
         repo.Setup(r => r.FindAsync(1, 2, CancellationToken.None))
             .ReturnsAsync(new Contact { Id = 2, Name = "C", Email = "old@test.com" });
         repo.Setup(r => r.ListAsync(1, CancellationToken.None))
-            .ReturnsAsync(new List<Contact> { new() { Id = 2, Name = "C" } });
+            .ReturnsAsync([new() { Id = 2, Name = "C" }]);
 
         var svc = CreateService(repo.Object);
         var updated = await svc.UpdateContactInformationAsync(1, 2, new ContactUpdateRequest { Email = "new@test.com" }, 5);
@@ -130,7 +129,7 @@ public class ContactRegistrationServiceTests
     }
 
     [Fact]
-    public async Task UpdateContactInformationAsync_ThrowsWhenNotFound()
+    public async Task UpdateContactInformationAsyncThrowsWhenNotFound()
     {
         var repo = new Mock<IContactRepository>();
         repo.Setup(r => r.FindAsync(1, 99, CancellationToken.None))
@@ -143,7 +142,7 @@ public class ContactRegistrationServiceTests
     }
 
     [Fact]
-    public async Task UpdateContactInformationAsync_ThrowsWhenInvalidEmail()
+    public async Task UpdateContactInformationAsyncThrowsWhenInvalidEmail()
     {
         var repo = new Mock<IContactRepository>();
         repo.Setup(r => r.FindAsync(1, 2, CancellationToken.None))
@@ -156,13 +155,13 @@ public class ContactRegistrationServiceTests
     }
 
     [Fact]
-    public async Task UpdateContactInformationAsync_UpdatesName()
+    public async Task UpdateContactInformationAsyncUpdatesName()
     {
         var repo = new Mock<IContactRepository>();
         repo.Setup(r => r.FindAsync(1, 2, CancellationToken.None))
             .ReturnsAsync(new Contact { Id = 2, Name = "Old Name" });
         repo.Setup(r => r.ListAsync(1, CancellationToken.None))
-            .ReturnsAsync(new List<Contact> { new() { Id = 2, Name = "Old Name" } });
+            .ReturnsAsync([new() { Id = 2, Name = "Old Name" }]);
 
         var svc = CreateService(repo.Object);
         var updated = await svc.UpdateContactInformationAsync(1, 2, new ContactUpdateRequest { Name = "New Name" }, 5);
@@ -171,17 +170,17 @@ public class ContactRegistrationServiceTests
     }
 
     [Fact]
-    public async Task UpdateContactInformationAsync_ThrowsWhenDuplicateName()
+    public async Task UpdateContactInformationAsyncThrowsWhenDuplicateName()
     {
         var repo = new Mock<IContactRepository>();
         repo.Setup(r => r.FindAsync(1, 2, CancellationToken.None))
             .ReturnsAsync(new Contact { Id = 2, Name = "Contact A" });
         repo.Setup(r => r.ListAsync(1, CancellationToken.None))
-            .ReturnsAsync(new List<Contact>
-            {
+            .ReturnsAsync(
+            [
                 new() { Id = 1, Name = "Existing" },
                 new() { Id = 2, Name = "Contact A" }
-            });
+            ]);
 
         var svc = CreateService(repo.Object);
 
@@ -190,7 +189,7 @@ public class ContactRegistrationServiceTests
     }
 
     [Fact]
-    public async Task RemoveContactAsync_DeletesContact()
+    public async Task RemoveContactAsyncDeletesContact()
     {
         var repo = new Mock<IContactRepository>();
         var svc = CreateService(repo.Object);

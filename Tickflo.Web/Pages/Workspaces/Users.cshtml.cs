@@ -1,18 +1,15 @@
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using Tickflo.Core.Data;
-using Tickflo.Core.Entities;
-using Microsoft.AspNetCore.Mvc;
-using Tickflo.Core.Services;
-using Tickflo.Core.Services.Email;
-using Tickflo.Core.Utils;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
-using Tickflo.Core.Services.Views;
-
 namespace Tickflo.Web.Pages.Workspaces;
 
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Tickflo.Core.Data;
+using Tickflo.Core.Entities;
+using Tickflo.Core.Services.Email;
+using Tickflo.Core.Services.Views;
+using Tickflo.Core.Utils;
+
 [Authorize]
-public class UsersModel : WorkspacePageModel
+public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IEmailSenderService emailSender, IEmailTemplateService emailTemplateService, INotificationRepository notificationRepository, IWorkspaceUsersViewService viewService, IWorkspaceUsersManageViewService manageViewService) : WorkspacePageModel
 {
     #region Constants
     private const string InviteAcceptedMessage = "Invite accepted.";
@@ -23,119 +20,137 @@ public class UsersModel : WorkspacePageModel
     private const string SentStatus = "sent";
     #endregion
 
-    private readonly IWorkspaceRepository _workspaceRepo;
-    private readonly IUserRepository _userRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
-    private readonly IEmailSender _emailSender;
-    private readonly IEmailTemplateService _emailTemplateService;
-    private readonly INotificationRepository _notificationRepository;
-    private readonly IWorkspaceUsersViewService _viewService;
-    private readonly IWorkspaceUsersManageViewService _manageViewService;
+    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
+    private readonly IUserRepository _userRepo = userRepo;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
+    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
+    private readonly IEmailSenderService _emailSender = emailSender;
+    private readonly IEmailTemplateService _emailTemplateService = emailTemplateService;
+    private readonly INotificationRepository _notificationRepository = notificationRepository;
+    private readonly IWorkspaceUsersViewService _viewService = viewService;
+    private readonly IWorkspaceUsersManageViewService _manageViewService = manageViewService;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
-
-    public UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IEmailSender emailSender, IEmailTemplateService emailTemplateService, INotificationRepository notificationRepository, IWorkspaceUsersViewService viewService, IWorkspaceUsersManageViewService manageViewService)
-    {
-        _workspaceRepo = workspaceRepo;
-        _userRepo = userRepo;
-        _userWorkspaceRepo = userWorkspaceRepo;
-        _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-        _emailSender = emailSender;
-        _emailTemplateService = emailTemplateService;
-        _notificationRepository = notificationRepository;
-        _viewService = viewService;
-        _manageViewService = manageViewService;
-    }
 
     public bool CanViewUsers { get; private set; }
     public bool CanCreateUsers { get; private set; }
     public bool CanEditUsers { get; private set; }
-    
+
     public async Task<IActionResult> OnGetAsync(string slug)
     {
-        WorkspaceSlug = slug;
-        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
-        if (loadResult is IActionResult actionResult) return actionResult;
-        
+        this.WorkspaceSlug = slug;
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        if (loadResult is IActionResult actionResult)
+        {
+            return actionResult;
+        }
+
         var (workspace, uid) = (WorkspaceUserLoadResult)loadResult;
-        Workspace = workspace;
+        this.Workspace = workspace;
 
-        var viewData = await _viewService.BuildAsync(Workspace!.Id, uid);
-        if (EnsurePermissionOrForbid(viewData.CanViewUsers) is IActionResult permCheck) return permCheck;
-        
-        IsWorkspaceAdmin = viewData.IsWorkspaceAdmin;
-        CanViewUsers = viewData.CanViewUsers;
-        CanCreateUsers = viewData.CanCreateUsers;
-        CanEditUsers = viewData.CanEditUsers;
-        PendingInvites = viewData.PendingInvites;
-        AcceptedUsers = viewData.AcceptedUsers;
+        var viewData = await this._viewService.BuildAsync(this.Workspace!.Id, uid);
+        if (this.EnsurePermissionOrForbid(viewData.CanViewUsers) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
 
-        return Page();
+        this.IsWorkspaceAdmin = viewData.IsWorkspaceAdmin;
+        this.CanViewUsers = viewData.CanViewUsers;
+        this.CanCreateUsers = viewData.CanCreateUsers;
+        this.CanEditUsers = viewData.CanEditUsers;
+        this.PendingInvites = viewData.PendingInvites;
+        this.AcceptedUsers = viewData.AcceptedUsers;
+
+        return this.Page();
     }
 
-    public List<InviteView> PendingInvites { get; set; } = new();
-    public List<AcceptedUserView> AcceptedUsers { get; set; } = new();
+    public List<InviteView> PendingInvites { get; set; } = [];
+    public List<AcceptedUserView> AcceptedUsers { get; set; } = [];
     public bool IsWorkspaceAdmin { get; set; }
 
     public async Task<IActionResult> OnPostAcceptAsync(string slug, int userId)
     {
-        WorkspaceSlug = slug;
-        
-        if (await AuthorizeWorkspaceAccessAsync(slug) is IActionResult authResult)
+        this.WorkspaceSlug = slug;
+
+        if (await this.AuthorizeWorkspaceAccessAsync(slug) is IActionResult authResult)
+        {
             return authResult;
-        
-        var uw = await _userWorkspaceRepo.FindAsync(userId, Workspace!.Id);
-        if (uw == null) return NotFound();
-        
+        }
+
+        var uw = await this._userWorkspaceRepo.FindAsync(userId, this.Workspace!.Id);
+        if (uw == null)
+        {
+            return this.NotFound();
+        }
+
         AcceptUserInvite(uw);
-        await _userWorkspaceRepo.UpdateAsync(uw);
-        
-        SetSuccessMessage(InviteAcceptedMessage);
-        return RedirectToUsersPage(slug);
+        await this._userWorkspaceRepo.UpdateAsync(uw);
+
+        this.SetSuccessMessage(InviteAcceptedMessage);
+        return this.RedirectToUsersPage(slug);
     }
 
     public async Task<IActionResult> OnPostResendAsync(string slug, int userId)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (EnsureWorkspaceExistsOrNotFound(Workspace) is IActionResult result) return result;
-        if (!TryGetUserId(out var currentUserId)) return Forbid();
-        
-        var viewData = await _manageViewService.BuildAsync(Workspace!.Id, currentUserId);
-        if (EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck) return permCheck;
-        
-        var uw = await _userWorkspaceRepo.FindAsync(userId, Workspace.Id);
-        if (uw == null || uw.Accepted) return NotFound();
-        
-        var user = await _userRepo.FindByIdAsync(userId);
-        if (EnsureEntityExistsOrNotFound(user) is IActionResult userCheck) return userCheck;
-        
-        await RegenerateConfirmationCodeAsync(user!);
-        await SendInviteEmailAsync(user!, Workspace, BuildConfirmationLink(user!));
-        await CreateNotificationRecordAsync(userId, Workspace.Id, currentUserId);
-        
-        TempData["Success"] = InviteEmailResentMessage;
-        return RedirectToUsersPage(slug);
+        this.WorkspaceSlug = slug;
+        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        if (this.EnsureWorkspaceExistsOrNotFound(this.Workspace) is IActionResult result)
+        {
+            return result;
+        }
+
+        if (!this.TryGetUserId(out var currentUserId))
+        {
+            return this.Forbid();
+        }
+
+        var viewData = await this._manageViewService.BuildAsync(this.Workspace!.Id, currentUserId);
+        if (this.EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
+
+        var uw = await this._userWorkspaceRepo.FindAsync(userId, this.Workspace.Id);
+        if (uw == null || uw.Accepted)
+        {
+            return this.NotFound();
+        }
+
+        var user = await this._userRepo.FindByIdAsync(userId);
+        if (this.EnsureEntityExistsOrNotFound(user) is IActionResult userCheck)
+        {
+            return userCheck;
+        }
+
+        await this.RegenerateConfirmationCodeAsync(user!);
+        await this.SendInviteEmailAsync(user!, this.Workspace, BuildConfirmationLink(user!));
+        await this.CreateNotificationRecordAsync(userId, this.Workspace.Id, currentUserId);
+
+        this.TempData["Success"] = InviteEmailResentMessage;
+        return this.RedirectToUsersPage(slug);
     }
 
     private async Task<IActionResult?> AuthorizeWorkspaceAccessAsync(string slug)
     {
-        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
         if (loadResult is IActionResult actionResult)
+        {
             return actionResult;
-        
-        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
-        Workspace = workspace;
+        }
 
-        var viewData = await _manageViewService.BuildAsync(Workspace!.Id, currentUserId);
-        if (EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck)
+        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
+        this.Workspace = workspace;
+
+        var viewData = await this._manageViewService.BuildAsync(this.Workspace!.Id, currentUserId);
+        if (this.EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck)
+        {
             return permCheck;
-        
+        }
+
         return null;
     }
 
-    private void AcceptUserInvite(UserWorkspace userWorkspace)
+    private static void AcceptUserInvite(UserWorkspace userWorkspace)
     {
         userWorkspace.Accepted = true;
         userWorkspace.UpdatedAt = DateTime.UtcNow;
@@ -145,13 +160,10 @@ public class UsersModel : WorkspacePageModel
     {
         var newCode = TokenGenerator.GenerateToken(16);
         user.EmailConfirmationCode = newCode;
-        await _userRepo.UpdateAsync(user);
+        await this._userRepo.UpdateAsync(user);
     }
 
-    private string BuildConfirmationLink(User user)
-    {
-        return $"/email-confirmation/confirm?email={Uri.EscapeDataString(user.Email)}&code={Uri.EscapeDataString(user.EmailConfirmationCode ?? string.Empty)}";
-    }
+    private static string BuildConfirmationLink(User user) => $"/email-confirmation/confirm?email={Uri.EscapeDataString(user.Email)}&code={Uri.EscapeDataString(user.EmailConfirmationCode ?? string.Empty)}";
 
     private async Task SendInviteEmailAsync(User user, Workspace workspace, string confirmationLink)
     {
@@ -160,9 +172,9 @@ public class UsersModel : WorkspacePageModel
             { "WORKSPACE_NAME", workspace.Name },
             { "CONFIRMATION_LINK", confirmationLink }
         };
-        
-        var (subject, body) = await _emailTemplateService.RenderTemplateAsync(EmailTemplateType.WorkspaceInviteResend, variables, workspace.Id);
-        await _emailSender.SendAsync(user.Email, subject, body);
+
+        var (subject, body) = await this._emailTemplateService.RenderTemplateAsync(EmailTemplateType.WorkspaceInviteResend, variables, workspace.Id);
+        await this._emailSender.SendAsync(user.Email, subject, body);
     }
 
     private async Task CreateNotificationRecordAsync(int userId, int workspaceId, int createdBy)
@@ -181,13 +193,10 @@ public class UsersModel : WorkspacePageModel
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
-        
-        await _notificationRepository.AddAsync(notification);
+
+        await this._notificationRepository.AddAsync(notification);
     }
 
-    private IActionResult RedirectToUsersPage(string slug)
-    {
-        return RedirectToPage("/Workspaces/Users", new { slug });
-    }
+    private IActionResult RedirectToUsersPage(string slug) => this.RedirectToPage("/Workspaces/Users", new { slug });
 }
 

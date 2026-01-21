@@ -1,15 +1,14 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Workspace;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 public class WorkspaceSettingsServiceTests
 {
     [Fact]
-    public async Task UpdateWorkspaceBasicSettingsAsync_Throws_On_Slug_Conflict()
+    public async Task UpdateWorkspaceBasicSettingsAsyncThrowsOnSlugConflict()
     {
         var workspaceRepo = new Mock<IWorkspaceRepository>();
         workspaceRepo.Setup(r => r.FindByIdAsync(1)).ReturnsAsync(new Workspace { Id = 1, Slug = "old" });
@@ -20,19 +19,19 @@ public class WorkspaceSettingsServiceTests
     }
 
     [Fact]
-    public async Task EnsureDefaultsExistAsync_Creates_Default_Statuses_When_Empty()
+    public async Task EnsureDefaultsExistAsyncCreatesDefaultStatusesWhenEmpty()
     {
         var workspaceRepo = Mock.Of<IWorkspaceRepository>();
         var statusRepo = new Mock<ITicketStatusRepository>();
-        statusRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(new List<TicketStatus>());
+        statusRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync([]);
         statusRepo.Setup(r => r.CreateAsync(It.IsAny<TicketStatus>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((TicketStatus s, CancellationToken _) => s);
         var priorityRepo = new Mock<ITicketPriorityRepository>();
-        priorityRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(new List<TicketPriority>());
+        priorityRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync([]);
         priorityRepo.Setup(r => r.CreateAsync(It.IsAny<TicketPriority>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((TicketPriority p, CancellationToken _) => p);
         var typeRepo = new Mock<ITicketTypeRepository>();
-        typeRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(new List<TicketType>());
+        typeRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync([]);
         typeRepo.Setup(r => r.CreateAsync(It.IsAny<TicketType>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((TicketType t, CancellationToken _) => t);
 
@@ -45,15 +44,15 @@ public class WorkspaceSettingsServiceTests
     }
 
     [Fact]
-    public async Task EnsureDefaultsExistAsync_Does_Not_Create_When_Defaults_Exist()
+    public async Task EnsureDefaultsExistAsyncDoesNotCreateWhenDefaultsExist()
     {
         var workspaceRepo = Mock.Of<IWorkspaceRepository>();
         var statusRepo = new Mock<ITicketStatusRepository>();
-        statusRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(new List<TicketStatus> { new() { Name = "New" } });
+        statusRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync([new() { Name = "New" }]);
         var priorityRepo = new Mock<ITicketPriorityRepository>();
-        priorityRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(new List<TicketPriority> { new() { Name = "Normal" } });
+        priorityRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync([new() { Name = "Normal" }]);
         var typeRepo = new Mock<ITicketTypeRepository>();
-        typeRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(new List<TicketType> { new() { Name = "Bug" } });
+        typeRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync([new() { Name = "Bug" }]);
 
         var svc = new WorkspaceSettingsService(workspaceRepo, statusRepo.Object, priorityRepo.Object, typeRepo.Object);
         await svc.EnsureDefaultsExistAsync(1);
@@ -64,7 +63,7 @@ public class WorkspaceSettingsServiceTests
     }
 
     [Fact]
-    public async Task UpdateWorkspaceBasicSettingsAsync_Updates_Name_And_Slug()
+    public async Task UpdateWorkspaceBasicSettingsAsyncUpdatesNameAndSlug()
     {
         var workspaceRepo = new Mock<IWorkspaceRepository>();
         var workspace = new Workspace { Id = 1, Slug = "old-slug", Name = "Old Name" };

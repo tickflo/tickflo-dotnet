@@ -1,7 +1,7 @@
+namespace Tickflo.Core.Utils;
+
 using System.Security.Cryptography;
 using System.Text;
-
-namespace Tickflo.Core.Utils;
 
 public static class TokenGenerator
 {

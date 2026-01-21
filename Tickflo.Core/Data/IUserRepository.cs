@@ -1,12 +1,12 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Data;
+
+using Tickflo.Core.Entities;
 
 public interface IUserRepository
 {
-    Task<User?> FindByEmailAsync(string email);
-    Task AddAsync(User user);
-    Task<User?> FindByIdAsync(int userId);
-    Task<List<User>> ListAsync();
-    Task UpdateAsync(User user);
+    public Task<User?> FindByEmailAsync(string email);
+    public Task AddAsync(User user);
+    public Task<User?> FindByIdAsync(int userId);
+    public Task<List<User>> ListAsync();
+    public Task UpdateAsync(User user);
 }

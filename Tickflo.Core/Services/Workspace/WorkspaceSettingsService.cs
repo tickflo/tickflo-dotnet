@@ -1,15 +1,17 @@
+namespace Tickflo.Core.Services.Workspace;
+
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using WorkspaceEntity = Tickflo.Core.Entities.Workspace;
-
-using Tickflo.Core.Services.Workspace;
-
-namespace Tickflo.Core.Services.Workspace;
+using WorkspaceEntity = Entities.Workspace;
 
 /// <summary>
 /// Service for managing workspace settings including status, priority, and type configurations.
 /// </summary>
-public class WorkspaceSettingsService : IWorkspaceSettingsService
+public class WorkspaceSettingsService(
+    IWorkspaceRepository workspaceRepo,
+    ITicketStatusRepository statusRepo,
+    ITicketPriorityRepository priorityRepo,
+    ITicketTypeRepository typeRepo) : IWorkspaceSettingsService
 {
     #region Constants
     private const string WorkspaceNotFoundError = "Workspace not found";
@@ -20,43 +22,31 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
     private const string DefaultColor = "neutral";
     #endregion
 
-    private readonly IWorkspaceRepository _workspaceRepo;
-    private readonly ITicketStatusRepository _statusRepo;
-    private readonly ITicketPriorityRepository _priorityRepo;
-    private readonly ITicketTypeRepository _typeRepo;
-
-    public WorkspaceSettingsService(
-        IWorkspaceRepository workspaceRepo,
-        ITicketStatusRepository statusRepo,
-        ITicketPriorityRepository priorityRepo,
-        ITicketTypeRepository typeRepo)
-    {
-        _workspaceRepo = workspaceRepo;
-        _statusRepo = statusRepo;
-        _priorityRepo = priorityRepo;
-        _typeRepo = typeRepo;
-    }
+    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
+    private readonly ITicketStatusRepository _statusRepo = statusRepo;
+    private readonly ITicketPriorityRepository _priorityRepo = priorityRepo;
+    private readonly ITicketTypeRepository _typeRepo = typeRepo;
 
     public async Task<WorkspaceEntity> UpdateWorkspaceBasicSettingsAsync(int workspaceId, string name, string slug)
     {
-        var workspace = await GetWorkspaceOrThrowAsync(workspaceId);
+        var workspace = await this.GetWorkspaceOrThrowAsync(workspaceId);
         workspace.Name = name.Trim();
 
         var newSlug = slug.Trim();
         if (newSlug != workspace.Slug)
         {
-            await ValidateSlugIsAvailableAsync(newSlug, workspaceId);
+            await this.ValidateSlugIsAvailableAsync(newSlug, workspaceId);
             workspace.Slug = newSlug;
         }
 
-        await _workspaceRepo.UpdateAsync(workspace);
+        await this._workspaceRepo.UpdateAsync(workspace);
         return workspace;
     }
 
     public async Task EnsureDefaultsExistAsync(int workspaceId)
     {
         // Bootstrap statuses
-        var statuses = await _statusRepo.ListAsync(workspaceId);
+        var statuses = await this._statusRepo.ListAsync(workspaceId);
         if (statuses.Count == 0)
         {
             var defaults = new[]
@@ -67,11 +57,13 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
             };
 
             foreach (var status in defaults)
-                await _statusRepo.CreateAsync(status);
+            {
+                await this._statusRepo.CreateAsync(status);
+            }
         }
 
         // Bootstrap priorities
-        var priorities = await _priorityRepo.ListAsync(workspaceId);
+        var priorities = await this._priorityRepo.ListAsync(workspaceId);
         if (priorities.Count == 0)
         {
             var defaults = new[]
@@ -82,11 +74,13 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
             };
 
             foreach (var priority in defaults)
-                await _priorityRepo.CreateAsync(priority);
+            {
+                await this._priorityRepo.CreateAsync(priority);
+            }
         }
 
         // Bootstrap types
-        var types = await _typeRepo.ListAsync(workspaceId);
+        var types = await this._typeRepo.ListAsync(workspaceId);
         if (types.Count == 0)
         {
             var defaults = new[]
@@ -97,7 +91,9 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
             };
 
             foreach (var type in defaults)
-                await _typeRepo.CreateAsync(type);
+            {
+                await this._typeRepo.CreateAsync(type);
+            }
         }
     }
 
@@ -106,10 +102,10 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
         var trimmedName = ValidateAndTrimName(name, "Status");
         var trimmedColor = TrimColorOrDefault(color);
 
-        await EnsureNameIsUniqueAsync(workspaceId, trimmedName, "Status", 
-            () => _statusRepo.FindByNameAsync(workspaceId, trimmedName));
+        await EnsureNameIsUniqueAsync(workspaceId, trimmedName, "Status",
+            () => this._statusRepo.FindByNameAsync(workspaceId, trimmedName));
 
-        var maxOrder = await GetMaxSortOrderAsync(() => _statusRepo.ListAsync(workspaceId), s => s.SortOrder);
+        var maxOrder = await GetMaxSortOrderAsync(() => this._statusRepo.ListAsync(workspaceId), s => s.SortOrder);
 
         var status = new TicketStatus
         {
@@ -120,7 +116,7 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
             IsClosedState = isClosedState
         };
 
-        await _statusRepo.CreateAsync(status);
+        await this._statusRepo.CreateAsync(status);
         return status;
     }
 
@@ -132,23 +128,18 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
         int sortOrder,
         bool isClosedState)
     {
-        var status = await _statusRepo.FindByIdAsync(workspaceId, statusId);
-        if (status == null)
-            throw new InvalidOperationException(string.Format(NotFoundError, "Status"));
+        var status = await this._statusRepo.FindByIdAsync(workspaceId, statusId) ?? throw new InvalidOperationException(string.Format(NotFoundError, "Status"));
 
         status.Name = ValidateAndTrimName(name, "Status");
         status.Color = TrimColorOrDefault(color);
         status.SortOrder = sortOrder;
         status.IsClosedState = isClosedState;
 
-        await _statusRepo.UpdateAsync(status);
+        await this._statusRepo.UpdateAsync(status);
         return status;
     }
 
-    public async Task DeleteStatusAsync(int workspaceId, int statusId)
-    {
-        await _statusRepo.DeleteAsync(workspaceId, statusId);
-    }
+    public async Task DeleteStatusAsync(int workspaceId, int statusId) => await this._statusRepo.DeleteAsync(workspaceId, statusId);
 
     public async Task<TicketPriority> AddPriorityAsync(int workspaceId, string name, string color)
     {
@@ -156,9 +147,9 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
         var trimmedColor = TrimColorOrDefault(color);
 
         await EnsureNameIsUniqueAsync(workspaceId, trimmedName, "Priority",
-            () => _priorityRepo.FindAsync(workspaceId, trimmedName));
+            () => this._priorityRepo.FindAsync(workspaceId, trimmedName));
 
-        var maxOrder = await GetMaxSortOrderAsync(() => _priorityRepo.ListAsync(workspaceId), p => p.SortOrder);
+        var maxOrder = await GetMaxSortOrderAsync(() => this._priorityRepo.ListAsync(workspaceId), p => p.SortOrder);
 
         var priority = new TicketPriority
         {
@@ -168,7 +159,7 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
             SortOrder = maxOrder + 1
         };
 
-        await _priorityRepo.CreateAsync(priority);
+        await this._priorityRepo.CreateAsync(priority);
         return priority;
     }
 
@@ -179,24 +170,18 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
         string color,
         int sortOrder)
     {
-        var priorities = await _priorityRepo.ListAsync(workspaceId);
-        var priority = priorities.FirstOrDefault(p => p.Id == priorityId);
-        
-        if (priority == null)
-            throw new InvalidOperationException(string.Format(NotFoundError, "Priority"));
+        var priorities = await this._priorityRepo.ListAsync(workspaceId);
+        var priority = priorities.FirstOrDefault(p => p.Id == priorityId) ?? throw new InvalidOperationException(string.Format(NotFoundError, "Priority"));
 
         priority.Name = ValidateAndTrimName(name, "Priority");
         priority.Color = TrimColorOrDefault(color);
         priority.SortOrder = sortOrder;
 
-        await _priorityRepo.UpdateAsync(priority);
+        await this._priorityRepo.UpdateAsync(priority);
         return priority;
     }
 
-    public async Task DeletePriorityAsync(int workspaceId, int priorityId)
-    {
-        await _priorityRepo.DeleteAsync(workspaceId, priorityId);
-    }
+    public async Task DeletePriorityAsync(int workspaceId, int priorityId) => await this._priorityRepo.DeleteAsync(workspaceId, priorityId);
 
     public async Task<TicketType> AddTypeAsync(int workspaceId, string name, string color)
     {
@@ -204,9 +189,9 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
         var trimmedColor = TrimColorOrDefault(color);
 
         await EnsureNameIsUniqueAsync(workspaceId, trimmedName, "Type",
-            () => _typeRepo.FindByNameAsync(workspaceId, trimmedName));
+            () => this._typeRepo.FindByNameAsync(workspaceId, trimmedName));
 
-        var maxOrder = await GetMaxSortOrderAsync(() => _typeRepo.ListAsync(workspaceId), t => t.SortOrder);
+        var maxOrder = await GetMaxSortOrderAsync(() => this._typeRepo.ListAsync(workspaceId), t => t.SortOrder);
 
         var type = new TicketType
         {
@@ -216,7 +201,7 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
             SortOrder = maxOrder + 1
         };
 
-        await _typeRepo.CreateAsync(type);
+        await this._typeRepo.CreateAsync(type);
         return type;
     }
 
@@ -227,60 +212,57 @@ public class WorkspaceSettingsService : IWorkspaceSettingsService
         string color,
         int sortOrder)
     {
-        var types = await _typeRepo.ListAsync(workspaceId);
-        var type = types.FirstOrDefault(t => t.Id == typeId);
-        
-        if (type == null)
-            throw new InvalidOperationException(string.Format(NotFoundError, "Type"));
+        var types = await this._typeRepo.ListAsync(workspaceId);
+        var type = types.FirstOrDefault(t => t.Id == typeId) ?? throw new InvalidOperationException(string.Format(NotFoundError, "Type"));
 
         type.Name = ValidateAndTrimName(name, "Type");
         type.Color = TrimColorOrDefault(color);
         type.SortOrder = sortOrder;
 
-        await _typeRepo.UpdateAsync(type);
+        await this._typeRepo.UpdateAsync(type);
         return type;
     }
 
-    public async Task DeleteTypeAsync(int workspaceId, int typeId)
-    {
-        await _typeRepo.DeleteAsync(workspaceId, typeId);
-    }
+    public async Task DeleteTypeAsync(int workspaceId, int typeId) => await this._typeRepo.DeleteAsync(workspaceId, typeId);
 
     private async Task<WorkspaceEntity> GetWorkspaceOrThrowAsync(int workspaceId)
     {
-        var workspace = await _workspaceRepo.FindByIdAsync(workspaceId);
-        if (workspace == null)
-            throw new InvalidOperationException(WorkspaceNotFoundError);
+        var workspace = await this._workspaceRepo.FindByIdAsync(workspaceId) ?? throw new InvalidOperationException(WorkspaceNotFoundError);
+
         return workspace;
     }
 
     private async Task ValidateSlugIsAvailableAsync(string slug, int workspaceId)
     {
-        var existing = await _workspaceRepo.FindBySlugAsync(slug);
+        var existing = await this._workspaceRepo.FindBySlugAsync(slug);
         if (existing != null && existing.Id != workspaceId)
+        {
             throw new InvalidOperationException(SlugInUseError);
+        }
     }
 
-    private string ValidateAndTrimName(string name, string entityType)
+    private static string ValidateAndTrimName(string name, string entityType)
     {
         if (string.IsNullOrWhiteSpace(name))
+        {
             throw new InvalidOperationException(string.Format(NameRequiredError, entityType));
+        }
+
         return name.Trim();
     }
 
-    private string TrimColorOrDefault(string color)
-    {
-        return string.IsNullOrWhiteSpace(color) ? DefaultColor : color.Trim();
-    }
+    private static string TrimColorOrDefault(string color) => string.IsNullOrWhiteSpace(color) ? DefaultColor : color.Trim();
 
-    private async Task EnsureNameIsUniqueAsync<T>(int workspaceId, string name, string entityType, Func<Task<T?>> findExisting) where T : class
+    private static async Task EnsureNameIsUniqueAsync<T>(int workspaceId, string name, string entityType, Func<Task<T?>> findExisting) where T : class
     {
         var existing = await findExisting();
         if (existing != null)
+        {
             throw new InvalidOperationException(string.Format(AlreadyExistsError, entityType, name));
+        }
     }
 
-    private async Task<int> GetMaxSortOrderAsync<T>(Func<Task<IReadOnlyList<T>>> getList, Func<T, int> getSortOrder)
+    private static async Task<int> GetMaxSortOrderAsync<T>(Func<Task<IReadOnlyList<T>>> getList, Func<T, int> getSortOrder)
     {
         var list = await getList();
         return list.Any() ? list.Max(getSortOrder) : 0;

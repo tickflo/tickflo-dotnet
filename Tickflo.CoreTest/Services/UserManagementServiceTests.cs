@@ -1,10 +1,9 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Users;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 public class UserManagementServiceTests
 {
@@ -18,7 +17,7 @@ public class UserManagementServiceTests
     }
 
     [Fact]
-    public async Task CreateUserAsync_Throws_OnDuplicateEmail()
+    public async Task CreateUserAsyncThrowsOnDuplicateEmail()
     {
         var repo = new Mock<IUserRepository>();
         repo.Setup(r => r.FindByEmailAsync("dup@test.com")).ReturnsAsync(new User { Id = 1 });
@@ -29,7 +28,7 @@ public class UserManagementServiceTests
     }
 
     [Fact]
-    public async Task CreateUserAsync_NormalizesEmail()
+    public async Task CreateUserAsyncNormalizesEmail()
     {
         var repo = new Mock<IUserRepository>();
         repo.Setup(r => r.FindByEmailAsync(It.IsAny<string>())).ReturnsAsync((User)null!);
@@ -41,7 +40,7 @@ public class UserManagementServiceTests
     }
 
     [Fact]
-    public async Task UpdateUserAsync_Throws_WhenUserNotFound()
+    public async Task UpdateUserAsyncThrowsWhenUserNotFound()
     {
         var repo = new Mock<IUserRepository>();
         repo.Setup(r => r.FindByIdAsync(1)).ReturnsAsync((User)null!);
@@ -52,7 +51,7 @@ public class UserManagementServiceTests
     }
 
     [Fact]
-    public async Task IsEmailInUseAsync_ReturnsFalseWhenNotFound()
+    public async Task IsEmailInUseAsyncReturnsFalseWhenNotFound()
     {
         var repo = new Mock<IUserRepository>();
         repo.Setup(r => r.FindByEmailAsync(It.IsAny<string>())).ReturnsAsync((User)null!);
@@ -64,7 +63,7 @@ public class UserManagementServiceTests
     }
 
     [Fact]
-    public async Task IsEmailInUseAsync_ReturnsTrueWhenFound()
+    public async Task IsEmailInUseAsyncReturnsTrueWhenFound()
     {
         var repo = new Mock<IUserRepository>();
         repo.Setup(r => r.FindByEmailAsync("test@example.com"))
@@ -77,7 +76,7 @@ public class UserManagementServiceTests
     }
 
     [Fact]
-    public async Task IsEmailInUseAsync_ReturnsFalseWhenExcludedUser()
+    public async Task IsEmailInUseAsyncReturnsFalseWhenExcludedUser()
     {
         var repo = new Mock<IUserRepository>();
         repo.Setup(r => r.FindByEmailAsync("test@example.com"))
@@ -89,7 +88,7 @@ public class UserManagementServiceTests
         Assert.False(result);
     }
 
-    private class MockPasswordHasher : IPasswordHasher
+    private sealed class MockPasswordHasher : IPasswordHasher
     {
         public string Hash(string password) => $"hash_{password}";
         public bool Verify(string password, string hash) => hash == $"hash_{password}";

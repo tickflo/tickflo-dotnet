@@ -1,13 +1,13 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Data;
+
+using Tickflo.Core.Entities;
 
 public interface ITeamRepository
 {
-    Task<Team?> FindByIdAsync(int id);
-    Task<Team?> FindByNameAsync(int workspaceId, string name);
-    Task<List<Team>> ListForWorkspaceAsync(int workspaceId);
-    Task<Team> AddAsync(int workspaceId, string name, string? description, int createdBy);
-    Task UpdateAsync(Team team);
-    Task DeleteAsync(int id);
+    public Task<Team?> FindByIdAsync(int id);
+    public Task<Team?> FindByNameAsync(int workspaceId, string name);
+    public Task<List<Team>> ListForWorkspaceAsync(int workspaceId);
+    public Task<Team> AddAsync(int workspaceId, string name, string? description, int createdBy);
+    public Task UpdateAsync(Team team);
+    public Task DeleteAsync(int id);
 }

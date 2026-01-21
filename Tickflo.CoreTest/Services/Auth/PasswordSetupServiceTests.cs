@@ -1,15 +1,14 @@
-﻿using Moq;
+namespace Tickflo.CoreTest.Services.Auth;
+
+using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Authentication;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services.Auth;
 
 public class PasswordSetupServiceTests
 {
     [Fact]
-    public async Task ValidateResetTokenAsync_MissingToken_ReturnsError()
+    public async Task ValidateResetTokenAsyncMissingTokenReturnsError()
     {
         var service = CreateService();
 
@@ -20,7 +19,7 @@ public class PasswordSetupServiceTests
     }
 
     [Fact]
-    public async Task ValidateResetTokenAsync_InvalidToken_ReturnsError()
+    public async Task ValidateResetTokenAsyncInvalidTokenReturnsError()
     {
         var tokenRepo = new Mock<ITokenRepository>();
         tokenRepo.Setup(r => r.FindByValueAsync("bad")).ReturnsAsync((Token?)null);
@@ -33,7 +32,7 @@ public class PasswordSetupServiceTests
     }
 
     [Fact]
-    public async Task ValidateResetTokenAsync_UserMissing_ReturnsError()
+    public async Task ValidateResetTokenAsyncUserMissingReturnsError()
     {
         var token = new Token { UserId = 7, Value = "tok" };
         var tokenRepo = new Mock<ITokenRepository>();
@@ -51,7 +50,7 @@ public class PasswordSetupServiceTests
     }
 
     [Fact]
-    public async Task ValidateResetTokenAsync_Valid_ReturnsUser()
+    public async Task ValidateResetTokenAsyncValidReturnsUser()
     {
         var token = new Token { UserId = 3, Value = "tok" };
         var tokenRepo = new Mock<ITokenRepository>();
@@ -71,7 +70,7 @@ public class PasswordSetupServiceTests
     }
 
     [Fact]
-    public async Task SetPasswordWithTokenAsync_InvalidToken_ReturnsError()
+    public async Task SetPasswordWithTokenAsyncInvalidTokenReturnsError()
     {
         var tokenRepo = new Mock<ITokenRepository>();
         tokenRepo.Setup(r => r.FindByValueAsync("tok")).ReturnsAsync((Token?)null);
@@ -85,7 +84,7 @@ public class PasswordSetupServiceTests
     }
 
     [Fact]
-    public async Task SetPasswordWithTokenAsync_TooShort_ReturnsError()
+    public async Task SetPasswordWithTokenAsyncTooShortReturnsError()
     {
         var token = new Token { UserId = 5, Value = "tok" };
         var tokenRepo = new Mock<ITokenRepository>();
@@ -104,7 +103,7 @@ public class PasswordSetupServiceTests
     }
 
     [Fact]
-    public async Task SetPasswordWithTokenAsync_SetsHashAndUpdatesUser()
+    public async Task SetPasswordWithTokenAsyncSetsHashAndUpdatesUser()
     {
         var token = new Token { UserId = 9, Value = "tok" };
         var tokenRepo = new Mock<ITokenRepository>();
@@ -130,7 +129,7 @@ public class PasswordSetupServiceTests
     }
 
     [Fact]
-    public async Task SetInitialPasswordAsync_WhenAlreadySet_ReturnsError()
+    public async Task SetInitialPasswordAsyncWhenAlreadySetReturnsError()
     {
         var user = new User { Id = 2, Email = "u@example.com", PasswordHash = "exists" };
         var userRepo = new Mock<IUserRepository>();
@@ -145,7 +144,7 @@ public class PasswordSetupServiceTests
     }
 
     [Fact]
-    public async Task SetInitialPasswordAsync_SucceedsAndReturnsTokenAndSlug()
+    public async Task SetInitialPasswordAsyncSucceedsAndReturnsTokenAndSlug()
     {
         var user = new User { Id = 4, Email = "u@example.com", PasswordHash = null };
         var userRepo = new Mock<IUserRepository>();

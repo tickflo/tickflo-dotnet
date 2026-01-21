@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Common;
+
+using Tickflo.Core.Entities;
 
 /// <summary>
 /// Service for generating dashboard metrics, statistics, and visualizations.
@@ -16,10 +16,10 @@ public interface IDashboardService
     /// <param name="ticketViewScope">Scope filter: "all", "mine", or "team"</param>
     /// <param name="userTeamIds">Team IDs the user belongs to (for team scope)</param>
     /// <returns>Ticket statistics</returns>
-    Task<DashboardTicketStats> GetTicketStatsAsync(
-        int workspaceId, 
-        int userId, 
-        string ticketViewScope, 
+    public Task<DashboardTicketStats> GetTicketStatsAsync(
+        int workspaceId,
+        int userId,
+        string ticketViewScope,
         List<int> userTeamIds);
 
     /// <summary>
@@ -31,7 +31,7 @@ public interface IDashboardService
     /// <param name="userTeamIds">Team IDs the user belongs to</param>
     /// <param name="daysBack">Number of days to include in series</param>
     /// <returns>Daily activity counts</returns>
-    Task<List<ActivityDataPoint>> GetActivitySeriesAsync(
+    public Task<List<ActivityDataPoint>> GetActivitySeriesAsync(
         int workspaceId,
         int userId,
         string ticketViewScope,
@@ -47,7 +47,7 @@ public interface IDashboardService
     /// <param name="userTeamIds">Team IDs the user belongs to</param>
     /// <param name="topN">Number of top members to return</param>
     /// <returns>Top members with their closed ticket counts</returns>
-    Task<List<TopMember>> GetTopMembersAsync(
+    public Task<List<TopMember>> GetTopMembersAsync(
         int workspaceId,
         int userId,
         string ticketViewScope,
@@ -62,7 +62,7 @@ public interface IDashboardService
     /// <param name="ticketViewScope">Scope filter</param>
     /// <param name="userTeamIds">Team IDs the user belongs to</param>
     /// <returns>Average resolution time formatted as string</returns>
-    Task<string> GetAverageResolutionTimeAsync(
+    public Task<string> GetAverageResolutionTimeAsync(
         int workspaceId,
         int userId,
         string ticketViewScope,
@@ -76,7 +76,7 @@ public interface IDashboardService
     /// <param name="ticketViewScope">Scope filter</param>
     /// <param name="userTeamIds">Team IDs the user belongs to</param>
     /// <returns>Priority counts dictionary</returns>
-    Task<Dictionary<string, int>> GetPriorityCountsAsync(
+    public Task<Dictionary<string, int>> GetPriorityCountsAsync(
         int workspaceId,
         int userId,
         string ticketViewScope,
@@ -89,7 +89,7 @@ public interface IDashboardService
     /// <param name="assignmentFilter">Filter: "unassigned", "me", "others", or "all"</param>
     /// <param name="currentUserId">Current user ID</param>
     /// <returns>Filtered ticket list</returns>
-    List<Ticket> FilterTicketsByAssignment(
+    public List<Ticket> FilterTicketsByAssignment(
         IEnumerable<Ticket> tickets,
         string assignmentFilter,
         int currentUserId);

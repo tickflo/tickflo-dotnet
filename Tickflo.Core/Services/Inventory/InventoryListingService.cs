@@ -1,23 +1,18 @@
-using Tickflo.Core.Data;
-
 namespace Tickflo.Core.Services.Inventory;
 
-public class InventoryListingService : IInventoryListingService
+using Tickflo.Core.Data;
+
+public class InventoryListingService(IInventoryRepository inventoryRepo) : IInventoryListingService
 {
-    private readonly IInventoryRepository _inventoryRepo;
+    private readonly IInventoryRepository _inventoryRepo = inventoryRepo;
 
-    public InventoryListingService(IInventoryRepository inventoryRepo)
-    {
-        _inventoryRepo = inventoryRepo;
-    }
-
-    public async Task<IReadOnlyList<Core.Entities.Inventory>> GetListAsync(
+    public async Task<IReadOnlyList<Entities.Inventory>> GetListAsync(
         int workspaceId,
         string? searchQuery = null,
         string? statusFilter = null)
     {
         // Repository already supports filtering, delegate directly
-        var result = await _inventoryRepo.ListAsync(workspaceId, searchQuery, statusFilter);
+        var result = await this._inventoryRepo.ListAsync(workspaceId, searchQuery, statusFilter);
         return result.ToList().AsReadOnly();
     }
 }

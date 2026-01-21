@@ -1,14 +1,13 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
-using Tickflo.Core.Services.Views;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 public class WorkspaceReportRunsBackfillViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_Sets_CanEdit_When_Admin()
+    public async Task BuildAsyncSetsCanEditWhenAdmin()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         uwr.Setup(r => r.IsAdminAsync(5, 1)).ReturnsAsync(true);

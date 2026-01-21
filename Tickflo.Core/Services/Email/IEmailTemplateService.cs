@@ -1,8 +1,8 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Email;
+
+using Tickflo.Core.Entities;
 
 public interface IEmailTemplateService
 {
-    Task<(string subject, string body)> RenderTemplateAsync(EmailTemplateType templateType, Dictionary<string, string> variables, int? workspaceId = null);
+    public Task<(string subject, string body)> RenderTemplateAsync(EmailTemplateType templateType, Dictionary<string, string> variables, int? workspaceId = null);
 }

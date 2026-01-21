@@ -1,15 +1,14 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Tickets;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 public class TicketSearchServiceTests
 {
     [Fact]
-    public async Task SearchAsync_Throws_When_No_Access()
+    public async Task SearchAsyncThrowsWhenNoAccess()
     {
         var ticketRepo = new Mock<ITicketRepository>();
         var uw = new Mock<IUserWorkspaceRepository>();
@@ -20,7 +19,7 @@ public class TicketSearchServiceTests
     }
 
     [Fact]
-    public async Task GetUnassignedTicketsAsync_Filters()
+    public async Task GetUnassignedTicketsAsyncFilters()
     {
         var tickets = new List<Ticket>
         {
@@ -30,10 +29,10 @@ public class TicketSearchServiceTests
         var ticketRepo = new Mock<ITicketRepository>();
         ticketRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(tickets);
         var statusRepo = new Mock<ITicketStatusRepository>();
-        statusRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(new List<TicketStatus>
-        {
-            new TicketStatus { Id = 1, Name = "Open", IsClosedState = false }
-        });
+        statusRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(
+        [
+            new() { Id = 1, Name = "Open", IsClosedState = false }
+        ]);
         var svc = new TicketSearchService(ticketRepo.Object, Mock.Of<IUserWorkspaceRepository>(), Mock.Of<ITeamMemberRepository>(), statusRepo.Object, Mock.Of<ITicketPriorityRepository>());
 
         var result = await svc.GetUnassignedTicketsAsync(1);

@@ -1,33 +1,24 @@
-using Tickflo.Core.Data;
-
-using Tickflo.Core.Services.Workspace;
-
-using Tickflo.Core.Services.Teams;
-
 namespace Tickflo.Core.Services.Views;
 
-public class WorkspaceTeamsViewService : IWorkspaceTeamsViewService
-{
-    private readonly IWorkspaceAccessService _workspaceAccessService;
-    private readonly ITeamListingService _listingService;
+using Tickflo.Core.Services.Teams;
+using Tickflo.Core.Services.Workspace;
 
-    public WorkspaceTeamsViewService(
-        IWorkspaceAccessService workspaceAccessService,
-        ITeamListingService listingService)
-    {
-        _workspaceAccessService = workspaceAccessService;
-        _listingService = listingService;
-    }
+public class WorkspaceTeamsViewService(
+    IWorkspaceAccessService workspaceAccessService,
+    ITeamListingService listingService) : IWorkspaceTeamsViewService
+{
+    private readonly IWorkspaceAccessService _workspaceAccessService = workspaceAccessService;
+    private readonly ITeamListingService _listingService = listingService;
 
     public async Task<WorkspaceTeamsViewData> BuildAsync(int workspaceId, int userId)
     {
         var data = new WorkspaceTeamsViewData();
 
         // Check admin status
-        var isAdmin = await _workspaceAccessService.UserIsWorkspaceAdminAsync(userId, workspaceId);
+        var isAdmin = await this._workspaceAccessService.UserIsWorkspaceAdminAsync(userId, workspaceId);
 
         // Get permissions
-        var permissions = await _workspaceAccessService.GetUserPermissionsAsync(workspaceId, userId);
+        var permissions = await this._workspaceAccessService.GetUserPermissionsAsync(workspaceId, userId);
 
         // Determine view access and action permissions
         data.CanViewTeams = isAdmin;
@@ -46,8 +37,8 @@ public class WorkspaceTeamsViewService : IWorkspaceTeamsViewService
         // Load teams and member counts if user can view
         if (data.CanViewTeams)
         {
-            var (teams, memberCounts) = await _listingService.GetListAsync(workspaceId);
-            data.Teams = teams.ToList();
+            var (teams, memberCounts) = await this._listingService.GetListAsync(workspaceId);
+            data.Teams = [.. teams];
             data.MemberCounts = memberCounts.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }
 

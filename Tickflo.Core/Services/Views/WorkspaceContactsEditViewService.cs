@@ -1,32 +1,24 @@
-using Tickflo.Core.Data;
-
 namespace Tickflo.Core.Services.Views;
 
-public class WorkspaceContactsEditViewService : IWorkspaceContactsEditViewService
-{
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePerms;
-    private readonly IContactRepository _contactRepo;
-    private readonly ITicketPriorityRepository _priorityRepo;
+using Tickflo.Core.Data;
 
-    public WorkspaceContactsEditViewService(
-        IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
-        IRolePermissionRepository rolePerms,
-        IContactRepository contactRepo,
-        ITicketPriorityRepository priorityRepo)
-    {
-        _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-        _rolePerms = rolePerms;
-        _contactRepo = contactRepo;
-        _priorityRepo = priorityRepo;
-    }
+public class WorkspaceContactsEditViewService(
+    IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
+    IRolePermissionRepository rolePerms,
+    IContactRepository contactRepo,
+    ITicketPriorityRepository priorityRepo) : IWorkspaceContactsEditViewService
+{
+    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
+    private readonly IRolePermissionRepository _rolePerms = rolePerms;
+    private readonly IContactRepository _contactRepo = contactRepo;
+    private readonly ITicketPriorityRepository _priorityRepo = priorityRepo;
 
     public async Task<WorkspaceContactsEditViewData> BuildAsync(int workspaceId, int userId, int contactId = 0)
     {
         var data = new WorkspaceContactsEditViewData();
-        
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
-        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+
+        var isAdmin = await this._userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
+        var eff = await this._rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, userId);
 
         if (isAdmin)
         {
@@ -39,12 +31,12 @@ public class WorkspaceContactsEditViewService : IWorkspaceContactsEditViewServic
             data.CanCreateContacts = cp.CanCreate;
         }
 
-        var priorities = await _priorityRepo.ListAsync(workspaceId);
-        data.Priorities = priorities != null ? priorities.ToList() : new();
+        var priorities = await this._priorityRepo.ListAsync(workspaceId);
+        data.Priorities = priorities != null ? [.. priorities] : [];
 
         if (contactId > 0)
         {
-            data.ExistingContact = await _contactRepo.FindAsync(workspaceId, contactId);
+            data.ExistingContact = await this._contactRepo.FindAsync(workspaceId, contactId);
         }
 
         return data;

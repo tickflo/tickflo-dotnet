@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Tickets;
+
+using Tickflo.Core.Entities;
 
 /// <summary>
 /// Handles ticket assignment workflows.
@@ -15,7 +15,7 @@ public interface ITicketAssignmentService
     /// <param name="assigneeUserId">User to assign to</param>
     /// <param name="assignedByUserId">User performing the assignment</param>
     /// <returns>The updated ticket</returns>
-    Task<Ticket> AssignToUserAsync(int workspaceId, int ticketId, int assigneeUserId, int assignedByUserId);
+    public Task<Ticket> AssignToUserAsync(int workspaceId, int ticketId, int assigneeUserId, int assignedByUserId);
 
     /// <summary>
     /// Assigns a ticket to a team.
@@ -25,7 +25,7 @@ public interface ITicketAssignmentService
     /// <param name="teamId">Team to assign to</param>
     /// <param name="assignedByUserId">User performing the assignment</param>
     /// <returns>The updated ticket</returns>
-    Task<Ticket> AssignToTeamAsync(int workspaceId, int ticketId, int teamId, int assignedByUserId);
+    public Task<Ticket> AssignToTeamAsync(int workspaceId, int ticketId, int teamId, int assignedByUserId);
 
     /// <summary>
     /// Unassigns a ticket from its current user.
@@ -34,7 +34,7 @@ public interface ITicketAssignmentService
     /// <param name="ticketId">Ticket to unassign</param>
     /// <param name="unassignedByUserId">User performing the unassignment</param>
     /// <returns>The updated ticket</returns>
-    Task<Ticket> UnassignUserAsync(int workspaceId, int ticketId, int unassignedByUserId);
+    public Task<Ticket> UnassignUserAsync(int workspaceId, int ticketId, int unassignedByUserId);
 
     /// <summary>
     /// Reassigns a ticket from one user to another with optional reason.
@@ -45,7 +45,7 @@ public interface ITicketAssignmentService
     /// <param name="reassignedByUserId">User performing the reassignment</param>
     /// <param name="reason">Optional reason for reassignment</param>
     /// <returns>The updated ticket</returns>
-    Task<Ticket> ReassignAsync(int workspaceId, int ticketId, int newAssigneeUserId, int reassignedByUserId, string? reason = null);
+    public Task<Ticket> ReassignAsync(int workspaceId, int ticketId, int newAssigneeUserId, int reassignedByUserId, string? reason = null);
 
     /// <summary>
     /// Automatically assigns a ticket based on rules (team round-robin, location default, etc.).
@@ -54,5 +54,5 @@ public interface ITicketAssignmentService
     /// <param name="ticketId">Ticket to auto-assign</param>
     /// <param name="triggeredByUserId">User triggering auto-assignment</param>
     /// <returns>The updated ticket</returns>
-    Task<Ticket> AutoAssignAsync(int workspaceId, int ticketId, int triggeredByUserId);
+    public Task<Ticket> AutoAssignAsync(int workspaceId, int ticketId, int triggeredByUserId);
 }

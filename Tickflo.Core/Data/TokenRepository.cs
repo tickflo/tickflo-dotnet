@@ -1,9 +1,9 @@
+namespace Tickflo.Core.Data;
+
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Config;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Utils;
-
-namespace Tickflo.Core.Data;
 
 public class TokenRepository(TickfloDbContext db, TickfloConfig config) : ITokenRepository
 {
@@ -13,7 +13,7 @@ public class TokenRepository(TickfloDbContext db, TickfloConfig config) : IToken
     public Task<Token?> FindByUserIdAsync(int userId)
     {
         var now = DateTime.UtcNow;
-        return _db.Tokens
+        return this._db.Tokens
             .Where(t => t.UserId == userId && now < t.CreatedAt.AddSeconds(t.MaxAge))
             .OrderByDescending(t => t.CreatedAt)
             .FirstOrDefaultAsync();
@@ -22,7 +22,7 @@ public class TokenRepository(TickfloDbContext db, TickfloConfig config) : IToken
     public Task<Token?> FindByValueAsync(string value)
     {
         var now = DateTime.UtcNow;
-        return _db.Tokens
+        return this._db.Tokens
             .Where(t => t.Value == value && now < t.CreatedAt.AddSeconds(t.MaxAge))
             .OrderByDescending(t => t.CreatedAt)
             .FirstOrDefaultAsync();
@@ -34,12 +34,12 @@ public class TokenRepository(TickfloDbContext db, TickfloConfig config) : IToken
         {
             UserId = userId,
             Value = TokenGenerator.GenerateToken(),
-            MaxAge = _config.SESSION_TIMEOUT_MINUTES * 60,
+            MaxAge = this._config.SessionTimeoutMinutes * 60,
             CreatedAt = DateTime.UtcNow
         };
 
-        _db.Tokens.Add(token);
-        await _db.SaveChangesAsync();
+        this._db.Tokens.Add(token);
+        await this._db.SaveChangesAsync();
 
         return token;
     }
@@ -54,8 +54,8 @@ public class TokenRepository(TickfloDbContext db, TickfloConfig config) : IToken
             CreatedAt = DateTime.UtcNow
         };
 
-        _db.Tokens.Add(token);
-        await _db.SaveChangesAsync();
+        this._db.Tokens.Add(token);
+        await this._db.SaveChangesAsync();
 
         return token;
     }

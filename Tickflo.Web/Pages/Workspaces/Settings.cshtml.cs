@@ -1,45 +1,30 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Text.RegularExpressions;
-using System.Security.Claims;
-using Tickflo.Core.Data;
-using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
-
-using Tickflo.Core.Services.Workspace;
-using Tickflo.Core.Services.Views;
 namespace Tickflo.Web.Pages.Workspaces;
 
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Tickflo.Core.Data;
+using Tickflo.Core.Entities;
+using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
+
 [Authorize]
-public class SettingsModel : WorkspacePageModel
+public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, IWorkspaceSettingsService settingsService, IWorkspaceSettingsViewService settingsViewService, IUserRepository userRepo) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository _workspaceRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
-    private readonly ITicketStatusRepository _statusRepo;
-    private readonly ITicketPriorityRepository _priorityRepo;
-    private readonly ITicketTypeRepository _typeRepo;
-    private readonly IWorkspaceSettingsService _settingsService;
-    private readonly IWorkspaceSettingsViewService _settingsViewService;
-    private readonly IUserRepository _userRepo;
+    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
+    private readonly ITicketStatusRepository _statusRepo = statusRepo;
+    private readonly ITicketPriorityRepository _priorityRepo = priorityRepo;
+    private readonly ITicketTypeRepository _typeRepo = typeRepo;
+    private readonly IWorkspaceSettingsService _settingsService = settingsService;
+    private readonly IWorkspaceSettingsViewService _settingsViewService = settingsViewService;
+    private readonly IUserRepository _userRepo = userRepo;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
-    public SettingsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketStatusRepository statusRepo, ITicketPriorityRepository priorityRepo, ITicketTypeRepository typeRepo, IWorkspaceSettingsService settingsService, IWorkspaceSettingsViewService settingsViewService, IUserRepository userRepo)
-    {
-        _workspaceRepo = workspaceRepo;
-        _userWorkspaceRepo = userWorkspaceRepo;
-        _statusRepo = statusRepo;
-        _priorityRepo = priorityRepo;
-        _typeRepo = typeRepo;
-        _settingsService = settingsService;
-        _settingsViewService = settingsViewService;
-        _userRepo = userRepo;
-    }
-
-    public IReadOnlyList<Tickflo.Core.Entities.TicketStatus> Statuses { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketStatus>();
-    public IReadOnlyList<Tickflo.Core.Entities.TicketPriority> Priorities { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketPriority>();
-    public IReadOnlyList<Tickflo.Core.Entities.TicketType> Types { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketType>();
+    public IReadOnlyList<TicketStatus> Statuses { get; private set; } = [];
+    public IReadOnlyList<TicketPriority> Priorities { get; private set; } = [];
+    public IReadOnlyList<TicketType> Types { get; private set; } = [];
 
     public bool CanViewSettings { get; private set; }
     public bool CanEditSettings { get; private set; }
@@ -49,24 +34,31 @@ public class SettingsModel : WorkspacePageModel
 
     private async Task<(int userId, bool isAdmin)> ResolveUserAsync()
     {
-        if (!TryGetUserId(out var uid)) return (0, false);
+        if (!this.TryGetUserId(out var uid))
+        {
+            return (0, false);
+        }
         // isAdmin is computed via view service; return uid and false placeholder
         return (uid, false);
     }
 
     private async Task<bool> EnsurePermissionsAsync(int userId)
     {
-        if (Workspace == null) return false;
-        var user = await _userRepo.FindByIdAsync(userId);
-        IsSystemAdmin = user?.SystemAdmin == true;
-        var data = await _settingsViewService.BuildAsync(Workspace.Id, userId);
-        CanViewSettings = data.CanViewSettings;
-        CanEditSettings = data.CanEditSettings;
-        CanCreateSettings = data.CanCreateSettings;
+        if (this.Workspace == null)
+        {
+            return false;
+        }
+
+        var user = await this._userRepo.FindByIdAsync(userId);
+        this.IsSystemAdmin = user?.SystemAdmin == true;
+        var data = await this._settingsViewService.BuildAsync(this.Workspace.Id, userId);
+        this.CanViewSettings = data.CanViewSettings;
+        this.CanEditSettings = data.CanEditSettings;
+        this.CanCreateSettings = data.CanCreateSettings;
         // populate lists and defaults
-        Statuses = data.Statuses;
-        Priorities = data.Priorities;
-        Types = data.Types;
+        this.Statuses = data.Statuses;
+        this.Priorities = data.Priorities;
+        this.Types = data.Types;
         return true;
     }
 
@@ -87,326 +79,483 @@ public class SettingsModel : WorkspacePageModel
 
     public async Task<IActionResult> OnPostAsync([FromRoute] string slug)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        var (uid, _) = await ResolveUserAsync();
-        if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid);
-        if (EnsurePermissionOrForbid(CanEditSettings) is IActionResult permCheck) return permCheck;
-        
-        if (!ModelState.IsValid)
+        this.WorkspaceSlug = slug;
+        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        if (this.Workspace == null)
         {
-            SetErrorMessage("Please fix the validation errors.");
-            await EnsurePermissionsAsync(uid);
-            return Page();
+            return this.NotFound();
         }
-        var name = (Request.Form["Workspace.Name"].ToString() ?? Workspace.Name).Trim();
-        var newSlug = (Request.Form["Workspace.Slug"].ToString() ?? Workspace.Slug).Trim();
-        
+
+        var (uid, _) = await this.ResolveUserAsync();
+        if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        await this.EnsurePermissionsAsync(uid);
+        if (this.EnsurePermissionOrForbid(this.CanEditSettings) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
+
+        if (!this.ModelState.IsValid)
+        {
+            this.SetErrorMessage("Please fix the validation errors.");
+            await this.EnsurePermissionsAsync(uid);
+            return this.Page();
+        }
+        var name = (this.Request.Form["Workspace.Name"].ToString() ?? this.Workspace.Name).Trim();
+        var newSlug = (this.Request.Form["Workspace.Slug"].ToString() ?? this.Workspace.Slug).Trim();
+
         // Only allow system admins to change the slug
-        if (newSlug != Workspace.Slug && !IsSystemAdmin)
+        if (newSlug != this.Workspace.Slug && !this.IsSystemAdmin)
         {
-            TempData["ErrorMessage"] = "Only system administrators can change the workspace slug.";
-            await EnsurePermissionsAsync(uid);
-            return Page();
+            this.TempData["ErrorMessage"] = "Only system administrators can change the workspace slug.";
+            await this.EnsurePermissionsAsync(uid);
+            return this.Page();
         }
-        
+
         try
         {
-            Workspace = await _settingsService.UpdateWorkspaceBasicSettingsAsync(Workspace.Id, name, newSlug);
+            this.Workspace = await this._settingsService.UpdateWorkspaceBasicSettingsAsync(this.Workspace.Id, name, newSlug);
         }
         catch (InvalidOperationException ex)
         {
-            TempData["ErrorMessage"] = ex.Message;
-            await EnsurePermissionsAsync(uid);
-            return Page();
+            this.TempData["ErrorMessage"] = ex.Message;
+            await this.EnsurePermissionsAsync(uid);
+            return this.Page();
         }
-        SetSuccessMessage("Workspace settings saved successfully!");
-        return RedirectToPage("/Workspaces/Settings", new { slug = Workspace.Slug });
+        this.SetSuccessMessage("Workspace settings saved successfully!");
+        return this.RedirectToPage("/Workspaces/Settings", new { slug = this.Workspace.Slug });
     }
 
     private async Task LoadDataAsync(Workspace workspace)
     {
-        if (!TryGetUserId(out var uid)) { Statuses = Array.Empty<Tickflo.Core.Entities.TicketStatus>(); Priorities = Array.Empty<Tickflo.Core.Entities.TicketPriority>(); Types = Array.Empty<Tickflo.Core.Entities.TicketType>(); return; }
-        await EnsurePermissionsAsync(uid);
+        if (!this.TryGetUserId(out var uid))
+        { this.Statuses = []; this.Priorities = []; this.Types = []; return; }
+        await this.EnsurePermissionsAsync(uid);
     }
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        var (uid, _) = await ResolveUserAsync();
-        if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid);
-        if (EnsurePermissionOrForbid(CanViewSettings) is IActionResult permCheck) return permCheck;
-        return Page();
+        this.WorkspaceSlug = slug;
+        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        if (this.Workspace == null)
+        {
+            return this.NotFound();
+        }
+
+        var (uid, _) = await this.ResolveUserAsync();
+        if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        await this.EnsurePermissionsAsync(uid);
+        if (this.EnsurePermissionOrForbid(this.CanViewSettings) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
+
+        return this.Page();
     }
 
     public async Task<IActionResult> OnPostAddStatusAsync([FromRoute] string slug)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        var (uid, _) = await ResolveUserAsync();
-        if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid);
-        if (EnsurePermissionOrForbid(CanCreateSettings) is IActionResult permCheck) return permCheck;
-        var name = (NewStatusName ?? string.Empty).Trim();
-        var color = (NewStatusColor ?? "neutral").Trim();
+        this.WorkspaceSlug = slug;
+        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        if (this.Workspace == null)
+        {
+            return this.NotFound();
+        }
+
+        var (uid, _) = await this.ResolveUserAsync();
+        if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        await this.EnsurePermissionsAsync(uid);
+        if (this.EnsurePermissionOrForbid(this.CanCreateSettings) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
+
+        var name = (this.NewStatusName ?? string.Empty).Trim();
+        var color = (this.NewStatusColor ?? "neutral").Trim();
         if (string.IsNullOrWhiteSpace(name))
         {
-            SetErrorMessage("Status name is required.");
-            return RedirectToPage("/Workspaces/Settings", new { slug });
+            this.SetErrorMessage("Status name is required.");
+            return this.RedirectToPage("/Workspaces/Settings", new { slug });
         }
         try
         {
-            await _settingsService.AddStatusAsync(Workspace.Id, name, color, false);
-            SetSuccessMessage($"Status '{name}' added successfully!");
+            await this._settingsService.AddStatusAsync(this.Workspace.Id, name, color, false);
+            this.SetSuccessMessage($"Status '{name}' added successfully!");
         }
         catch (InvalidOperationException ex)
         {
-            TempData["ErrorMessage"] = ex.Message;
+            this.TempData["ErrorMessage"] = ex.Message;
         }
-        return RedirectToPage("/Workspaces/Settings", new { slug });
+        return this.RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
     public async Task<IActionResult> OnPostAddPriorityAsync([FromRoute] string slug)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        var (uid, _) = await ResolveUserAsync();
-        if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid);
-        if (!CanCreateSettings) return Forbid();
-        var name = (NewPriorityName ?? string.Empty).Trim();
-        var color = (NewPriorityColor ?? "neutral").Trim();
+        this.WorkspaceSlug = slug;
+        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        if (this.Workspace == null)
+        {
+            return this.NotFound();
+        }
+
+        var (uid, _) = await this.ResolveUserAsync();
+        if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        await this.EnsurePermissionsAsync(uid);
+        if (!this.CanCreateSettings)
+        {
+            return this.Forbid();
+        }
+
+        var name = (this.NewPriorityName ?? string.Empty).Trim();
+        var color = (this.NewPriorityColor ?? "neutral").Trim();
         if (string.IsNullOrWhiteSpace(name))
         {
-            SetErrorMessage("Priority name is required.");
-            return RedirectToPage("/Workspaces/Settings", new { slug });
+            this.SetErrorMessage("Priority name is required.");
+            return this.RedirectToPage("/Workspaces/Settings", new { slug });
         }
         try
         {
-            await _settingsService.AddPriorityAsync(Workspace.Id, name, color);
-            SetSuccessMessage($"Priority '{name}' added successfully!");
+            await this._settingsService.AddPriorityAsync(this.Workspace.Id, name, color);
+            this.SetSuccessMessage($"Priority '{name}' added successfully!");
         }
         catch (InvalidOperationException ex)
         {
-            SetErrorMessage(ex.Message);
+            this.SetErrorMessage(ex.Message);
         }
-        return RedirectToPage("/Workspaces/Settings", new { slug });
+        return this.RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
     public async Task<IActionResult> OnPostAddTypeAsync([FromRoute] string slug)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        var (uid, _) = await ResolveUserAsync();
-        if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid);
-        if (!CanCreateSettings) return Forbid();
-        var name = (NewTypeName ?? string.Empty).Trim();
-        var color = (NewTypeColor ?? "neutral").Trim();
+        this.WorkspaceSlug = slug;
+        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        if (this.Workspace == null)
+        {
+            return this.NotFound();
+        }
+
+        var (uid, _) = await this.ResolveUserAsync();
+        if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        await this.EnsurePermissionsAsync(uid);
+        if (!this.CanCreateSettings)
+        {
+            return this.Forbid();
+        }
+
+        var name = (this.NewTypeName ?? string.Empty).Trim();
+        var color = (this.NewTypeColor ?? "neutral").Trim();
         if (string.IsNullOrWhiteSpace(name))
         {
-            SetErrorMessage("Type name is required.");
-            return RedirectToPage("/Workspaces/Settings", new { slug });
+            this.SetErrorMessage("Type name is required.");
+            return this.RedirectToPage("/Workspaces/Settings", new { slug });
         }
         try
         {
-            await _settingsService.AddTypeAsync(Workspace.Id, name, color);
-            SetSuccessMessage($"Type '{name}' added successfully!");
+            await this._settingsService.AddTypeAsync(this.Workspace.Id, name, color);
+            this.SetSuccessMessage($"Type '{name}' added successfully!");
         }
         catch (InvalidOperationException ex)
         {
-            SetErrorMessage(ex.Message);
+            this.SetErrorMessage(ex.Message);
         }
-        return RedirectToPage("/Workspaces/Settings", new { slug });
+        return this.RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
     public async Task<IActionResult> OnPostUpdateStatusAsync([FromRoute] string slug, [FromForm] int id, [FromForm] string name, [FromForm] string color, [FromForm] int sortOrder)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        var (uid, _) = await ResolveUserAsync();
-        if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid);
-        if (EnsurePermissionOrForbid(CanEditSettings) is IActionResult permCheck) return permCheck;
-        var isClosedStateStr = Request.Form["isClosedState"];
+        this.WorkspaceSlug = slug;
+        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        if (this.Workspace == null)
+        {
+            return this.NotFound();
+        }
+
+        var (uid, _) = await this.ResolveUserAsync();
+        if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        await this.EnsurePermissionsAsync(uid);
+        if (this.EnsurePermissionOrForbid(this.CanEditSettings) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
+
+        var isClosedStateStr = this.Request.Form["isClosedState"];
         var isClosedState = !string.IsNullOrEmpty(isClosedStateStr) && (isClosedStateStr == "true" || isClosedStateStr == "on");
         try
         {
-            var s = await _settingsService.UpdateStatusAsync(Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder, isClosedState);
-            SetSuccessMessage($"Status '{s.Name}' updated successfully!");
+            var s = await this._settingsService.UpdateStatusAsync(this.Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder, isClosedState);
+            this.SetSuccessMessage($"Status '{s.Name}' updated successfully!");
         }
         catch (InvalidOperationException ex)
         {
-            SetErrorMessage(ex.Message);
+            this.SetErrorMessage(ex.Message);
         }
-        return RedirectToPage("/Workspaces/Settings", new { slug });
+        return this.RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
     public async Task<IActionResult> OnPostUpdatePriorityAsync([FromRoute] string slug, [FromForm] int id, [FromForm] string name, [FromForm] string color, [FromForm] int sortOrder)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        var (uid, _) = await ResolveUserAsync();
-        if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid);
-        if (EnsurePermissionOrForbid(CanEditSettings) is IActionResult permCheck) return permCheck;
+        this.WorkspaceSlug = slug;
+        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        if (this.Workspace == null)
+        {
+            return this.NotFound();
+        }
+
+        var (uid, _) = await this.ResolveUserAsync();
+        if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        await this.EnsurePermissionsAsync(uid);
+        if (this.EnsurePermissionOrForbid(this.CanEditSettings) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
+
         try
         {
-            var p = await _settingsService.UpdatePriorityAsync(Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
-            SetSuccessMessage($"Priority '{p.Name}' updated successfully!");
+            var p = await this._settingsService.UpdatePriorityAsync(this.Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
+            this.SetSuccessMessage($"Priority '{p.Name}' updated successfully!");
         }
         catch (InvalidOperationException ex)
         {
-            SetErrorMessage(ex.Message);
+            this.SetErrorMessage(ex.Message);
         }
-        return RedirectToPage("/Workspaces/Settings", new { slug });
+        return this.RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
     public async Task<IActionResult> OnPostUpdateTypeAsync([FromRoute] string slug, [FromForm] int id, [FromForm] string name, [FromForm] string color, [FromForm] int sortOrder)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        var (uid, _) = await ResolveUserAsync();
-        if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid);
-        if (EnsurePermissionOrForbid(CanEditSettings) is IActionResult permCheck) return permCheck;
+        this.WorkspaceSlug = slug;
+        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        if (this.Workspace == null)
+        {
+            return this.NotFound();
+        }
+
+        var (uid, _) = await this.ResolveUserAsync();
+        if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        await this.EnsurePermissionsAsync(uid);
+        if (this.EnsurePermissionOrForbid(this.CanEditSettings) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
+
         try
         {
-            var t = await _settingsService.UpdateTypeAsync(Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
-            SetSuccessMessage($"Type '{t.Name}' updated successfully!");
+            var t = await this._settingsService.UpdateTypeAsync(this.Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
+            this.SetSuccessMessage($"Type '{t.Name}' updated successfully!");
         }
         catch (InvalidOperationException ex)
         {
-            SetErrorMessage(ex.Message);
+            this.SetErrorMessage(ex.Message);
         }
-        return RedirectToPage("/Workspaces/Settings", new { slug });
+        return this.RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
     public async Task<IActionResult> OnPostDeleteStatusAsync([FromRoute] string slug, [FromForm] int id)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        var (uid, _) = await ResolveUserAsync();
-        if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid);
-        if (EnsurePermissionOrForbid(CanEditSettings) is IActionResult permCheck) return permCheck;
-        await _settingsService.DeleteStatusAsync(Workspace.Id, id);
-        SetSuccessMessage("Status deleted successfully!");
-        return RedirectToPage("/Workspaces/Settings", new { slug });
+        this.WorkspaceSlug = slug;
+        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        if (this.Workspace == null)
+        {
+            return this.NotFound();
+        }
+
+        var (uid, _) = await this.ResolveUserAsync();
+        if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        await this.EnsurePermissionsAsync(uid);
+        if (this.EnsurePermissionOrForbid(this.CanEditSettings) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
+
+        await this._settingsService.DeleteStatusAsync(this.Workspace.Id, id);
+        this.SetSuccessMessage("Status deleted successfully!");
+        return this.RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
     public async Task<IActionResult> OnPostDeletePriorityAsync([FromRoute] string slug, [FromForm] int id)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        var (uid, _) = await ResolveUserAsync();
-        if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid);
-        if (EnsurePermissionOrForbid(CanEditSettings) is IActionResult permCheck) return permCheck;
-        await _settingsService.DeletePriorityAsync(Workspace.Id, id);
-        SetSuccessMessage("Priority deleted successfully!");
-        return RedirectToPage("/Workspaces/Settings", new { slug });
+        this.WorkspaceSlug = slug;
+        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        if (this.Workspace == null)
+        {
+            return this.NotFound();
+        }
+
+        var (uid, _) = await this.ResolveUserAsync();
+        if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        await this.EnsurePermissionsAsync(uid);
+        if (this.EnsurePermissionOrForbid(this.CanEditSettings) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
+
+        await this._settingsService.DeletePriorityAsync(this.Workspace.Id, id);
+        this.SetSuccessMessage("Priority deleted successfully!");
+        return this.RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
     public async Task<IActionResult> OnPostDeleteTypeAsync([FromRoute] string slug, [FromForm] int id)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        var (uid, _) = await ResolveUserAsync();
-        if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid);
-        if (EnsurePermissionOrForbid(CanEditSettings) is IActionResult permCheck) return permCheck;
-        await _settingsService.DeleteTypeAsync(Workspace.Id, id);
-        SetSuccessMessage("Type deleted successfully!");
-        return RedirectToPage("/Workspaces/Settings", new { slug });
+        this.WorkspaceSlug = slug;
+        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        if (this.Workspace == null)
+        {
+            return this.NotFound();
+        }
+
+        var (uid, _) = await this.ResolveUserAsync();
+        if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        await this.EnsurePermissionsAsync(uid);
+        if (this.EnsurePermissionOrForbid(this.CanEditSettings) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
+
+        await this._settingsService.DeleteTypeAsync(this.Workspace.Id, id);
+        this.SetSuccessMessage("Type deleted successfully!");
+        return this.RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
     public async Task<IActionResult> OnPostSaveNotificationSettingsAsync([FromRoute] string slug)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        var (uid, _) = await ResolveUserAsync();
-        if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid);
-        if (EnsurePermissionOrForbid(CanEditSettings) is IActionResult permCheck) return permCheck;
-        
-        TempData["NotificationSettingsSaved"] = true;
-        return RedirectToPage("/Workspaces/Settings", new { slug });
+        this.WorkspaceSlug = slug;
+        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        if (this.Workspace == null)
+        {
+            return this.NotFound();
+        }
+
+        var (uid, _) = await this.ResolveUserAsync();
+        if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        await this.EnsurePermissionsAsync(uid);
+        if (this.EnsurePermissionOrForbid(this.CanEditSettings) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
+
+        this.TempData["NotificationSettingsSaved"] = true;
+        return this.RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
     public async Task<IActionResult> OnPostSaveAllAsync([FromRoute] string slug)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-        var (uid, _) = await ResolveUserAsync();
-        if (uid == 0) return Forbid();
-        await EnsurePermissionsAsync(uid);
-        if (EnsurePermissionOrForbid(CanEditSettings) is IActionResult permCheck) return permCheck;
+        this.WorkspaceSlug = slug;
+        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        if (this.Workspace == null)
+        {
+            return this.NotFound();
+        }
 
-        int changedCount = 0;
+        var (uid, _) = await this.ResolveUserAsync();
+        if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        await this.EnsurePermissionsAsync(uid);
+        if (this.EnsurePermissionOrForbid(this.CanEditSettings) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
+
+        var changedCount = 0;
 
         try
         {
-            var form = Request.Form;
+            var form = this.Request.Form;
 
             var workspaceName = form["Workspace.Name"].ToString();
             var workspaceSlug = form["Workspace.Slug"].ToString();
 
             if (!string.IsNullOrWhiteSpace(workspaceName))
             {
-                Workspace.Name = workspaceName.Trim();
+                this.Workspace.Name = workspaceName.Trim();
             }
 
             if (!string.IsNullOrWhiteSpace(workspaceSlug))
             {
                 var newSlug = workspaceSlug.Trim();
-                if (newSlug != Workspace.Slug)
+                if (newSlug != this.Workspace.Slug)
                 {
-                    var existing = await _workspaceRepo.FindBySlugAsync(newSlug);
+                    var existing = await this._workspaceRepo.FindBySlugAsync(newSlug);
                     if (existing != null)
                     {
-                        SetErrorMessage("Slug is already in use. Please choose a different one.");
-                        await LoadDataAsync(Workspace);
-                        return Page();
+                        this.SetErrorMessage("Slug is already in use. Please choose a different one.");
+                        await this.LoadDataAsync(this.Workspace);
+                        return this.Page();
                     }
-                    Workspace.Slug = newSlug;
+                    this.Workspace.Slug = newSlug;
                 }
             }
 
-            await _workspaceRepo.UpdateAsync(Workspace);
+            await this._workspaceRepo.UpdateAsync(this.Workspace);
             changedCount++;
 
             var statusMatches = form.Keys
-                .Select(k => Regex.Match(k, @"^statuses\[(\d+)\]\.(.+)$"))
+                .Select(k => MyRegex().Match(k))
                 .Where(m => m.Success)
                 .GroupBy(m => int.Parse(m.Groups[1].Value));
 
             foreach (var group in statusMatches)
             {
                 var statusId = group.Key;
-                var status = await _statusRepo.FindByIdAsync(Workspace.Id, statusId);
-                if (status == null) continue;
+                var status = await this._statusRepo.FindByIdAsync(this.Workspace.Id, statusId);
+                if (status == null)
+                {
+                    continue;
+                }
 
                 var deleteFlag = form[$"statuses[{statusId}].delete"].ToString();
                 if (!string.IsNullOrEmpty(deleteFlag))
                 {
-                    await _statusRepo.DeleteAsync(Workspace.Id, statusId);
+                    await this._statusRepo.DeleteAsync(this.Workspace.Id, statusId);
                     changedCount++;
                     continue;
                 }
@@ -425,13 +574,13 @@ public class SettingsModel : WorkspacePageModel
                     ? (string.IsNullOrWhiteSpace(status.Color) ? "neutral" : status.Color)
                     : color.Trim();
 
-                if (int.TryParse(order, out int sortOrder))
+                if (int.TryParse(order, out var sortOrder))
                 {
                     status.SortOrder = sortOrder;
                 }
 
-                status.IsClosedState = closed == "true" || closed == "on";
-                await _statusRepo.UpdateAsync(status);
+                status.IsClosedState = closed is "true" or "on";
+                await this._statusRepo.UpdateAsync(status);
                 changedCount++;
             }
 
@@ -439,13 +588,13 @@ public class SettingsModel : WorkspacePageModel
             var newStatusColor = (form["NewStatusColor"].ToString() ?? "neutral").Trim();
             if (!string.IsNullOrWhiteSpace(newStatusName))
             {
-                var exists = await _statusRepo.FindByNameAsync(Workspace.Id, newStatusName);
+                var exists = await this._statusRepo.FindByNameAsync(this.Workspace.Id, newStatusName);
                 if (exists == null)
                 {
-                    var maxOrder = (await _statusRepo.ListAsync(Workspace.Id)).DefaultIfEmpty().Max(s => s?.SortOrder ?? 0);
-                    await _statusRepo.CreateAsync(new Tickflo.Core.Entities.TicketStatus
+                    var maxOrder = (await this._statusRepo.ListAsync(this.Workspace.Id)).DefaultIfEmpty().Max(s => s?.SortOrder ?? 0);
+                    await this._statusRepo.CreateAsync(new TicketStatus
                     {
-                        WorkspaceId = Workspace.Id,
+                        WorkspaceId = this.Workspace.Id,
                         Name = newStatusName,
                         Color = string.IsNullOrWhiteSpace(newStatusColor) ? "neutral" : newStatusColor,
                         SortOrder = maxOrder + 1
@@ -454,27 +603,30 @@ public class SettingsModel : WorkspacePageModel
                 }
                 else
                 {
-                    SetErrorMessage($"Status '{newStatusName}' already exists.");
+                    this.SetErrorMessage($"Status '{newStatusName}' already exists.");
                 }
             }
 
             var priorityMatches = form.Keys
-                .Select(k => Regex.Match(k, @"^priorities\[(\d+)\]\.(.+)$"))
+                .Select(k => MyRegex1().Match(k))
                 .Where(m => m.Success)
                 .GroupBy(m => int.Parse(m.Groups[1].Value));
 
-            var priorityList = await _priorityRepo.ListAsync(Workspace.Id);
+            var priorityList = await this._priorityRepo.ListAsync(this.Workspace.Id);
 
             foreach (var group in priorityMatches)
             {
                 var priorityId = group.Key;
                 var priority = priorityList.FirstOrDefault(x => x.Id == priorityId);
-                if (priority == null) continue;
+                if (priority == null)
+                {
+                    continue;
+                }
 
                 var deleteFlag = form[$"priorities[{priorityId}].delete"].ToString();
                 if (!string.IsNullOrEmpty(deleteFlag))
                 {
-                    await _priorityRepo.DeleteAsync(Workspace.Id, priorityId);
+                    await this._priorityRepo.DeleteAsync(this.Workspace.Id, priorityId);
                     changedCount++;
                     continue;
                 }
@@ -492,12 +644,12 @@ public class SettingsModel : WorkspacePageModel
                     ? (string.IsNullOrWhiteSpace(priority.Color) ? "neutral" : priority.Color)
                     : color.Trim();
 
-                if (int.TryParse(order, out int sortOrder))
+                if (int.TryParse(order, out var sortOrder))
                 {
                     priority.SortOrder = sortOrder;
                 }
 
-                await _priorityRepo.UpdateAsync(priority);
+                await this._priorityRepo.UpdateAsync(priority);
                 changedCount++;
             }
 
@@ -505,13 +657,13 @@ public class SettingsModel : WorkspacePageModel
             var newPriorityColor = (form["NewPriorityColor"].ToString() ?? "neutral").Trim();
             if (!string.IsNullOrWhiteSpace(newPriorityName))
             {
-                var exists = await _priorityRepo.FindAsync(Workspace.Id, newPriorityName);
+                var exists = await this._priorityRepo.FindAsync(this.Workspace.Id, newPriorityName);
                 if (exists == null)
                 {
-                    var maxOrder = (await _priorityRepo.ListAsync(Workspace.Id)).DefaultIfEmpty().Max(p => p?.SortOrder ?? 0);
-                    await _priorityRepo.CreateAsync(new Tickflo.Core.Entities.TicketPriority
+                    var maxOrder = (await this._priorityRepo.ListAsync(this.Workspace.Id)).DefaultIfEmpty().Max(p => p?.SortOrder ?? 0);
+                    await this._priorityRepo.CreateAsync(new TicketPriority
                     {
-                        WorkspaceId = Workspace.Id,
+                        WorkspaceId = this.Workspace.Id,
                         Name = newPriorityName,
                         Color = string.IsNullOrWhiteSpace(newPriorityColor) ? "neutral" : newPriorityColor,
                         SortOrder = maxOrder + 1
@@ -520,7 +672,7 @@ public class SettingsModel : WorkspacePageModel
                 }
                 else
                 {
-                    SetErrorMessage($"Priority '{newPriorityName}' already exists.");
+                    this.SetErrorMessage($"Priority '{newPriorityName}' already exists.");
                 }
             }
 
@@ -532,13 +684,16 @@ public class SettingsModel : WorkspacePageModel
             foreach (var group in typeMatches)
             {
                 var typeId = group.Key;
-                var type = await _typeRepo.FindByIdAsync(Workspace.Id, typeId);
-                if (type == null) continue;
+                var type = await this._typeRepo.FindByIdAsync(this.Workspace.Id, typeId);
+                if (type == null)
+                {
+                    continue;
+                }
 
                 var deleteFlag = form[$"types[{typeId}].delete"].ToString();
                 if (!string.IsNullOrEmpty(deleteFlag))
                 {
-                    await _typeRepo.DeleteAsync(Workspace.Id, typeId);
+                    await this._typeRepo.DeleteAsync(this.Workspace.Id, typeId);
                     changedCount++;
                     continue;
                 }
@@ -556,12 +711,12 @@ public class SettingsModel : WorkspacePageModel
                     ? (string.IsNullOrWhiteSpace(type.Color) ? "neutral" : type.Color)
                     : color.Trim();
 
-                if (int.TryParse(order, out int sortOrder))
+                if (int.TryParse(order, out var sortOrder))
                 {
                     type.SortOrder = sortOrder;
                 }
 
-                await _typeRepo.UpdateAsync(type);
+                await this._typeRepo.UpdateAsync(type);
                 changedCount++;
             }
 
@@ -569,13 +724,13 @@ public class SettingsModel : WorkspacePageModel
             var newTypeColor = (form["NewTypeColor"].ToString() ?? "neutral").Trim();
             if (!string.IsNullOrWhiteSpace(newTypeName))
             {
-                var exists = await _typeRepo.FindByNameAsync(Workspace.Id, newTypeName);
+                var exists = await this._typeRepo.FindByNameAsync(this.Workspace.Id, newTypeName);
                 if (exists == null)
                 {
-                    var maxOrder = (await _typeRepo.ListAsync(Workspace.Id)).DefaultIfEmpty().Max(t => t?.SortOrder ?? 0);
-                    await _typeRepo.CreateAsync(new Tickflo.Core.Entities.TicketType
+                    var maxOrder = (await this._typeRepo.ListAsync(this.Workspace.Id)).DefaultIfEmpty().Max(t => t?.SortOrder ?? 0);
+                    await this._typeRepo.CreateAsync(new TicketType
                     {
-                        WorkspaceId = Workspace.Id,
+                        WorkspaceId = this.Workspace.Id,
                         Name = newTypeName,
                         Color = string.IsNullOrWhiteSpace(newTypeColor) ? "neutral" : newTypeColor,
                         SortOrder = maxOrder + 1
@@ -584,23 +739,28 @@ public class SettingsModel : WorkspacePageModel
                 }
                 else
                 {
-                    SetErrorMessage($"Type '{newTypeName}' already exists.");
+                    this.SetErrorMessage($"Type '{newTypeName}' already exists.");
                 }
             }
 
-            SetSuccessMessage(changedCount > 0
+            this.SetSuccessMessage(changedCount > 0
                 ? $"Saved {changedCount} change(s) successfully."
                 : "Nothing to update.");
 
-            return RedirectToPage("/Workspaces/Settings", new { slug = Workspace.Slug });
+            return this.RedirectToPage("/Workspaces/Settings", new { slug = this.Workspace.Slug });
         }
         catch (Exception ex)
         {
-            SetErrorMessage($"Error saving settings: {ex.Message}");
-            await LoadDataAsync(Workspace);
-            return Page();
+            this.SetErrorMessage($"Error saving settings: {ex.Message}");
+            await this.LoadDataAsync(this.Workspace);
+            return this.Page();
         }
     }
+
+    [GeneratedRegex(@"^statuses\[(\d+)\]\.(.+)$")]
+    private static partial Regex MyRegex();
+    [GeneratedRegex(@"^priorities\[(\d+)\]\.(.+)$")]
+    private static partial Regex MyRegex1();
 }
 
 

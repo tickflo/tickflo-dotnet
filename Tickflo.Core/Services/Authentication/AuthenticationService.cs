@@ -1,11 +1,11 @@
+namespace Tickflo.Core.Services.Authentication;
+
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
-using WorkspaceEntity = Tickflo.Core.Entities.Workspace;
+using WorkspaceEntity = Entities.Workspace;
 
-namespace Tickflo.Core.Services.Authentication;
-
-public class AuthenticationService(
+public partial class AuthenticationService(
     IUserRepository userRepository,
     IPasswordHasher passwordHasher,
     ITokenRepository tokenRepository,
@@ -25,21 +25,21 @@ public class AuthenticationService(
     #endregion
 
     private readonly IUserRepository _userRepository = userRepository;
-        private readonly IPasswordHasher _passwordHasher = passwordHasher;
-        private readonly ITokenRepository _tokenRepository = tokenRepository;
-        private readonly IWorkspaceRepository? _workspaceRepository = workspaceRepository;
-        private readonly IUserWorkspaceRepository? _userWorkspaceRepository = userWorkspaceRepository;
-        private readonly IWorkspaceRoleBootstrapper? _workspaceRoleBootstrapper = workspaceRoleBootstrapper;
+    private readonly IPasswordHasher _passwordHasher = passwordHasher;
+    private readonly ITokenRepository _tokenRepository = tokenRepository;
+    private readonly IWorkspaceRepository? _workspaceRepository = workspaceRepository;
+    private readonly IUserWorkspaceRepository? _userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IWorkspaceRoleBootstrapper? _workspaceRoleBootstrapper = workspaceRoleBootstrapper;
 
     public async Task<AuthenticationResult> AuthenticateAsync(string email, string password)
     {
         var result = new AuthenticationResult();
-        var user = await _userRepository.FindByEmailAsync(email);
-        
+        var user = await this._userRepository.FindByEmailAsync(email);
+
         if (user == null)
         {
             result.ErrorMessage = InvalidCredentialsError;
-            PreventTimingAttack();
+            this.PreventTimingAttack();
             return result;
         }
 
@@ -49,17 +49,17 @@ public class AuthenticationService(
             return result;
         }
 
-        if (!_passwordHasher.Verify($"{email}{password}", user.PasswordHash))
+        if (!this._passwordHasher.Verify($"{email}{password}", user.PasswordHash))
         {
             result.ErrorMessage = InvalidCredentialsError;
             return result;
         }
 
-        var token = await _tokenRepository.CreateForUserIdAsync(user.Id);
+        var token = await this._tokenRepository.CreateForUserIdAsync(user.Id);
         result.Success = true;
         result.UserId = user.Id;
         result.Token = token.Value;
-        result.WorkspaceSlug = await GetUserWorkspaceSlugAsync(user.Id);
+        result.WorkspaceSlug = await this.GetUserWorkspaceSlugAsync(user.Id);
 
         return result;
     }
@@ -68,21 +68,21 @@ public class AuthenticationService(
     {
         var result = new AuthenticationResult();
 
-        if (await _userRepository.FindByEmailAsync(email) != null)
+        if (await this._userRepository.FindByEmailAsync(email) != null)
         {
             result.ErrorMessage = AccountExistsError;
             return result;
         }
 
-        var user = await CreateUserAsync(name, email, recoveryEmail, password);
-        var workspace = await CreateWorkspaceWithUserAsync(workspaceName, user.Id);
-        
-        if (_workspaceRoleBootstrapper != null)
+        var user = await this.CreateUserAsync(name, email, recoveryEmail, password);
+        var workspace = await this.CreateWorkspaceWithUserAsync(workspaceName, user.Id);
+
+        if (this._workspaceRoleBootstrapper != null)
         {
-            await _workspaceRoleBootstrapper.BootstrapAdminAsync(workspace.Id, user.Id);
+            await this._workspaceRoleBootstrapper.BootstrapAdminAsync(workspace.Id, user.Id);
         }
 
-        var token = await _tokenRepository.CreateForUserIdAsync(user.Id);
+        var token = await this._tokenRepository.CreateForUserIdAsync(user.Id);
         result.Success = true;
         result.UserId = user.Id;
         result.Token = token.Value;
@@ -91,19 +91,16 @@ public class AuthenticationService(
         return result;
     }
 
-    private void PreventTimingAttack()
-    {
-        _passwordHasher.Verify("password", DummyPasswordHash);
-    }
+    private void PreventTimingAttack() => this._passwordHasher.Verify("password", DummyPasswordHash);
 
     private async Task<string?> GetUserWorkspaceSlugAsync(int userId)
     {
-        if (_userWorkspaceRepository != null && _workspaceRepository != null)
+        if (this._userWorkspaceRepository != null && this._workspaceRepository != null)
         {
-            var uw = await _userWorkspaceRepository.FindAcceptedForUserAsync(userId);
+            var uw = await this._userWorkspaceRepository.FindAcceptedForUserAsync(userId);
             if (uw != null)
             {
-                var ws = await _workspaceRepository.FindByIdAsync(uw.WorkspaceId);
+                var ws = await this._workspaceRepository.FindByIdAsync(uw.WorkspaceId);
                 return ws?.Slug;
             }
         }
@@ -112,7 +109,7 @@ public class AuthenticationService(
 
     private async Task<User> CreateUserAsync(string name, string email, string recoveryEmail, string password)
     {
-        var passwordHash = _passwordHasher.Hash($"{email}{password}");
+        var passwordHash = this._passwordHasher.Hash($"{email}{password}");
         var user = new User
         {
             Name = name,
@@ -122,18 +119,18 @@ public class AuthenticationService(
             CreatedAt = DateTime.UtcNow
         };
 
-        await _userRepository.AddAsync(user);
+        await this._userRepository.AddAsync(user);
         return user;
     }
 
     private async Task<WorkspaceEntity> CreateWorkspaceWithUserAsync(string workspaceName, int userId)
     {
-        if (_workspaceRepository == null || _userWorkspaceRepository == null)
+        if (this._workspaceRepository == null || this._userWorkspaceRepository == null)
         {
             throw new InvalidOperationException(WorkspaceRepositoriesNotConfiguredError);
         }
 
-        var slug = await GenerateUniqueSlugAsync(workspaceName);
+        var slug = await this.GenerateUniqueSlugAsync(workspaceName);
         var workspace = new WorkspaceEntity
         {
             Name = workspaceName,
@@ -142,7 +139,7 @@ public class AuthenticationService(
             CreatedBy = userId
         };
 
-        await _workspaceRepository.AddAsync(workspace);
+        await this._workspaceRepository.AddAsync(workspace);
 
         var userWorkspace = new UserWorkspace
         {
@@ -153,7 +150,7 @@ public class AuthenticationService(
             CreatedBy = userId
         };
 
-        await _userWorkspaceRepository.AddAsync(userWorkspace);
+        await this._userWorkspaceRepository.AddAsync(userWorkspace);
         return workspace;
     }
 
@@ -163,7 +160,7 @@ public class AuthenticationService(
         var slug = baseSlug;
         var counter = 1;
 
-        while (!string.IsNullOrEmpty(slug) && await _workspaceRepository!.FindBySlugAsync(slug) != null)
+        while (!string.IsNullOrEmpty(slug) && await this._workspaceRepository!.FindBySlugAsync(slug) != null)
         {
             slug = $"{baseSlug}-{counter}";
             counter++;
@@ -175,14 +172,21 @@ public class AuthenticationService(
     private static string Slugify(string input)
     {
         var lower = input.ToLowerInvariant();
-        var chars = System.Text.RegularExpressions.Regex.Replace(lower, SlugPattern, string.Empty);
-        var collapsed = System.Text.RegularExpressions.Regex.Replace(chars, WhitespacePattern, HyphenReplacement);
-        
+        var chars = MyRegex().Replace(lower, string.Empty);
+        var collapsed = MyRegex1().Replace(chars, HyphenReplacement);
+
         if (collapsed.Length > MaxSlugLength)
-            collapsed = collapsed.Substring(0, MaxSlugLength);
-        
+        {
+            collapsed = collapsed[..MaxSlugLength];
+        }
+
         return collapsed.Trim('-');
     }
+
+    [System.Text.RegularExpressions.GeneratedRegex(SlugPattern)]
+    private static partial System.Text.RegularExpressions.Regex MyRegex();
+    [System.Text.RegularExpressions.GeneratedRegex(WhitespacePattern)]
+    private static partial System.Text.RegularExpressions.Regex MyRegex1();
 }
 
 

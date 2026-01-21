@@ -1,12 +1,12 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Data;
+
+using Tickflo.Core.Entities;
 
 public interface IUserNotificationPreferenceRepository
 {
-    Task<List<UserNotificationPreference>> GetPreferencesForUserAsync(int userId);
-    Task<UserNotificationPreference?> GetPreferenceAsync(int userId, string notificationType);
-    Task SavePreferenceAsync(UserNotificationPreference preference);
-    Task SavePreferencesAsync(List<UserNotificationPreference> preferences);
-    Task ResetToDefaultsAsync(int userId);
+    public Task<List<UserNotificationPreference>> GetPreferencesForUserAsync(int userId);
+    public Task<UserNotificationPreference?> GetPreferenceAsync(int userId, string notificationType);
+    public Task SavePreferenceAsync(UserNotificationPreference preference);
+    public Task SavePreferencesAsync(List<UserNotificationPreference> preferences);
+    public Task ResetToDefaultsAsync(int userId);
 }

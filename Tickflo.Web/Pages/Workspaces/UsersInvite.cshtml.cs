@@ -1,36 +1,30 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Http;
-using Tickflo.Core.Entities;
-using System.ComponentModel.DataAnnotations;
-using System.Security.Claims;
-using Tickflo.Core.Services.Authentication;
-using Tickflo.Core.Services.Email;
-using Tickflo.Core.Utils;
-using System.Security.Cryptography;
-using Tickflo.Core.Data;
-using Tickflo.Core.Services;
-using Microsoft.AspNetCore.Authorization;
-using Tickflo.Core.Services.Views;
-using Tickflo.Core.Services.Users;
-
 namespace Tickflo.Web.Pages.Workspaces;
 
+using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Tickflo.Core.Data;
+using Tickflo.Core.Entities;
+using Tickflo.Core.Services.Authentication;
+using Tickflo.Core.Services.Email;
+using Tickflo.Core.Services.Users;
+using Tickflo.Core.Services.Views;
+
 [Authorize]
-public class UsersInviteModel : WorkspacePageModel
+public class UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IPasswordHasher passwordHasher, IEmailSenderService emailSender, INotificationRepository notificationRepository, ITokenRepository tokenRepo, IRoleRepository roleRepo, IUserInvitationService invitationService, IWorkspaceUsersInviteViewService viewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository _workspaceRepo;
-    private readonly IUserRepository _userRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
-    private readonly IPasswordHasher _passwordHasher;
-    private readonly IEmailSender _emailSender;
+    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
+    private readonly IUserRepository _userRepo = userRepo;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
+    private readonly IPasswordHasher _passwordHasher = passwordHasher;
+    private readonly IEmailSenderService _emailSender = emailSender;
     private readonly IEmailTemplateService _emailTemplateService;
-    private readonly INotificationRepository _notificationRepository;
-    private readonly ITokenRepository _tokenRepo;
-    private readonly IRoleRepository _roleRepo;
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
-    private readonly IUserInvitationService _invitationService;
-    private readonly IWorkspaceUsersInviteViewService _viewService;
+    private readonly INotificationRepository _notificationRepository = notificationRepository;
+    private readonly ITokenRepository _tokenRepo = tokenRepo;
+    private readonly IRoleRepository _roleRepo = roleRepo;
+    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
+    private readonly IUserInvitationService _invitationService = invitationService;
+    private readonly IWorkspaceUsersInviteViewService _viewService = viewService;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
     [BindProperty]
@@ -39,89 +33,86 @@ public class UsersInviteModel : WorkspacePageModel
     public string Email { get; set; } = string.Empty;
     [BindProperty]
     public string Role { get; set; } = "Member";
-
-    public UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepo, IUserWorkspaceRepository userWorkspaceRepo, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IPasswordHasher passwordHasher, IEmailSender emailSender, INotificationRepository notificationRepository, ITokenRepository tokenRepo, IRoleRepository roleRepo, IUserInvitationService invitationService, IWorkspaceUsersInviteViewService viewService)
-    {
-        _workspaceRepo = workspaceRepo;
-        _userRepo = userRepo;
-        _userWorkspaceRepo = userWorkspaceRepo;
-        _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-        _passwordHasher = passwordHasher;
-        _emailSender = emailSender;
-        _notificationRepository = notificationRepository;
-        _tokenRepo = tokenRepo;
-        _roleRepo = roleRepo;
-        _invitationService = invitationService;
-        _viewService = viewService;
-    }
     public bool CanViewUsers { get; private set; }
     public bool CanCreateUsers { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {
-        WorkspaceSlug = slug;
-        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
-        if (loadResult is IActionResult actionResult) return actionResult;
-        
+        this.WorkspaceSlug = slug;
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        if (loadResult is IActionResult actionResult)
+        {
+            return actionResult;
+        }
+
         var (workspace, userId) = (WorkspaceUserLoadResult)loadResult;
-        Workspace = workspace;
+        this.Workspace = workspace;
 
-        var viewData = await _viewService.BuildAsync(Workspace!.Id, userId);
-        if (EnsurePermissionOrForbid(viewData.CanViewUsers && viewData.CanCreateUsers) is IActionResult permCheck) return permCheck;
+        var viewData = await this._viewService.BuildAsync(this.Workspace!.Id, userId);
+        if (this.EnsurePermissionOrForbid(viewData.CanViewUsers && viewData.CanCreateUsers) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
 
-        CanViewUsers = viewData.CanViewUsers;
-        CanCreateUsers = viewData.CanCreateUsers;
-        return Page();
+        this.CanViewUsers = viewData.CanViewUsers;
+        this.CanCreateUsers = viewData.CanCreateUsers;
+        return this.Page();
     }
 
     public async Task<IActionResult> OnPostAsync(string slug)
     {
-        WorkspaceSlug = slug;
-        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
-        if (loadResult is IActionResult actionResult) return actionResult;
-        
-        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
-        Workspace = workspace;
-
-        var viewData = await _viewService.BuildAsync(Workspace!.Id, currentUserId);
-        if (EnsurePermissionOrForbid(viewData.CanViewUsers && viewData.CanCreateUsers) is IActionResult permCheck) return permCheck;
-
-        CanViewUsers = viewData.CanViewUsers;
-        CanCreateUsers = viewData.CanCreateUsers;
-
-        var ws = Workspace;
-        if (ws == null)
+        this.WorkspaceSlug = slug;
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        if (loadResult is IActionResult actionResult)
         {
-            return Forbid();
+            return actionResult;
         }
 
-        if (!ModelState.IsValid)
+        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
+        this.Workspace = workspace;
+
+        var viewData = await this._viewService.BuildAsync(this.Workspace!.Id, currentUserId);
+        if (this.EnsurePermissionOrForbid(viewData.CanViewUsers && viewData.CanCreateUsers) is IActionResult permCheck)
         {
-            return Page();
+            return permCheck;
+        }
+
+        this.CanViewUsers = viewData.CanViewUsers;
+        this.CanCreateUsers = viewData.CanCreateUsers;
+
+        var ws = this.Workspace;
+        if (ws == null)
+        {
+            return this.Forbid();
+        }
+
+        if (!this.ModelState.IsValid)
+        {
+            return this.Page();
         }
 
         try
         {
             List<int>? roleIds = null;
-            var selectedRoleName = Role?.Trim();
+            var selectedRoleName = this.Role?.Trim();
             if (!string.IsNullOrWhiteSpace(selectedRoleName))
             {
-                var role = await _roleRepo.FindByNameAsync(ws.Id, selectedRoleName);
+                var role = await this._roleRepo.FindByNameAsync(ws.Id, selectedRoleName);
                 if (role == null)
                 {
                     var adminFlag = string.Equals(selectedRoleName, "Admin", StringComparison.OrdinalIgnoreCase);
-                    role = await _roleRepo.AddAsync(ws.Id, selectedRoleName, adminFlag, currentUserId);
+                    role = await this._roleRepo.AddAsync(ws.Id, selectedRoleName, adminFlag, currentUserId);
                 }
-                roleIds = new List<int> { role.Id };
+                roleIds = [role.Id];
             }
 
-            var result = await _invitationService.InviteUserAsync(ws.Id, Email.Trim(), currentUserId, roleIds);
+            var result = await this._invitationService.InviteUserAsync(ws.Id, this.Email.Trim(), currentUserId, roleIds);
 
-            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var baseUrl = $"{this.Request.Scheme}://{this.Request.Host}";
             var confirmationLink = baseUrl + result.ConfirmationLink;
             var acceptLink = baseUrl + result.AcceptLink;
             var setPasswordLink = baseUrl + result.ResetPasswordLink;
-            
+
             // Template Type ID 2 = Workspace Invite (new user)
             var variables = new Dictionary<string, string>
             {
@@ -131,9 +122,9 @@ public class UsersInviteModel : WorkspacePageModel
                 { "ACCEPT_LINK", acceptLink },
                 { "SET_PASSWORD_LINK", setPasswordLink }
             };
-            
-            var (subject, body) = await _emailTemplateService.RenderTemplateAsync(EmailTemplateType.WorkspaceInviteNewUser, variables, ws.Id);
-            await _emailSender.SendAsync(result.User.Email!, subject, body);
+
+            var (subject, body) = await this._emailTemplateService.RenderTemplateAsync(EmailTemplateType.WorkspaceInviteNewUser, variables, ws.Id);
+            await this._emailSender.SendAsync(result.User.Email!, subject, body);
 
             // Create a notification record in the database
             var notification = new Notification
@@ -151,16 +142,16 @@ public class UsersInviteModel : WorkspacePageModel
                 CreatedBy = currentUserId
             };
 
-            await _notificationRepository.AddAsync(notification);
+            await this._notificationRepository.AddAsync(notification);
 
-            SetSuccessMessage($"Invite created for '{Email}'" + (!string.IsNullOrWhiteSpace(Role) ? $" as {Role}" : "") + ".");
+            this.SetSuccessMessage($"Invite created for '{this.Email}'" + (!string.IsNullOrWhiteSpace(this.Role) ? $" as {this.Role}" : "") + ".");
         }
         catch (InvalidOperationException ex)
         {
-            SetErrorMessage(ex.Message);
-            return Page();
+            this.SetErrorMessage(ex.Message);
+            return this.Page();
         }
-        return RedirectToPage("/Workspaces/Users", new { slug });
+        return this.RedirectToPage("/Workspaces/Users", new { slug });
     }
 }
 

@@ -1,7 +1,7 @@
+namespace Tickflo.Core.Data;
+
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.Core.Data;
 
 /// <summary>
 /// Data access implementation for ticket comment persistence.

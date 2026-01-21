@@ -1,5 +1,3 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Data;
 
 public class EffectiveSectionPermission
@@ -13,8 +11,8 @@ public class EffectiveSectionPermission
 
 public interface IRolePermissionRepository
 {
-    Task<List<EffectiveSectionPermission>> ListByRoleAsync(int roleId);
-    Task UpsertAsync(int roleId, IEnumerable<EffectiveSectionPermission> permissions, int? actorUserId = null);
-    Task<Dictionary<string, EffectiveSectionPermission>> GetEffectivePermissionsForUserAsync(int workspaceId, int userId);
-    Task<string> GetTicketViewScopeForUserAsync(int workspaceId, int userId, bool isAdmin);
+    public Task<List<EffectiveSectionPermission>> ListByRoleAsync(int roleId);
+    public Task UpsertAsync(int roleId, IEnumerable<EffectiveSectionPermission> permissions, int? actorUserId = null);
+    public Task<Dictionary<string, EffectiveSectionPermission>> GetEffectivePermissionsForUserAsync(int workspaceId, int userId);
+    public Task<string> GetTicketViewScopeForUserAsync(int workspaceId, int userId, bool isAdmin);
 }

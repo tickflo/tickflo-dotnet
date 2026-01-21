@@ -1,37 +1,37 @@
+namespace Tickflo.Core.Data;
+
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
 
-namespace Tickflo.Core.Data;
-
 public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbContext(options)
 {
-    public DbSet<User> Users => Set<User>();
-    public DbSet<Token> Tokens => Set<Token>();
-    public DbSet<Workspace> Workspaces => Set<Workspace>();
-    public DbSet<UserWorkspace> UserWorkspaces => Set<UserWorkspace>();
-    public DbSet<Role> Roles => Set<Role>();
-    public DbSet<UserWorkspaceRole> UserWorkspaceRoles => Set<UserWorkspaceRole>();
-    public DbSet<Location> Locations => Set<Location>();
-    public DbSet<Report> Reports => Set<Report>();
-    public DbSet<ReportRun> ReportRuns => Set<ReportRun>();
-    public DbSet<Contact> Contacts => Set<Contact>();
-    public DbSet<ContactLocation> ContactLocations => Set<ContactLocation>();
-    public DbSet<Ticket> Tickets => Set<Ticket>();
-    public DbSet<Inventory> Inventory => Set<Inventory>();
-    public DbSet<TicketInventory> TicketInventories => Set<TicketInventory>();
-    public DbSet<TicketStatus> TicketStatuses => Set<TicketStatus>();
-    public DbSet<TicketPriority> TicketPriorities => Set<TicketPriority>();
-    public DbSet<TicketType> TicketTypes => Set<TicketType>();
-    public DbSet<TicketHistory> TicketHistory => Set<TicketHistory>();
-    public DbSet<TicketComment> TicketComments => Set<TicketComment>();
-    public DbSet<Team> Teams => Set<Team>();
-    public DbSet<TeamMember> TeamMembers => Set<TeamMember>();
-    public DbSet<Permission> Permissions => Set<Permission>();
-    public DbSet<RolePermissionLink> RolePermissions => Set<RolePermissionLink>();
-    public DbSet<Notification> Notifications => Set<Notification>();
-    public DbSet<UserNotificationPreference> UserNotificationPreferences => Set<UserNotificationPreference>();
-    public DbSet<FileStorage> FileStorages => Set<FileStorage>();
-    public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
+    public DbSet<User> Users => this.Set<User>();
+    public DbSet<Token> Tokens => this.Set<Token>();
+    public DbSet<Workspace> Workspaces => this.Set<Workspace>();
+    public DbSet<UserWorkspace> UserWorkspaces => this.Set<UserWorkspace>();
+    public DbSet<Role> Roles => this.Set<Role>();
+    public DbSet<UserWorkspaceRole> UserWorkspaceRoles => this.Set<UserWorkspaceRole>();
+    public DbSet<Location> Locations => this.Set<Location>();
+    public DbSet<Report> Reports => this.Set<Report>();
+    public DbSet<ReportRun> ReportRuns => this.Set<ReportRun>();
+    public DbSet<Contact> Contacts => this.Set<Contact>();
+    public DbSet<ContactLocation> ContactLocations => this.Set<ContactLocation>();
+    public DbSet<Ticket> Tickets => this.Set<Ticket>();
+    public DbSet<Inventory> Inventory => this.Set<Inventory>();
+    public DbSet<TicketInventory> TicketInventories => this.Set<TicketInventory>();
+    public DbSet<TicketStatus> TicketStatuses => this.Set<TicketStatus>();
+    public DbSet<TicketPriority> TicketPriorities => this.Set<TicketPriority>();
+    public DbSet<TicketType> TicketTypes => this.Set<TicketType>();
+    public DbSet<TicketHistory> TicketHistory => this.Set<TicketHistory>();
+    public DbSet<TicketComment> TicketComments => this.Set<TicketComment>();
+    public DbSet<Team> Teams => this.Set<Team>();
+    public DbSet<TeamMember> TeamMembers => this.Set<TeamMember>();
+    public DbSet<Permission> Permissions => this.Set<Permission>();
+    public DbSet<RolePermissionLink> RolePermissions => this.Set<RolePermissionLink>();
+    public DbSet<Notification> Notifications => this.Set<Notification>();
+    public DbSet<UserNotificationPreference> UserNotificationPreferences => this.Set<UserNotificationPreference>();
+    public DbSet<FileStorage> FileStorages => this.Set<FileStorage>();
+    public DbSet<EmailTemplate> EmailTemplates => this.Set<EmailTemplate>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

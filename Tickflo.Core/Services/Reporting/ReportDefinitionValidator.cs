@@ -1,49 +1,50 @@
-using System.Text.Json;
-
 namespace Tickflo.Core.Services.Reporting;
+
+using System.Text.Json;
 
 public class ReportDefinitionValidator : IReportDefinitionValidator
 {
     private static readonly IReadOnlyDictionary<string, string[]> AvailableSources = new Dictionary<string, string[]>
     {
-        ["tickets"] = new []{ "Id","Subject","Description","Type","Priority","Status","AssignedUserId","AssignedTeamId","CreatedAt","UpdatedAt","ContactId","ChargeAmount","ChargeAmountAtLocation" },
-        ["contacts"] = new []{ "Id","Name","Email","Phone","Company","Title","Priority","Status","AssignedUserId","LastInteraction","CreatedAt" },
-        ["locations"] = new []{ "Id","Name","Address","Active","InventoryCount","TicketCount","OpenTicketCount","LastTicketAt" },
-        ["inventory"] = new []{ "Id","Sku","Name","Description","Quantity","LocationId","MinStock","Cost","Price","Category","Status","Tags","LastRestockAt","CreatedAt","UpdatedAt","TicketCount","OpenTicketCount","LastTicketAt" },
+        ["tickets"] = ["Id", "Subject", "Description", "Type", "Priority", "Status", "AssignedUserId", "AssignedTeamId", "CreatedAt", "UpdatedAt", "ContactId", "ChargeAmount", "ChargeAmountAtLocation"],
+        ["contacts"] = ["Id", "Name", "Email", "Phone", "Company", "Title", "Priority", "Status", "AssignedUserId", "LastInteraction", "CreatedAt"],
+        ["locations"] = ["Id", "Name", "Address", "Active", "InventoryCount", "TicketCount", "OpenTicketCount", "LastTicketAt"],
+        ["inventory"] = ["Id", "Sku", "Name", "Description", "Quantity", "LocationId", "MinStock", "Cost", "Price", "Category", "Status", "Tags", "LastRestockAt", "CreatedAt", "UpdatedAt", "TicketCount", "OpenTicketCount", "LastTicketAt"],
     };
 
     public ReportDefinition Parse(string? json)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(json)) 
-                return new ReportDefinition("tickets", new []{"Id","Subject","Status","CreatedAt"}, null);
-            
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return new ReportDefinition("tickets", ["Id", "Subject", "Status", "CreatedAt"], null);
+            }
+
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
             var src = root.TryGetProperty("source", out var s) ? s.GetString() ?? "tickets" : "tickets";
-            
-            string[] fields = Array.Empty<string>();
+
+            var fields = Array.Empty<string>();
             if (root.TryGetProperty("fields", out var f) && f.ValueKind == JsonValueKind.Array)
             {
-                fields = f.EnumerateArray()
+                fields = [.. f.EnumerateArray()
                     .Where(e => e.ValueKind == JsonValueKind.String)
                     .Select(e => e.GetString() ?? "")
-                    .Where(x => !string.IsNullOrWhiteSpace(x))
-                    .ToArray();
+                    .Where(x => !string.IsNullOrWhiteSpace(x))];
             }
-            
+
             string? filtersJson = null;
             if (root.TryGetProperty("filters", out var fl))
             {
                 filtersJson = fl.GetRawText();
             }
-            
+
             return new ReportDefinition(src, fields, filtersJson);
         }
-        catch 
-        { 
-            return new ReportDefinition("tickets", new []{"Id","Subject","Status","CreatedAt"}, null); 
+        catch
+        {
+            return new ReportDefinition("tickets", ["Id", "Subject", "Status", "CreatedAt"], null);
         }
     }
 

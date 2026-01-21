@@ -1,13 +1,13 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Data;
+
+using Tickflo.Core.Entities;
 
 public interface IRoleRepository
 {
-    Task<Role?> FindByNameAsync(int workspaceId, string name);
-    Task<Role> AddAsync(int workspaceId, string name, bool admin, int createdBy);
-    Task<List<Role>> ListForWorkspaceAsync(int workspaceId);
-    Task<Role?> FindByIdAsync(int id);
-    Task UpdateAsync(Role role);
-    Task DeleteAsync(int id);
+    public Task<Role?> FindByNameAsync(int workspaceId, string name);
+    public Task<Role> AddAsync(int workspaceId, string name, bool admin, int createdBy);
+    public Task<List<Role>> ListForWorkspaceAsync(int workspaceId);
+    public Task<Role?> FindByIdAsync(int id);
+    public Task UpdateAsync(Role role);
+    public Task DeleteAsync(int id);
 }

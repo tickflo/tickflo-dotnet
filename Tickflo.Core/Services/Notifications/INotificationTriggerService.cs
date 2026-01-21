@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Notifications;
+
+using Tickflo.Core.Entities;
 
 /// <summary>
 /// Behavior-focused service for triggering and managing notifications based on business events.
@@ -12,7 +12,7 @@ public interface INotificationTriggerService
     /// Notify relevant parties when a ticket is created.
     /// Notifies contact (if has account), assigned user/team, location owner.
     /// </summary>
-    Task NotifyTicketCreatedAsync(
+    public Task NotifyTicketCreatedAsync(
         int workspaceId,
         Ticket ticket,
         int createdByUserId);
@@ -21,7 +21,7 @@ public interface INotificationTriggerService
     /// Notify ticket assignee when assignment changes.
     /// Notifies previously assigned and newly assigned parties.
     /// </summary>
-    Task NotifyTicketAssignmentChangedAsync(
+    public Task NotifyTicketAssignmentChangedAsync(
         int workspaceId,
         Ticket ticket,
         int? previousUserId,
@@ -32,7 +32,7 @@ public interface INotificationTriggerService
     /// Notify relevant parties when ticket status changes.
     /// Different notifications for different status transitions.
     /// </summary>
-    Task NotifyTicketStatusChangedAsync(
+    public Task NotifyTicketStatusChangedAsync(
         int workspaceId,
         Ticket ticket,
         string previousStatus,
@@ -43,7 +43,7 @@ public interface INotificationTriggerService
     /// Notify relevant parties when a comment is added to a ticket.
     /// Notifies assigned user if they didn't create the comment.
     /// </summary>
-    Task NotifyTicketCommentAddedAsync(
+    public Task NotifyTicketCommentAddedAsync(
         int workspaceId,
         Ticket ticket,
         int commentedByUserId,
@@ -53,7 +53,7 @@ public interface INotificationTriggerService
     /// Notify user when they are added to a workspace.
     /// Sends invitation/welcome notification.
     /// </summary>
-    Task NotifyUserAddedToWorkspaceAsync(
+    public Task NotifyUserAddedToWorkspaceAsync(
         int workspaceId,
         int userId,
         int addedByUserId);
@@ -62,7 +62,7 @@ public interface INotificationTriggerService
     /// Notify workspace admins when a critical action occurs.
     /// Used for auditable changes like user removal, role changes, etc.
     /// </summary>
-    Task NotifyAdminsAsync(
+    public Task NotifyAdminsAsync(
         int workspaceId,
         string subject,
         string message,
@@ -71,7 +71,7 @@ public interface INotificationTriggerService
     /// <summary>
     /// Send bulk notifications to a group of users efficiently.
     /// </summary>
-    Task NotifyUsersAsync(
+    public Task NotifyUsersAsync(
         int workspaceId,
         List<int> userIds,
         string subject,
@@ -82,7 +82,7 @@ public interface INotificationTriggerService
     /// Send transactional email (password reset, email confirmation, etc).
     /// Not workspace-scoped as these are user-level notifications.
     /// </summary>
-    Task SendTransactionalEmailAsync(
+    public Task SendTransactionalEmailAsync(
         string email,
         string subject,
         string message);
@@ -90,7 +90,7 @@ public interface INotificationTriggerService
     /// <summary>
     /// Notify user about workflow completion (report ready, batch job done, etc).
     /// </summary>
-    Task NotifyWorkflowCompletionAsync(
+    public Task NotifyWorkflowCompletionAsync(
         int workspaceId,
         int userId,
         string workflowName,

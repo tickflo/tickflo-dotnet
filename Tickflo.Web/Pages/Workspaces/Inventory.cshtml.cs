@@ -1,17 +1,22 @@
+namespace Tickflo.Web.Pages.Workspaces;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
 
 using Tickflo.Core.Services.Common;
 using Tickflo.Core.Services.Views;
 using Tickflo.Core.Services.Workspace;
-namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class InventoryModel : WorkspacePageModel
+public class InventoryModel(
+    IWorkspaceRepository workspaces,
+    IUserWorkspaceRepository userWorkspaceRepo,
+    IInventoryRepository inventoryRepo,
+    ICurrentUserService currentUserService,
+    IWorkspaceAccessService workspaceAccessService,
+    IWorkspaceInventoryViewService viewService) : WorkspacePageModel
 {
     #region Constants
     private const string InventorySection = "inventory";
@@ -22,28 +27,12 @@ public class InventoryModel : WorkspacePageModel
     private const string ItemRestoredMessage = "Inventory item restored.";
     #endregion
 
-    private readonly IWorkspaceRepository _workspaces;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
-    private readonly IInventoryRepository _inventoryRepo;
-    private readonly ICurrentUserService _currentUserService;
-    private readonly IWorkspaceAccessService _workspaceAccessService;
-    private readonly IWorkspaceInventoryViewService _viewService;
-
-    public InventoryModel(
-        IWorkspaceRepository workspaces,
-        IUserWorkspaceRepository userWorkspaceRepo,
-        IInventoryRepository inventoryRepo,
-        ICurrentUserService currentUserService,
-        IWorkspaceAccessService workspaceAccessService,
-        IWorkspaceInventoryViewService viewService)
-    {
-        _workspaces = workspaces;
-        _userWorkspaceRepo = userWorkspaceRepo;
-        _inventoryRepo = inventoryRepo;
-        _currentUserService = currentUserService;
-        _workspaceAccessService = workspaceAccessService;
-        _viewService = viewService;
-    }
+    private readonly IWorkspaceRepository _workspaces = workspaces;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
+    private readonly IInventoryRepository _inventoryRepo = inventoryRepo;
+    private readonly ICurrentUserService _currentUserService = currentUserService;
+    private readonly IWorkspaceAccessService _workspaceAccessService = workspaceAccessService;
+    private readonly IWorkspaceInventoryViewService _viewService = viewService;
 
     [BindProperty(SupportsGet = true)]
     public string? Query { get; set; }
@@ -56,93 +45,111 @@ public class InventoryModel : WorkspacePageModel
     public bool CanCreateInventory { get; private set; }
     public bool CanEditInventory { get; private set; }
     public Workspace? Workspace { get; set; }
-    public IEnumerable<Inventory> Items { get; set; } = new List<Inventory>();
+    public IEnumerable<Inventory> Items { get; set; } = [];
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {
-        WorkspaceSlug = slug;
-        
-        var result = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaces, _userWorkspaceRepo, slug);
-        if (result is IActionResult actionResult) return actionResult;
-        
+        this.WorkspaceSlug = slug;
+
+        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaces, this._userWorkspaceRepo, slug);
+        if (result is IActionResult actionResult)
+        {
+            return actionResult;
+        }
+
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
-        Workspace = workspace;
+        this.Workspace = workspace;
 
-        var viewData = await _viewService.BuildAsync(Workspace!.Id, uid);
-        IsWorkspaceAdmin = viewData.IsWorkspaceAdmin;
-        CanCreateInventory = viewData.CanCreateInventory;
-        CanEditInventory = viewData.CanEditInventory;
+        var viewData = await this._viewService.BuildAsync(this.Workspace!.Id, uid);
+        this.IsWorkspaceAdmin = viewData.IsWorkspaceAdmin;
+        this.CanCreateInventory = viewData.CanCreateInventory;
+        this.CanEditInventory = viewData.CanEditInventory;
 
-        Items = viewData.Items;
-        if (!string.IsNullOrWhiteSpace(Query))
+        this.Items = viewData.Items;
+        if (!string.IsNullOrWhiteSpace(this.Query))
         {
-            Items = Items.Where(i => i.Name?.Contains(Query, StringComparison.OrdinalIgnoreCase) ?? false).ToList();
+            this.Items = this.Items.Where(i => i.Name?.Contains(this.Query, StringComparison.OrdinalIgnoreCase) ?? false).ToList();
         }
-        if (!string.IsNullOrWhiteSpace(Status))
+        if (!string.IsNullOrWhiteSpace(this.Status))
         {
-            Items = Items.Where(i => i.Status == Status).ToList();
+            this.Items = this.Items.Where(i => i.Status == this.Status).ToList();
         }
 
-        return Page();
+        return this.Page();
     }
 
     public async Task<IActionResult> OnPostArchiveAsync(string slug, int id)
     {
-        WorkspaceSlug = slug;
-        
-        if (await AuthorizeInventoryEditAsync(slug) is IActionResult authResult)
-            return authResult;
-        
-        var item = await _inventoryRepo.FindAsync(Workspace!.Id, id);
-        if (item == null) return NotFound();
+        this.WorkspaceSlug = slug;
 
-        await UpdateInventoryStatusAsync(item, ArchivedStatus);
-        SetSuccessMessage(ItemArchivedMessage);
-        
-        return RedirectToInventoryPage();
+        if (await this.AuthorizeInventoryEditAsync(slug) is IActionResult authResult)
+        {
+            return authResult;
+        }
+
+        var item = await this._inventoryRepo.FindAsync(this.Workspace!.Id, id);
+        if (item == null)
+        {
+            return this.NotFound();
+        }
+
+        await this.UpdateInventoryStatusAsync(item, ArchivedStatus);
+        this.SetSuccessMessage(ItemArchivedMessage);
+
+        return this.RedirectToInventoryPage();
     }
 
     public async Task<IActionResult> OnPostRestoreAsync(string slug, int id)
     {
-        WorkspaceSlug = slug;
-        
-        if (await AuthorizeInventoryEditAsync(slug) is IActionResult authResult)
-            return authResult;
-        
-        var item = await _inventoryRepo.FindAsync(Workspace!.Id, id);
-        if (item == null) return NotFound();
+        this.WorkspaceSlug = slug;
 
-        await UpdateInventoryStatusAsync(item, ActiveStatus);
-        SetSuccessMessage(ItemRestoredMessage);
-        
-        return RedirectToInventoryPage();
+        if (await this.AuthorizeInventoryEditAsync(slug) is IActionResult authResult)
+        {
+            return authResult;
+        }
+
+        var item = await this._inventoryRepo.FindAsync(this.Workspace!.Id, id);
+        if (item == null)
+        {
+            return this.NotFound();
+        }
+
+        await this.UpdateInventoryStatusAsync(item, ActiveStatus);
+        this.SetSuccessMessage(ItemRestoredMessage);
+
+        return this.RedirectToInventoryPage();
     }
 
     private async Task<IActionResult?> AuthorizeInventoryEditAsync(string slug)
     {
-        Workspace = await _workspaces.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
+        this.Workspace = await this._workspaces.FindBySlugAsync(slug);
+        if (this.Workspace == null)
+        {
+            return this.NotFound();
+        }
 
-        if (!_currentUserService.TryGetUserId(User, out var uid))
-            return Forbid();
+        if (!this._currentUserService.TryGetUserId(this.User, out var uid))
+        {
+            return this.Forbid();
+        }
 
-        bool allowed = await _workspaceAccessService.CanUserPerformActionAsync(
-            Workspace.Id, uid, InventorySection, EditAction);
-        
-        if (!allowed) return Forbid();
-        
+        var allowed = await this._workspaceAccessService.CanUserPerformActionAsync(
+            this.Workspace.Id, uid, InventorySection, EditAction);
+
+        if (!allowed)
+        {
+            return this.Forbid();
+        }
+
         return null;
     }
 
     private async Task UpdateInventoryStatusAsync(Inventory item, string status)
     {
         item.Status = status;
-        await _inventoryRepo.UpdateAsync(item);
+        await this._inventoryRepo.UpdateAsync(item);
     }
 
-    private IActionResult RedirectToInventoryPage()
-    {
-        return Redirect($"/workspaces/{Workspace!.Slug}/inventory");
-    }
+    private IActionResult RedirectToInventoryPage() => this.Redirect($"/workspaces/{this.Workspace!.Slug}/inventory");
 }
 

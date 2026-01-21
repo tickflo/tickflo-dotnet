@@ -1,13 +1,13 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Data;
+
+using Tickflo.Core.Entities;
 
 public interface IUserWorkspaceRepository
 {
-    Task AddAsync(UserWorkspace userWorkspace);
-    Task<UserWorkspace?> FindAcceptedForUserAsync(int userId);
-    Task<List<UserWorkspace>> FindForUserAsync(int userId);
-    Task<List<UserWorkspace>> FindForWorkspaceAsync(int workspaceId);
-    Task<UserWorkspace?> FindAsync(int userId, int workspaceId);
-    Task UpdateAsync(UserWorkspace uw);
+    public Task AddAsync(UserWorkspace userWorkspace);
+    public Task<UserWorkspace?> FindAcceptedForUserAsync(int userId);
+    public Task<List<UserWorkspace>> FindForUserAsync(int userId);
+    public Task<List<UserWorkspace>> FindForWorkspaceAsync(int workspaceId);
+    public Task<UserWorkspace?> FindAsync(int userId, int workspaceId);
+    public Task UpdateAsync(UserWorkspace uw);
 }

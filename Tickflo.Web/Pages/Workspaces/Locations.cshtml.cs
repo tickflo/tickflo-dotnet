@@ -1,18 +1,22 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using Tickflo.Core.Data;
-using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
-
-using Tickflo.Core.Services.Common;
-using Tickflo.Core.Services.Views;
-using Tickflo.Core.Services.Workspace;
-using Tickflo.Core.Services.Locations;
 namespace Tickflo.Web.Pages.Workspaces;
 
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Tickflo.Core.Data;
+using Tickflo.Core.Entities;
+using Tickflo.Core.Services.Common;
+using Tickflo.Core.Services.Locations;
+using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
+
 [Authorize]
-public class LocationsModel : WorkspacePageModel
+public class LocationsModel(
+    IWorkspaceRepository workspaceRepo,
+    IUserWorkspaceRepository userWorkspaceRepo,
+    ILocationRepository locationRepo,
+    ICurrentUserService currentUserService,
+    IWorkspaceAccessService workspaceAccessService,
+    IWorkspaceLocationsViewService viewService) : WorkspacePageModel
 {
     #region Constants
     private const string LocationDeletedFormat = "Location #{0} deleted.";
@@ -21,77 +25,69 @@ public class LocationsModel : WorkspacePageModel
     private const string EditAction = "edit";
     #endregion
 
-    private readonly IWorkspaceRepository _workspaceRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
-    private readonly ILocationRepository _locationRepo;
-    private readonly ICurrentUserService _currentUserService;
-    private readonly IWorkspaceAccessService _workspaceAccessService;
-    private readonly IWorkspaceLocationsViewService _viewService;
+    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
+    private readonly ILocationRepository _locationRepo = locationRepo;
+    private readonly ICurrentUserService _currentUserService = currentUserService;
+    private readonly IWorkspaceAccessService _workspaceAccessService = workspaceAccessService;
+    private readonly IWorkspaceLocationsViewService _viewService = viewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
-    public List<ILocationListingService.LocationItem> Locations { get; private set; } = new();
+    public List<ILocationListingService.LocationItem> Locations { get; private set; } = [];
     public bool CanCreateLocations { get; private set; }
     public bool CanEditLocations { get; private set; }
 
-    public LocationsModel(
-        IWorkspaceRepository workspaceRepo,
-        IUserWorkspaceRepository userWorkspaceRepo,
-        ILocationRepository locationRepo,
-        ICurrentUserService currentUserService,
-        IWorkspaceAccessService workspaceAccessService,
-        IWorkspaceLocationsViewService viewService)
-    {
-        _workspaceRepo = workspaceRepo;
-        _userWorkspaceRepo = userWorkspaceRepo;
-        _locationRepo = locationRepo;
-        _currentUserService = currentUserService;
-        _workspaceAccessService = workspaceAccessService;
-        _viewService = viewService;
-    }
-
     public async Task<IActionResult> OnGetAsync(string slug)
     {
-        WorkspaceSlug = slug;
-        
-        var result = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
-        if (result is IActionResult actionResult) return actionResult;
-        
+        this.WorkspaceSlug = slug;
+
+        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        if (result is IActionResult actionResult)
+        {
+            return actionResult;
+        }
+
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
-        Workspace = workspace;
+        this.Workspace = workspace;
 
-        var viewData = await _viewService.BuildAsync(Workspace!.Id, uid);
-        Locations = viewData.Locations;
-        CanCreateLocations = viewData.CanCreateLocations;
-        CanEditLocations = viewData.CanEditLocations;
+        var viewData = await this._viewService.BuildAsync(this.Workspace!.Id, uid);
+        this.Locations = viewData.Locations;
+        this.CanCreateLocations = viewData.CanCreateLocations;
+        this.CanEditLocations = viewData.CanEditLocations;
 
-        return Page();
+        return this.Page();
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(string slug, int locationId)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (EnsureWorkspaceExistsOrNotFound(Workspace) is IActionResult result) return result;
+        this.WorkspaceSlug = slug;
+        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        if (this.EnsureWorkspaceExistsOrNotFound(this.Workspace) is IActionResult result)
+        {
+            return result;
+        }
 
-        if (!_currentUserService.TryGetUserId(User, out var uid)) return Forbid();
+        if (!this._currentUserService.TryGetUserId(this.User, out var uid))
+        {
+            return this.Forbid();
+        }
 
-        if (!await CanUserEditLocationsAsync(uid))
-            return Forbid();
+        if (!await this.CanUserEditLocationsAsync(uid))
+        {
+            return this.Forbid();
+        }
 
-        var ok = await _locationRepo.DeleteAsync(Workspace!.Id, locationId);
-        SetSuccessMessage(ok 
-            ? string.Format(LocationDeletedFormat, locationId) 
+        var ok = await this._locationRepo.DeleteAsync(this.Workspace!.Id, locationId);
+        this.SetSuccessMessage(ok
+            ? string.Format(LocationDeletedFormat, locationId)
             : LocationNotFoundMessage);
-        
-        return RedirectToPage("/Workspaces/Locations", new { slug });
+
+        return this.RedirectToPage("/Workspaces/Locations", new { slug });
     }
 
-    private async Task<bool> CanUserEditLocationsAsync(int userId)
-    {
-        return await _workspaceAccessService.CanUserPerformActionAsync(
-            Workspace!.Id, userId, LocationsSection, EditAction);
-    }
+    private async Task<bool> CanUserEditLocationsAsync(int userId) => await this._workspaceAccessService.CanUserPerformActionAsync(
+            this.Workspace!.Id, userId, LocationsSection, EditAction);
 }
 
 

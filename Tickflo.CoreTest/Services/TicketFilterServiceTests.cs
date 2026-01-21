@@ -1,13 +1,12 @@
-using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Tickets;
-using Xunit;
-
 namespace Tickflo.CoreTest.Services;
+
+using Tickflo.Core.Entities;
+using Xunit;
 
 public class TicketFilterServiceTests
 {
     [Fact]
-    public void ApplyFilters_Filters_By_Status_And_Query()
+    public void ApplyFiltersFiltersByStatusAndQuery()
     {
         var svc = new TicketFilterService();
         var tickets = new List<Ticket>

@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Tickets;
+
+using Tickflo.Core.Entities;
 
 /// <summary>
 /// Service for managing ticket lifecycle operations including creation, updates, and history tracking.
@@ -12,14 +12,14 @@ public interface ITicketManagementService
     /// </summary>
     /// <param name="request">Ticket creation request</param>
     /// <returns>The created ticket</returns>
-    Task<Ticket> CreateTicketAsync(CreateTicketRequest request);
+    public Task<Ticket> CreateTicketAsync(CreateTicketRequest request);
 
     /// <summary>
     /// Updates an existing ticket and logs changes to history.
     /// </summary>
     /// <param name="request">Ticket update request</param>
     /// <returns>The updated ticket</returns>
-    Task<Ticket> UpdateTicketAsync(UpdateTicketRequest request);
+    public Task<Ticket> UpdateTicketAsync(UpdateTicketRequest request);
 
     /// <summary>
     /// Validates ticket assignment permissions.
@@ -27,7 +27,7 @@ public interface ITicketManagementService
     /// <param name="userId">User to assign</param>
     /// <param name="workspaceId">Workspace context</param>
     /// <returns>True if assignment is valid</returns>
-    Task<bool> ValidateUserAssignmentAsync(int userId, int workspaceId);
+    public Task<bool> ValidateUserAssignmentAsync(int userId, int workspaceId);
 
     /// <summary>
     /// Validates team assignment permissions.
@@ -35,7 +35,7 @@ public interface ITicketManagementService
     /// <param name="teamId">Team to assign</param>
     /// <param name="workspaceId">Workspace context</param>
     /// <returns>True if assignment is valid</returns>
-    Task<bool> ValidateTeamAssignmentAsync(int teamId, int workspaceId);
+    public Task<bool> ValidateTeamAssignmentAsync(int teamId, int workspaceId);
 
     /// <summary>
     /// Resolves the default assignee for a location.
@@ -43,7 +43,7 @@ public interface ITicketManagementService
     /// <param name="locationId">The location</param>
     /// <param name="workspaceId">Workspace context</param>
     /// <returns>User ID if a valid default assignee exists</returns>
-    Task<int?> ResolveDefaultAssigneeAsync(int locationId, int workspaceId);
+    public Task<int?> ResolveDefaultAssigneeAsync(int locationId, int workspaceId);
 
     /// <summary>
     /// Checks if a user can access a ticket based on scope rules.
@@ -53,14 +53,14 @@ public interface ITicketManagementService
     /// <param name="workspaceId">Workspace context</param>
     /// <param name="isAdmin">Whether user is admin</param>
     /// <returns>True if user can access ticket</returns>
-    Task<bool> CanUserAccessTicketAsync(Ticket ticket, int userId, int workspaceId, bool isAdmin);
+    public Task<bool> CanUserAccessTicketAsync(Ticket ticket, int userId, int workspaceId, bool isAdmin);
 
     /// <summary>
     /// Generates a display name for an assigned user.
     /// </summary>
     /// <param name="userId">The user ID</param>
     /// <returns>Formatted display name</returns>
-    Task<string?> GetAssigneeDisplayNameAsync(int userId);
+    public Task<string?> GetAssigneeDisplayNameAsync(int userId);
 
     /// <summary>
     /// Generates an inventory summary for SignalR broadcast.
@@ -68,8 +68,8 @@ public interface ITicketManagementService
     /// <param name="inventories">Ticket inventories</param>
     /// <param name="workspaceId">Workspace context</param>
     /// <returns>Inventory summary and details</returns>
-    Task<(string summary, string details)> GenerateInventorySummaryAsync(
-        List<TicketInventory> inventories, 
+    public Task<(string summary, string details)> GenerateInventorySummaryAsync(
+        List<TicketInventory> inventories,
         int workspaceId);
 }
 
@@ -89,7 +89,7 @@ public class CreateTicketRequest
     public int? AssignedUserId { get; set; }
     public int? AssignedTeamId { get; set; }
     public int? LocationId { get; set; }
-    public List<TicketInventory> Inventories { get; set; } = new();
+    public List<TicketInventory> Inventories { get; set; } = [];
 }
 
 /// <summary>

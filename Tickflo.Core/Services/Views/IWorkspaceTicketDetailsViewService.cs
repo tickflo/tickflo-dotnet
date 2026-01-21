@@ -1,7 +1,7 @@
-using Tickflo.Core.Entities;
-using InventoryEntity = Tickflo.Core.Entities.Inventory;
-
 namespace Tickflo.Core.Services.Views;
+
+using Tickflo.Core.Entities;
+using InventoryEntity = Entities.Inventory;
 
 /// <summary>
 /// Service for aggregating and preparing ticket details view data.
@@ -19,7 +19,7 @@ public interface IWorkspaceTicketDetailsViewService
     /// <param name="locationId">Location filter ID if provided</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>View data containing ticket, metadata, and permissions; null if access denied or ticket not found</returns>
-    Task<WorkspaceTicketDetailsViewData?> BuildAsync(
+    public Task<WorkspaceTicketDetailsViewData?> BuildAsync(
         int workspaceId,
         int ticketId,
         int userId,
@@ -45,62 +45,62 @@ public class WorkspaceTicketDetailsViewData
     /// <summary>
     /// All contacts for dropdown/selection.
     /// </summary>
-    public IReadOnlyList<Contact> Contacts { get; set; } = Array.Empty<Contact>();
+    public IReadOnlyList<Contact> Contacts { get; set; } = [];
 
     /// <summary>
     /// Ticket statuses with fallback defaults.
     /// </summary>
-    public IReadOnlyList<TicketStatus> Statuses { get; set; } = Array.Empty<TicketStatus>();
+    public IReadOnlyList<TicketStatus> Statuses { get; set; } = [];
 
     /// <summary>
     /// Map of status name to color.
     /// </summary>
-    public Dictionary<string, string> StatusColorByName { get; set; } = new();
+    public Dictionary<string, string> StatusColorByName { get; set; } = [];
 
     /// <summary>
     /// Ticket priorities with fallback defaults.
     /// </summary>
-    public IReadOnlyList<TicketPriority> Priorities { get; set; } = Array.Empty<TicketPriority>();
+    public IReadOnlyList<TicketPriority> Priorities { get; set; } = [];
 
     /// <summary>
     /// Map of priority name to color.
     /// </summary>
-    public Dictionary<string, string> PriorityColorByName { get; set; } = new();
+    public Dictionary<string, string> PriorityColorByName { get; set; } = [];
 
     /// <summary>
     /// Ticket types with fallback defaults.
     /// </summary>
-    public IReadOnlyList<TicketType> Types { get; set; } = Array.Empty<TicketType>();
+    public IReadOnlyList<TicketType> Types { get; set; } = [];
 
     /// <summary>
     /// Map of type name to color.
     /// </summary>
-    public Dictionary<string, string> TypeColorByName { get; set; } = new();
+    public Dictionary<string, string> TypeColorByName { get; set; } = [];
 
     /// <summary>
     /// Ticket history for existing tickets.
     /// </summary>
-    public IReadOnlyList<TicketHistory> History { get; set; } = Array.Empty<TicketHistory>();
+    public IReadOnlyList<TicketHistory> History { get; set; } = [];
 
     /// <summary>
     /// Workspace members for assignee selection.
     /// </summary>
-    public List<User> Members { get; set; } = new();
+    public List<User> Members { get; set; } = [];
 
     /// <summary>
     /// Teams in the workspace.
     /// </summary>
-    public List<Team> Teams { get; set; } = new();
+    public List<Team> Teams { get; set; } = [];
 
     /// <summary>
     /// InventoryEntity items available for reference.
     /// </summary>
-    public List<InventoryEntity> InventoryItems { get; set; } = new();
+    public List<InventoryEntity> InventoryItems { get; set; } = [];
 
     /// <summary>
     /// Location options for filtering.
     /// </summary>
-    public List<Location> LocationOptions { get; set; } = new();
+    public List<Location> LocationOptions { get; set; } = [];
 
     /// <summary>
     /// Whether user can view tickets.

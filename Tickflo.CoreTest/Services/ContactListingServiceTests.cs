@@ -1,15 +1,14 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Contacts;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 public class ContactListingServiceTests
 {
     [Fact]
-    public async Task GetListAsync_Filters_ByPriority_And_Search()
+    public async Task GetListAsyncFiltersByPriorityAndSearch()
     {
         var contacts = new List<Contact>
         {
@@ -19,7 +18,7 @@ public class ContactListingServiceTests
         var contactRepo = new Mock<IContactRepository>();
         contactRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(contacts);
         var priorityRepo = new Mock<ITicketPriorityRepository>();
-        priorityRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync(new List<TicketPriority>());
+        priorityRepo.Setup(r => r.ListAsync(1, CancellationToken.None)).ReturnsAsync([]);
 
         var svc = new ContactListingService(contactRepo.Object, priorityRepo.Object);
         var (items, _) = await svc.GetListAsync(1, "High", "Alice");

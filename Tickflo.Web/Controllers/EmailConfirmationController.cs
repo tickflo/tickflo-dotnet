@@ -1,3 +1,5 @@
+namespace Tickflo.Web.Controllers;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
@@ -6,30 +8,19 @@ using Tickflo.Core.Services.Common;
 using Tickflo.Core.Services.Email;
 using Tickflo.Core.Utils;
 
-namespace Tickflo.Web.Controllers;
-
 [ApiController]
-public class EmailConfirmationController : ControllerBase
+public class EmailConfirmationController(
+    IUserRepository users,
+    IEmailSenderService emailSender,
+    IEmailTemplateService emailTemplateService,
+    INotificationRepository notificationRepository,
+    ICurrentUserService currentUserService) : ControllerBase
 {
-    private readonly IUserRepository _users;
-    private readonly IEmailSender _emailSender;
-    private readonly IEmailTemplateService _emailTemplateService;
-    private readonly INotificationRepository _notificationRepository;
-    private readonly ICurrentUserService _currentUserService;
-
-    public EmailConfirmationController(
-        IUserRepository users,
-        IEmailSender emailSender,
-        IEmailTemplateService emailTemplateService,
-        INotificationRepository notificationRepository,
-        ICurrentUserService currentUserService)
-    {
-        _users = users;
-        _emailSender = emailSender;
-        _emailTemplateService = emailTemplateService;
-        _notificationRepository = notificationRepository;
-        _currentUserService = currentUserService;
-    }
+    private readonly IUserRepository _users = users;
+    private readonly IEmailSenderService _emailSender = emailSender;
+    private readonly IEmailTemplateService _emailTemplateService = emailTemplateService;
+    private readonly INotificationRepository _notificationRepository = notificationRepository;
+    private readonly ICurrentUserService _currentUserService = currentUserService;
 
     [HttpGet("email-confirmation/confirm")]
     [AllowAnonymous]
@@ -37,30 +28,30 @@ public class EmailConfirmationController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(code))
         {
-            return BadRequest("Invalid confirmation request.");
+            return this.BadRequest("Invalid confirmation request.");
         }
 
         var normalizedEmail = email.Trim().ToLowerInvariant();
-        var user = await _users.FindByEmailAsync(normalizedEmail);
+        var user = await this._users.FindByEmailAsync(normalizedEmail);
         if (user == null)
         {
-            return NotFound();
+            return this.NotFound();
         }
 
         if (user.EmailConfirmed)
         {
-            return Redirect("/email-confirmation/thank-you");
+            return this.Redirect("/email-confirmation/thank-you");
         }
 
         if (user.EmailConfirmationCode != code)
         {
-            return BadRequest("Invalid confirmation code.");
+            return this.BadRequest("Invalid confirmation code.");
         }
 
         user.EmailConfirmed = true;
         user.EmailConfirmationCode = null;
-        await _users.UpdateAsync(user);
-        return Redirect("/email-confirmation/thank-you");
+        await this._users.UpdateAsync(user);
+        return this.Redirect("/email-confirmation/thank-you");
     }
 
     [HttpPost("email-confirmation/resend")]
@@ -68,40 +59,40 @@ public class EmailConfirmationController : ControllerBase
     public async Task<IActionResult> Resend()
     {
         // Get the current authenticated user
-        if (!_currentUserService.TryGetUserId(User, out var userId))
+        if (!this._currentUserService.TryGetUserId(this.User, out var userId))
         {
-            return Unauthorized();
+            return this.Unauthorized();
         }
 
-        var user = await _users.FindByIdAsync(userId);
+        var user = await this._users.FindByIdAsync(userId);
         if (user == null)
         {
-            return NotFound("User not found.");
+            return this.NotFound("User not found.");
         }
 
         if (user.EmailConfirmed)
         {
-            return BadRequest("Email is already confirmed.");
+            return this.BadRequest("Email is already confirmed.");
         }
 
         // Generate a new confirmation code
         var newCode = TokenGenerator.GenerateToken(16);
         user.EmailConfirmationCode = newCode;
-        await _users.UpdateAsync(user);
+        await this._users.UpdateAsync(user);
 
         // Create confirmation link
-        var confirmationLink = $"{Request.Scheme}://{Request.Host}/email-confirmation/confirm?email={Uri.EscapeDataString(user.Email)}&code={Uri.EscapeDataString(newCode)}";
+        var confirmationLink = $"{this.Request.Scheme}://{this.Request.Host}/email-confirmation/confirm?email={Uri.EscapeDataString(user.Email)}&code={Uri.EscapeDataString(newCode)}";
 
         var variables = new Dictionary<string, string>
         {
             { "USER_NAME", user.Name },
             { "CONFIRMATION_LINK", confirmationLink }
         };
-        
-        var (subject, body) = await _emailTemplateService.RenderTemplateAsync(EmailTemplateType.EmailConfirmationRequest, variables);
-        
+
+        var (subject, body) = await this._emailTemplateService.RenderTemplateAsync(EmailTemplateType.EmailConfirmationRequest, variables);
+
         // Send the email
-        await _emailSender.SendAsync(user.Email, subject, body);
+        await this._emailSender.SendAsync(user.Email, subject, body);
 
         // Create a notification record in the database
         var notification = new Notification
@@ -119,17 +110,15 @@ public class EmailConfirmationController : ControllerBase
             CreatedBy = userId
         };
 
-        await _notificationRepository.AddAsync(notification);
+        await this._notificationRepository.AddAsync(notification);
 
-        return Ok(new { message = "Confirmation email resent successfully." });
+        return this.Ok(new { message = "Confirmation email resent successfully." });
     }
 
     [HttpPost("email-confirmation/dismiss")]
     [Authorize]
-    public IActionResult Dismiss()
-    {
+    public IActionResult Dismiss() =>
         // Dismiss the email confirmation banner for now
         // The user can still be prompted later, but won't see the banner immediately
-        return Ok(new { message = "Email confirmation reminder dismissed." });
-    }
+        this.Ok(new { message = "Email confirmation reminder dismissed." });
 }

@@ -1,22 +1,17 @@
-using Tickflo.Core.Data;
+namespace Tickflo.Core.Services.Views;
 
 using Tickflo.Core.Services.Workspace;
 
-namespace Tickflo.Core.Services.Views;
-
-public class WorkspaceFilesViewService : IWorkspaceFilesViewService
+public class WorkspaceFilesViewService(IWorkspaceAccessService workspaceAccessService) : IWorkspaceFilesViewService
 {
-    private readonly IWorkspaceAccessService _workspaceAccessService;
-
-    public WorkspaceFilesViewService(IWorkspaceAccessService workspaceAccessService)
-    {
-        _workspaceAccessService = workspaceAccessService;
-    }
+    private readonly IWorkspaceAccessService _workspaceAccessService = workspaceAccessService;
 
     public async Task<WorkspaceFilesViewData> BuildAsync(int workspaceId, int userId)
     {
-        var data = new WorkspaceFilesViewData();
-        data.CanViewFiles = await _workspaceAccessService.UserHasAccessAsync(userId, workspaceId);
+        var data = new WorkspaceFilesViewData
+        {
+            CanViewFiles = await this._workspaceAccessService.UserHasAccessAsync(userId, workspaceId)
+        };
         return data;
     }
 }

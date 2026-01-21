@@ -1,7 +1,7 @@
+namespace Tickflo.Core.Data;
+
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.Core.Data;
 
 public class ContactRepository(TickfloDbContext db) : IContactRepository
 {
@@ -27,8 +27,12 @@ public class ContactRepository(TickfloDbContext db) : IContactRepository
 
     public async Task DeleteAsync(int workspaceId, int id, CancellationToken ct = default)
     {
-        var entity = await FindAsync(workspaceId, id, ct);
-        if (entity is null) return;
+        var entity = await this.FindAsync(workspaceId, id, ct);
+        if (entity is null)
+        {
+            return;
+        }
+
         db.Contacts.Remove(entity);
         await db.SaveChangesAsync(ct);
     }

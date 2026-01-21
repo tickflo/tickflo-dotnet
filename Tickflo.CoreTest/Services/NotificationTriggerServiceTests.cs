@@ -1,15 +1,14 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Notifications;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 public class NotificationTriggerServiceTests
 {
     [Fact]
-    public async Task NotifyTicketAssignmentChangedAsync_Adds_Unassign_And_Assign()
+    public async Task NotifyTicketAssignmentChangedAsyncAddsUnassignAndAssign()
     {
         var repo = new Mock<INotificationRepository>();
         var svc = new NotificationTriggerService(repo.Object, Mock.Of<IUserRepository>(), Mock.Of<ITeamRepository>(), Mock.Of<ILocationRepository>(), Mock.Of<IUserWorkspaceRepository>(), Mock.Of<IWorkspaceRepository>(), Mock.Of<IContactRepository>());

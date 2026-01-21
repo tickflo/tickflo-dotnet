@@ -1,38 +1,29 @@
+namespace Tickflo.Core.Data;
+
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.Core.Data;
 
 public class UserRepository(TickfloDbContext db) : IUserRepository
 {
     private readonly TickfloDbContext _db = db;
 
-    public Task<User?> FindByEmailAsync(string email)
-    {
-        return _db.Users.FirstOrDefaultAsync(u => u.Email == email);
-    }
+    public Task<User?> FindByEmailAsync(string email) => this._db.Users.FirstOrDefaultAsync(u => u.Email == email);
 
     public async Task AddAsync(User user)
     {
-        _db.Users.Add(user);
-        await _db.SaveChangesAsync();
+        this._db.Users.Add(user);
+        await this._db.SaveChangesAsync();
     }
 
-    public Task<User?> FindByIdAsync(int userId)
-    {
-        return _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
-    }
+    public Task<User?> FindByIdAsync(int userId) => this._db.Users.FirstOrDefaultAsync(u => u.Id == userId);
 
-    public Task<List<User>> ListAsync()
-    {
-        return _db.Users
+    public Task<List<User>> ListAsync() => this._db.Users
             .OrderBy(u => u.Name)
             .ToListAsync();
-    }
 
     public async Task UpdateAsync(User user)
     {
-        _db.Users.Update(user);
-        await _db.SaveChangesAsync();
+        this._db.Users.Update(user);
+        await this._db.SaveChangesAsync();
     }
 }

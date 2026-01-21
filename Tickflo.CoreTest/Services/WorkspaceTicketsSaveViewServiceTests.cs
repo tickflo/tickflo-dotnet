@@ -1,14 +1,14 @@
-﻿using Moq;
-using Xunit;
+namespace Tickflo.CoreTest.Services;
+
+using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.CoreTest.Services;
+using Xunit;
 
 public class WorkspaceTicketsSaveViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_AdminCanCreateAndEdit()
+    public async Task BuildAsyncAdminCanCreateAndEdit()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
@@ -25,7 +25,7 @@ public class WorkspaceTicketsSaveViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_NonAdminCreateWithPerms()
+    public async Task BuildAsyncNonAdminCreateWithPerms()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
@@ -47,7 +47,7 @@ public class WorkspaceTicketsSaveViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_NonAdminEditWithPermsAndAccess()
+    public async Task BuildAsyncNonAdminEditWithPermsAndAccess()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
@@ -73,7 +73,7 @@ public class WorkspaceTicketsSaveViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_NonAdminDeniedEdit_NoPerms()
+    public async Task BuildAsyncNonAdminDeniedEditNoPerms()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
@@ -81,7 +81,7 @@ public class WorkspaceTicketsSaveViewServiceTests
 
         uwr.Setup(x => x.IsAdminAsync(4, 10)).ReturnsAsync(false);
         perms.Setup(x => x.GetEffectivePermissionsForUserAsync(10, 4))
-            .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>());
+            .ReturnsAsync([]);
 
         var svc = new WorkspaceTicketsSaveViewService(uwr.Object, perms.Object, ticketService.Object);
         var result = await svc.BuildAsync(10, 4, false);
@@ -92,7 +92,7 @@ public class WorkspaceTicketsSaveViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_NonAdminEditDeniedByScope()
+    public async Task BuildAsyncNonAdminEditDeniedByScope()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();

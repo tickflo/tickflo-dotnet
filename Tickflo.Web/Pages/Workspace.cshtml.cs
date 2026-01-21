@@ -1,17 +1,14 @@
+namespace Tickflo.Web.Pages;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Tickflo.Core.Config;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Config;
-using Tickflo.Core.Services;
-using System.Collections.Generic;
-using System.Linq;
-
 using Tickflo.Core.Services.Common;
 using Tickflo.Core.Services.Views;
 using Tickflo.Core.Services.Workspace;
-namespace Tickflo.Web.Pages;
 
 [Authorize]
 public class WorkspaceModel : PageModel
@@ -27,7 +24,7 @@ public class WorkspaceModel : PageModel
 
     public Workspace? Workspace { get; set; }
     public bool IsMember { get; set; }
-    public List<WorkspaceView> Workspaces { get; set; } = new();
+    public List<WorkspaceView> Workspaces { get; set; } = [];
 
     [BindProperty]
     public string NewWorkspaceName { get; set; } = string.Empty;
@@ -38,23 +35,23 @@ public class WorkspaceModel : PageModel
     public int ActiveMembers { get; set; }
     public string AvgResolutionLabel { get; set; } = string.Empty;
 
-    public List<TicketListItem> RecentTickets { get; set; } = new();
-    public List<MemberStat> TopMembers { get; set; } = new();
+    public List<TicketListItem> RecentTickets { get; set; } = [];
+    public List<MemberStat> TopMembers { get; set; } = [];
     public int RangeDays { get; set; } = 90;
     public string AssignmentFilter { get; set; } = "all";
-    public List<User> WorkspaceMembers { get; set; } = new();
-    public List<Team> WorkspaceTeams { get; set; } = new();
-    public List<TicketStatus> StatusList { get; set; } = new();
-    public List<TicketType> TypeList { get; set; } = new();
+    public List<User> WorkspaceMembers { get; set; } = [];
+    public List<Team> WorkspaceTeams { get; set; } = [];
+    public List<TicketStatus> StatusList { get; set; } = [];
+    public List<TicketType> TypeList { get; set; } = [];
     public bool CanViewDashboard { get; set; }
     public bool CanViewTickets { get; set; }
     public string TicketViewScope { get; set; } = string.Empty;
     public bool ShowEmailConfirmationPrompt { get; set; }
 
-    public Dictionary<string, int> PriorityCounts { get; set; } = new();
-    public List<TicketPriority> PriorityList { get; set; } = new();
+    public Dictionary<string, int> PriorityCounts { get; set; } = [];
+    public List<TicketPriority> PriorityList { get; set; } = [];
 
-    public List<ActivityPoint> ActivitySeries { get; set; } = new();
+    public List<ActivityPoint> ActivitySeries { get; set; } = [];
 
     public string DashboardTheme { get; set; } = "light";
     public string PrimaryColor { get; set; } = "primary";
@@ -62,7 +59,7 @@ public class WorkspaceModel : PageModel
     public string InfoColor { get; set; } = "info";
     public string WarningColor { get; set; } = "warning";
     public string ErrorColor { get; set; } = "error";
-    
+
     public bool PrimaryIsHex { get; set; }
     public bool SuccessIsHex { get; set; }
     public bool InfoIsHex { get; set; }
@@ -79,113 +76,112 @@ public class WorkspaceModel : PageModel
         ICurrentUserService currentUserService,
         IWorkspaceCreationService workspaceCreationService)
     {
-        _workspaceRepo = workspaceRepo;
-        _userWorkspaceRepo = userWorkspaceRepo;
-        _users = users;
-        _dashboardViewService = dashboardViewService;
-        _teamMembers = teamMembers;
-        _settingsConfig = settingsConfig;
-        _currentUserService = currentUserService;
-        _workspaceCreationService = workspaceCreationService;
+        this._workspaceRepo = workspaceRepo;
+        this._userWorkspaceRepo = userWorkspaceRepo;
+        this._users = users;
+        this._dashboardViewService = dashboardViewService;
+        this._teamMembers = teamMembers;
+        this._settingsConfig = settingsConfig;
+        this._currentUserService = currentUserService;
+        this._workspaceCreationService = workspaceCreationService;
 
-        InitializeTheme();
+        this.InitializeTheme();
     }
 
     private void InitializeTheme()
     {
-        DashboardTheme = _settingsConfig?.Theme?.Default ?? "light";
-        PrimaryColor = "primary";
-        SuccessColor = "success";
-        InfoColor = "info";
-        WarningColor = "warning";
-        ErrorColor = "error";
+        this.DashboardTheme = this._settingsConfig?.Theme?.Default ?? "light";
+        this.PrimaryColor = "primary";
+        this.SuccessColor = "success";
+        this.InfoColor = "info";
+        this.WarningColor = "warning";
+        this.ErrorColor = "error";
     }
 
     public async Task<IActionResult> OnGetAsync(string? slug, int? range, string? assignment)
     {
-        RangeDays = NormalizeRange(range);
-        AssignmentFilter = NormalizeAssignment(assignment);
+        this.RangeDays = NormalizeRange(range);
+        this.AssignmentFilter = NormalizeAssignment(assignment);
 
-        var authContext = await GetAuthenticatedUserAsync();
+        var authContext = await this.GetAuthenticatedUserAsync();
         if (authContext is null)
         {
-            return Challenge();
+            return this.Challenge();
         }
 
         var (userId, user) = authContext.Value;
-        ShowEmailConfirmationPrompt = !user.EmailConfirmed;
+        this.ShowEmailConfirmationPrompt = !user.EmailConfirmed;
 
         if (string.IsNullOrEmpty(slug))
         {
-            await LoadUserWorkspacesAsync(userId, null);
-            return Page();
+            await this.LoadUserWorkspacesAsync(userId, null);
+            return this.Page();
         }
 
-        var found = await _workspaceRepo.FindBySlugAsync(slug);
+        var found = await this._workspaceRepo.FindBySlugAsync(slug);
         if (found == null)
-            return NotFound();
-
-        Workspace = found;
-
-        var userMemberships = await _userWorkspaceRepo.FindForUserAsync(userId);
-        await LoadUserWorkspacesAsync(userId, userMemberships);
-
-        IsMember = userMemberships.Any(m => m.WorkspaceId == found.Id && m.Accepted);
-
-        if (Workspace != null && IsMember)
         {
-            await LoadDashboardDataAsync(Workspace.Id, RangeDays, AssignmentFilter, userId);
-            if (!CanViewDashboard)
+            return this.NotFound();
+        }
+
+        this.Workspace = found;
+
+        var userMemberships = await this._userWorkspaceRepo.FindForUserAsync(userId);
+        await this.LoadUserWorkspacesAsync(userId, userMemberships);
+
+        this.IsMember = userMemberships.Any(m => m.WorkspaceId == found.Id && m.Accepted);
+
+        if (this.Workspace != null && this.IsMember)
+        {
+            await this.LoadDashboardDataAsync(this.Workspace.Id, this.RangeDays, this.AssignmentFilter, userId);
+            if (!this.CanViewDashboard)
             {
-                return Forbid();
+                return this.Forbid();
             }
         }
 
-        return Page();
+        return this.Page();
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
-        var authContext = await GetAuthenticatedUserAsync();
+        var authContext = await this.GetAuthenticatedUserAsync();
         if (authContext is null)
         {
-            return Challenge();
+            return this.Challenge();
         }
 
         var (userId, user) = authContext.Value;
-        ShowEmailConfirmationPrompt = !user.EmailConfirmed;
+        this.ShowEmailConfirmationPrompt = !user.EmailConfirmed;
 
-        var trimmedName = NewWorkspaceName?.Trim() ?? string.Empty;
+        var trimmedName = this.NewWorkspaceName?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(trimmedName))
         {
-            ModelState.AddModelError(nameof(NewWorkspaceName), "Workspace name is required");
-            await LoadUserWorkspacesAsync(userId, null);
-            return Page();
+            this.ModelState.AddModelError(nameof(this.NewWorkspaceName), "Workspace name is required");
+            await this.LoadUserWorkspacesAsync(userId, null);
+            return this.Page();
         }
 
         try
         {
-            var workspace = await _workspaceCreationService.CreateWorkspaceAsync(
+            var workspace = await this._workspaceCreationService.CreateWorkspaceAsync(
                 new WorkspaceCreationRequest { Name = trimmedName },
                 userId);
 
-            return Redirect($"/workspaces/{workspace.Slug}");
+            return this.Redirect($"/workspaces/{workspace.Slug}");
         }
         catch (InvalidOperationException ex)
         {
-            ModelState.AddModelError(nameof(NewWorkspaceName), ex.Message);
+            this.ModelState.AddModelError(nameof(this.NewWorkspaceName), ex.Message);
         }
 
-        await LoadUserWorkspacesAsync(userId, null);
-        return Page();
+        await this.LoadUserWorkspacesAsync(userId, null);
+        return this.Page();
     }
 
-    private int NormalizeRange(int? range)
-    {
-        return range is 7 or 30 or 90 ? range.Value : 90;
-    }
+    private static int NormalizeRange(int? range) => range is 7 or 30 or 90 ? range.Value : 90;
 
-    private string NormalizeAssignment(string? assignment)
+    private static string NormalizeAssignment(string? assignment)
     {
         if (string.IsNullOrWhiteSpace(assignment))
         {
@@ -197,25 +193,29 @@ public class WorkspaceModel : PageModel
 
     private async Task<(int UserId, User User)?> GetAuthenticatedUserAsync()
     {
-        if (!_currentUserService.TryGetUserId(User, out var userId))
+        if (!this._currentUserService.TryGetUserId(this.User, out var userId))
         {
             return null;
         }
 
-        var user = await _users.FindByIdAsync(userId);
+        var user = await this._users.FindByIdAsync(userId);
         return user == null ? null : (userId, user);
     }
 
     private async Task LoadUserWorkspacesAsync(int userId, List<UserWorkspace>? memberships)
     {
-        Workspaces.Clear();
-        var membershipList = memberships ?? await _userWorkspaceRepo.FindForUserAsync(userId);
+        this.Workspaces.Clear();
+        var membershipList = memberships ?? await this._userWorkspaceRepo.FindForUserAsync(userId);
 
         foreach (var m in membershipList)
         {
-            var ws = await _workspaceRepo.FindByIdAsync(m.WorkspaceId);
-            if (ws == null) continue;
-            Workspaces.Add(new WorkspaceView
+            var ws = await this._workspaceRepo.FindByIdAsync(m.WorkspaceId);
+            if (ws == null)
+            {
+                continue;
+            }
+
+            this.Workspaces.Add(new WorkspaceView
             {
                 Id = ws.Id,
                 Name = ws.Name,
@@ -229,50 +229,50 @@ public class WorkspaceModel : PageModel
     private async Task LoadDashboardDataAsync(int workspaceId, int rangeDays, string assignmentFilter, int userId)
     {
         // First pass: get scope to determine team IDs (use placeholder scope initially)
-        var view = await _dashboardViewService.BuildAsync(workspaceId, userId, "all", new List<int>(), rangeDays, assignmentFilter);
+        var view = await this._dashboardViewService.BuildAsync(workspaceId, userId, "all", [], rangeDays, assignmentFilter);
 
         // Extract permissions from view
-        CanViewDashboard = view.CanViewDashboard;
-        CanViewTickets = view.CanViewTickets;
-        TicketViewScope = view.TicketViewScope;
+        this.CanViewDashboard = view.CanViewDashboard;
+        this.CanViewTickets = view.CanViewTickets;
+        this.TicketViewScope = view.TicketViewScope;
 
         // If scope is team, rebuild with actual team IDs
         if (view.TicketViewScope == "team")
         {
-            var myTeams = await _teamMembers.ListTeamsForUserAsync(workspaceId, userId);
+            var myTeams = await this._teamMembers.ListTeamsForUserAsync(workspaceId, userId);
             var teamIds = myTeams.Select(t => t.Id).ToList();
-            view = await _dashboardViewService.BuildAsync(workspaceId, userId, view.TicketViewScope, teamIds, rangeDays, assignmentFilter);
+            view = await this._dashboardViewService.BuildAsync(workspaceId, userId, view.TicketViewScope, teamIds, rangeDays, assignmentFilter);
         }
         else if (view.TicketViewScope != "all")
         {
             // Re-fetch with correct scope if not "all"
-            view = await _dashboardViewService.BuildAsync(workspaceId, userId, view.TicketViewScope, new List<int>(), rangeDays, assignmentFilter);
+            view = await this._dashboardViewService.BuildAsync(workspaceId, userId, view.TicketViewScope, [], rangeDays, assignmentFilter);
         }
 
-        TotalTickets = view.TotalTickets;
-        OpenTickets = view.OpenTickets;
-        ResolvedTickets = view.ResolvedTickets;
-        ActiveMembers = view.ActiveMembers;
+        this.TotalTickets = view.TotalTickets;
+        this.OpenTickets = view.OpenTickets;
+        this.ResolvedTickets = view.ResolvedTickets;
+        this.ActiveMembers = view.ActiveMembers;
 
-        StatusList = view.StatusList.ToList();
-        TypeList = view.TypeList.ToList();
-        PriorityList = view.PriorityList.ToList();
-        PriorityCounts = view.PriorityCounts.ToDictionary(k => k.Key, v => v.Value);
+        this.StatusList = [.. view.StatusList];
+        this.TypeList = [.. view.TypeList];
+        this.PriorityList = [.. view.PriorityList];
+        this.PriorityCounts = view.PriorityCounts.ToDictionary(k => k.Key, v => v.Value);
 
-        PrimaryColor = view.PrimaryColor;
-        PrimaryIsHex = view.PrimaryIsHex;
-        SuccessColor = view.SuccessColor;
-        SuccessIsHex = view.SuccessIsHex;
+        this.PrimaryColor = view.PrimaryColor;
+        this.PrimaryIsHex = view.PrimaryIsHex;
+        this.SuccessColor = view.SuccessColor;
+        this.SuccessIsHex = view.SuccessIsHex;
 
-        WorkspaceMembers = view.WorkspaceMembers.ToList();
-        WorkspaceTeams = view.WorkspaceTeams.ToList();
+        this.WorkspaceMembers = [.. view.WorkspaceMembers];
+        this.WorkspaceTeams = [.. view.WorkspaceTeams];
 
-        ActivitySeries = view.ActivitySeries.Select(a => new ActivityPoint { Label = a.Label, Created = a.Created, Closed = a.Closed }).ToList();
-        TopMembers = view.TopMembers.Select(m => new MemberStat { UserId = m.UserId, Name = m.Name, ResolvedCount = m.ResolvedCount }).ToList();
+        this.ActivitySeries = [.. view.ActivitySeries.Select(a => new ActivityPoint { Label = a.Label, Created = a.Created, Closed = a.Closed })];
+        this.TopMembers = [.. view.TopMembers.Select(m => new MemberStat { UserId = m.UserId, Name = m.Name, ResolvedCount = m.ResolvedCount })];
 
-        AvgResolutionLabel = view.AvgResolutionLabel;
+        this.AvgResolutionLabel = view.AvgResolutionLabel;
 
-        RecentTickets = view.RecentTickets.Select(t => new TicketListItem
+        this.RecentTickets = [.. view.RecentTickets.Select(t => new TicketListItem
         {
             Id = t.Id,
             Subject = t.Subject,
@@ -283,28 +283,32 @@ public class WorkspaceModel : PageModel
             AssignedUserId = t.AssignedUserId,
             AssigneeName = t.AssigneeName,
             UpdatedAt = t.UpdatedAt
-        }).ToList();
+        })];
     }
 
     public static string HexToRgba(string hex, double opacity)
     {
         if (string.IsNullOrWhiteSpace(hex) || !hex.StartsWith("#"))
+        {
             return hex;
-        
+        }
+
         hex = hex.TrimStart('#');
         if (hex.Length == 3)
         {
             hex = $"{hex[0]}{hex[0]}{hex[1]}{hex[1]}{hex[2]}{hex[2]}";
         }
-        
+
         if (hex.Length != 6)
+        {
             return hex;
-        
+        }
+
         try
         {
-            int r = Convert.ToInt32(hex.Substring(0, 2), 16);
-            int g = Convert.ToInt32(hex.Substring(2, 2), 16);
-            int b = Convert.ToInt32(hex.Substring(4, 2), 16);
+            var r = Convert.ToInt32(hex[..2], 16);
+            var g = Convert.ToInt32(hex.Substring(2, 2), 16);
+            var b = Convert.ToInt32(hex.Substring(4, 2), 16);
             return $"rgba({r}, {g}, {b}, {opacity})";
         }
         catch

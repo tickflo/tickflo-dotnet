@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Reporting;
+
+using Tickflo.Core.Entities;
 
 public record ReportExecutionResult(int RowCount, string FilePath, byte[] Bytes, string FileName, string ContentType);
 
@@ -17,9 +17,9 @@ public record ReportRunPage(
 
 public interface IReportingService
 {
-    Task<ReportExecutionResult> ExecuteAsync(int workspaceId, Report report, CancellationToken ct = default);
-    Task<ReportRunPage> GetRunPageAsync(ReportRun run, int page, int take, CancellationToken ct = default);
-    IReadOnlyDictionary<string, string[]> GetAvailableSources();
+    public Task<ReportExecutionResult> ExecuteAsync(int workspaceId, Report report, CancellationToken ct = default);
+    public Task<ReportRunPage> GetRunPageAsync(ReportRun run, int page, int take, CancellationToken ct = default);
+    public IReadOnlyDictionary<string, string[]> GetAvailableSources();
 }
 
 

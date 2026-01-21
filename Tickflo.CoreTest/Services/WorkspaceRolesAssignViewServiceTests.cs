@@ -1,14 +1,14 @@
-﻿using Moq;
-using Xunit;
+namespace Tickflo.CoreTest.Services;
+
+using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.CoreTest.Services;
+using Xunit;
 
 public class WorkspaceRolesAssignViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_ReturnsMembersRoles_WhenAdmin()
+    public async Task BuildAsyncReturnsMembersRolesWhenAdmin()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var userWorkspaces = new Mock<IUserWorkspaceRepository>();
@@ -18,22 +18,22 @@ public class WorkspaceRolesAssignViewServiceTests
         uwr.Setup(x => x.IsAdminAsync(1, 10)).ReturnsAsync(true);
 
         userWorkspaces.Setup(x => x.FindForWorkspaceAsync(10))
-            .ReturnsAsync(new List<UserWorkspace>
-            {
+            .ReturnsAsync(
+            [
                 new UserWorkspace { UserId = 2, WorkspaceId = 10, Accepted = true },
                 new UserWorkspace { UserId = 3, WorkspaceId = 10, Accepted = true }
-            });
+            ]);
 
         users.Setup(x => x.FindByIdAsync(2)).ReturnsAsync(new User { Id = 2, Name = "Alice" });
         users.Setup(x => x.FindByIdAsync(3)).ReturnsAsync(new User { Id = 3, Name = "Bob" });
 
         roles.Setup(x => x.ListForWorkspaceAsync(10))
-            .ReturnsAsync(new List<Role> { new Role { Id = 7, WorkspaceId = 10, Name = "Manager" } });
+            .ReturnsAsync([new Role { Id = 7, WorkspaceId = 10, Name = "Manager" }]);
 
         uwr.Setup(x => x.GetRolesAsync(2, 10))
-            .ReturnsAsync(new List<Role> { new Role { Id = 7, WorkspaceId = 10, Name = "Manager" } });
+            .ReturnsAsync([new Role { Id = 7, WorkspaceId = 10, Name = "Manager" }]);
         uwr.Setup(x => x.GetRolesAsync(3, 10))
-            .ReturnsAsync(new List<Role>());
+            .ReturnsAsync([]);
 
         var svc = new WorkspaceRolesAssignViewService(uwr.Object, userWorkspaces.Object, users.Object, roles.Object);
         var result = await svc.BuildAsync(10, 1);
@@ -48,7 +48,7 @@ public class WorkspaceRolesAssignViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_DeniesWhenNotAdmin()
+    public async Task BuildAsyncDeniesWhenNotAdmin()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var userWorkspaces = new Mock<IUserWorkspaceRepository>();

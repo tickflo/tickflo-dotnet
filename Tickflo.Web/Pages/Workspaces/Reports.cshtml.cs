@@ -1,56 +1,50 @@
+namespace Tickflo.Web.Pages.Workspaces;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
 
 using Tickflo.Core.Services.Common;
 using Tickflo.Core.Services.Views;
-namespace Tickflo.Web.Pages.Workspaces;
 
 [Authorize]
-public class ReportsModel : WorkspacePageModel
+public class ReportsModel(
+    IWorkspaceRepository workspaceRepo,
+    IUserWorkspaceRepository userWorkspaceRepo,
+    ICurrentUserService currentUserService,
+    IWorkspaceReportsViewService viewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository _workspaceRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
-    private readonly ICurrentUserService _currentUserService;
-    private readonly IWorkspaceReportsViewService _viewService;
+    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
+    private readonly ICurrentUserService _currentUserService = currentUserService;
+    private readonly IWorkspaceReportsViewService _viewService = viewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
-    public List<ReportSummary> Reports { get; private set; } = new();
+    public List<ReportSummary> Reports { get; private set; } = [];
     public bool CanCreateReports { get; private set; }
     public bool CanEditReports { get; private set; }
 
-    public ReportsModel(
-        IWorkspaceRepository workspaceRepo,
-        IUserWorkspaceRepository userWorkspaceRepo,
-        ICurrentUserService currentUserService,
-        IWorkspaceReportsViewService viewService)
-    {
-        _workspaceRepo = workspaceRepo;
-        _userWorkspaceRepo = userWorkspaceRepo;
-        _currentUserService = currentUserService;
-        _viewService = viewService;
-    }
-
     public async Task<IActionResult> OnGetAsync(string slug)
     {
-        WorkspaceSlug = slug;
-        
-        var result = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
-        if (result is IActionResult actionResult) return actionResult;
-        
+        this.WorkspaceSlug = slug;
+
+        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        if (result is IActionResult actionResult)
+        {
+            return actionResult;
+        }
+
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
-        Workspace = workspace;
+        this.Workspace = workspace;
 
-        var viewData = await _viewService.BuildAsync(Workspace!.Id, uid);
-        Reports = viewData.Reports;
-        CanCreateReports = viewData.CanCreateReports;
-        CanEditReports = viewData.CanEditReports;
+        var viewData = await this._viewService.BuildAsync(this.Workspace!.Id, uid);
+        this.Reports = viewData.Reports;
+        this.CanCreateReports = viewData.CanCreateReports;
+        this.CanEditReports = viewData.CanEditReports;
 
-        return Page();
+        return this.Page();
     }
 }
 

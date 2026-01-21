@@ -1,19 +1,18 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Notifications;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 public class NotificationServiceTests
 {
     [Fact]
-    public async Task CreateAsync_Persists_Notification()
+    public async Task CreateAsyncPersistsNotification()
     {
         var repo = new Mock<INotificationRepository>();
-        var email = new Mock<IEmailSender>();
-        var svc = new NotificationService(repo.Object, email.Object);
+        var email = new Mock<IEmailSenderService>();
+        var svc = new NotificationService(repo.Object);
 
         await svc.CreateAsync(5, "type", "subject", "body");
 
@@ -21,11 +20,11 @@ public class NotificationServiceTests
     }
 
     [Fact]
-    public async Task SendPendingInApp_Marks_Sent()
+    public async Task SendPendingInAppMarksSent()
     {
         var repo = new Mock<INotificationRepository>();
-        repo.Setup(r => r.ListPendingAsync("in_app", 100)).ReturnsAsync(new List<Notification> { new() { Id = 1 } });
-        var svc = new NotificationService(repo.Object, Mock.Of<IEmailSender>());
+        repo.Setup(r => r.ListPendingAsync("in_app", 100)).ReturnsAsync([new() { Id = 1 }]);
+        var svc = new NotificationService(repo.Object);
 
         await svc.SendPendingInAppAsync();
 

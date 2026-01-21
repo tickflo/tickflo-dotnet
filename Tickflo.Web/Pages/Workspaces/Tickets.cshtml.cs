@@ -1,48 +1,36 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using System.Linq;
-using Tickflo.Core.Data;
-using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
-using Tickflo.Core.Services.Tickets;
-using Tickflo.Core.Services.Views;
-using Tickflo.Core.Services.Notifications;
-
 namespace Tickflo.Web.Pages.Workspaces;
 
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Tickflo.Core.Data;
+using Tickflo.Core.Entities;
+using Tickflo.Core.Services.Notifications;
+using Tickflo.Core.Services.Tickets;
+using Tickflo.Core.Services.Views;
+
 [Authorize]
-public class TicketsModel : WorkspacePageModel
+public class TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketRepository ticketRepo, ITicketFilterService filterService, IWorkspaceTicketsViewService viewService, INotificationTriggerService notificationTrigger) : WorkspacePageModel
 {
     private const int DefaultPageSize = 25;
     private const int MaxPageSize = 200;
     private const int MinPageNumber = 1;
     private const string OpenStatusFilter = "Open";
 
-    private readonly IWorkspaceRepository _workspaceRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
-    private readonly ITicketRepository _ticketRepo;
-    private readonly ITicketFilterService _filterService;
-    private readonly IWorkspaceTicketsViewService _viewService;
-    private readonly INotificationTriggerService _notificationTrigger;
-
-    public TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketRepository ticketRepo, ITicketFilterService filterService, IWorkspaceTicketsViewService viewService, INotificationTriggerService notificationTrigger)
-    {
-        _workspaceRepo = workspaceRepo;
-        _userWorkspaceRepo = userWorkspaceRepo;
-        _ticketRepo = ticketRepo;
-        _filterService = filterService;
-        _viewService = viewService;
-        _notificationTrigger = notificationTrigger;
-    }
+    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
+    private readonly ITicketRepository _ticketRepo = ticketRepo;
+    private readonly ITicketFilterService _filterService = filterService;
+    private readonly IWorkspaceTicketsViewService _viewService = viewService;
+    private readonly INotificationTriggerService _notificationTrigger = notificationTrigger;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
-    public IReadOnlyList<Ticket> Tickets { get; private set; } = Array.Empty<Ticket>();
-    public Dictionary<int, Contact> ContactsById { get; private set; } = new();
-    public Dictionary<int, User> UsersById { get; private set; } = new();
+    public IReadOnlyList<Ticket> Tickets { get; private set; } = [];
+    public Dictionary<int, Contact> ContactsById { get; private set; } = [];
+    public Dictionary<int, User> UsersById { get; private set; } = [];
 
     private string? _ticketViewScope;
-    private List<int> _userTeamIds = new();
+    private List<int> _userTeamIds = [];
 
     [BindProperty(SupportsGet = true)]
     public string? Status { get; set; }
@@ -62,155 +50,165 @@ public class TicketsModel : WorkspacePageModel
     public int PageSize { get; set; } = 25;
     public int Total { get; private set; }
     public int MyCount { get; private set; }
-    public IReadOnlyList<Tickflo.Core.Entities.TicketStatus> Statuses { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketStatus>();
-    public Dictionary<string, string> StatusColorByName { get; private set; } = new();
-    public IReadOnlyList<Tickflo.Core.Entities.TicketPriority> PrioritiesList { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketPriority>();
-    public Dictionary<string, string> PriorityColorByName { get; private set; } = new();
+    public IReadOnlyList<TicketStatus> Statuses { get; private set; } = [];
+    public Dictionary<string, string> StatusColorByName { get; private set; } = [];
+    public IReadOnlyList<TicketPriority> PrioritiesList { get; private set; } = [];
+    public Dictionary<string, string> PriorityColorByName { get; private set; } = [];
     public bool CanCreateTickets { get; private set; }
     public bool CanEditTickets { get; private set; }
-    public IReadOnlyList<Tickflo.Core.Entities.TicketType> TypesList { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketType>();
-    public Dictionary<string, string> TypeColorByName { get; private set; } = new();
+    public IReadOnlyList<TicketType> TypesList { get; private set; } = [];
+    public Dictionary<string, string> TypeColorByName { get; private set; } = [];
     [BindProperty(SupportsGet = true)]
     public string? Type { get; set; }
-    public Dictionary<int, Team> TeamsById { get; private set; } = new();
+    public Dictionary<int, Team> TeamsById { get; private set; } = [];
     [BindProperty(SupportsGet = true)]
     public string? AssigneeTeamName { get; set; }
     [BindProperty(SupportsGet = true)]
     public int? LocationId { get; set; }
-    public List<Location> LocationOptions { get; private set; } = new();
-    public Dictionary<int, Location> LocationsById { get; private set; } = new();
+    public List<Location> LocationOptions { get; private set; } = [];
+    public Dictionary<int, Location> LocationsById { get; private set; } = [];
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {
-        WorkspaceSlug = slug;
-        
-        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
-        if (loadResult is IActionResult actionResult) 
+        this.WorkspaceSlug = slug;
+
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        if (loadResult is IActionResult actionResult)
+        {
             return actionResult;
-        
+        }
+
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
-        Workspace = workspace;
+        this.Workspace = workspace;
 
-        if (Workspace == null)
-            return NotFound();
+        if (this.Workspace == null)
+        {
+            return this.NotFound();
+        }
 
-        await LoadViewDataAsync(Workspace.Id, currentUserId);
+        await this.LoadViewDataAsync(this.Workspace.Id, currentUserId);
 
-        var allTickets = await _ticketRepo.ListAsync(Workspace.Id);
-        var scopedTickets = _filterService.ApplyScopeFilter(allTickets, currentUserId, 
-            _ticketViewScope ?? string.Empty, 
-            _userTeamIds);
+        var allTickets = await this._ticketRepo.ListAsync(this.Workspace.Id);
+        var scopedTickets = this._filterService.ApplyScopeFilter(allTickets, currentUserId,
+            this._ticketViewScope ?? string.Empty,
+            this._userTeamIds);
 
-        var filteredTickets = await ApplyAllFiltersAsync(scopedTickets, allTickets);
-        await PaginateResultsAsync(filteredTickets, currentUserId, allTickets);
-        
-        return Page();
+        var filteredTickets = await this.ApplyAllFiltersAsync(scopedTickets, allTickets);
+        await this.PaginateResultsAsync(filteredTickets, currentUserId, allTickets);
+
+        return this.Page();
     }
 
     private async Task LoadViewDataAsync(int workspaceId, int currentUserId)
     {
-        var viewData = await _viewService.BuildAsync(workspaceId, currentUserId);
-        
-        Statuses = viewData.Statuses;
-        StatusColorByName = viewData.StatusColorByName;
-        PrioritiesList = viewData.Priorities;
-        PriorityColorByName = viewData.PriorityColorByName;
-        TypesList = viewData.Types;
-        TypeColorByName = viewData.TypeColorByName;
-        TeamsById = viewData.TeamsById;
-        ContactsById = viewData.ContactsById;
-        UsersById = viewData.UsersById;
-        LocationOptions = viewData.LocationOptions;
-        LocationsById = viewData.LocationsById;
-        CanCreateTickets = viewData.CanCreateTickets;
-        CanEditTickets = viewData.CanEditTickets;
-        
-        _ticketViewScope = viewData.TicketViewScope;
-        _userTeamIds = viewData.UserTeamIds;
+        var viewData = await this._viewService.BuildAsync(workspaceId, currentUserId);
+
+        this.Statuses = viewData.Statuses;
+        this.StatusColorByName = viewData.StatusColorByName;
+        this.PrioritiesList = viewData.Priorities;
+        this.PriorityColorByName = viewData.PriorityColorByName;
+        this.TypesList = viewData.Types;
+        this.TypeColorByName = viewData.TypeColorByName;
+        this.TeamsById = viewData.TeamsById;
+        this.ContactsById = viewData.ContactsById;
+        this.UsersById = viewData.UsersById;
+        this.LocationOptions = viewData.LocationOptions;
+        this.LocationsById = viewData.LocationsById;
+        this.CanCreateTickets = viewData.CanCreateTickets;
+        this.CanEditTickets = viewData.CanEditTickets;
+
+        this._ticketViewScope = viewData.TicketViewScope;
+        this._userTeamIds = viewData.UserTeamIds;
     }
 
     private async Task<List<Ticket>> ApplyAllFiltersAsync(IEnumerable<Ticket> tickets, IEnumerable<Ticket> allTickets)
     {
-        var criteria = BuildFilterCriteria();
-        var filtered = _filterService.ApplyFilters(tickets, criteria).ToList();
+        var criteria = this.BuildFilterCriteria();
+        var filtered = this._filterService.ApplyFilters(tickets, criteria).ToList();
 
-        filtered = ApplyStatusOpenFilter(filtered);
-        filtered = ApplyContactFilter(filtered);
-        filtered = ApplyTeamFilter(filtered);
+        filtered = this.ApplyStatusOpenFilter(filtered);
+        filtered = this.ApplyContactFilter(filtered);
+        filtered = this.ApplyTeamFilter(filtered);
 
         return filtered;
     }
 
-    private TicketFilterCriteria BuildFilterCriteria()
+    private TicketFilterCriteria BuildFilterCriteria() => new()
     {
-        return new TicketFilterCriteria
-        {
-            Query = Query?.Trim(),
-            StatusId = ResolveStatusId(),
-            PriorityId = ResolvePriorityId(),
-            TypeId = ResolveTypeId(),
-            AssigneeUserId = AssigneeUserId,
-            LocationId = LocationId,
-            Mine = Mine,
-            CurrentUserId = ExtractCurrentUserId()
-        };
-    }
+        Query = this.Query?.Trim(),
+        StatusId = this.ResolveStatusId(),
+        PriorityId = this.ResolvePriorityId(),
+        TypeId = this.ResolveTypeId(),
+        AssigneeUserId = this.AssigneeUserId,
+        LocationId = this.LocationId,
+        Mine = this.Mine,
+        CurrentUserId = this.ExtractCurrentUserId()
+    };
 
-    private int ExtractCurrentUserId()
-    {
-        return TryGetUserId(out var userId) ? userId : 0;
-    }
+    private int ExtractCurrentUserId() => this.TryGetUserId(out var userId) ? userId : 0;
 
     private int? ResolveTypeId()
     {
-        if (string.IsNullOrWhiteSpace(Type))
+        if (string.IsNullOrWhiteSpace(this.Type))
+        {
             return null;
+        }
 
-        return TypesList.FirstOrDefault(t => t.Name.Equals(Type.Trim(), StringComparison.OrdinalIgnoreCase))?.Id;
+        return this.TypesList.FirstOrDefault(t => t.Name.Equals(this.Type.Trim(), StringComparison.OrdinalIgnoreCase))?.Id;
     }
 
     private int? ResolveStatusId()
     {
-        if (string.IsNullOrWhiteSpace(Status) || Status.Equals(OpenStatusFilter, StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(this.Status) || this.Status.Equals(OpenStatusFilter, StringComparison.OrdinalIgnoreCase))
+        {
             return null;
+        }
 
-        return Statuses.FirstOrDefault(s => s.Name.Equals(Status.Trim(), StringComparison.OrdinalIgnoreCase))?.Id;
+        return this.Statuses.FirstOrDefault(s => s.Name.Equals(this.Status.Trim(), StringComparison.OrdinalIgnoreCase))?.Id;
     }
 
     private int? ResolvePriorityId()
     {
-        if (string.IsNullOrWhiteSpace(Priority))
+        if (string.IsNullOrWhiteSpace(this.Priority))
+        {
             return null;
+        }
 
-        return PrioritiesList.FirstOrDefault(p => p.Name.Equals(Priority.Trim(), StringComparison.OrdinalIgnoreCase))?.Id;
+        return this.PrioritiesList.FirstOrDefault(p => p.Name.Equals(this.Priority.Trim(), StringComparison.OrdinalIgnoreCase))?.Id;
     }
 
     private List<Ticket> ApplyStatusOpenFilter(List<Ticket> tickets)
     {
-        if (string.IsNullOrWhiteSpace(Status) || !Status.Equals(OpenStatusFilter, StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(this.Status) || !this.Status.Equals(OpenStatusFilter, StringComparison.OrdinalIgnoreCase))
+        {
             return tickets;
+        }
 
-        var closedStatusIds = Statuses
+        var closedStatusIds = this.Statuses
             .Where(s => s.IsClosedState)
             .Select(s => s.Id)
             .ToHashSet();
 
-        return tickets.Where(t => !t.StatusId.HasValue || !closedStatusIds.Contains(t.StatusId.Value)).ToList();
+        return [.. tickets.Where(t => !t.StatusId.HasValue || !closedStatusIds.Contains(t.StatusId.Value))];
     }
 
     private List<Ticket> ApplyContactFilter(List<Ticket> tickets)
     {
-        if (string.IsNullOrWhiteSpace(ContactQuery))
+        if (string.IsNullOrWhiteSpace(this.ContactQuery))
+        {
             return tickets;
+        }
 
-        var query = ContactQuery.Trim();
-        return tickets.Where(t => TicketMatchesContactQuery(t, query)).ToList();
+        var query = this.ContactQuery.Trim();
+        return [.. tickets.Where(t => this.TicketMatchesContactQuery(t, query))];
     }
 
     private bool TicketMatchesContactQuery(Ticket ticket, string query)
     {
-        if (!ticket.ContactId.HasValue || !ContactsById.TryGetValue(ticket.ContactId.Value, out var contact))
+        if (!ticket.ContactId.HasValue || !this.ContactsById.TryGetValue(ticket.ContactId.Value, out var contact))
+        {
             return false;
+        }
 
         return (contact.Name?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ||
                (contact.Email?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false);
@@ -218,70 +216,70 @@ public class TicketsModel : WorkspacePageModel
 
     private List<Ticket> ApplyTeamFilter(List<Ticket> tickets)
     {
-        if (string.IsNullOrWhiteSpace(AssigneeTeamName))
+        if (string.IsNullOrWhiteSpace(this.AssigneeTeamName))
+        {
             return tickets;
+        }
 
-        var team = TeamsById.Values.FirstOrDefault(t => 
-            string.Equals(t.Name, AssigneeTeamName.Trim(), StringComparison.OrdinalIgnoreCase));
+        var team = this.TeamsById.Values.FirstOrDefault(t =>
+            string.Equals(t.Name, this.AssigneeTeamName.Trim(), StringComparison.OrdinalIgnoreCase));
 
-        return team != null 
-            ? tickets.Where(t => t.AssignedTeamId == team.Id).ToList()
-            : new List<Ticket>();
+        return team != null
+            ? [.. tickets.Where(t => t.AssignedTeamId == team.Id)]
+            : [];
     }
 
     private async Task PaginateResultsAsync(List<Ticket> filteredTickets, int currentUserId, IEnumerable<Ticket> allTickets)
     {
-        MyCount = currentUserId > 0 ? _filterService.CountMyTickets(allTickets, currentUserId) : 0;
-        Total = filteredTickets.Count;
+        this.MyCount = currentUserId > 0 ? this._filterService.CountMyTickets(allTickets, currentUserId) : 0;
+        this.Total = filteredTickets.Count;
 
-        var pageSize = NormalizePageSize(PageSize);
-        var pageNumber = NormalizePageNumber(PageNumber);
+        var pageSize = NormalizePageSize(this.PageSize);
+        var pageNumber = NormalizePageNumber(this.PageNumber);
 
         var startIndex = (pageNumber - 1) * pageSize;
-        Tickets = filteredTickets.Skip(startIndex).Take(pageSize).ToList();
+        this.Tickets = filteredTickets.Skip(startIndex).Take(pageSize).ToList();
     }
 
-    private static int NormalizePageSize(int pageSize)
-    {
-        return pageSize <= 0 ? DefaultPageSize : Math.Min(pageSize, MaxPageSize);
-    }
+    private static int NormalizePageSize(int pageSize) => pageSize <= 0 ? DefaultPageSize : Math.Min(pageSize, MaxPageSize);
 
-    private static int NormalizePageNumber(int pageNumber)
-    {
-        return pageNumber <= 0 ? MinPageNumber : pageNumber;
-    }
+    private static int NormalizePageNumber(int pageNumber) => pageNumber <= 0 ? MinPageNumber : pageNumber;
 
     public async Task<IActionResult> OnPostAssignAsync(string slug, int id, int? assignedUserId)
     {
-        WorkspaceSlug = slug;
-        
-        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
-        if (loadResult is IActionResult actionResult) 
+        this.WorkspaceSlug = slug;
+
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        if (loadResult is IActionResult actionResult)
+        {
             return actionResult;
-        
+        }
+
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
-        Workspace = workspace;
+        this.Workspace = workspace;
 
-        var ticket = await _ticketRepo.FindAsync(Workspace!.Id, id);
+        var ticket = await this._ticketRepo.FindAsync(this.Workspace!.Id, id);
         if (ticket == null)
-            return NotFound();
+        {
+            return this.NotFound();
+        }
 
-        await UpdateTicketAssignmentAsync(ticket, assignedUserId, currentUserId);
-        
-        return RedirectToPage(new 
-        { 
-            slug, 
-            Query, 
-            Status, 
-            Priority, 
-            Type, 
-            ContactQuery, 
-            Mine, 
-            AssigneeUserId, 
-            AssigneeTeamName, 
-            LocationId, 
-            PageNumber, 
-            PageSize 
+        await this.UpdateTicketAssignmentAsync(ticket, assignedUserId, currentUserId);
+
+        return this.RedirectToPage(new
+        {
+            slug,
+            this.Query,
+            this.Status,
+            this.Priority,
+            this.Type,
+            this.ContactQuery,
+            this.Mine,
+            this.AssigneeUserId,
+            this.AssigneeTeamName,
+            this.LocationId,
+            this.PageNumber,
+            this.PageSize
         });
     }
 
@@ -291,23 +289,22 @@ public class TicketsModel : WorkspacePageModel
         var newAssignedUserId = assignedUserId > 0 ? assignedUserId : null;
 
         if (oldAssignedUserId == newAssignedUserId)
+        {
             return;
+        }
 
         ticket.AssignedUserId = newAssignedUserId;
         ticket.UpdatedAt = DateTime.UtcNow;
-        await _ticketRepo.UpdateAsync(ticket);
+        await this._ticketRepo.UpdateAsync(ticket);
 
-        await NotifyAssignmentChangeAsync(ticket, oldAssignedUserId, currentUserId);
+        await this.NotifyAssignmentChangeAsync(ticket, oldAssignedUserId, currentUserId);
     }
 
-    private async Task NotifyAssignmentChangeAsync(Ticket ticket, int? oldAssignedUserId, int currentUserId)
-    {
-        await _notificationTrigger.NotifyTicketAssignmentChangedAsync(
-            Workspace!.Id,
+    private async Task NotifyAssignmentChangeAsync(Ticket ticket, int? oldAssignedUserId, int currentUserId) => await this._notificationTrigger.NotifyTicketAssignmentChangedAsync(
+            this.Workspace!.Id,
             ticket,
             oldAssignedUserId,
             null,
             currentUserId
         );
-    }
 }

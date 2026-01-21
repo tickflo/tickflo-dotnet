@@ -1,15 +1,14 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Tickets;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 public class TicketCreationServiceTests
 {
     [Fact]
-    public async Task CreateTicketAsync_Throws_For_Inactive_Location()
+    public async Task CreateTicketAsyncThrowsForInactiveLocation()
     {
         var ticketRepo = new Mock<ITicketRepository>();
         var history = new Mock<ITicketHistoryRepository>();
@@ -26,7 +25,7 @@ public class TicketCreationServiceTests
     }
 
     [Fact]
-    public async Task CreateTicketAsync_Sets_Defaults_And_Logs_History()
+    public async Task CreateTicketAsyncSetsDefaultsAndLogsHistory()
     {
         var ticketRepo = new Mock<ITicketRepository>();
         ticketRepo.Setup(r => r.CreateAsync(It.IsAny<Ticket>(), It.IsAny<CancellationToken>())).ReturnsAsync((Ticket t, CancellationToken _) =>

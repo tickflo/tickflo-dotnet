@@ -1,16 +1,13 @@
+namespace Tickflo.Core.Data;
+
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.Core.Data;
 
 public class RoleRepository(TickfloDbContext db) : IRoleRepository
 {
     private readonly TickfloDbContext _db = db;
 
-    public Task<Role?> FindByNameAsync(int workspaceId, string name)
-    {
-        return _db.Roles.FirstOrDefaultAsync(r => r.WorkspaceId == workspaceId && r.Name == name);
-    }
+    public Task<Role?> FindByNameAsync(int workspaceId, string name) => this._db.Roles.FirstOrDefaultAsync(r => r.WorkspaceId == workspaceId && r.Name == name);
 
     public async Task<Role> AddAsync(int workspaceId, string name, bool admin, int createdBy)
     {
@@ -22,34 +19,28 @@ public class RoleRepository(TickfloDbContext db) : IRoleRepository
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
-        _db.Roles.Add(role);
-        await _db.SaveChangesAsync();
+        this._db.Roles.Add(role);
+        await this._db.SaveChangesAsync();
         return role;
     }
 
-    public Task<List<Role>> ListForWorkspaceAsync(int workspaceId)
-    {
-        return _db.Roles.Where(r => r.WorkspaceId == workspaceId).OrderBy(r => r.Name).ToListAsync();
-    }
+    public Task<List<Role>> ListForWorkspaceAsync(int workspaceId) => this._db.Roles.Where(r => r.WorkspaceId == workspaceId).OrderBy(r => r.Name).ToListAsync();
 
-    public Task<Role?> FindByIdAsync(int id)
-    {
-        return _db.Roles.FirstOrDefaultAsync(r => r.Id == id);
-    }
+    public Task<Role?> FindByIdAsync(int id) => this._db.Roles.FirstOrDefaultAsync(r => r.Id == id);
 
     public async Task UpdateAsync(Role role)
     {
-        _db.Roles.Update(role);
-        await _db.SaveChangesAsync();
+        this._db.Roles.Update(role);
+        await this._db.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(int id)
     {
-        var role = await _db.Roles.FirstOrDefaultAsync(r => r.Id == id);
+        var role = await this._db.Roles.FirstOrDefaultAsync(r => r.Id == id);
         if (role != null)
         {
-            _db.Roles.Remove(role);
-            await _db.SaveChangesAsync();
+            this._db.Roles.Remove(role);
+            await this._db.SaveChangesAsync();
         }
     }
 }

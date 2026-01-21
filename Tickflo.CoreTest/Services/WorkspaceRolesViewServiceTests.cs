@@ -1,14 +1,13 @@
-﻿using Moq;
-using Xunit;
-using Tickflo.Core.Data;
-using Tickflo.Core.Entities;
-
 namespace Tickflo.CoreTest.Services;
+
+using Moq;
+using Tickflo.Core.Entities;
+using Xunit;
 
 public class WorkspaceRolesViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_LoadsRolesWithCountsForAdmin()
+    public async Task BuildAsyncLoadsRolesWithCountsForAdmin()
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
@@ -16,8 +15,8 @@ public class WorkspaceRolesViewServiceTests
 
         var roles = new List<Role>
         {
-            new Role { Id = 1, WorkspaceId = 1, Name = "Editor" },
-            new Role { Id = 2, WorkspaceId = 1, Name = "Viewer" }
+            new() { Id = 1, WorkspaceId = 1, Name = "Editor" },
+            new() { Id = 2, WorkspaceId = 1, Name = "Viewer" }
         };
 
         accessService.Setup(x => x.UserIsWorkspaceAdminAsync(100, 1))
@@ -46,7 +45,7 @@ public class WorkspaceRolesViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_DeniesNonAdminAccess()
+    public async Task BuildAsyncDeniesNonAdminAccess()
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
@@ -68,7 +67,7 @@ public class WorkspaceRolesViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_HandlesEmptyRoleList()
+    public async Task BuildAsyncHandlesEmptyRoleList()
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
@@ -78,7 +77,7 @@ public class WorkspaceRolesViewServiceTests
             .ReturnsAsync(true);
 
         roleService.Setup(x => x.GetWorkspaceRolesAsync(1))
-            .ReturnsAsync(new List<Role>());
+            .ReturnsAsync([]);
 
         var service = new WorkspaceRolesViewService(accessService.Object, roleService.Object);
 

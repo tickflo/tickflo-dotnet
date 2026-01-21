@@ -1,7 +1,7 @@
+namespace Tickflo.Core.Data;
+
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.Core.Data;
 
 public class TicketPriorityRepository(TickfloDbContext db) : ITicketPriorityRepository
 {
@@ -32,7 +32,11 @@ public class TicketPriorityRepository(TickfloDbContext db) : ITicketPriorityRepo
     public async Task<bool> DeleteAsync(int workspaceId, int id, CancellationToken ct = default)
     {
         var entity = await db.Set<TicketPriority>().FirstOrDefaultAsync(s => s.WorkspaceId == workspaceId && s.Id == id, ct);
-        if (entity == null) return false;
+        if (entity == null)
+        {
+            return false;
+        }
+
         db.Set<TicketPriority>().Remove(entity);
         await db.SaveChangesAsync(ct);
         return true;

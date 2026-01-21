@@ -1,9 +1,9 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 /// <summary>
 /// Tests for client comment functionality in the ticket comment system.
@@ -12,14 +12,14 @@ namespace Tickflo.CoreTest.Services;
 public class TicketCommentClientTests
 {
     [Fact]
-    public async Task AddClientCommentAsync_CreatesCommentWithContactTracking()
+    public async Task AddClientCommentAsyncCreatesCommentWithContactTracking()
     {
         // Arrange
         var mockRepo = new Mock<ITicketCommentRepository>();
         TicketComment? capturedComment = null;
         mockRepo.Setup(r => r.CreateAsync(It.IsAny<TicketComment>(), It.IsAny<CancellationToken>()))
             .Callback<TicketComment, CancellationToken>((c, _) => capturedComment = c)
-            .ReturnsAsync((TicketComment c, CancellationToken _) => 
+            .ReturnsAsync((TicketComment c, CancellationToken _) =>
             {
                 c.Id = 1;
                 return c;
@@ -46,14 +46,14 @@ public class TicketCommentClientTests
     }
 
     [Fact]
-    public async Task AddClientCommentAsync_AlwaysMarksVisibleToClient()
+    public async Task AddClientCommentAsyncAlwaysMarksVisibleToClient()
     {
         // Arrange
         var mockRepo = new Mock<ITicketCommentRepository>();
         TicketComment? capturedComment = null;
         mockRepo.Setup(r => r.CreateAsync(It.IsAny<TicketComment>(), It.IsAny<CancellationToken>()))
             .Callback<TicketComment, CancellationToken>((c, _) => capturedComment = c)
-            .ReturnsAsync((TicketComment c, CancellationToken _) => 
+            .ReturnsAsync((TicketComment c, CancellationToken _) =>
             {
                 c.Id = 1;
                 return c;
@@ -66,19 +66,19 @@ public class TicketCommentClientTests
 
         // Assert
         Assert.NotNull(capturedComment);
-        Assert.True(capturedComment.IsVisibleToClient, 
+        Assert.True(capturedComment.IsVisibleToClient,
             "Client comments must always be visible to the client");
     }
 
     [Fact]
-    public async Task AddClientCommentAsync_TrimsWhitespace()
+    public async Task AddClientCommentAsyncTrimsWhitespace()
     {
         // Arrange
         var mockRepo = new Mock<ITicketCommentRepository>();
         TicketComment? capturedComment = null;
         mockRepo.Setup(r => r.CreateAsync(It.IsAny<TicketComment>(), It.IsAny<CancellationToken>()))
             .Callback<TicketComment, CancellationToken>((c, _) => capturedComment = c)
-            .ReturnsAsync((TicketComment c, CancellationToken _) => 
+            .ReturnsAsync((TicketComment c, CancellationToken _) =>
             {
                 c.Id = 1;
                 return c;
@@ -95,51 +95,51 @@ public class TicketCommentClientTests
     }
 
     [Fact]
-    public async Task AddClientCommentAsync_ThrowsOnInvalidContactId()
+    public async Task AddClientCommentAsyncThrowsOnInvalidContactId()
     {
         // Arrange
         var mockRepo = new Mock<ITicketCommentRepository>();
         var service = new TicketCommentService(mockRepo.Object);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.AddClientCommentAsync(1, 10, 0, "Comment")); // Invalid contact ID
     }
 
     [Fact]
-    public async Task AddClientCommentAsync_ThrowsOnEmptyContent()
+    public async Task AddClientCommentAsyncThrowsOnEmptyContent()
     {
         // Arrange
         var mockRepo = new Mock<ITicketCommentRepository>();
         var service = new TicketCommentService(mockRepo.Object);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.AddClientCommentAsync(1, 10, 5, "  ")); // Whitespace only
     }
 
     [Fact]
-    public async Task GetCommentsAsync_FiltersClientCommentsCorrectly()
+    public async Task GetCommentsAsyncFiltersClientCommentsCorrectly()
     {
         // Arrange
         var mockRepo = new Mock<ITicketCommentRepository>();
-        var staffComment = new TicketComment 
-        { 
-            Id = 1, 
-            TicketId = 10, 
+        var staffComment = new TicketComment
+        {
+            Id = 1,
+            TicketId = 10,
             CreatedByUserId = 3,
             CreatedByContactId = null,
-            Content = "Staff comment", 
+            Content = "Staff comment",
             IsVisibleToClient = true,
             CreatedAt = DateTime.UtcNow
         };
-        var clientComment = new TicketComment 
-        { 
-            Id = 2, 
-            TicketId = 10, 
+        var clientComment = new TicketComment
+        {
+            Id = 2,
+            TicketId = 10,
             CreatedByUserId = 1, // System user
             CreatedByContactId = 5, // Actual client
-            Content = "Client comment", 
+            Content = "Client comment",
             IsVisibleToClient = true,
             CreatedAt = DateTime.UtcNow.AddHours(1)
         };
@@ -160,23 +160,23 @@ public class TicketCommentClientTests
     }
 
     [Fact]
-    public async Task GetCommentsAsync_FiltersInternalComments()
+    public async Task GetCommentsAsyncFiltersInternalComments()
     {
         // Arrange
         var mockRepo = new Mock<ITicketCommentRepository>();
-        var visibleComment = new TicketComment 
-        { 
-            Id = 1, 
-            TicketId = 10, 
-            Content = "Visible", 
+        var visibleComment = new TicketComment
+        {
+            Id = 1,
+            TicketId = 10,
+            Content = "Visible",
             IsVisibleToClient = true,
             CreatedAt = DateTime.UtcNow
         };
-        var internalComment = new TicketComment 
-        { 
-            Id = 2, 
-            TicketId = 10, 
-            Content = "Internal", 
+        var internalComment = new TicketComment
+        {
+            Id = 2,
+            TicketId = 10,
+            Content = "Internal",
             IsVisibleToClient = false,
             CreatedAt = DateTime.UtcNow.AddHours(1)
         };
@@ -196,23 +196,23 @@ public class TicketCommentClientTests
     }
 
     [Fact]
-    public async Task GetCommentsAsync_ReturnsAllCommentsForInternalView()
+    public async Task GetCommentsAsyncReturnsAllCommentsForInternalView()
     {
         // Arrange
         var mockRepo = new Mock<ITicketCommentRepository>();
-        var visibleComment = new TicketComment 
-        { 
-            Id = 1, 
-            TicketId = 10, 
-            Content = "Visible", 
+        var visibleComment = new TicketComment
+        {
+            Id = 1,
+            TicketId = 10,
+            Content = "Visible",
             IsVisibleToClient = true,
             CreatedAt = DateTime.UtcNow
         };
-        var internalComment = new TicketComment 
-        { 
-            Id = 2, 
-            TicketId = 10, 
-            Content = "Internal", 
+        var internalComment = new TicketComment
+        {
+            Id = 2,
+            TicketId = 10,
+            Content = "Internal",
             IsVisibleToClient = false,
             CreatedAt = DateTime.UtcNow.AddHours(1)
         };
@@ -233,16 +233,16 @@ public class TicketCommentClientTests
     }
 
     [Fact]
-    public async Task AddClientCommentAsync_SetsCorrectTimestamp()
+    public async Task AddClientCommentAsyncSetsCorrectTimestamp()
     {
         // Arrange
         var mockRepo = new Mock<ITicketCommentRepository>();
         var beforeCall = DateTime.UtcNow;
         TicketComment? capturedComment = null;
-        
+
         mockRepo.Setup(r => r.CreateAsync(It.IsAny<TicketComment>(), It.IsAny<CancellationToken>()))
             .Callback<TicketComment, CancellationToken>((c, _) => capturedComment = c)
-            .ReturnsAsync((TicketComment c, CancellationToken _) => 
+            .ReturnsAsync((TicketComment c, CancellationToken _) =>
             {
                 c.Id = 1;
                 return c;

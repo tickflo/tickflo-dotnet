@@ -1,15 +1,14 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Tickets;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 public class TicketAssignmentServiceTests
 {
     [Fact]
-    public async Task AssignToUserAsync_Throws_When_User_Not_In_Workspace()
+    public async Task AssignToUserAsyncThrowsWhenUserNotInWorkspace()
     {
         var ticketRepo = new Mock<ITicketRepository>();
         ticketRepo.Setup(r => r.FindAsync(1, 2, CancellationToken.None)).ReturnsAsync(new Ticket { Id = 2 });
@@ -21,7 +20,7 @@ public class TicketAssignmentServiceTests
     }
 
     [Fact]
-    public async Task UnassignUserAsync_Writes_History()
+    public async Task UnassignUserAsyncWritesHistory()
     {
         var ticketRepo = new Mock<ITicketRepository>();
         ticketRepo.Setup(r => r.FindAsync(1, 2, CancellationToken.None)).ReturnsAsync(new Ticket { Id = 2, AssignedUserId = 7 });

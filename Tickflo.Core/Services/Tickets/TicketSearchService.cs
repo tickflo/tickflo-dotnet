@@ -1,33 +1,24 @@
-using Tickflo.Core.Entities;
-using Tickflo.Core.Data;
-
 namespace Tickflo.Core.Services.Tickets;
+
+using Tickflo.Core.Data;
+using Tickflo.Core.Entities;
 
 /// <summary>
 /// Implementation of ticket search and discovery service.
 /// Optimized for complex queries and reporting scenarios.
 /// </summary>
-public class TicketSearchService : ITicketSearchService
+public class TicketSearchService(
+    ITicketRepository ticketRepo,
+    IUserWorkspaceRepository userWorkspaceRepo,
+    ITeamMemberRepository teamMemberRepo,
+    ITicketStatusRepository statusRepo,
+    ITicketPriorityRepository priorityRepo) : ITicketSearchService
 {
-    private readonly ITicketRepository _ticketRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
-    private readonly ITeamMemberRepository _teamMemberRepo;
-    private readonly ITicketStatusRepository _statusRepo;
-    private readonly ITicketPriorityRepository _priorityRepo;
-
-    public TicketSearchService(
-        ITicketRepository ticketRepo,
-        IUserWorkspaceRepository userWorkspaceRepo,
-        ITeamMemberRepository teamMemberRepo,
-        ITicketStatusRepository statusRepo,
-        ITicketPriorityRepository priorityRepo)
-    {
-        _ticketRepo = ticketRepo;
-        _userWorkspaceRepo = userWorkspaceRepo;
-        _teamMemberRepo = teamMemberRepo;
-        _statusRepo = statusRepo;
-        _priorityRepo = priorityRepo;
-    }
+    private readonly ITicketRepository _ticketRepo = ticketRepo;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
+    private readonly ITeamMemberRepository _teamMemberRepo = teamMemberRepo;
+    private readonly ITicketStatusRepository _statusRepo = statusRepo;
+    private readonly ITicketPriorityRepository _priorityRepo = priorityRepo;
 
     public async Task<TicketSearchResult> SearchAsync(
         int workspaceId,
@@ -35,14 +26,14 @@ public class TicketSearchService : ITicketSearchService
         int requestingUserId)
     {
         // Validation: User has access to workspace
-        var userAccess = await _userWorkspaceRepo.FindAsync(requestingUserId, workspaceId);
+        var userAccess = await this._userWorkspaceRepo.FindAsync(requestingUserId, workspaceId);
         if (userAccess == null || !userAccess.Accepted)
         {
             throw new InvalidOperationException("User does not have access to this workspace.");
         }
 
         // Get all tickets in workspace
-        var allTickets = (await _ticketRepo.ListAsync(workspaceId)).ToList();
+        var allTickets = (await this._ticketRepo.ListAsync(workspaceId)).ToList();
 
         // Apply filters
         var filtered = ApplyFilters(allTickets, criteria);
@@ -69,19 +60,21 @@ public class TicketSearchService : ITicketSearchService
         int userId,
         string? statusFilter = null)
     {
-        var allTickets = (await _ticketRepo.ListAsync(workspaceId)).ToList();
+        var allTickets = (await this._ticketRepo.ListAsync(workspaceId)).ToList();
 
         var myTickets = allTickets
-            .Where(t => t.AssignedUserId == userId || 
-                       (t.AssignedTeamId.HasValue && 
-                        IsUserInTeam(userId, t.AssignedTeamId.Value).GetAwaiter().GetResult()))
+            .Where(t => t.AssignedUserId == userId ||
+                       (t.AssignedTeamId.HasValue &&
+                        this.IsUserInTeam(userId, t.AssignedTeamId.Value).GetAwaiter().GetResult()))
             .ToList();
 
         if (!string.IsNullOrEmpty(statusFilter))
         {
-            var statusId = (await _statusRepo.FindByNameAsync(workspaceId, statusFilter))?.Id;
+            var statusId = (await this._statusRepo.FindByNameAsync(workspaceId, statusFilter))?.Id;
             if (statusId.HasValue)
-                myTickets = myTickets.Where(t => t.StatusId == statusId.Value).ToList();
+            {
+                myTickets = [.. myTickets.Where(t => t.StatusId == statusId.Value)];
+            }
         }
 
         return myTickets;
@@ -91,8 +84,8 @@ public class TicketSearchService : ITicketSearchService
         int workspaceId,
         int? limitToTeamId = null)
     {
-        var allTickets = (await _ticketRepo.ListAsync(workspaceId)).ToList();
-        var statuses = await _statusRepo.ListAsync(workspaceId);
+        var allTickets = (await this._ticketRepo.ListAsync(workspaceId)).ToList();
+        var statuses = await this._statusRepo.ListAsync(workspaceId);
         var closedIds = statuses.Where(s => s.IsClosedState).Select(s => s.Id).ToHashSet();
 
         var active = allTickets
@@ -101,7 +94,7 @@ public class TicketSearchService : ITicketSearchService
 
         if (limitToTeamId.HasValue)
         {
-            active = active.Where(t => t.AssignedTeamId == limitToTeamId).ToList();
+            active = [.. active.Where(t => t.AssignedTeamId == limitToTeamId)];
         }
 
         return active;
@@ -113,7 +106,7 @@ public class TicketSearchService : ITicketSearchService
         int take = 20)
     {
         var cutoffDate = DateTime.UtcNow.AddDays(-limitToLastDays);
-        var allTickets = (await _ticketRepo.ListAsync(workspaceId)).ToList();
+        var allTickets = (await this._ticketRepo.ListAsync(workspaceId)).ToList();
 
         var recent = allTickets
             .Where(t => t.UpdatedAt.HasValue && t.UpdatedAt.Value >= cutoffDate)
@@ -128,21 +121,21 @@ public class TicketSearchService : ITicketSearchService
         int workspaceId,
         int? limitToTeamId = null)
     {
-        var allTickets = (await _ticketRepo.ListAsync(workspaceId)).ToList();
-        var priorities = await _priorityRepo.ListAsync(workspaceId);
-        var statuses = await _statusRepo.ListAsync(workspaceId);
-        var highPriorityIds = priorities.Where(p => p.Name == "Critical" || p.Name == "High").Select(p => p.Id).ToHashSet();
+        var allTickets = (await this._ticketRepo.ListAsync(workspaceId)).ToList();
+        var priorities = await this._priorityRepo.ListAsync(workspaceId);
+        var statuses = await this._statusRepo.ListAsync(workspaceId);
+        var highPriorityIds = priorities.Where(p => p.Name is "Critical" or "High").Select(p => p.Id).ToHashSet();
         var closedIds = statuses.Where(s => s.IsClosedState).Select(s => s.Id).ToHashSet();
 
         var highPriority = allTickets
-            .Where(t => (t.PriorityId.HasValue && highPriorityIds.Contains(t.PriorityId.Value)) &&
+            .Where(t => t.PriorityId.HasValue && highPriorityIds.Contains(t.PriorityId.Value) &&
                        (!t.StatusId.HasValue || !closedIds.Contains(t.StatusId.Value)))
             .OrderByDescending(t => t.CreatedAt)
             .ToList();
 
         if (limitToTeamId.HasValue)
         {
-            highPriority = highPriority.Where(t => t.AssignedTeamId == limitToTeamId).ToList();
+            highPriority = [.. highPriority.Where(t => t.AssignedTeamId == limitToTeamId)];
         }
 
         return highPriority;
@@ -152,20 +145,19 @@ public class TicketSearchService : ITicketSearchService
         int workspaceId,
         int contactId)
     {
-        var allTickets = (await _ticketRepo.ListAsync(workspaceId)).ToList();
+        var allTickets = (await this._ticketRepo.ListAsync(workspaceId)).ToList();
 
-        return allTickets
+        return [.. allTickets
             .Where(t => t.ContactId == contactId)
-            .OrderByDescending(t => t.CreatedAt)
-            .ToList();
+            .OrderByDescending(t => t.CreatedAt)];
     }
 
     public async Task<List<Ticket>> GetUnassignedTicketsAsync(
         int workspaceId,
         int? limitToTeamId = null)
     {
-        var allTickets = (await _ticketRepo.ListAsync(workspaceId)).ToList();
-        var statuses = await _statusRepo.ListAsync(workspaceId);
+        var allTickets = (await this._ticketRepo.ListAsync(workspaceId)).ToList();
+        var statuses = await this._statusRepo.ListAsync(workspaceId);
         var closedIds = statuses.Where(s => s.IsClosedState).Select(s => s.Id).ToHashSet();
 
         var unassigned = allTickets
@@ -176,7 +168,7 @@ public class TicketSearchService : ITicketSearchService
 
         if (limitToTeamId.HasValue)
         {
-            unassigned = unassigned.Where(t => t.AssignedTeamId == limitToTeamId).ToList();
+            unassigned = [.. unassigned.Where(t => t.AssignedTeamId == limitToTeamId)];
         }
 
         return unassigned;
@@ -186,39 +178,36 @@ public class TicketSearchService : ITicketSearchService
         int workspaceId,
         int hoursUntilDueWarning = 24)
     {
-        var allTickets = (await _ticketRepo.ListAsync(workspaceId)).ToList();
-        var statuses = await _statusRepo.ListAsync(workspaceId);
+        var allTickets = (await this._ticketRepo.ListAsync(workspaceId)).ToList();
+        var statuses = await this._statusRepo.ListAsync(workspaceId);
         var closedIds = statuses.Where(s => s.IsClosedState).Select(s => s.Id).ToHashSet();
         var warningThreshold = DateTime.UtcNow.AddHours(hoursUntilDueWarning);
 
         // Tickets don't have DueDate; check UpdatedAt + hours
-        return allTickets
-            .Where(t => t.UpdatedAt.HasValue && 
+        return [.. allTickets
+            .Where(t => t.UpdatedAt.HasValue &&
                        t.UpdatedAt.Value.AddHours(hoursUntilDueWarning) <= warningThreshold &&
                        (!t.StatusId.HasValue || !closedIds.Contains(t.StatusId.Value)))
-            .OrderBy(t => t.UpdatedAt)
-            .ToList();
+            .OrderBy(t => t.UpdatedAt)];
     }
 
     public async Task<List<Ticket>> GetByTagAsync(
         int workspaceId,
-        string tag)
-    {
+        string tag) =>
         // Tags not implemented in current Ticket schema
-        return new List<Ticket>();
-    }
+        [];
 
     public async Task<List<Dictionary<string, object>>> GetBulkDataForExportAsync(
         int workspaceId,
         TicketSearchCriteria criteria)
     {
-        var searchResult = await SearchAsync(workspaceId, criteria, 0); // System execution
-        var statuses = await _statusRepo.ListAsync(workspaceId);
-        var priorities = await _priorityRepo.ListAsync(workspaceId);
+        var searchResult = await this.SearchAsync(workspaceId, criteria, 0); // System execution
+        var statuses = await this._statusRepo.ListAsync(workspaceId);
+        var priorities = await this._priorityRepo.ListAsync(workspaceId);
         var statusMap = statuses.ToDictionary(s => s.Id, s => s.Name);
         var priorityMap = priorities.ToDictionary(p => p.Id, p => p.Name);
 
-        return searchResult.Tickets.Select(t => new Dictionary<string, object>
+        return [.. searchResult.Tickets.Select(t => new Dictionary<string, object>
         {
             { "Id", t.Id },
             { "Subject", t.Subject },
@@ -232,53 +221,75 @@ public class TicketSearchService : ITicketSearchService
             { "AssignedUserId", t.AssignedUserId ?? 0 },
             { "AssignedTeamId", t.AssignedTeamId ?? 0 },
             { "ContactId", t.ContactId ?? 0 }
-        }).ToList();
+        })];
     }
 
-    private List<Ticket> ApplyFilters(List<Ticket> tickets, TicketSearchCriteria criteria)
+    private static List<Ticket> ApplyFilters(List<Ticket> tickets, TicketSearchCriteria criteria)
     {
         var result = tickets;
 
         if (criteria.AssignedToUserId.HasValue)
-            result = result.Where(t => t.AssignedUserId == criteria.AssignedToUserId.Value).ToList();
+        {
+            result = [.. result.Where(t => t.AssignedUserId == criteria.AssignedToUserId.Value)];
+        }
 
         if (criteria.AssignedToTeamId.HasValue)
-            result = result.Where(t => t.AssignedTeamId == criteria.AssignedToTeamId.Value).ToList();
+        {
+            result = [.. result.Where(t => t.AssignedTeamId == criteria.AssignedToTeamId.Value)];
+        }
 
         if (criteria.StatusId.HasValue)
-            result = result.Where(t => t.StatusId == criteria.StatusId.Value).ToList();
+        {
+            result = [.. result.Where(t => t.StatusId == criteria.StatusId.Value)];
+        }
 
         if (criteria.PriorityId.HasValue)
-            result = result.Where(t => t.PriorityId == criteria.PriorityId.Value).ToList();
+        {
+            result = [.. result.Where(t => t.PriorityId == criteria.PriorityId.Value)];
+        }
 
         if (criteria.TypeId.HasValue)
-            result = result.Where(t => t.TicketTypeId == criteria.TypeId.Value).ToList();
+        {
+            result = [.. result.Where(t => t.TicketTypeId == criteria.TypeId.Value)];
+        }
 
         if (criteria.ContactId.HasValue)
-            result = result.Where(t => t.ContactId == criteria.ContactId.Value).ToList();
+        {
+            result = [.. result.Where(t => t.ContactId == criteria.ContactId.Value)];
+        }
 
         if (criteria.LocationId.HasValue)
-            result = result.Where(t => t.LocationId == criteria.LocationId.Value).ToList();
+        {
+            result = [.. result.Where(t => t.LocationId == criteria.LocationId.Value)];
+        }
 
         if (criteria.CreatedAfter.HasValue)
-            result = result.Where(t => t.CreatedAt >= criteria.CreatedAfter.Value).ToList();
+        {
+            result = [.. result.Where(t => t.CreatedAt >= criteria.CreatedAfter.Value)];
+        }
 
         if (criteria.CreatedBefore.HasValue)
-            result = result.Where(t => t.CreatedAt <= criteria.CreatedBefore.Value).ToList();
+        {
+            result = [.. result.Where(t => t.CreatedAt <= criteria.CreatedBefore.Value)];
+        }
 
         if (criteria.UpdatedAfter.HasValue)
-            result = result.Where(t => t.UpdatedAt.HasValue && t.UpdatedAt.Value >= criteria.UpdatedAfter.Value).ToList();
+        {
+            result = [.. result.Where(t => t.UpdatedAt.HasValue && t.UpdatedAt.Value >= criteria.UpdatedAfter.Value)];
+        }
 
         if (criteria.UpdatedBefore.HasValue)
-            result = result.Where(t => t.UpdatedAt.HasValue && t.UpdatedAt.Value <= criteria.UpdatedBefore.Value).ToList();
+        {
+            result = [.. result.Where(t => t.UpdatedAt.HasValue && t.UpdatedAt.Value <= criteria.UpdatedBefore.Value)];
+        }
 
         if (!string.IsNullOrEmpty(criteria.SearchTerm))
         {
             var term = criteria.SearchTerm.ToLowerInvariant();
-            result = result.Where(t => 
-                (t.Subject?.ToLowerInvariant().Contains(term) ?? false) ||
-                (t.Description?.ToLowerInvariant().Contains(term) ?? false)
-            ).ToList();
+            result = [.. result.Where(t =>
+                (t.Subject?.ToLowerInvariant().Contains(term, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
+                (t.Description?.ToLowerInvariant().Contains(term, StringComparison.InvariantCultureIgnoreCase) ?? false)
+            )];
         }
 
         return result;
@@ -286,7 +297,7 @@ public class TicketSearchService : ITicketSearchService
 
     private async Task<bool> IsUserInTeam(int userId, int teamId)
     {
-        var members = await _teamMemberRepo.ListMembersAsync(teamId);
+        var members = await this._teamMemberRepo.ListMembersAsync(teamId);
         return members.Any(m => m.Id == userId);
     }
 }

@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Tickets;
+
+using Tickflo.Core.Entities;
 
 /// <summary>
 /// Handles ticket creation workflows.
@@ -14,7 +14,7 @@ public interface ITicketCreationService
     /// <param name="request">Ticket creation details</param>
     /// <param name="createdByUserId">User creating the ticket</param>
     /// <returns>The created ticket</returns>
-    Task<Ticket> CreateTicketAsync(int workspaceId, TicketCreationRequest request, int createdByUserId);
+    public Task<Ticket> CreateTicketAsync(int workspaceId, TicketCreationRequest request, int createdByUserId);
 
     /// <summary>
     /// Creates a ticket linked to a specific contact.
@@ -24,7 +24,7 @@ public interface ITicketCreationService
     /// <param name="request">Ticket creation details</param>
     /// <param name="createdByUserId">User creating the ticket</param>
     /// <returns>The created ticket</returns>
-    Task<Ticket> CreateFromContactAsync(int workspaceId, int contactId, TicketCreationRequest request, int createdByUserId);
+    public Task<Ticket> CreateFromContactAsync(int workspaceId, int contactId, TicketCreationRequest request, int createdByUserId);
 
     /// <summary>
     /// Bulk creates multiple tickets (e.g., from import).
@@ -33,5 +33,5 @@ public interface ITicketCreationService
     /// <param name="requests">Ticket creation requests</param>
     /// <param name="createdByUserId">User creating tickets</param>
     /// <returns>List of created tickets</returns>
-    Task<List<Ticket>> CreateBulkAsync(int workspaceId, List<TicketCreationRequest> requests, int createdByUserId);
+    public Task<List<Ticket>> CreateBulkAsync(int workspaceId, List<TicketCreationRequest> requests, int createdByUserId);
 }

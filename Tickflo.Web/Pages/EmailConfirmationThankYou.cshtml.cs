@@ -1,49 +1,44 @@
+namespace Tickflo.Web.Pages;
+
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Microsoft.AspNetCore.Mvc;
 
-namespace Tickflo.Web.Pages;
-
-public class EmailConfirmationThankYouModel : PageModel
+public class EmailConfirmationThankYouModel(IEmailTemplateRepository emailTemplateRepo) : PageModel
 {
-    private readonly IEmailTemplateRepository _emailTemplateRepo;
-
-    public EmailConfirmationThankYouModel(IEmailTemplateRepository emailTemplateRepo)
-    {
-        _emailTemplateRepo = emailTemplateRepo;
-    }
+    private readonly IEmailTemplateRepository _emailTemplateRepo = emailTemplateRepo;
 
     public string TemplateContent { get; set; } = string.Empty;
 
     public async Task<IActionResult> OnGetAsync()
     {
-        var template = await _emailTemplateRepo.FindByTypeAsync(EmailTemplateType.EmailConfirmationThankYou);
-        
+        var template = await this._emailTemplateRepo.FindByTypeAsync(EmailTemplateType.EmailConfirmationThankYou);
+
         if (template == null)
         {
             // Fallback to default content if template not found
-            TemplateContent = GetDefaultContent();
+            this.TemplateContent = this.GetDefaultContent();
         }
         else
         {
-            TemplateContent = template.Body;
-            
+            this.TemplateContent = template.Body;
+
             // Replace navigation buttons placeholder based on authentication status
-            var navigationButtons = User?.Identity?.IsAuthenticated ?? false
+            var navigationButtons = this.User?.Identity?.IsAuthenticated ?? false
                 ? "<a class=\"btn btn-primary\" href=\"/workspaces\">Go to Workspace</a>"
                 : "<a class=\"btn btn-primary\" href=\"/login\">Go to Login</a>";
             navigationButtons += "<a class=\"btn btn-ghost\" href=\"/\">Back to Home</a>";
-            
-            TemplateContent = TemplateContent.Replace("{{NAVIGATION_BUTTONS}}", navigationButtons);
+
+            this.TemplateContent = this.TemplateContent.Replace("{{NAVIGATION_BUTTONS}}", navigationButtons);
         }
 
-        return Page();
+        return this.Page();
     }
 
     private string GetDefaultContent()
     {
-        var navigationButtons = User?.Identity?.IsAuthenticated ?? false
+        var navigationButtons = this.User?.Identity?.IsAuthenticated ?? false
             ? "<a class=\"btn btn-primary\" href=\"/workspaces\">Go to Workspace</a>"
             : "<a class=\"btn btn-primary\" href=\"/login\">Go to Login</a>";
         navigationButtons += "<a class=\"btn btn-ghost\" href=\"/\">Back to Home</a>";

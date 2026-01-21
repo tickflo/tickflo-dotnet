@@ -1,10 +1,9 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
-using Tickflo.Core.Services.Common;
 using Tickflo.Core.Entities;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 public class ValidationServiceTests
 {
@@ -20,7 +19,7 @@ public class ValidationServiceTests
     }
 
     [Fact]
-    public async Task ValidateEmailAsync_Succeeds_WithValidEmail()
+    public async Task ValidateEmailAsyncSucceedsWithValidEmail()
     {
         var svc = CreateService();
         var result = await svc.ValidateEmailAsync("test@example.com");
@@ -28,7 +27,7 @@ public class ValidationServiceTests
     }
 
     [Fact]
-    public async Task ValidateEmailAsync_Fails_WhenEmpty()
+    public async Task ValidateEmailAsyncFailsWhenEmpty()
     {
         var svc = CreateService();
         var result = await svc.ValidateEmailAsync("");
@@ -36,7 +35,7 @@ public class ValidationServiceTests
     }
 
     [Fact]
-    public async Task ValidateEmailAsync_Fails_WhenInvalidFormat()
+    public async Task ValidateEmailAsyncFailsWhenInvalidFormat()
     {
         var svc = CreateService();
         var result = await svc.ValidateEmailAsync("not-an-email");
@@ -44,7 +43,7 @@ public class ValidationServiceTests
     }
 
     [Fact]
-    public async Task ValidateEmailAsync_Fails_WhenDuplicate()
+    public async Task ValidateEmailAsyncFailsWhenDuplicate()
     {
         var users = new Mock<IUserRepository>();
         users.Setup(r => r.FindByEmailAsync("dup@example.com")).ReturnsAsync(new User { Id = 1 });
@@ -57,7 +56,7 @@ public class ValidationServiceTests
     }
 
     [Fact]
-    public void ValidateTicketSubject_Succeeds_WithValidSubject()
+    public void ValidateTicketSubjectSucceedsWithValidSubject()
     {
         var svc = CreateService();
         var result = svc.ValidateTicketSubject("Valid Subject");
@@ -65,7 +64,7 @@ public class ValidationServiceTests
     }
 
     [Fact]
-    public void ValidateTicketSubject_Fails_WhenEmpty()
+    public void ValidateTicketSubjectFailsWhenEmpty()
     {
         var svc = CreateService();
         var result = svc.ValidateTicketSubject("");
@@ -73,7 +72,7 @@ public class ValidationServiceTests
     }
 
     [Fact]
-    public void ValidateTicketSubject_Fails_WhenTooLong()
+    public void ValidateTicketSubjectFailsWhenTooLong()
     {
         var svc = CreateService();
         var longSubject = new string('a', 256);
@@ -82,7 +81,7 @@ public class ValidationServiceTests
     }
 
     [Fact]
-    public void ValidateContactName_Succeeds_WithValidName()
+    public void ValidateContactNameSucceedsWithValidName()
     {
         var svc = CreateService();
         var result = svc.ValidateContactName("John Doe");
@@ -90,7 +89,7 @@ public class ValidationServiceTests
     }
 
     [Fact]
-    public void ValidateWorkspaceSlug_Fails_WhenEmpty()
+    public void ValidateWorkspaceSlugFailsWhenEmpty()
     {
         var svc = CreateService();
         var result = svc.ValidateWorkspaceSlug("");
@@ -98,7 +97,7 @@ public class ValidationServiceTests
     }
 
     [Fact]
-    public void ValidateWorkspaceSlug_Fails_WithInvalidCharacters()
+    public void ValidateWorkspaceSlugFailsWithInvalidCharacters()
     {
         var svc = CreateService();
         var result = svc.ValidateWorkspaceSlug("Invalid_Slug");
@@ -106,7 +105,7 @@ public class ValidationServiceTests
     }
 
     [Fact]
-    public void ValidateQuantity_Succeeds_WithPositive()
+    public void ValidateQuantitySucceedsWithPositive()
     {
         var svc = CreateService();
         var result = svc.ValidateQuantity(5);
@@ -114,7 +113,7 @@ public class ValidationServiceTests
     }
 
     [Fact]
-    public void ValidateQuantity_Fails_WithNegative()
+    public void ValidateQuantityFailsWithNegative()
     {
         var svc = CreateService();
         var result = svc.ValidateQuantity(-1);
@@ -122,7 +121,7 @@ public class ValidationServiceTests
     }
 
     [Fact]
-    public void ValidatePriceValue_Succeeds_WithPositive()
+    public void ValidatePriceValueSucceedsWithPositive()
     {
         var svc = CreateService();
         var result = svc.ValidatePriceValue(19.99m);
@@ -130,7 +129,7 @@ public class ValidationServiceTests
     }
 
     [Fact]
-    public void ValidatePriceValue_Fails_WithNegative()
+    public void ValidatePriceValueFailsWithNegative()
     {
         var svc = CreateService();
         var result = svc.ValidatePriceValue(-5.00m);
@@ -138,7 +137,7 @@ public class ValidationServiceTests
     }
 
     [Fact]
-    public void ValidateStatusTransition_Succeeds_WithValidTransition()
+    public void ValidateStatusTransitionSucceedsWithValidTransition()
     {
         var svc = CreateService();
         var result = svc.ValidateStatusTransition("New", "Open");
@@ -146,7 +145,7 @@ public class ValidationServiceTests
     }
 
     [Fact]
-    public void ValidateStatusTransition_Fails_WithInvalidTransition()
+    public void ValidateStatusTransitionFailsWithInvalidTransition()
     {
         var svc = CreateService();
         var result = svc.ValidateStatusTransition("New", "Resolved");

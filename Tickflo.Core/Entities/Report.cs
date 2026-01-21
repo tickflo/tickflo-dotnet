@@ -5,14 +5,14 @@ public class Report : IWorkspaceEntity
     public int Id { get; set; }
     public int WorkspaceId { get; set; }
     public string Name { get; set; } = string.Empty;
-    public bool Ready { get; set; } = false;
+    public bool Ready { get; set; }
     public DateTime? LastRun { get; set; }
 
     // JSON definition describing data source, fields, filters, ordering
     public string? DefinitionJson { get; set; }
 
     // Scheduling (simple types to avoid cron dependency)
-    public bool ScheduleEnabled { get; set; } = false;
+    public bool ScheduleEnabled { get; set; }
     // one of: none, daily, weekly, monthly
     public string ScheduleType { get; set; } = "none";
     public TimeSpan? ScheduleTime { get; set; }

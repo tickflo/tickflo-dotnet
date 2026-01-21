@@ -1,15 +1,14 @@
-﻿using Moq;
-using System.Threading;
+namespace Tickflo.CoreTest.Services;
+
+using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Xunit;
 
-namespace Tickflo.CoreTest.Services;
-
 public class WorkspaceTicketsViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_ReturnsViewDataWithMetadata()
+    public async Task BuildAsyncReturnsViewDataWithMetadata()
     {
         var workspaceId = 1;
         var userId = 10;
@@ -29,45 +28,45 @@ public class WorkspaceTicketsViewServiceTests
 
         // Setup status list
         statusRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketStatus>
-            {
-                new TicketStatus { Name = "Open", IsClosedState = false, Color = "#00ff00" }
-            });
+            .ReturnsAsync(
+            [
+                new() { Name = "Open", IsClosedState = false, Color = "#00ff00" }
+            ]);
 
         // Setup priority list
         priorityRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketPriority>
-            {
-                new TicketPriority { Name = "High", Color = "red" }
-            });
+            .ReturnsAsync(
+            [
+                new() { Name = "High", Color = "red" }
+            ]);
 
         // Setup type list
         typeRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketType>
-            {
-                new TicketType { Name = "Bug", Color = "orange" }
-            });
+            .ReturnsAsync(
+            [
+                new() { Name = "Bug", Color = "orange" }
+            ]);
 
         // Setup teams
         teamRepo.Setup(r => r.ListForWorkspaceAsync(workspaceId))
-            .ReturnsAsync(new List<Team>
-            {
+            .ReturnsAsync(
+            [
                 new Team { Id = 1, Name = "DevTeam" }
-            });
+            ]);
 
         // Setup contacts
         contactRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Contact>
-            {
-                new Contact { Id = 1, Name = "John Doe" }
-            });
+            .ReturnsAsync(
+            [
+                new() { Id = 1, Name = "John Doe" }
+            ]);
 
         // Setup user workspaces
         userWorkspaceRepo.Setup(r => r.FindForWorkspaceAsync(workspaceId))
-            .ReturnsAsync(new List<UserWorkspace>
-            {
+            .ReturnsAsync(
+            [
                 new UserWorkspace { UserId = 10, WorkspaceId = workspaceId, Accepted = true }
-            });
+            ]);
 
         // Setup users
         userRepo.Setup(r => r.FindByIdAsync(10))
@@ -75,10 +74,10 @@ public class WorkspaceTicketsViewServiceTests
 
         // Setup locations
         locationRepo.Setup(r => r.ListAsync(workspaceId))
-            .ReturnsAsync(new List<Location>
-            {
-                new Location { Id = 1, Name = "Office" }
-            });
+            .ReturnsAsync(
+            [
+                new() { Id = 1, Name = "Office" }
+            ]);
 
         // Setup permissions
         // Setup admin check (not admin in this test)
@@ -96,7 +95,7 @@ public class WorkspaceTicketsViewServiceTests
 
         // Setup team members (empty for scope "all")
         teamMemberRepo.Setup(r => r.ListTeamsForUserAsync(workspaceId, userId))
-            .ReturnsAsync(new List<Team>());
+            .ReturnsAsync([]);
 
         var service = new WorkspaceTicketsViewService(
             statusRepo.Object,
@@ -128,7 +127,7 @@ public class WorkspaceTicketsViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_WithEmptyStatuses_UsesFallbackDefaults()
+    public async Task BuildAsyncWithEmptyStatusesUsesFallbackDefaults()
     {
         var workspaceId = 1;
         var userId = 10;
@@ -147,38 +146,38 @@ public class WorkspaceTicketsViewServiceTests
 
         // Empty statuses - should use fallback
         statusRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketStatus>());
+            .ReturnsAsync([]);
 
         priorityRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketPriority>());
+            .ReturnsAsync([]);
 
         typeRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketType>());
+            .ReturnsAsync([]);
 
         teamRepo.Setup(r => r.ListForWorkspaceAsync(workspaceId))
-            .ReturnsAsync(new List<Team>());
+            .ReturnsAsync([]);
 
         contactRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Contact>());
+            .ReturnsAsync([]);
 
         userWorkspaceRepo.Setup(r => r.FindForWorkspaceAsync(workspaceId))
-            .ReturnsAsync(new List<UserWorkspace>());
+            .ReturnsAsync([]);
 
         locationRepo.Setup(r => r.ListAsync(workspaceId))
-            .ReturnsAsync(new List<Location>());
+            .ReturnsAsync([]);
 
         // Setup admin check (not admin in this test)
         uwrRepo.Setup(r => r.IsAdminAsync(userId, workspaceId))
             .ReturnsAsync(false);
 
         rolePermissionRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
-            .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>());
+            .ReturnsAsync([]);
 
         rolePermissionRepo.Setup(r => r.GetTicketViewScopeForUserAsync(workspaceId, userId, false))
             .ReturnsAsync("all");
 
         teamMemberRepo.Setup(r => r.ListTeamsForUserAsync(workspaceId, userId))
-            .ReturnsAsync(new List<Team>());
+            .ReturnsAsync([]);
 
         var service = new WorkspaceTicketsViewService(
             statusRepo.Object,
@@ -210,8 +209,10 @@ public class WorkspaceTicketsViewServiceTests
         Assert.Contains(view.Types, t => t.Name == "Standard");
     }
 
+    private static readonly int[] expected = [1, 2];
+
     [Fact]
-    public async Task BuildAsync_WithTeamScope_IncludesUserTeamIds()
+    public async Task BuildAsyncWithTeamScopeIncludesUserTeamIds()
     {
         var workspaceId = 1;
         var userId = 10;
@@ -229,26 +230,26 @@ public class WorkspaceTicketsViewServiceTests
         var uwrRepo = new Mock<IUserWorkspaceRoleRepository>();
 
         statusRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketStatus>());
+            .ReturnsAsync([]);
         priorityRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketPriority>());
+            .ReturnsAsync([]);
         typeRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketType>());
+            .ReturnsAsync([]);
         teamRepo.Setup(r => r.ListForWorkspaceAsync(workspaceId))
-            .ReturnsAsync(new List<Team>());
+            .ReturnsAsync([]);
         contactRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Contact>());
+            .ReturnsAsync([]);
         userWorkspaceRepo.Setup(r => r.FindForWorkspaceAsync(workspaceId))
-            .ReturnsAsync(new List<UserWorkspace>());
+            .ReturnsAsync([]);
         locationRepo.Setup(r => r.ListAsync(workspaceId))
-            .ReturnsAsync(new List<Location>());
+            .ReturnsAsync([]);
 
         // Setup admin check (not admin in this test)
         uwrRepo.Setup(r => r.IsAdminAsync(userId, workspaceId))
             .ReturnsAsync(false);
 
         rolePermissionRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
-            .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>());
+            .ReturnsAsync([]);
 
         // Scope is "team", not "all"
         rolePermissionRepo.Setup(r => r.GetTicketViewScopeForUserAsync(workspaceId, userId, false))
@@ -256,11 +257,11 @@ public class WorkspaceTicketsViewServiceTests
 
         // User belongs to teams 1 and 2
         teamMemberRepo.Setup(r => r.ListTeamsForUserAsync(workspaceId, userId))
-            .ReturnsAsync(new List<Team>
-            {
+            .ReturnsAsync(
+            [
                 new Team { Id = 1, Name = "Team A" },
                 new Team { Id = 2, Name = "Team B" }
-            });
+            ]);
 
         var service = new WorkspaceTicketsViewService(
             statusRepo.Object,
@@ -278,7 +279,7 @@ public class WorkspaceTicketsViewServiceTests
         var view = await service.BuildAsync(workspaceId, userId);
 
         Assert.Equal("team", view.TicketViewScope);
-        Assert.Equal(new[] { 1, 2 }, view.UserTeamIds);
+        Assert.Equal(expected, view.UserTeamIds);
     }
 }
 

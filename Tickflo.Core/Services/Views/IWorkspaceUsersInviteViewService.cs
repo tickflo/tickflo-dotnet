@@ -8,7 +8,7 @@ public class WorkspaceUsersInviteViewData
 
 public interface IWorkspaceUsersInviteViewService
 {
-    Task<WorkspaceUsersInviteViewData> BuildAsync(int workspaceId, int userId);
+    public Task<WorkspaceUsersInviteViewData> BuildAsync(int workspaceId, int userId);
 }
 
 

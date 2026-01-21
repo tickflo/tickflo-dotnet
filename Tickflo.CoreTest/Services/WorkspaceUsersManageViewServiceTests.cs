@@ -1,13 +1,13 @@
-﻿using Moq;
-using Xunit;
-using Tickflo.Core.Data;
-
 namespace Tickflo.CoreTest.Services;
+
+using Moq;
+using Tickflo.Core.Data;
+using Xunit;
 
 public class WorkspaceUsersManageViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_AllowsEdit_WhenAdmin()
+    public async Task BuildAsyncAllowsEditWhenAdmin()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
@@ -21,7 +21,7 @@ public class WorkspaceUsersManageViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_AllowsEdit_WhenEffectivePerms()
+    public async Task BuildAsyncAllowsEditWhenEffectivePerms()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
@@ -40,14 +40,14 @@ public class WorkspaceUsersManageViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_DeniesEdit_WhenNoPerms()
+    public async Task BuildAsyncDeniesEditWhenNoPerms()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
 
         uwr.Setup(x => x.IsAdminAsync(3, 10)).ReturnsAsync(false);
         perms.Setup(x => x.GetEffectivePermissionsForUserAsync(10, 3))
-            .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>());
+            .ReturnsAsync([]);
 
         var svc = new WorkspaceUsersManageViewService(uwr.Object, perms.Object);
         var result = await svc.BuildAsync(10, 3);

@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Views;
+
+using Tickflo.Core.Entities;
 
 public class ReportRunPageData
 {
@@ -11,8 +11,8 @@ public class ReportRunPageData
     public int FromRow { get; set; }
     public int ToRow { get; set; }
     public bool HasContent { get; set; }
-    public List<string> Headers { get; set; } = new();
-    public List<List<string>> Rows { get; set; } = new();
+    public List<string> Headers { get; set; } = [];
+    public List<List<string>> Rows { get; set; } = [];
 }
 
 public class WorkspaceReportRunViewData
@@ -25,7 +25,7 @@ public class WorkspaceReportRunViewData
 
 public interface IWorkspaceReportRunViewService
 {
-    Task<WorkspaceReportRunViewData> BuildAsync(int workspaceId, int userId, int reportId, int runId, int page, int take);
+    public Task<WorkspaceReportRunViewData> BuildAsync(int workspaceId, int userId, int reportId, int runId, int page, int take);
 }
 
 

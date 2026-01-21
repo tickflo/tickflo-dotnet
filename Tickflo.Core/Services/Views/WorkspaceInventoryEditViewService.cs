@@ -1,34 +1,25 @@
-using Tickflo.Core.Data;
-using Tickflo.Core.Entities;
-using InventoryEntity = Tickflo.Core.Entities.Inventory;
-
 namespace Tickflo.Core.Services.Views;
 
-public class WorkspaceInventoryEditViewService : IWorkspaceInventoryEditViewService
-{
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePerms;
-    private readonly IInventoryRepository _inventoryRepo;
-    private readonly ILocationRepository _locationRepo;
+using Tickflo.Core.Data;
+using InventoryEntity = Entities.Inventory;
 
-    public WorkspaceInventoryEditViewService(
-        IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
-        IRolePermissionRepository rolePerms,
-        IInventoryRepository inventoryRepo,
-        ILocationRepository locationRepo)
-    {
-        _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-        _rolePerms = rolePerms;
-        _inventoryRepo = inventoryRepo;
-        _locationRepo = locationRepo;
-    }
+public class WorkspaceInventoryEditViewService(
+    IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
+    IRolePermissionRepository rolePerms,
+    IInventoryRepository inventoryRepo,
+    ILocationRepository locationRepo) : IWorkspaceInventoryEditViewService
+{
+    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
+    private readonly IRolePermissionRepository _rolePerms = rolePerms;
+    private readonly IInventoryRepository _inventoryRepo = inventoryRepo;
+    private readonly ILocationRepository _locationRepo = locationRepo;
 
     public async Task<WorkspaceInventoryEditViewData> BuildAsync(int workspaceId, int userId, int inventoryId = 0)
     {
         var data = new WorkspaceInventoryEditViewData();
 
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
-        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+        var isAdmin = await this._userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
+        var eff = await this._rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, userId);
 
         if (isAdmin)
         {
@@ -41,12 +32,12 @@ public class WorkspaceInventoryEditViewService : IWorkspaceInventoryEditViewServ
             data.CanCreateInventory = ip.CanCreate;
         }
 
-        var locations = await _locationRepo.ListAsync(workspaceId);
-        data.LocationOptions = locations != null ? locations.ToList() : new();
+        var locations = await this._locationRepo.ListAsync(workspaceId);
+        data.LocationOptions = locations != null ? [.. locations] : [];
 
         if (inventoryId > 0)
         {
-            data.ExistingItem = await _inventoryRepo.FindAsync(workspaceId, inventoryId);
+            data.ExistingItem = await this._inventoryRepo.FindAsync(workspaceId, inventoryId);
         }
         else
         {

@@ -1,20 +1,19 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Tickets;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 public class TicketClosingServiceTests
 {
     [Fact]
-    public async Task CloseTicketAsync_Throws_When_Already_Closed()
+    public async Task CloseTicketAsyncThrowsWhenAlreadyClosed()
     {
         var ticketRepo = new Mock<ITicketRepository>();
-        var statuses = new List<TicketStatus> 
-        { 
-            new TicketStatus { Id = 1, Name = "Closed", IsClosedState = true } 
+        var statuses = new List<TicketStatus>
+        {
+            new() { Id = 1, Name = "Closed", IsClosedState = true }
         };
         ticketRepo.Setup(r => r.FindAsync(1, 2, CancellationToken.None)).ReturnsAsync(new Ticket { Id = 2, StatusId = 1 });
         var statusRepo = new Mock<ITicketStatusRepository>();
@@ -25,7 +24,7 @@ public class TicketClosingServiceTests
     }
 
     [Fact]
-    public async Task ResolveTicketAsync_Writes_History()
+    public async Task ResolveTicketAsyncWritesHistory()
     {
         var ticketRepo = new Mock<ITicketRepository>();
         var openStatus = new TicketStatus { Id = 2, Name = "Open", IsClosedState = false };

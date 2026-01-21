@@ -1,11 +1,11 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Data;
+
+using Tickflo.Core.Entities;
 
 public interface ITicketRepository
 {
-    Task<IReadOnlyList<Ticket>> ListAsync(int workspaceId, CancellationToken ct = default);
-    Task<Ticket?> FindAsync(int workspaceId, int id, CancellationToken ct = default);
-    Task<Ticket> CreateAsync(Ticket ticket, CancellationToken ct = default);
-    Task<Ticket> UpdateAsync(Ticket ticket, CancellationToken ct = default);
+    public Task<IReadOnlyList<Ticket>> ListAsync(int workspaceId, CancellationToken ct = default);
+    public Task<Ticket?> FindAsync(int workspaceId, int id, CancellationToken ct = default);
+    public Task<Ticket> CreateAsync(Ticket ticket, CancellationToken ct = default);
+    public Task<Ticket> UpdateAsync(Ticket ticket, CancellationToken ct = default);
 }

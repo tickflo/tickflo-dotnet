@@ -1,5 +1,3 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Workspace;
 
 /// <summary>
@@ -13,5 +11,5 @@ public interface IWorkspaceCreationService
     /// <param name="request">Workspace creation details</param>
     /// <param name="createdByUserId">User creating the workspace</param>
     /// <returns>The created workspace</returns>
-    Task<Entities.Workspace> CreateWorkspaceAsync(WorkspaceCreationRequest request, int createdByUserId);
+    public Task<Entities.Workspace> CreateWorkspaceAsync(WorkspaceCreationRequest request, int createdByUserId);
 }

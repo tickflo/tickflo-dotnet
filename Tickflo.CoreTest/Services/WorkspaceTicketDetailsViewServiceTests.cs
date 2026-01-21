@@ -1,15 +1,14 @@
-﻿using Moq;
-using System.Threading;
+namespace Tickflo.CoreTest.Services;
+
+using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Xunit;
 
-namespace Tickflo.CoreTest.Services;
-
 public class WorkspaceTicketDetailsViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_ForNewTicket_ReturnsViewDataWithDefaults()
+    public async Task BuildAsyncForNewTicketReturnsViewDataWithDefaults()
     {
         var workspaceId = 1;
         var ticketId = 0;
@@ -42,28 +41,28 @@ public class WorkspaceTicketDetailsViewServiceTests
 
         // Setup repositories
         statusRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketStatus>());
+            .ReturnsAsync([]);
         statusRepo.Setup(r => r.FindByNameAsync(workspaceId, "New"))
             .ReturnsAsync(new TicketStatus { Id = 1, Name = "New" });
         priorityRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketPriority>());
+            .ReturnsAsync([]);
         priorityRepo.Setup(r => r.FindAsync(workspaceId, "Normal"))
             .ReturnsAsync(new TicketPriority { Id = 1, Name = "Normal" });
         typeRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketType>());
+            .ReturnsAsync([]);
         typeRepo.Setup(r => r.FindByNameAsync(workspaceId, "Standard"))
             .ReturnsAsync(new TicketType { Id = 1, Name = "Standard" });
 
         contactRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Contact>());
+            .ReturnsAsync([]);
         inventoryRepo.Setup(r => r.ListAsync(workspaceId, null, "active"))
-            .ReturnsAsync(new List<Inventory>());
+            .ReturnsAsync([]);
         userWorkspaceRepo.Setup(r => r.FindForWorkspaceAsync(workspaceId))
-            .ReturnsAsync(new List<UserWorkspace>());
+            .ReturnsAsync([]);
         teamRepo.Setup(r => r.ListForWorkspaceAsync(workspaceId))
-            .ReturnsAsync(new List<Team>());
+            .ReturnsAsync([]);
         locationRepo.Setup(r => r.ListAsync(workspaceId))
-            .ReturnsAsync(new List<Location>());
+            .ReturnsAsync([]);
 
         var service = new WorkspaceTicketDetailsViewService(
             ticketRepo.Object,
@@ -96,7 +95,7 @@ public class WorkspaceTicketDetailsViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_ForExistingTicket_ReturnsTicketAndHistory()
+    public async Task BuildAsyncForExistingTicketReturnsTicketAndHistory()
     {
         var workspaceId = 1;
         var ticketId = 5;
@@ -130,27 +129,27 @@ public class WorkspaceTicketDetailsViewServiceTests
         ticketRepo.Setup(r => r.FindAsync(workspaceId, ticketId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ticket);
 
-        var history = new List<TicketHistory> { new TicketHistory { Id = 1, TicketId = ticketId, Field = "Status", OldValue = "New", NewValue = "Open" } };
+        var history = new List<TicketHistory> { new() { Id = 1, TicketId = ticketId, Field = "Status", OldValue = "New", NewValue = "Open" } };
         historyRepo.Setup(r => r.ListForTicketAsync(workspaceId, ticketId))
             .ReturnsAsync(history);
 
         statusRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketStatus>());
+            .ReturnsAsync([]);
         priorityRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketPriority>());
+            .ReturnsAsync([]);
         typeRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketType>());
+            .ReturnsAsync([]);
 
         contactRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Contact>());
+            .ReturnsAsync([]);
         inventoryRepo.Setup(r => r.ListAsync(workspaceId, null, "active"))
-            .ReturnsAsync(new List<Inventory>());
+            .ReturnsAsync([]);
         userWorkspaceRepo.Setup(r => r.FindForWorkspaceAsync(workspaceId))
-            .ReturnsAsync(new List<UserWorkspace>());
+            .ReturnsAsync([]);
         teamRepo.Setup(r => r.ListForWorkspaceAsync(workspaceId))
-            .ReturnsAsync(new List<Team>());
+            .ReturnsAsync([]);
         locationRepo.Setup(r => r.ListAsync(workspaceId))
-            .ReturnsAsync(new List<Location>());
+            .ReturnsAsync([]);
 
         var service = new WorkspaceTicketDetailsViewService(
             ticketRepo.Object,
@@ -176,7 +175,7 @@ public class WorkspaceTicketDetailsViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_WithMineScope_ReturnsNullIfNotAssignedToUser()
+    public async Task BuildAsyncWithMineScopeReturnsNullIfNotAssignedToUser()
     {
         var workspaceId = 1;
         var ticketId = 5;
@@ -233,7 +232,7 @@ public class WorkspaceTicketDetailsViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_AsAdmin_IgnoresScopeRestrictions()
+    public async Task BuildAsyncAsAdminIgnoresScopeRestrictions()
     {
         var workspaceId = 1;
         var ticketId = 5;
@@ -256,7 +255,7 @@ public class WorkspaceTicketDetailsViewServiceTests
 
         // Empty permissions
         rolePermissionRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
-            .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>());
+            .ReturnsAsync([]);
 
         // Admin
         userWorkspaceRoleRepo.Setup(r => r.IsAdminAsync(userId, workspaceId))
@@ -267,24 +266,24 @@ public class WorkspaceTicketDetailsViewServiceTests
             .ReturnsAsync(ticket);
 
         statusRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketStatus>());
+            .ReturnsAsync([]);
         priorityRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketPriority>());
+            .ReturnsAsync([]);
         typeRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketType>());
+            .ReturnsAsync([]);
 
         contactRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Contact>());
+            .ReturnsAsync([]);
         inventoryRepo.Setup(r => r.ListAsync(workspaceId, null, "active"))
-            .ReturnsAsync(new List<Inventory>());
+            .ReturnsAsync([]);
         userWorkspaceRepo.Setup(r => r.FindForWorkspaceAsync(workspaceId))
-            .ReturnsAsync(new List<UserWorkspace>());
+            .ReturnsAsync([]);
         teamRepo.Setup(r => r.ListForWorkspaceAsync(workspaceId))
-            .ReturnsAsync(new List<Team>());
+            .ReturnsAsync([]);
         locationRepo.Setup(r => r.ListAsync(workspaceId))
-            .ReturnsAsync(new List<Location>());
+            .ReturnsAsync([]);
         historyRepo.Setup(r => r.ListForTicketAsync(workspaceId, ticketId))
-            .ReturnsAsync(new List<TicketHistory>());
+            .ReturnsAsync([]);
 
         var service = new WorkspaceTicketDetailsViewService(
             ticketRepo.Object,

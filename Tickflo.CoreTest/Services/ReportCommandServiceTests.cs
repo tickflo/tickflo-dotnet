@@ -1,14 +1,14 @@
-﻿using Moq;
+namespace Tickflo.CoreTest.Services;
+
+using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Xunit;
 
-namespace Tickflo.CoreTest.Services;
-
 public class ReportCommandServiceTests
 {
     [Fact]
-    public async Task CreateAsync_CallsRepo()
+    public async Task CreateAsyncCallsRepo()
     {
         var repo = new Mock<IReportRepository>();
         var input = new Report { WorkspaceId = 1, Name = "r" };
@@ -22,7 +22,7 @@ public class ReportCommandServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsync_CallsRepo()
+    public async Task UpdateAsyncCallsRepo()
     {
         var repo = new Mock<IReportRepository>();
         var input = new Report { Id = 2, WorkspaceId = 1, Name = "r" };

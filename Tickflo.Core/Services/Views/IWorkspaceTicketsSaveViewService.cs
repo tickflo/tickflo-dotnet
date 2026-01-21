@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Views;
+
+using Tickflo.Core.Entities;
 
 public class WorkspaceTicketsSaveViewData
 {
@@ -11,7 +11,7 @@ public class WorkspaceTicketsSaveViewData
 
 public interface IWorkspaceTicketsSaveViewService
 {
-    Task<WorkspaceTicketsSaveViewData> BuildAsync(int workspaceId, int userId, bool isNew, Ticket? existing = null);
+    public Task<WorkspaceTicketsSaveViewData> BuildAsync(int workspaceId, int userId, bool isNew, Ticket? existing = null);
 }
 
 

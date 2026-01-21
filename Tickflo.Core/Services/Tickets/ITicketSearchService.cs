@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Tickets;
+
+using Tickflo.Core.Entities;
 
 /// <summary>
 /// Search filter criteria for ticket queries.
@@ -31,11 +31,11 @@ public class TicketSearchCriteria
 /// </summary>
 public class TicketSearchResult
 {
-    public List<Ticket> Tickets { get; set; } = new();
+    public List<Ticket> Tickets { get; set; } = [];
     public int TotalCount { get; set; }
     public int PageNumber { get; set; }
     public int PageSize { get; set; }
-    public int TotalPages => (TotalCount + PageSize - 1) / PageSize;
+    public int TotalPages => (this.TotalCount + this.PageSize - 1) / this.PageSize;
 }
 
 /// <summary>
@@ -48,7 +48,7 @@ public interface ITicketSearchService
     /// Search tickets using flexible criteria with pagination.
     /// Respects user's workspace and applies appropriate filters.
     /// </summary>
-    Task<TicketSearchResult> SearchAsync(
+    public Task<TicketSearchResult> SearchAsync(
         int workspaceId,
         TicketSearchCriteria criteria,
         int requestingUserId);
@@ -57,7 +57,7 @@ public interface ITicketSearchService
     /// Get all tickets assigned to a specific user.
     /// Includes both directly assigned and team-assigned tickets.
     /// </summary>
-    Task<List<Ticket>> GetMyTicketsAsync(
+    public Task<List<Ticket>> GetMyTicketsAsync(
         int workspaceId,
         int userId,
         string? statusFilter = null);
@@ -66,14 +66,14 @@ public interface ITicketSearchService
     /// Get all open/active tickets in the workspace.
     /// Used for dashboards and monitoring.
     /// </summary>
-    Task<List<Ticket>> GetActiveTicketsAsync(
+    public Task<List<Ticket>> GetActiveTicketsAsync(
         int workspaceId,
         int? limitToTeamId = null);
 
     /// <summary>
     /// Get recently updated tickets for activity feed.
     /// </summary>
-    Task<List<Ticket>> GetRecentlyUpdatedAsync(
+    public Task<List<Ticket>> GetRecentlyUpdatedAsync(
         int workspaceId,
         int limitToLastDays = 7,
         int take = 20);
@@ -82,7 +82,7 @@ public interface ITicketSearchService
     /// Get high-priority tickets that need attention.
     /// Useful for SLA monitoring and escalation.
     /// </summary>
-    Task<List<Ticket>> GetHighPriorityTicketsAsync(
+    public Task<List<Ticket>> GetHighPriorityTicketsAsync(
         int workspaceId,
         int? limitToTeamId = null);
 
@@ -90,7 +90,7 @@ public interface ITicketSearchService
     /// Get tickets for a specific contact.
     /// Returns all tickets related to a contact in any role.
     /// </summary>
-    Task<List<Ticket>> GetContactTicketsAsync(
+    public Task<List<Ticket>> GetContactTicketsAsync(
         int workspaceId,
         int contactId);
 
@@ -98,21 +98,21 @@ public interface ITicketSearchService
     /// Get unassigned tickets awaiting assignment.
     /// Useful for queue management and dispatching.
     /// </summary>
-    Task<List<Ticket>> GetUnassignedTicketsAsync(
+    public Task<List<Ticket>> GetUnassignedTicketsAsync(
         int workspaceId,
         int? limitToTeamId = null);
 
     /// <summary>
     /// Get tickets approaching their SLA deadline.
     /// </summary>
-    Task<List<Ticket>> GetSLAAtRiskAsync(
+    public Task<List<Ticket>> GetSLAAtRiskAsync(
         int workspaceId,
         int hoursUntilDueWarning = 24);
 
     /// <summary>
     /// Get tickets with a specific tag/label.
     /// </summary>
-    Task<List<Ticket>> GetByTagAsync(
+    public Task<List<Ticket>> GetByTagAsync(
         int workspaceId,
         string tag);
 
@@ -120,7 +120,7 @@ public interface ITicketSearchService
     /// Get bulk ticket data for reporting/export.
     /// Includes related data in denormalized format for performance.
     /// </summary>
-    Task<List<Dictionary<string, object>>> GetBulkDataForExportAsync(
+    public Task<List<Dictionary<string, object>>> GetBulkDataForExportAsync(
         int workspaceId,
         TicketSearchCriteria criteria);
 }

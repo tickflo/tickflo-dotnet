@@ -1,18 +1,13 @@
+namespace Tickflo.Web.Pages.Account;
+
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Services.Authentication;
 
-namespace Tickflo.Web.Pages.Account;
-
-public class SetPasswordModel : PageModel
+public class SetPasswordModel(IPasswordSetupService passwordSetupService) : PageModel
 {
-    private readonly IPasswordSetupService _passwordSetupService;
-
-    public SetPasswordModel(IPasswordSetupService passwordSetupService)
-    {
-        _passwordSetupService = passwordSetupService;
-    }
+    private readonly IPasswordSetupService _passwordSetupService = passwordSetupService;
 
     [BindProperty(SupportsGet = true)]
     public string Token { get; set; } = string.Empty;
@@ -32,35 +27,35 @@ public class SetPasswordModel : PageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
-        var validation = await _passwordSetupService.ValidateResetTokenAsync(Token);
+        var validation = await this._passwordSetupService.ValidateResetTokenAsync(this.Token);
         if (!validation.IsValid)
         {
-            Error = validation.ErrorMessage;
+            this.Error = validation.ErrorMessage;
         }
-        return Page();
+        return this.Page();
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (!ModelState.IsValid)
+        if (!this.ModelState.IsValid)
         {
-            var validation = await _passwordSetupService.ValidateResetTokenAsync(Token);
+            var validation = await this._passwordSetupService.ValidateResetTokenAsync(this.Token);
             if (!validation.IsValid)
             {
-                Error = validation.ErrorMessage;
+                this.Error = validation.ErrorMessage;
             }
-            return Page();
+            return this.Page();
         }
 
-        var result = await _passwordSetupService.SetPasswordWithTokenAsync(Token, Password);
+        var result = await this._passwordSetupService.SetPasswordWithTokenAsync(this.Token, this.Password);
         if (!result.Success)
         {
-            Error = result.ErrorMessage;
-            return Page();
+            this.Error = result.ErrorMessage;
+            return this.Page();
         }
 
-        TempData["Message"] = "Password updated. You can now sign in.";
-        return Redirect("/login");
+        this.TempData["Message"] = "Password updated. You can now sign in.";
+        return this.Redirect("/login");
     }
 }
 

@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Common;
+
+using Tickflo.Core.Entities;
 
 /// <summary>
 /// Represents a notification type definition with its label.
@@ -20,7 +20,7 @@ public interface INotificationPreferenceService
     /// Gets all available notification type definitions.
     /// </summary>
     /// <returns>List of available notification types</returns>
-    List<NotificationTypeDefinition> GetNotificationTypeDefinitions();
+    public List<NotificationTypeDefinition> GetNotificationTypeDefinitions();
 
     /// <summary>
     /// Gets notification preferences for a user.
@@ -28,7 +28,7 @@ public interface INotificationPreferenceService
     /// </summary>
     /// <param name="userId">The user to get preferences for</param>
     /// <returns>List of user notification preferences with defaults</returns>
-    Task<List<UserNotificationPreference>> GetUserPreferencesAsync(int userId);
+    public Task<List<UserNotificationPreference>> GetUserPreferencesAsync(int userId);
 
     /// <summary>
     /// Saves or updates notification preferences for a user.
@@ -36,14 +36,14 @@ public interface INotificationPreferenceService
     /// <param name="userId">The user</param>
     /// <param name="preferences">The preferences to save</param>
     /// <returns>The saved preferences</returns>
-    Task<List<UserNotificationPreference>> SavePreferencesAsync(int userId, List<UserNotificationPreference> preferences);
+    public Task<List<UserNotificationPreference>> SavePreferencesAsync(int userId, List<UserNotificationPreference> preferences);
 
     /// <summary>
     /// Initializes default notification preferences for a new user.
     /// </summary>
     /// <param name="userId">The user to initialize preferences for</param>
     /// <returns>The created default preferences</returns>
-    Task<List<UserNotificationPreference>> InitializeDefaultPreferencesAsync(int userId);
+    public Task<List<UserNotificationPreference>> InitializeDefaultPreferencesAsync(int userId);
 }
 
 

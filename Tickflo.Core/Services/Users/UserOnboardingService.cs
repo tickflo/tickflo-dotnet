@@ -1,58 +1,48 @@
+namespace Tickflo.Core.Services.Users;
+
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.Core.Services.Users;
 
 /// <summary>
 /// Handles user onboarding and workspace assignment workflows.
 /// </summary>
-public class UserOnboardingService : IUserOnboardingService
+public class UserOnboardingService(
+    IUserRepository userRepo,
+    IUserWorkspaceRepository userWorkspaceRepo,
+    IUserWorkspaceRoleRepository roleAssignmentRepo,
+    IWorkspaceRepository workspaceRepo) : IUserOnboardingService
 {
-    private readonly IUserRepository _userRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
-    private readonly IUserWorkspaceRoleRepository _roleAssignmentRepo;
-    private readonly IWorkspaceRepository _workspaceRepo;
-
-    public UserOnboardingService(
-        IUserRepository userRepo,
-        IUserWorkspaceRepository userWorkspaceRepo,
-        IUserWorkspaceRoleRepository roleAssignmentRepo,
-        IWorkspaceRepository workspaceRepo)
-    {
-        _userRepo = userRepo;
-        _userWorkspaceRepo = userWorkspaceRepo;
-        _roleAssignmentRepo = roleAssignmentRepo;
-        _workspaceRepo = workspaceRepo;
-    }
+    private readonly IUserRepository _userRepo = userRepo;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
+    private readonly IUserWorkspaceRoleRepository _roleAssignmentRepo = roleAssignmentRepo;
+    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
 
     /// <summary>
     /// Invites a user to a workspace with a specific role.
     /// </summary>
     public async Task<UserWorkspace> InviteUserToWorkspaceAsync(
-        int workspaceId, 
-        string email, 
-        int roleId, 
+        int workspaceId,
+        string email,
+        int roleId,
         int invitedByUserId)
     {
         // Business rule: Validate email format
         if (!IsValidEmail(email))
-            throw new InvalidOperationException("Invalid email address format");
-
-        var workspace = await _workspaceRepo.FindByIdAsync(workspaceId);
-        if (workspace == null)
-            throw new InvalidOperationException("Workspace not found");
-
-        // Business rule: Find or create user
-        var user = await _userRepo.FindByEmailAsync(email);
-        if (user == null)
         {
-            throw new InvalidOperationException("User does not exist. They must register first.");
+            throw new InvalidOperationException("Invalid email address format");
         }
 
+        var workspace = await this._workspaceRepo.FindByIdAsync(workspaceId) ?? throw new InvalidOperationException("Workspace not found");
+
+        // Business rule: Find or create user
+        var user = await this._userRepo.FindByEmailAsync(email) ?? throw new InvalidOperationException("User does not exist. They must register first.");
+
         // Business rule: Check if user already has workspace access
-        var existingAccess = await _userWorkspaceRepo.FindAsync(user.Id, workspaceId);
+        var existingAccess = await this._userWorkspaceRepo.FindAsync(user.Id, workspaceId);
         if (existingAccess != null)
+        {
             throw new InvalidOperationException("User already has access to this workspace");
+        }
 
         // Create workspace assignment
         var assignment = new UserWorkspace
@@ -64,12 +54,12 @@ public class UserOnboardingService : IUserOnboardingService
             CreatedBy = invitedByUserId
         };
 
-        await _userWorkspaceRepo.AddAsync(assignment);
+        await this._userWorkspaceRepo.AddAsync(assignment);
 
         // Assign default role if provided
         if (roleId > 0)
         {
-            await _roleAssignmentRepo.AddAsync(user.Id, workspaceId, roleId, invitedByUserId);
+            await this._roleAssignmentRepo.AddAsync(user.Id, workspaceId, roleId, invitedByUserId);
         }
 
         // Business rule: Could send invitation email here
@@ -82,18 +72,18 @@ public class UserOnboardingService : IUserOnboardingService
     /// </summary>
     public async Task<UserWorkspace> AcceptInvitationAsync(int userId, int workspaceId)
     {
-        var assignment = await _userWorkspaceRepo.FindAsync(userId, workspaceId);
-        if (assignment == null)
-            throw new InvalidOperationException("Invitation not found");
+        var assignment = await this._userWorkspaceRepo.FindAsync(userId, workspaceId) ?? throw new InvalidOperationException("Invitation not found");
 
         if (assignment.Accepted)
+        {
             return assignment; // Already accepted
+        }
 
         // Business rule: Mark invitation as accepted
         assignment.Accepted = true;
         assignment.UpdatedAt = DateTime.UtcNow;
 
-        await _userWorkspaceRepo.UpdateAsync(assignment);
+        await this._userWorkspaceRepo.UpdateAsync(assignment);
 
         // Could add: Send welcome email, trigger onboarding workflows, etc.
 
@@ -105,12 +95,12 @@ public class UserOnboardingService : IUserOnboardingService
     /// </summary>
     public async Task DeclineInvitationAsync(int userId, int workspaceId)
     {
-        var assignment = await _userWorkspaceRepo.FindAsync(userId, workspaceId);
-        if (assignment == null)
-            throw new InvalidOperationException("Invitation not found");
+        var assignment = await this._userWorkspaceRepo.FindAsync(userId, workspaceId) ?? throw new InvalidOperationException("Invitation not found");
 
         if (assignment.Accepted)
+        {
             throw new InvalidOperationException("Cannot decline an accepted invitation");
+        }
 
         // Repository doesn't have delete - would need to be added
         throw new NotImplementedException("Invitation decline requires repository support");
@@ -121,9 +111,7 @@ public class UserOnboardingService : IUserOnboardingService
     /// </summary>
     public async Task RemoveUserFromWorkspaceAsync(int userId, int workspaceId, int removedByUserId)
     {
-        var assignment = await _userWorkspaceRepo.FindAsync(userId, workspaceId);
-        if (assignment == null)
-            throw new InvalidOperationException("User does not have access to this workspace");
+        var assignment = await this._userWorkspaceRepo.FindAsync(userId, workspaceId) ?? throw new InvalidOperationException("User does not have access to this workspace");
 
         // Business rule: Could prevent removal of last admin
         // Business rule: Could reassign tickets, etc.

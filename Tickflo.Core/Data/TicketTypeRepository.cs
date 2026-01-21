@@ -1,7 +1,7 @@
+namespace Tickflo.Core.Data;
+
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.Core.Data;
 
 public class TicketTypeRepository(TickfloDbContext db) : ITicketTypeRepository
 {
@@ -30,7 +30,7 @@ public class TicketTypeRepository(TickfloDbContext db) : ITicketTypeRepository
 
     public async Task DeleteAsync(int workspaceId, int id, CancellationToken ct = default)
     {
-        var entity = await FindByIdAsync(workspaceId, id, ct);
+        var entity = await this.FindByIdAsync(workspaceId, id, ct);
         if (entity != null)
         {
             db.TicketTypes.Remove(entity);

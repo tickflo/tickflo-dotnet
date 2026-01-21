@@ -1,13 +1,13 @@
-﻿using Moq;
-using Xunit;
-using Tickflo.Core.Data;
-
 namespace Tickflo.CoreTest.Services;
+
+using Moq;
+using Tickflo.Core.Data;
+using Xunit;
 
 public class WorkspaceUsersInviteViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_AllowsViewAndCreate_WhenAdmin()
+    public async Task BuildAsyncAllowsViewAndCreateWhenAdmin()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
@@ -22,7 +22,7 @@ public class WorkspaceUsersInviteViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_AllowsViewAndCreate_WhenEffectivePerms()
+    public async Task BuildAsyncAllowsViewAndCreateWhenEffectivePerms()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
@@ -42,14 +42,14 @@ public class WorkspaceUsersInviteViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_DeniesViewAndCreate_WhenNoPerms()
+    public async Task BuildAsyncDeniesViewAndCreateWhenNoPerms()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
 
         uwr.Setup(x => x.IsAdminAsync(3, 10)).ReturnsAsync(false);
         perms.Setup(x => x.GetEffectivePermissionsForUserAsync(10, 3))
-            .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>());
+            .ReturnsAsync([]);
 
         var svc = new WorkspaceUsersInviteViewService(uwr.Object, perms.Object);
         var result = await svc.BuildAsync(10, 3);
@@ -59,7 +59,7 @@ public class WorkspaceUsersInviteViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_AllowsViewOnly_WhenCanViewButNotCreate()
+    public async Task BuildAsyncAllowsViewOnlyWhenCanViewButNotCreate()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();

@@ -1,5 +1,6 @@
-using System.ComponentModel.DataAnnotations.Schema;
 namespace Tickflo.Core.Entities;
+
+using System.ComponentModel.DataAnnotations.Schema;
 
 [Table("permissions")]
 public class Permission

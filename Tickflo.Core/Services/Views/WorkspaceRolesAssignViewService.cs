@@ -1,48 +1,45 @@
-using Tickflo.Core.Data;
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Views;
 
-public class WorkspaceRolesAssignViewService : IWorkspaceRolesAssignViewService
-{
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaces;
-    private readonly IUserRepository _userRepo;
-    private readonly IRoleRepository _roleRepo;
+using Tickflo.Core.Data;
 
-    public WorkspaceRolesAssignViewService(
-        IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
-        IUserWorkspaceRepository userWorkspaces,
-        IUserRepository userRepo,
-        IRoleRepository roleRepo)
-    {
-        _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-        _userWorkspaces = userWorkspaces;
-        _userRepo = userRepo;
-        _roleRepo = roleRepo;
-    }
+public class WorkspaceRolesAssignViewService(
+    IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
+    IUserWorkspaceRepository userWorkspaces,
+    IUserRepository userRepo,
+    IRoleRepository roleRepo) : IWorkspaceRolesAssignViewService
+{
+    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
+    private readonly IUserWorkspaceRepository _userWorkspaces = userWorkspaces;
+    private readonly IUserRepository _userRepo = userRepo;
+    private readonly IRoleRepository _roleRepo = roleRepo;
 
     public async Task<WorkspaceRolesAssignViewData> BuildAsync(int workspaceId, int userId)
     {
         var data = new WorkspaceRolesAssignViewData();
 
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
+        var isAdmin = await this._userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
         data.IsAdmin = isAdmin;
-        if (!isAdmin) return data;
+        if (!isAdmin)
+        {
+            return data;
+        }
 
-        var memberships = await _userWorkspaces.FindForWorkspaceAsync(workspaceId);
+        var memberships = await this._userWorkspaces.FindForWorkspaceAsync(workspaceId);
         var userIds = memberships.Select(m => m.UserId).Distinct().ToList();
         foreach (var id in userIds)
         {
-            var u = await _userRepo.FindByIdAsync(id);
-            if (u != null) data.Members.Add(u);
+            var u = await this._userRepo.FindByIdAsync(id);
+            if (u != null)
+            {
+                data.Members.Add(u);
+            }
         }
 
-        data.Roles = await _roleRepo.ListForWorkspaceAsync(workspaceId);
+        data.Roles = await this._roleRepo.ListForWorkspaceAsync(workspaceId);
 
         foreach (var id in userIds)
         {
-            var roles = await _userWorkspaceRoleRepo.GetRolesAsync(id, workspaceId);
+            var roles = await this._userWorkspaceRoleRepo.GetRolesAsync(id, workspaceId);
             data.UserRoles[id] = roles;
         }
 

@@ -1,14 +1,14 @@
-﻿using Moq;
-using Xunit;
+namespace Tickflo.CoreTest.Services;
+
+using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.CoreTest.Services;
+using Xunit;
 
 public class WorkspaceTeamsAssignViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_ReturnsUsersAndMembers_WhenAdmin()
+    public async Task BuildAsyncReturnsUsersAndMembersWhenAdmin()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
@@ -23,14 +23,14 @@ public class WorkspaceTeamsAssignViewServiceTests
         teams.Setup(x => x.FindByIdAsync(3)).ReturnsAsync(team);
 
         membersRepo.Setup(x => x.ListMembersAsync(3))
-            .ReturnsAsync(new List<User> { new User { Id = 2, Name = "Alice" } });
+            .ReturnsAsync([new User { Id = 2, Name = "Alice" }]);
 
         userWorkspaces.Setup(x => x.FindForWorkspaceAsync(10))
-            .ReturnsAsync(new List<UserWorkspace>
-            {
+            .ReturnsAsync(
+            [
                 new UserWorkspace { UserId = 2, WorkspaceId = 10, Accepted = true },
                 new UserWorkspace { UserId = 4, WorkspaceId = 10, Accepted = true }
-            });
+            ]);
 
         users.Setup(x => x.FindByIdAsync(2)).ReturnsAsync(new User { Id = 2, Name = "Alice" });
         users.Setup(x => x.FindByIdAsync(4)).ReturnsAsync(new User { Id = 4, Name = "Bob" });
@@ -47,7 +47,7 @@ public class WorkspaceTeamsAssignViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_Denies_WhenUserCannotView()
+    public async Task BuildAsyncDeniesWhenUserCannotView()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
@@ -58,7 +58,7 @@ public class WorkspaceTeamsAssignViewServiceTests
 
         uwr.Setup(x => x.IsAdminAsync(2, 10)).ReturnsAsync(false);
         perms.Setup(x => x.GetEffectivePermissionsForUserAsync(10, 2))
-            .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>());
+            .ReturnsAsync([]);
 
         var svc = new WorkspaceTeamsAssignViewService(uwr.Object, perms.Object, teams.Object, membersRepo.Object, userWorkspaces.Object, users.Object);
         var result = await svc.BuildAsync(10, 2, 3);
@@ -71,7 +71,7 @@ public class WorkspaceTeamsAssignViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_Empty_WhenTeamNotInWorkspace()
+    public async Task BuildAsyncEmptyWhenTeamNotInWorkspace()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();

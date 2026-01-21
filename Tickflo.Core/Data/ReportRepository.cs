@@ -1,7 +1,7 @@
+namespace Tickflo.Core.Data;
+
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.Core.Data;
 
 public class ReportRepository(TickfloDbContext db) : IReportRepository
 {
@@ -20,8 +20,12 @@ public class ReportRepository(TickfloDbContext db) : IReportRepository
 
     public async Task<Report?> UpdateAsync(Report report)
     {
-        var existing = await FindAsync(report.WorkspaceId, report.Id);
-        if (existing == null) return null;
+        var existing = await this.FindAsync(report.WorkspaceId, report.Id);
+        if (existing == null)
+        {
+            return null;
+        }
+
         existing.Name = report.Name;
         existing.Ready = report.Ready;
         existing.LastRun = report.LastRun;
@@ -37,8 +41,12 @@ public class ReportRepository(TickfloDbContext db) : IReportRepository
 
     public async Task<bool> DeleteAsync(int workspaceId, int id)
     {
-        var rep = await FindAsync(workspaceId, id);
-        if (rep == null) return false;
+        var rep = await this.FindAsync(workspaceId, id);
+        if (rep == null)
+        {
+            return false;
+        }
+
         db.Reports.Remove(rep);
         await db.SaveChangesAsync();
         return true;

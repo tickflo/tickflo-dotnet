@@ -1,17 +1,12 @@
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
+namespace Tickflo.Web.Controllers;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Tickflo.Core.Config;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
 
 using Tickflo.Core.Services.Common;
 using Tickflo.Core.Services.Storage;
-namespace Tickflo.Web.Controllers;
 
 /// <summary>
 /// REST API controller for file and image management using RustFS.
@@ -19,36 +14,23 @@ namespace Tickflo.Web.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-public class FilesController : ControllerBase
+public class FilesController(
+    IFileStorageService fileStorageService,
+    IImageStorageService imageStorageService,
+    IFileStorageRepository fileRepository,
+    IWorkspaceRepository workspaceRepository,
+    ILogger<FilesController> logger,
+    ICurrentUserService currentUserService) : ControllerBase
 {
-    private readonly IFileStorageService _fileStorageService;
-    private readonly IImageStorageService _imageStorageService;
-    private readonly IFileStorageRepository _fileRepository;
-    private readonly IWorkspaceRepository _workspaceRepository;
-    private readonly TickfloConfig _config;
-    private readonly ILogger<FilesController> _logger;
-    private readonly ICurrentUserService _currentUserService;
+    private readonly IFileStorageService fileStorageService = fileStorageService;
+    private readonly IImageStorageService imageStorageService = imageStorageService;
+    private readonly IFileStorageRepository fileRepository = fileRepository;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly ILogger<FilesController> logger = logger;
+    private readonly ICurrentUserService currentUserService = currentUserService;
 
     private const long MaxFileSize = 50 * 1024 * 1024; // 50 MB
     private const long MaxImageSize = 10 * 1024 * 1024; // 10 MB
-
-    public FilesController(
-        IFileStorageService fileStorageService,
-        IImageStorageService imageStorageService,
-        IFileStorageRepository fileRepository,
-        IWorkspaceRepository workspaceRepository,
-        TickfloConfig config,
-        ILogger<FilesController> logger,
-        ICurrentUserService currentUserService)
-    {
-        _fileStorageService = fileStorageService;
-        _imageStorageService = imageStorageService;
-        _fileRepository = fileRepository;
-        _workspaceRepository = workspaceRepository;
-        _config = config;
-        _logger = logger;
-        _currentUserService = currentUserService;
-    }
 
     /// <summary>
     /// Uploads a file to a workspace.
@@ -58,14 +40,27 @@ public class FilesController : ControllerBase
     {
         try
         {
-            if (!_currentUserService.TryGetUserId(User, out var userId)) return Unauthorized();
+            if (!this.currentUserService.TryGetUserId(this.User, out var userId))
+            {
+                return this.Unauthorized();
+            }
 
             // Verify workspace access
-            var workspace = await _workspaceRepository.FindByIdAsync(workspaceId);
-            if (workspace == null) return NotFound();
+            var workspace = await this.workspaceRepository.FindByIdAsync(workspaceId);
+            if (workspace == null)
+            {
+                return this.NotFound();
+            }
 
-            if (file == null || file.Length == 0) return BadRequest("No file provided");
-            if (file.Length > MaxFileSize) return BadRequest($"File too large. Maximum size: 50MB");
+            if (file == null || file.Length == 0)
+            {
+                return this.BadRequest("No file provided");
+            }
+
+            if (file.Length > MaxFileSize)
+            {
+                return this.BadRequest($"File too large. Maximum size: 50MB");
+            }
 
             var originalFileName = file.FileName;
             var fileExtension = Path.GetExtension(originalFileName).ToLowerInvariant();
@@ -73,7 +68,7 @@ public class FilesController : ControllerBase
             var filePath = $"workspace-uploads/{workspaceId}/{fileName}";
 
             using var stream = file.OpenReadStream();
-            var fileUrl = await _fileStorageService.UploadFileAsync(filePath, stream, file.ContentType, false);
+            var fileUrl = await this.fileStorageService.UploadFileAsync(filePath, stream, file.ContentType, false);
 
             // Create file storage record
             var fileRecord = new FileStorage
@@ -91,16 +86,16 @@ public class FilesController : ControllerBase
                 CreatedByUserId = userId
             };
 
-            await _fileRepository.CreateAsync(fileRecord);
+            await this.fileRepository.CreateAsync(fileRecord);
 
-            _logger.LogInformation($"File uploaded by user {userId} to workspace {workspaceId}: {originalFileName}");
+            this.logger.LogInformation($"File uploaded by user {userId} to workspace {workspaceId}: {originalFileName}");
 
-            return Ok(new { id = fileRecord.Id, url = fileUrl, fileName = originalFileName });
+            return this.Ok(new { id = fileRecord.Id, url = fileUrl, fileName = originalFileName });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error uploading file to workspace {workspaceId}");
-            return StatusCode(500, "Error uploading file");
+            this.logger.LogError(ex, $"Error uploading file to workspace {workspaceId}");
+            return this.StatusCode(500, "Error uploading file");
         }
     }
 
@@ -112,30 +107,47 @@ public class FilesController : ControllerBase
     {
         try
         {
-            if (!_currentUserService.TryGetUserId(User, out var userId)) return Unauthorized();
+            if (!this.currentUserService.TryGetUserId(this.User, out var userId))
+            {
+                return this.Unauthorized();
+            }
 
             // Verify workspace access
-            var workspace = await _workspaceRepository.FindByIdAsync(workspaceId);
-            if (workspace == null) return NotFound();
+            var workspace = await this.workspaceRepository.FindByIdAsync(workspaceId);
+            if (workspace == null)
+            {
+                return this.NotFound();
+            }
 
-            if (image == null || image.Length == 0) return BadRequest("No image provided");
-            if (image.Length > MaxImageSize) return BadRequest($"Image too large. Maximum size: 10MB");
+            if (image == null || image.Length == 0)
+            {
+                return this.BadRequest("No image provided");
+            }
+
+            if (image.Length > MaxImageSize)
+            {
+                return this.BadRequest($"Image too large. Maximum size: 10MB");
+            }
 
             // Validate image type
             using var checkStream = image.OpenReadStream();
-            if (!_imageStorageService.IsValidImage(checkStream))
-                return BadRequest("Invalid image file");
+            if (!this.imageStorageService.IsValidImage(checkStream))
+            {
+                return this.BadRequest("Invalid image file");
+            }
 
-            var allowedExtensions = _imageStorageService.GetAllowedImageExtensions();
+            var allowedExtensions = this.imageStorageService.GetAllowedImageExtensions();
             var fileExtension = Path.GetExtension(image.FileName).ToLowerInvariant();
             if (!allowedExtensions.Contains(fileExtension))
-                return BadRequest($"Image type not allowed. Allowed types: {string.Join(", ", allowedExtensions)}");
+            {
+                return this.BadRequest($"Image type not allowed. Allowed types: {string.Join(", ", allowedExtensions)}");
+            }
 
             var fileName = $"{Guid.NewGuid()}.jpg";
             var filePath = $"workspace-images/{workspaceId}/{category ?? "document"}/{fileName}";
 
             using var imageStream = image.OpenReadStream();
-            var imageUrl = await _fileStorageService.UploadImageAsync(filePath, imageStream, 1200, 900, 80);
+            var imageUrl = await this.fileStorageService.UploadImageAsync(filePath, imageStream, 1200, 900, 80);
 
             // Create file storage record
             var imageRecord = new FileStorage
@@ -153,16 +165,16 @@ public class FilesController : ControllerBase
                 CreatedByUserId = userId
             };
 
-            await _fileRepository.CreateAsync(imageRecord);
+            await this.fileRepository.CreateAsync(imageRecord);
 
-            _logger.LogInformation($"Image uploaded by user {userId} to workspace {workspaceId}");
+            this.logger.LogInformation($"Image uploaded by user {userId} to workspace {workspaceId}");
 
-            return Ok(new { id = imageRecord.Id, url = imageUrl, fileName = image.FileName });
+            return this.Ok(new { id = imageRecord.Id, url = imageUrl, fileName = image.FileName });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error uploading image to workspace {workspaceId}");
-            return StatusCode(500, "Error uploading image");
+            this.logger.LogError(ex, $"Error uploading image to workspace {workspaceId}");
+            return this.StatusCode(500, "Error uploading image");
         }
     }
 
@@ -174,25 +186,31 @@ public class FilesController : ControllerBase
     {
         try
         {
-            if (!_currentUserService.TryGetUserId(User, out var userId)) return Unauthorized();
+            if (!this.currentUserService.TryGetUserId(this.User, out var userId))
+            {
+                return this.Unauthorized();
+            }
 
-            var file = await _fileRepository.FindByIdAsync(fileId);
-            if (file == null) return NotFound();
+            var file = await this.fileRepository.FindByIdAsync(fileId);
+            if (file == null)
+            {
+                return this.NotFound();
+            }
 
             // Delete from storage
-            await _fileStorageService.DeleteFileAsync(file.Path);
+            await this.fileStorageService.DeleteFileAsync(file.Path);
 
             // Archive in database
-            await _fileRepository.ArchiveAsync(fileId, userId);
+            await this.fileRepository.ArchiveAsync(fileId, userId);
 
-            _logger.LogInformation($"File {fileId} deleted by user {userId}");
+            this.logger.LogInformation($"File {fileId} deleted by user {userId}");
 
-            return Ok(new { message = "File deleted successfully" });
+            return this.Ok(new { message = "File deleted successfully" });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error deleting file {fileId}");
-            return StatusCode(500, "Error deleting file");
+            this.logger.LogError(ex, $"Error deleting file {fileId}");
+            return this.StatusCode(500, "Error deleting file");
         }
     }
 
@@ -204,16 +222,19 @@ public class FilesController : ControllerBase
     {
         try
         {
-            var file = await _fileRepository.FindByIdAsync(fileId);
-            if (file == null) return NotFound();
+            var file = await this.fileRepository.FindByIdAsync(fileId);
+            if (file == null)
+            {
+                return this.NotFound();
+            }
 
-            var stream = await _fileStorageService.DownloadFileAsync(file.Path);
-            return File(stream, file.ContentType, file.FileName);
+            var stream = await this.fileStorageService.DownloadFileAsync(file.Path);
+            return this.File(stream, file.ContentType, file.FileName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error downloading file {fileId}");
-            return StatusCode(500, "Error downloading file");
+            this.logger.LogError(ex, $"Error downloading file {fileId}");
+            return this.StatusCode(500, "Error downloading file");
         }
     }
 
@@ -225,12 +246,15 @@ public class FilesController : ControllerBase
     {
         try
         {
-            if (!_currentUserService.TryGetUserId(User, out var userId)) return Unauthorized();
+            if (!this.currentUserService.TryGetUserId(this.User, out var userId))
+            {
+                return this.Unauthorized();
+            }
 
-            var files = await _fileRepository.ListAsync(workspaceId, take, skip, category);
-            var total = await _fileRepository.GetWorkspaceFileCountAsync(workspaceId);
+            var files = await this.fileRepository.ListAsync(workspaceId, take, skip, category);
+            var total = await this.fileRepository.GetWorkspaceFileCountAsync(workspaceId);
 
-            return Ok(new
+            return this.Ok(new
             {
                 files = files.Select(f => new
                 {
@@ -250,8 +274,8 @@ public class FilesController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error listing files for workspace {workspaceId}");
-            return StatusCode(500, "Error listing files");
+            this.logger.LogError(ex, $"Error listing files for workspace {workspaceId}");
+            return this.StatusCode(500, "Error listing files");
         }
     }
 
@@ -263,12 +287,15 @@ public class FilesController : ControllerBase
     {
         try
         {
-            if (!_currentUserService.TryGetUserId(User, out var userId)) return Unauthorized();
+            if (!this.currentUserService.TryGetUserId(this.User, out var userId))
+            {
+                return this.Unauthorized();
+            }
 
-            var usedBytes = await _fileRepository.GetWorkspaceStorageUsedAsync(workspaceId);
-            var fileCount = await _fileRepository.GetWorkspaceFileCountAsync(workspaceId);
+            var usedBytes = await this.fileRepository.GetWorkspaceStorageUsedAsync(workspaceId);
+            var fileCount = await this.fileRepository.GetWorkspaceFileCountAsync(workspaceId);
 
-            return Ok(new
+            return this.Ok(new
             {
                 usedBytes,
                 usedMB = Math.Round((decimal)usedBytes / (1024 * 1024), 2),
@@ -279,8 +306,8 @@ public class FilesController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error getting storage info for workspace {workspaceId}");
-            return StatusCode(500, "Error getting storage info");
+            this.logger.LogError(ex, $"Error getting storage info for workspace {workspaceId}");
+            return this.StatusCode(500, "Error getting storage info");
         }
     }
 }

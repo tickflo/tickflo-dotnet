@@ -1,19 +1,15 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Linq;
-using System.Security.Claims;
-using Tickflo.Core.Data;
-using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
-using Tickflo.Core.Services.Views;
-using Tickflo.Core.Services.Tickets;
-using Tickflo.Core.Services.Notifications;
-
 namespace Tickflo.Web.Pages.Workspaces;
 
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Tickflo.Core.Data;
+using Tickflo.Core.Entities;
+using Tickflo.Core.Services.Notifications;
+using Tickflo.Core.Services.Tickets;
+using Tickflo.Core.Services.Views;
+
 [Authorize]
-public class TicketsDetailsModel : WorkspacePageModel
+public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketRepository ticketRepo, ITicketManagementService ticketService, IWorkspaceTicketDetailsViewService viewService, IRolePermissionRepository rolePerms, ITeamRepository teamRepo, IUserWorkspaceRoleRepository roles, IWorkspaceTicketsSaveViewService savingViewService, ITicketCommentService commentService, IUserRepository userRepo, INotificationTriggerService notificationTrigger) : WorkspacePageModel
 {
     #region Constants
     private const string DefaultTicketType = "Standard";
@@ -28,7 +24,7 @@ public class TicketsDetailsModel : WorkspacePageModel
     [BindProperty]
     public string? TicketInventoriesJson { get; set; }
 
-    private class TicketInventoryDto
+    private sealed class TicketInventoryDto
     {
         public int id { get; set; }
         public string sku { get; set; } = string.Empty;
@@ -36,58 +32,43 @@ public class TicketsDetailsModel : WorkspacePageModel
         public int quantity { get; set; }
         public decimal unitPrice { get; set; }
     }
-    private readonly IWorkspaceRepository _workspaceRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
-    private readonly ITicketRepository _ticketRepo;
-    private readonly ITicketManagementService _ticketService;
-    private readonly IWorkspaceTicketDetailsViewService _viewService;
-    private readonly IRolePermissionRepository _rolePerms;
-    private readonly ITeamRepository _teamRepo;
-    private readonly IUserWorkspaceRoleRepository _roles;
-    private readonly IWorkspaceTicketsSaveViewService _savingViewService;
-    private readonly ITicketCommentService _commentService;
-    private readonly IUserRepository _userRepo;
-    private readonly INotificationTriggerService _notificationTrigger;
+    private readonly IWorkspaceRepository _workspaceRepo = workspaceRepo;
+    private readonly IUserWorkspaceRepository _userWorkspaceRepo = userWorkspaceRepo;
+    private readonly ITicketRepository _ticketRepo = ticketRepo;
+    private readonly ITicketManagementService _ticketService = ticketService;
+    private readonly IWorkspaceTicketDetailsViewService _viewService = viewService;
+    private readonly IRolePermissionRepository _rolePerms = rolePerms;
+    private readonly ITeamRepository _teamRepo = teamRepo;
+    private readonly IUserWorkspaceRoleRepository _roles = roles;
+    private readonly IWorkspaceTicketsSaveViewService _savingViewService = savingViewService;
+    private readonly ITicketCommentService _commentService = commentService;
+    private readonly IUserRepository _userRepo = userRepo;
+    private readonly INotificationTriggerService _notificationTrigger = notificationTrigger;
 
-    public TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepo, ITicketRepository ticketRepo, ITicketManagementService ticketService, IWorkspaceTicketDetailsViewService viewService, IRolePermissionRepository rolePerms, ITeamRepository teamRepo, IUserWorkspaceRoleRepository roles, IWorkspaceTicketsSaveViewService savingViewService, ITicketCommentService commentService, IUserRepository userRepo, INotificationTriggerService notificationTrigger)
-    {
-        _workspaceRepo = workspaceRepo;
-        _userWorkspaceRepo = userWorkspaceRepo;
-        _ticketRepo = ticketRepo;
-        _ticketService = ticketService;
-        _viewService = viewService;
-        _rolePerms = rolePerms;
-        _teamRepo = teamRepo;
-        _roles = roles;
-        _savingViewService = savingViewService;
-        _commentService = commentService;
-        _userRepo = userRepo;
-        _notificationTrigger = notificationTrigger;
-    }
-    public List<Inventory> InventoryItems { get; private set; } = new();
+    public List<Inventory> InventoryItems { get; private set; } = [];
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
     public Ticket? Ticket { get; private set; }
     public Contact? Contact { get; private set; }
-    public IReadOnlyList<Contact> Contacts { get; private set; } = Array.Empty<Contact>();
+    public IReadOnlyList<Contact> Contacts { get; private set; } = [];
     public bool IsWorkspaceAdmin { get; private set; }
     public bool CanViewTickets { get; private set; }
     public bool CanEditTickets { get; private set; }
     public bool CanCreateTickets { get; private set; }
     public string? TicketViewScope { get; private set; }
-    public List<User> Members { get; private set; } = new();
-    public IReadOnlyList<Tickflo.Core.Entities.TicketStatus> Statuses { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketStatus>();
-    public Dictionary<string,string> StatusColorByName { get; private set; } = new();
-    public IReadOnlyList<Tickflo.Core.Entities.TicketPriority> Priorities { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketPriority>();
-    public Dictionary<string,string> PriorityColorByName { get; private set; } = new();
-    public IReadOnlyList<Tickflo.Core.Entities.TicketType> Types { get; private set; } = Array.Empty<Tickflo.Core.Entities.TicketType>();
-    public Dictionary<string,string> TypeColorByName { get; private set; } = new();
-    public IReadOnlyList<TicketHistory> History { get; private set; } = Array.Empty<TicketHistory>();
-    public List<Team> Teams { get; private set; } = new();
+    public List<User> Members { get; private set; } = [];
+    public IReadOnlyList<TicketStatus> Statuses { get; private set; } = [];
+    public Dictionary<string, string> StatusColorByName { get; private set; } = [];
+    public IReadOnlyList<TicketPriority> Priorities { get; private set; } = [];
+    public Dictionary<string, string> PriorityColorByName { get; private set; } = [];
+    public IReadOnlyList<TicketType> Types { get; private set; } = [];
+    public Dictionary<string, string> TypeColorByName { get; private set; } = [];
+    public IReadOnlyList<TicketHistory> History { get; private set; } = [];
+    public List<Team> Teams { get; private set; } = [];
     [BindProperty(SupportsGet = true)]
     public int? LocationId { get; set; }
-    public List<Location> LocationOptions { get; private set; } = new();
+    public List<Location> LocationOptions { get; private set; } = [];
 
     [BindProperty(SupportsGet = true)]
     public string? Query { get; set; }
@@ -120,8 +101,8 @@ public class TicketsDetailsModel : WorkspacePageModel
     public string? EditInventoryRef { get; set; }
     [BindProperty]
     public int? EditContactId { get; set; }
-    
-    public IReadOnlyList<TicketComment> Comments { get; private set; } = Array.Empty<TicketComment>();
+
+    public IReadOnlyList<TicketComment> Comments { get; private set; } = [];
     [BindProperty]
     public string? NewCommentContent { get; set; }
     [BindProperty]
@@ -129,104 +110,122 @@ public class TicketsDetailsModel : WorkspacePageModel
 
     public async Task<IActionResult> OnGetAsync(string slug, int id)
     {
-        WorkspaceSlug = slug;
-        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
-        if (loadResult is IActionResult actionResult) return actionResult;
-        
-        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
-        Workspace = workspace;
-        if (Workspace == null) return NotFound();
-
-        var viewData = await _viewService.BuildAsync(Workspace.Id, id, currentUserId, LocationId);
-        if (viewData == null) return Forbid();
-
-        LoadViewDataFromService(viewData);
-        LocationId = Ticket?.LocationId;
-
-        if (Ticket != null && Ticket.Id > InvalidTicketId)
+        this.WorkspaceSlug = slug;
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaceRepo, this._userWorkspaceRepo, slug);
+        if (loadResult is IActionResult actionResult)
         {
-            Comments = await _commentService.GetCommentsAsync(Workspace.Id, Ticket.Id, isClientView: false);
+            return actionResult;
         }
 
-        return Page();
+        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
+        this.Workspace = workspace;
+        if (this.Workspace == null)
+        {
+            return this.NotFound();
+        }
+
+        var viewData = await this._viewService.BuildAsync(this.Workspace.Id, id, currentUserId, this.LocationId);
+        if (viewData == null)
+        {
+            return this.Forbid();
+        }
+
+        this.LoadViewDataFromService(viewData);
+        this.LocationId = this.Ticket?.LocationId;
+
+        if (this.Ticket != null && this.Ticket.Id > InvalidTicketId)
+        {
+            this.Comments = await this._commentService.GetCommentsAsync(this.Workspace.Id, this.Ticket.Id, isClientView: false);
+        }
+
+        return this.Page();
     }
 
     private void LoadViewDataFromService(WorkspaceTicketDetailsViewData viewData)
     {
-        Ticket = viewData.Ticket;
-        Contact = viewData.Contact;
-        Contacts = viewData.Contacts;
-        Statuses = viewData.Statuses;
-        StatusColorByName = viewData.StatusColorByName;
-        Priorities = viewData.Priorities;
-        PriorityColorByName = viewData.PriorityColorByName;
-        Types = viewData.Types;
-        TypeColorByName = viewData.TypeColorByName;
-        History = viewData.History;
-        Members = viewData.Members;
-        Teams = viewData.Teams;
-        InventoryItems = viewData.InventoryItems;
-        LocationOptions = viewData.LocationOptions;
-        CanViewTickets = viewData.CanViewTickets;
-        CanEditTickets = viewData.CanEditTickets;
-        CanCreateTickets = viewData.CanCreateTickets;
-        IsWorkspaceAdmin = viewData.IsWorkspaceAdmin;
-        TicketViewScope = viewData.TicketViewScope;
+        this.Ticket = viewData.Ticket;
+        this.Contact = viewData.Contact;
+        this.Contacts = viewData.Contacts;
+        this.Statuses = viewData.Statuses;
+        this.StatusColorByName = viewData.StatusColorByName;
+        this.Priorities = viewData.Priorities;
+        this.PriorityColorByName = viewData.PriorityColorByName;
+        this.Types = viewData.Types;
+        this.TypeColorByName = viewData.TypeColorByName;
+        this.History = viewData.History;
+        this.Members = viewData.Members;
+        this.Teams = viewData.Teams;
+        this.InventoryItems = viewData.InventoryItems;
+        this.LocationOptions = viewData.LocationOptions;
+        this.CanViewTickets = viewData.CanViewTickets;
+        this.CanEditTickets = viewData.CanEditTickets;
+        this.CanCreateTickets = viewData.CanCreateTickets;
+        this.IsWorkspaceAdmin = viewData.IsWorkspaceAdmin;
+        this.TicketViewScope = viewData.TicketViewScope;
     }
 
-    public async Task<IActionResult> OnPostAddCommentAsync(string slug, int id, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub)
+    public async Task<IActionResult> OnPostAddCommentAsync(string slug, int id, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Realtime.TicketsHub> hub)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
-
-        var currentUserId = ExtractCurrentUserId();
-        if (currentUserId == InvalidTicketId) return Forbid();
-
-        if (string.IsNullOrWhiteSpace(NewCommentContent))
+        this.WorkspaceSlug = slug;
+        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        if (this.Workspace == null)
         {
-            SetErrorMessage(ErrorCommentEmpty);
-            return RedirectToPage("/Workspaces/TicketsDetails", new { slug, id });
+            return this.NotFound();
         }
 
-        var saveViewData = await _savingViewService.BuildAsync(Workspace.Id, currentUserId, false, null);
-        if (!saveViewData.CanEditTickets) return Forbid();
+        var currentUserId = this.ExtractCurrentUserId();
+        if (currentUserId == InvalidTicketId)
+        {
+            return this.Forbid();
+        }
+
+        if (string.IsNullOrWhiteSpace(this.NewCommentContent))
+        {
+            this.SetErrorMessage(ErrorCommentEmpty);
+            return this.RedirectToPage("/Workspaces/TicketsDetails", new { slug, id });
+        }
+
+        var saveViewData = await this._savingViewService.BuildAsync(this.Workspace.Id, currentUserId, false, null);
+        if (!saveViewData.CanEditTickets)
+        {
+            return this.Forbid();
+        }
 
         try
         {
-            var comment = await _commentService.AddCommentAsync(
-                Workspace.Id,
+            var comment = await this._commentService.AddCommentAsync(
+                this.Workspace.Id,
                 id,
                 currentUserId,
-                NewCommentContent.Trim(),
-                NewCommentIsVisibleToClient);
+                this.NewCommentContent.Trim(),
+                this.NewCommentIsVisibleToClient);
 
-            var ticket = await _ticketRepo.FindAsync(Workspace.Id, id);
+            var ticket = await this._ticketRepo.FindAsync(this.Workspace.Id, id);
             if (ticket != null)
             {
-                await _notificationTrigger.NotifyTicketCommentAddedAsync(
-                    Workspace.Id,
+                await this._notificationTrigger.NotifyTicketCommentAddedAsync(
+                    this.Workspace.Id,
                     ticket,
                     currentUserId,
-                    NewCommentIsVisibleToClient);
+                    this.NewCommentIsVisibleToClient);
             }
 
-            await BroadcastCommentAddedAsync(hub, comment);
-            SetSuccessMessage("Comment added successfully.");
+            await this.BroadcastCommentAddedAsync(hub, comment);
+            this.SetSuccessMessage("Comment added successfully.");
         }
         catch (Exception ex)
         {
-            SetErrorMessage($"Failed to add comment: {ex.Message}");
+            this.SetErrorMessage($"Failed to add comment: {ex.Message}");
         }
 
-        return RedirectToPage("/Workspaces/TicketsDetails", new { slug, id });
+        return this.RedirectToPage("/Workspaces/TicketsDetails", new { slug, id });
     }
 
-    private async Task BroadcastCommentAddedAsync(Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub, TicketComment comment)
+    private async Task BroadcastCommentAddedAsync(Microsoft.AspNetCore.SignalR.IHubContext<Realtime.TicketsHub> hub, TicketComment comment)
     {
-        var group = Tickflo.Web.Realtime.TicketsHub.WorkspaceGroup(WorkspaceSlug ?? string.Empty);
-        await hub.Clients.Group(group).SendCoreAsync("commentAdded", new object[]
-        {
+        var group = Realtime.TicketsHub.WorkspaceGroup(this.WorkspaceSlug ?? string.Empty);
+        await hub.Clients.Group(group).SendCoreAsync("commentAdded",
+        [
             new
             {
                 id = comment.Id,
@@ -237,60 +236,69 @@ public class TicketsDetailsModel : WorkspacePageModel
                 createdByUserName = comment.CreatedByUser?.Name ?? comment.CreatedByUser?.Email ?? "Unknown",
                 createdAt = comment.CreatedAt
             }
-        });
+        ]);
     }
 
-    private int ExtractCurrentUserId()
+    private int ExtractCurrentUserId() => this.TryGetUserId(out var uid) ? uid : InvalidTicketId;
+
+    public async Task<IActionResult> OnPostSaveAsync(string slug, int id, int? assignedUserId, int? assignedTeamId, int? locationId, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Realtime.TicketsHub> hub)
     {
-        return TryGetUserId(out var uid) ? uid : InvalidTicketId;
-    }
+        this.WorkspaceSlug = slug;
+        this.Workspace = await this._workspaceRepo.FindBySlugAsync(slug);
+        if (this.Workspace == null)
+        {
+            return this.NotFound();
+        }
 
-    public async Task<IActionResult> OnPostSaveAsync(string slug, int id, int? assignedUserId, int? assignedTeamId, int? locationId, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub)
-    {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
+        var workspaceId = this.Workspace.Id;
+        var currentUserId = this.ExtractCurrentUserId();
+        if (currentUserId == InvalidTicketId)
+        {
+            return this.Forbid();
+        }
 
-        var workspaceId = Workspace.Id;
-        var currentUserId = ExtractCurrentUserId();
-        if (currentUserId == InvalidTicketId) return Forbid();
-
-        var inventories = ParseInventoriesFromJson();
-        var resolvedId = ResolveTicketId(id);
+        var inventories = this.ParseInventoriesFromJson();
+        var resolvedId = this.ResolveTicketId(id);
         var isNew = resolvedId <= InvalidTicketId;
-        var existing = !isNew ? await _ticketRepo.FindAsync(workspaceId, resolvedId) : null;
+        var existing = !isNew ? await this._ticketRepo.FindAsync(workspaceId, resolvedId) : null;
 
-        var saveViewData = await _savingViewService.BuildAsync(workspaceId, currentUserId, isNew, existing);
-        var authCheck = ValidateTicketPermissions(isNew, saveViewData);
-        if (authCheck != null) return authCheck;
+        var saveViewData = await this._savingViewService.BuildAsync(workspaceId, currentUserId, isNew, existing);
+        var authCheck = this.ValidateTicketPermissions(isNew, saveViewData);
+        if (authCheck != null)
+        {
+            return authCheck;
+        }
 
         try
         {
             var ticket = isNew
-                ? await HandleNewTicketAsync(workspaceId, currentUserId, inventories)
-                : await HandleTicketUpdateAsync(workspaceId, resolvedId, currentUserId, existing, inventories);
+                ? await this.HandleNewTicketAsync(workspaceId, currentUserId, inventories)
+                : await this.HandleTicketUpdateAsync(workspaceId, resolvedId, currentUserId, existing, inventories);
 
-            if (ticket == null) return NotFound();
+            if (ticket == null)
+            {
+                return this.NotFound();
+            }
 
-            await BroadcastTicketChangeAsync(hub, ticket, isNew, workspaceId);
-            SetSuccessMessage(SuccessTicketSaved);
-            return RedirectToTicketsWithPreservedFilters(slug);
+            await this.BroadcastTicketChangeAsync(hub, ticket, isNew, workspaceId);
+            this.SetSuccessMessage(SuccessTicketSaved);
+            return this.RedirectToTicketsWithPreservedFilters(slug);
         }
         catch (InvalidOperationException ex)
         {
-            SetErrorMessage(ex.Message);
-            return RedirectToPage("/Workspaces/Tickets", new { slug });
+            this.SetErrorMessage(ex.Message);
+            return this.RedirectToPage("/Workspaces/Tickets", new { slug });
         }
     }
 
     private List<TicketInventory> ParseInventoriesFromJson()
     {
         var inventories = new List<TicketInventory>();
-        if (!string.IsNullOrWhiteSpace(TicketInventoriesJson))
+        if (!string.IsNullOrWhiteSpace(this.TicketInventoriesJson))
         {
             try
             {
-                var parsed = System.Text.Json.JsonSerializer.Deserialize<List<TicketInventoryDto>>(TicketInventoriesJson);
+                var parsed = System.Text.Json.JsonSerializer.Deserialize<List<TicketInventoryDto>>(this.TicketInventoriesJson);
                 if (parsed != null)
                 {
                     foreach (var dto in parsed)
@@ -313,24 +321,30 @@ public class TicketsDetailsModel : WorkspacePageModel
     {
         var resolvedId = id;
 
-        if (resolvedId <= InvalidTicketId && Request.RouteValues.TryGetValue("id", out var routeValue) && routeValue != null)
+        if (resolvedId <= InvalidTicketId && this.Request.RouteValues.TryGetValue("id", out var routeValue) && routeValue != null)
         {
             if (int.TryParse(routeValue.ToString(), out var rid) && rid > InvalidTicketId)
+            {
                 resolvedId = rid;
+            }
         }
 
         if (resolvedId <= InvalidTicketId)
         {
-            var formId = Request.Form["id"].ToString();
+            var formId = this.Request.Form["id"].ToString();
             if (int.TryParse(formId, out var formIdParsed) && formIdParsed > InvalidTicketId)
+            {
                 resolvedId = formIdParsed;
+            }
         }
 
         if (resolvedId <= InvalidTicketId)
         {
-            var queryId = Request.Query["id"].ToString();
+            var queryId = this.Request.Query["id"].ToString();
             if (int.TryParse(queryId, out var queryIdParsed) && queryIdParsed > InvalidTicketId)
+            {
                 resolvedId = queryIdParsed;
+            }
         }
 
         return resolvedId;
@@ -338,9 +352,21 @@ public class TicketsDetailsModel : WorkspacePageModel
 
     private IActionResult? ValidateTicketPermissions(bool isNew, WorkspaceTicketsSaveViewData saveViewData)
     {
-        if (isNew && !saveViewData.CanCreateTickets) return Forbid();
-        if (!isNew && !saveViewData.CanEditTickets) return Forbid();
-        if (!isNew && !saveViewData.CanAccessTicket) return Forbid();
+        if (isNew && !saveViewData.CanCreateTickets)
+        {
+            return this.Forbid();
+        }
+
+        if (!isNew && !saveViewData.CanEditTickets)
+        {
+            return this.Forbid();
+        }
+
+        if (!isNew && !saveViewData.CanAccessTicket)
+        {
+            return this.Forbid();
+        }
+
         return null;
     }
 
@@ -350,26 +376,29 @@ public class TicketsDetailsModel : WorkspacePageModel
         {
             WorkspaceId = workspaceId,
             CreatedByUserId = userId,
-            Subject = (EditSubject ?? string.Empty).Trim(),
-            Description = (EditDescription ?? string.Empty).Trim(),
-            Type = DefaultOrTrim(EditType, DefaultTicketType),
-            Priority = DefaultOrTrim(EditPriority, DefaultTicketPriority),
-            Status = DefaultOrTrim(EditStatus, DefaultTicketStatus),
-            ContactId = EditContactId,
+            Subject = (this.EditSubject ?? string.Empty).Trim(),
+            Description = (this.EditDescription ?? string.Empty).Trim(),
+            Type = DefaultOrTrim(this.EditType, DefaultTicketType),
+            Priority = DefaultOrTrim(this.EditPriority, DefaultTicketPriority),
+            Status = DefaultOrTrim(this.EditStatus, DefaultTicketStatus),
+            ContactId = this.EditContactId,
             AssignedUserId = null,
             AssignedTeamId = null,
             LocationId = null,
             Inventories = inventories
         };
 
-        var ticket = await _ticketService.CreateTicketAsync(createReq);
-        await _notificationTrigger.NotifyTicketCreatedAsync(workspaceId, ticket, userId);
+        var ticket = await this._ticketService.CreateTicketAsync(createReq);
+        await this._notificationTrigger.NotifyTicketCreatedAsync(workspaceId, ticket, userId);
         return ticket;
     }
 
     private async Task<Ticket?> HandleTicketUpdateAsync(int workspaceId, int ticketId, int userId, Ticket? existing, List<TicketInventory> inventories)
     {
-        if (EnsureEntityExistsOrNotFound(existing) is IActionResult result) throw new InvalidOperationException(ErrorTicketNotFound);
+        if (this.EnsureEntityExistsOrNotFound(existing) is IActionResult result)
+        {
+            throw new InvalidOperationException(ErrorTicketNotFound);
+        }
 
         var oldAssignedUserId = existing!.AssignedUserId;
         var oldAssignedTeamId = existing.AssignedTeamId;
@@ -380,20 +409,20 @@ public class TicketsDetailsModel : WorkspacePageModel
             TicketId = ticketId,
             WorkspaceId = workspaceId,
             UpdatedByUserId = userId,
-            Subject = EditSubject?.Trim(),
-            Description = EditDescription?.Trim(),
-            Type = EditType?.Trim(),
-            Priority = EditPriority?.Trim(),
-            Status = EditStatus?.Trim(),
-            ContactId = EditContactId,
+            Subject = this.EditSubject?.Trim(),
+            Description = this.EditDescription?.Trim(),
+            Type = this.EditType?.Trim(),
+            Priority = this.EditPriority?.Trim(),
+            Status = this.EditStatus?.Trim(),
+            ContactId = this.EditContactId,
             AssignedUserId = null,
             AssignedTeamId = null,
             LocationId = null,
             Inventories = inventories
         };
 
-        var ticket = await _ticketService.UpdateTicketAsync(updateReq);
-        await NotifyTicketChangesAsync(workspaceId, ticket, userId, oldAssignedUserId, oldAssignedTeamId, oldStatusId);
+        var ticket = await this._ticketService.UpdateTicketAsync(updateReq);
+        await this.NotifyTicketChangesAsync(workspaceId, ticket, userId, oldAssignedUserId, oldAssignedTeamId, oldStatusId);
         return ticket;
     }
 
@@ -401,13 +430,13 @@ public class TicketsDetailsModel : WorkspacePageModel
     {
         if (oldAssignedUserId != ticket.AssignedUserId || oldAssignedTeamId != ticket.AssignedTeamId)
         {
-            await _notificationTrigger.NotifyTicketAssignmentChangedAsync(
+            await this._notificationTrigger.NotifyTicketAssignmentChangedAsync(
                 workspaceId, ticket, oldAssignedUserId, oldAssignedTeamId, userId);
         }
 
         if (oldStatusId != ticket.StatusId)
         {
-            await _notificationTrigger.NotifyTicketStatusChangedAsync(
+            await this._notificationTrigger.NotifyTicketStatusChangedAsync(
                 workspaceId, ticket,
                 oldStatusId?.ToString() ?? "Unknown",
                 ticket.StatusId?.ToString() ?? "Unknown",
@@ -415,28 +444,28 @@ public class TicketsDetailsModel : WorkspacePageModel
         }
     }
 
-    private async Task BroadcastTicketChangeAsync(Microsoft.AspNetCore.SignalR.IHubContext<Tickflo.Web.Realtime.TicketsHub> hub, Ticket ticket, bool isNew, int workspaceId)
+    private async Task BroadcastTicketChangeAsync(Microsoft.AspNetCore.SignalR.IHubContext<Realtime.TicketsHub> hub, Ticket ticket, bool isNew, int workspaceId)
     {
         var assignedDisplay = ticket.AssignedUserId.HasValue
-            ? await _ticketService.GetAssigneeDisplayNameAsync(ticket.AssignedUserId.Value)
+            ? await this._ticketService.GetAssigneeDisplayNameAsync(ticket.AssignedUserId.Value)
             : null;
 
         var assignedTeamName = ticket.AssignedTeamId.HasValue
-            ? (await _teamRepo.FindByIdAsync(ticket.AssignedTeamId.Value))?.Name
+            ? (await this._teamRepo.FindByIdAsync(ticket.AssignedTeamId.Value))?.Name
             : null;
 
-        var (invSummary, invDetails) = await _ticketService.GenerateInventorySummaryAsync(
-            ticket.TicketInventories?.ToList() ?? new List<TicketInventory>(),
+        var (invSummary, invDetails) = await this._ticketService.GenerateInventorySummaryAsync(
+            ticket.TicketInventories?.ToList() ?? [],
             workspaceId);
 
-        var group = Tickflo.Web.Realtime.TicketsHub.WorkspaceGroup(WorkspaceSlug ?? string.Empty);
+        var group = Realtime.TicketsHub.WorkspaceGroup(this.WorkspaceSlug ?? string.Empty);
         var eventName = isNew ? "ticketCreated" : "ticketUpdated";
         var ticketData = BuildTicketBroadcastObject(ticket, assignedDisplay, assignedTeamName, invSummary, invDetails, isNew);
 
-        await hub.Clients.Group(group).SendCoreAsync(eventName, new object[] { ticketData });
+        await hub.Clients.Group(group).SendCoreAsync(eventName, [ticketData]);
     }
 
-    private object BuildTicketBroadcastObject(Ticket ticket, string? assignedDisplay, string? assignedTeamName, string invSummary, string invDetails, bool isNew)
+    private static object BuildTicketBroadcastObject(Ticket ticket, string? assignedDisplay, string? assignedTeamName, string invSummary, string invDetails, bool isNew)
     {
         if (isNew)
         {
@@ -449,9 +478,9 @@ public class TicketsDetailsModel : WorkspacePageModel
                 statusId = ticket.StatusId,
                 contactId = ticket.ContactId,
                 assignedUserId = ticket.AssignedUserId,
-                assignedDisplay = assignedDisplay,
+                assignedDisplay,
                 assignedTeamId = ticket.AssignedTeamId,
-                assignedTeamName = assignedTeamName,
+                assignedTeamName,
                 inventorySummary = invSummary,
                 inventoryDetails = invDetails,
                 createdAt = ticket.CreatedAt
@@ -467,35 +496,29 @@ public class TicketsDetailsModel : WorkspacePageModel
             statusId = ticket.StatusId,
             contactId = ticket.ContactId,
             assignedUserId = ticket.AssignedUserId,
-            assignedDisplay = assignedDisplay,
+            assignedDisplay,
             assignedTeamId = ticket.AssignedTeamId,
-            assignedTeamName = assignedTeamName,
+            assignedTeamName,
             inventorySummary = invSummary,
             inventoryDetails = invDetails,
             updatedAt = DateTime.UtcNow
         };
     }
 
-    private RedirectToPageResult RedirectToTicketsWithPreservedFilters(string slug)
+    private RedirectToPageResult RedirectToTicketsWithPreservedFilters(string slug) => this.RedirectToPage("/Workspaces/Tickets", new
     {
-        return RedirectToPage("/Workspaces/Tickets", new
-        {
-            slug,
-            Query = Request.Query["Query"].ToString(),
-            Type = Request.Query["Type"].ToString(),
-            Status = Request.Query["Status"].ToString(),
-            Priority = Request.Query["Priority"].ToString(),
-            ContactQuery = Request.Query["ContactQuery"].ToString(),
-            AssigneeUserId = Request.Query["AssigneeUserId"].ToString(),
-            AssigneeTeamName = Request.Query["AssigneeTeamName"].ToString(),
-            Mine = Request.Query["Mine"].ToString(),
-            PageNumber = Request.Query["PageNumber"].ToString(),
-            PageSize = Request.Query["PageSize"].ToString()
-        });
-    }
+        slug,
+        Query = this.Request.Query["Query"].ToString(),
+        Type = this.Request.Query["Type"].ToString(),
+        Status = this.Request.Query["Status"].ToString(),
+        Priority = this.Request.Query["Priority"].ToString(),
+        ContactQuery = this.Request.Query["ContactQuery"].ToString(),
+        AssigneeUserId = this.Request.Query["AssigneeUserId"].ToString(),
+        AssigneeTeamName = this.Request.Query["AssigneeTeamName"].ToString(),
+        Mine = this.Request.Query["Mine"].ToString(),
+        PageNumber = this.Request.Query["PageNumber"].ToString(),
+        PageSize = this.Request.Query["PageSize"].ToString()
+    });
 
-    private static string DefaultOrTrim(string? value, string defaultValue)
-    {
-        return string.IsNullOrWhiteSpace(value) ? defaultValue : value!.Trim();
-    }
+    private static string DefaultOrTrim(string? value, string defaultValue) => string.IsNullOrWhiteSpace(value) ? defaultValue : value!.Trim();
 }

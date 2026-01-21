@@ -1,36 +1,29 @@
+namespace Tickflo.Web.Pages;
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
 using Tickflo.Core.Services.Common;
 
-namespace Tickflo.Web.Pages;
-
 [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
 [IgnoreAntiforgeryToken]
-public class StatusCodeModel : PageModel
+public class StatusCodeModel(ILogger<StatusCodeModel> logger, ICurrentUserService currentUserService, IUserRepository userRepository) : PageModel
 {
     public int HttpStatusCode { get; set; }
     public string StatusMessage { get; set; } = string.Empty;
     public string StatusDescription { get; set; } = string.Empty;
     public string? TraceId { get; set; }
 
-    private readonly ILogger<StatusCodeModel> _logger;
-    private readonly ICurrentUserService _currentUserService;
-    private readonly IUserRepository _userRepository;
-
-    public StatusCodeModel(ILogger<StatusCodeModel> logger, ICurrentUserService currentUserService, IUserRepository userRepository)
-    {
-        _logger = logger;
-        _currentUserService = currentUserService;
-        _userRepository = userRepository;
-    }
+    private readonly ILogger<StatusCodeModel> _logger = logger;
+    private readonly ICurrentUserService _currentUserService = currentUserService;
+    private readonly IUserRepository _userRepository = userRepository;
 
     public async Task OnGetAsync(int code)
     {
-        HttpStatusCode = code;
-        TraceId = HttpContext.TraceIdentifier;
+        this.HttpStatusCode = code;
+        this.TraceId = this.HttpContext.TraceIdentifier;
 
-        (StatusMessage, StatusDescription) = code switch
+        (this.StatusMessage, this.StatusDescription) = code switch
         {
             400 => ("Bad Request", "The request was invalid or malformed. Please check your input and try again."),
             401 => ("Unauthorized", "You need to be logged in to access this page. Please log in and try again."),
@@ -45,6 +38,6 @@ public class StatusCodeModel : PageModel
             _ => ("Error", "An unexpected error occurred. Please try again.")
         };
 
-        _logger.LogWarning("Status code {StatusCode} - {StatusMessage}. Trace ID: {TraceId}", HttpStatusCode, StatusMessage, TraceId);
+        this._logger.LogWarning("Status code {StatusCode} - {StatusMessage}. Trace ID: {TraceId}", this.HttpStatusCode, this.StatusMessage, this.TraceId);
     }
 }

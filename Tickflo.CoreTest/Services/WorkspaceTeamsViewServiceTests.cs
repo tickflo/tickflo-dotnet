@@ -1,14 +1,14 @@
-﻿using Moq;
-using Xunit;
+namespace Tickflo.CoreTest.Services;
+
+using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.CoreTest.Services;
+using Xunit;
 
 public class WorkspaceTeamsViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_LoadsTeamsWithPermissions()
+    public async Task BuildAsyncLoadsTeamsWithPermissions()
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
@@ -21,8 +21,8 @@ public class WorkspaceTeamsViewServiceTests
 
         var teams = new List<Team>
         {
-            new Team { Id = 1, WorkspaceId = 1, Name = "Engineering" },
-            new Team { Id = 2, WorkspaceId = 1, Name = "Sales" }
+            new() { Id = 1, WorkspaceId = 1, Name = "Engineering" },
+            new() { Id = 2, WorkspaceId = 1, Name = "Sales" }
         };
 
         var memberCounts = new Dictionary<int, int> { { 1, 5 }, { 2, 3 } };
@@ -51,7 +51,7 @@ public class WorkspaceTeamsViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_AdminAlwaysCanView()
+    public async Task BuildAsyncAdminAlwaysCanView()
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
@@ -83,7 +83,7 @@ public class WorkspaceTeamsViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_DeniesAccessWhenNoPermissions()
+    public async Task BuildAsyncDeniesAccessWhenNoPermissions()
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();

@@ -1,15 +1,14 @@
+namespace Tickflo.Web.Pages.Workspaces;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
 using Tickflo.Core.Services.Roles;
 using Tickflo.Core.Services.Views;
 
-namespace Tickflo.Web.Pages.Workspaces;
-
 [Authorize]
-public class RolesEditModel : WorkspacePageModel
+public class RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository roles, IRolePermissionRepository rolePerms, IRoleManagementService roleService, IWorkspaceRolesEditViewService rolesEditViewService) : WorkspacePageModel
 {
     #region Constants
     private const int NewRoleId = 0;
@@ -19,14 +18,14 @@ public class RolesEditModel : WorkspacePageModel
     private const string RoleNameRequired = "Role name is required";
     private const string RoleCreationFailed = "Failed to create role.";
     private const string RoleNameDuplicate = "A role with that name already exists";
-    private static readonly string[] DefaultSections = { "dashboard", "contacts", "inventory", "locations", "reports", "roles", "teams", "tickets", "users", "settings" };
+    private static readonly string[] DefaultSections = ["dashboard", "contacts", "inventory", "locations", "reports", "roles", "teams", "tickets", "users", "settings"];
     #endregion
 
-    private readonly IWorkspaceRepository _workspaces;
-    private readonly IRoleRepository _roles;
-    private readonly IRolePermissionRepository _rolePerms;
-    private readonly IRoleManagementService _roleService;
-    private readonly IWorkspaceRolesEditViewService _rolesEditViewService;
+    private readonly IWorkspaceRepository _workspaces = workspaces;
+    private readonly IRoleRepository _roles = roles;
+    private readonly IRolePermissionRepository _rolePerms = rolePerms;
+    private readonly IRoleManagementService _roleService = roleService;
+    private readonly IWorkspaceRolesEditViewService _rolesEditViewService = rolesEditViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Role? Role { get; private set; }
@@ -36,15 +35,6 @@ public class RolesEditModel : WorkspacePageModel
 
     [BindProperty]
     public bool Admin { get; set; }
-
-    public RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository roles, IRolePermissionRepository rolePerms, IRoleManagementService roleService, IWorkspaceRolesEditViewService rolesEditViewService)
-    {
-        _workspaces = workspaces;
-        _roles = roles;
-        _rolePerms = rolePerms;
-        _roleService = roleService;
-        _rolesEditViewService = rolesEditViewService;
-    }
 
     public class SectionPermissionInput
     {
@@ -56,155 +46,194 @@ public class RolesEditModel : WorkspacePageModel
     }
 
     [BindProperty]
-    public List<SectionPermissionInput> Permissions { get; set; } = new();
+    public List<SectionPermissionInput> Permissions { get; set; } = [];
 
     public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
     {
-        WorkspaceSlug = slug;
-        var ws = await _workspaces.FindBySlugAsync(slug);
-        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
-        if (!TryGetUserId(out var uid)) return Forbid();
+        this.WorkspaceSlug = slug;
+        var ws = await this._workspaces.FindBySlugAsync(slug);
+        if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
+        {
+            return result;
+        }
+
+        if (!this.TryGetUserId(out var uid))
+        {
+            return this.Forbid();
+        }
 
         var workspaceId = ws!.Id;
-        var data = await _rolesEditViewService.BuildAsync(workspaceId, uid, id);
-        if (!data.IsAdmin) return Forbid();
+        var data = await this._rolesEditViewService.BuildAsync(workspaceId, uid, id);
+        if (!data.IsAdmin)
+        {
+            return this.Forbid();
+        }
 
         if (id > 0)
-            LoadExistingRole(data, workspaceId);
+        {
+            this.LoadExistingRole(data, workspaceId);
+        }
         else
-            InitializeNewRole(workspaceId);
+        {
+            this.InitializeNewRole(workspaceId);
+        }
 
-        return Page();
+        return this.Page();
     }
 
     public async Task<IActionResult> OnPostAsync(string slug, int id = 0)
     {
-        WorkspaceSlug = slug;
-        var ws = await _workspaces.FindBySlugAsync(slug);
-        if (ws == null) return NotFound();
-        if (!TryGetUserId(out var uid)) return Forbid();
+        this.WorkspaceSlug = slug;
+        var ws = await this._workspaces.FindBySlugAsync(slug);
+        if (ws == null)
+        {
+            return this.NotFound();
+        }
+
+        if (!this.TryGetUserId(out var uid))
+        {
+            return this.Forbid();
+        }
 
         var workspaceId = ws.Id;
-        var data = await _rolesEditViewService.BuildAsync(workspaceId, uid, id);
-        if (!data.IsAdmin) return Forbid();
+        var data = await this._rolesEditViewService.BuildAsync(workspaceId, uid, id);
+        if (!data.IsAdmin)
+        {
+            return this.Forbid();
+        }
 
-        var nameValidation = ValidateRoleName();
-        if (nameValidation != null) return nameValidation;
+        var nameValidation = this.ValidateRoleName();
+        if (nameValidation != null)
+        {
+            return nameValidation;
+        }
 
         try
         {
             if (id == NewRoleId)
-                await CreateNewRoleAsync(workspaceId, uid);
+            {
+                await this.CreateNewRoleAsync(workspaceId, uid);
+            }
             else
-                await UpdateExistingRoleAsync(id, workspaceId, uid, data);
+            {
+                await this.UpdateExistingRoleAsync(id, workspaceId, uid, data);
+            }
 
-            return RedirectToRolesWithPreservedFilters(slug);
+            return this.RedirectToRolesWithPreservedFilters(slug);
         }
         catch (InvalidOperationException ex)
         {
-            ModelState.AddModelError(string.Empty, ex.Message);
-            return Page();
+            this.ModelState.AddModelError(string.Empty, ex.Message);
+            return this.Page();
         }
     }
 
     private void LoadExistingRole(WorkspaceRolesEditViewData data, int workspaceId)
     {
         var role = data.ExistingRole;
-        var roleCheck = EnsureEntityBelongsToWorkspace(role, workspaceId);
-        if (roleCheck is not null) throw new InvalidOperationException("Role does not belong to this workspace");
+        var roleCheck = this.EnsureEntityBelongsToWorkspace(role, workspaceId);
+        if (roleCheck is not null)
+        {
+            throw new InvalidOperationException("Role does not belong to this workspace");
+        }
 
-        Role = role;
-        Name = role!.Name ?? string.Empty;
-        Admin = role.Admin;
+        this.Role = role;
+        this.Name = role!.Name ?? string.Empty;
+        this.Admin = role.Admin;
 
-        Permissions = BuildDefaultPermissions();
-        ApplyExistingPermissions(data.ExistingPermissions);
+        this.Permissions = BuildDefaultPermissions();
+        this.ApplyExistingPermissions(data.ExistingPermissions);
     }
 
     private void InitializeNewRole(int workspaceId)
     {
-        Role = new Role { WorkspaceId = workspaceId };
-        Name = string.Empty;
-        Admin = false;
-        Permissions = BuildDefaultPermissions();
+        this.Role = new Role { WorkspaceId = workspaceId };
+        this.Name = string.Empty;
+        this.Admin = false;
+        this.Permissions = BuildDefaultPermissions();
     }
 
     private IActionResult? ValidateRoleName()
     {
-        var nameTrim = Name?.Trim() ?? string.Empty;
+        var nameTrim = this.Name?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(nameTrim))
         {
-            ModelState.AddModelError(nameof(Name), RoleNameRequired);
-            return Page();
+            this.ModelState.AddModelError(nameof(this.Name), RoleNameRequired);
+            return this.Page();
         }
         return null;
     }
 
     private async Task CreateNewRoleAsync(int workspaceId, int userId)
     {
-        var nameTrim = Name?.Trim() ?? string.Empty;
-        var createdId = (await _roles.AddAsync(workspaceId, nameTrim, Admin, userId))?.Id ?? 0;
+        var nameTrim = this.Name?.Trim() ?? string.Empty;
+        var createdId = (await this._roles.AddAsync(workspaceId, nameTrim, this.Admin, userId))?.Id ?? 0;
 
         if (createdId == 0)
         {
-            ModelState.AddModelError(string.Empty, RoleCreationFailed);
+            this.ModelState.AddModelError(string.Empty, RoleCreationFailed);
             throw new InvalidOperationException(RoleCreationFailed);
         }
 
-        await _rolePerms.UpsertAsync(createdId, MapEffectivePermissions(), userId);
+        await this._rolePerms.UpsertAsync(createdId, this.MapEffectivePermissions(), userId);
     }
 
     private async Task UpdateExistingRoleAsync(int id, int workspaceId, int userId, WorkspaceRolesEditViewData viewData)
     {
-        var nameTrim = Name?.Trim() ?? string.Empty;
-        var role = viewData.ExistingRole ?? await _roles.FindByIdAsync(id);
+        var nameTrim = this.Name?.Trim() ?? string.Empty;
+        var role = viewData.ExistingRole ?? await this._roles.FindByIdAsync(id);
 
-        var roleCheck = EnsureEntityBelongsToWorkspace(role, workspaceId);
-        if (roleCheck is not null) throw new InvalidOperationException("Role does not belong to this workspace");
+        var roleCheck = this.EnsureEntityBelongsToWorkspace(role, workspaceId);
+        if (roleCheck is not null)
+        {
+            throw new InvalidOperationException("Role does not belong to this workspace");
+        }
 
-        var existingWithName = await _roles.FindByNameAsync(workspaceId, nameTrim);
+        var existingWithName = await this._roles.FindByNameAsync(workspaceId, nameTrim);
         if (existingWithName != null && existingWithName.Id != role!.Id)
         {
-            ModelState.AddModelError(nameof(Name), RoleNameDuplicate);
-            Role = role;
+            this.ModelState.AddModelError(nameof(this.Name), RoleNameDuplicate);
+            this.Role = role;
             throw new InvalidOperationException(RoleNameDuplicate);
         }
 
         role!.Name = nameTrim;
-        role.Admin = Admin;
-        await _roles.UpdateAsync(role);
-        await _rolePerms.UpsertAsync(role.Id, MapEffectivePermissions(), userId);
+        role.Admin = this.Admin;
+        await this._roles.UpdateAsync(role);
+        await this._rolePerms.UpsertAsync(role.Id, this.MapEffectivePermissions(), userId);
     }
 
     private void ApplyExistingPermissions(IEnumerable<EffectiveSectionPermission> existingPerms)
     {
         foreach (var p in existingPerms)
         {
-            var dest = Permissions.FirstOrDefault(x => string.Equals(x.Section, p.Section, StringComparison.OrdinalIgnoreCase));
+            var dest = this.Permissions.FirstOrDefault(x => string.Equals(x.Section, p.Section, StringComparison.OrdinalIgnoreCase));
             if (dest != null)
             {
                 dest.CanView = p.CanView;
                 dest.CanEdit = p.CanEdit;
                 dest.CanCreate = p.CanCreate;
                 if (string.Equals(p.Section, TicketSection, StringComparison.OrdinalIgnoreCase))
+                {
                     dest.TicketViewScope = string.IsNullOrWhiteSpace(p.TicketViewScope) ? DefaultTicketViewScope : p.TicketViewScope!.ToLowerInvariant();
+                }
             }
         }
     }
 
     private RedirectResult RedirectToRolesWithPreservedFilters(string slug)
     {
-        var queryQ = Request.Query["Query"].ToString();
-        var pageQ = Request.Query["PageNumber"].ToString();
-        return Redirect($"/workspaces/{slug}/roles?Query={Uri.EscapeDataString(queryQ ?? string.Empty)}&PageNumber={Uri.EscapeDataString(pageQ ?? string.Empty)}");
+        var queryQ = this.Request.Query["Query"].ToString();
+        var pageQ = this.Request.Query["PageNumber"].ToString();
+        return this.Redirect($"/workspaces/{slug}/roles?Query={Uri.EscapeDataString(queryQ ?? string.Empty)}&PageNumber={Uri.EscapeDataString(pageQ ?? string.Empty)}");
     }
 
-    private List<SectionPermissionInput> BuildDefaultPermissions()
+    private static List<SectionPermissionInput> BuildDefaultPermissions()
     {
         var list = DefaultSections.Select(s => new SectionPermissionInput
         {
             Section = s,
-            CanView = s == DashboardSection || s == TicketSection,
+            CanView = s is DashboardSection or TicketSection,
             CanEdit = false,
             CanCreate = false,
             TicketViewScope = s == TicketSection ? DefaultTicketViewScope : null
@@ -212,19 +241,16 @@ public class RolesEditModel : WorkspacePageModel
         return list;
     }
 
-    private IEnumerable<Tickflo.Core.Data.EffectiveSectionPermission> MapEffectivePermissions()
+    private IEnumerable<EffectiveSectionPermission> MapEffectivePermissions() => this.Permissions.Select(p => new EffectiveSectionPermission
     {
-        return Permissions.Select(p => new Tickflo.Core.Data.EffectiveSectionPermission
-        {
-            Section = p.Section.ToLowerInvariant(),
-            CanView = p.CanView,
-            CanEdit = p.CanEdit,
-            CanCreate = p.CanCreate,
-            TicketViewScope = p.Section.Equals(TicketSection, StringComparison.OrdinalIgnoreCase) 
-                ? (p.TicketViewScope ?? DefaultTicketViewScope).ToLowerInvariant() 
-                : null
-        });
-    }
+        Section = p.Section.ToLowerInvariant(),
+        CanView = p.CanView,
+        CanEdit = p.CanEdit,
+        CanCreate = p.CanCreate,
+        TicketViewScope = p.Section.Equals(TicketSection, StringComparison.OrdinalIgnoreCase)
+                                                                                              ? (p.TicketViewScope ?? DefaultTicketViewScope).ToLowerInvariant()
+                                                                                              : null
+    });
 
 
 }

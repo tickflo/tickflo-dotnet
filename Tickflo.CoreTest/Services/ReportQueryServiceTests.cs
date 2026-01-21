@@ -1,20 +1,19 @@
-﻿using Moq;
-using Tickflo.Core.Data;
-using Tickflo.Core.Entities;
-using Xunit;
-
 namespace Tickflo.CoreTest.Services;
+
+using Moq;
+using Tickflo.Core.Data;
+using Xunit;
 
 public class ReportQueryServiceTests
 {
     [Fact]
-    public async Task ListReportsAsync_MapsFields()
+    public async Task ListReportsAsyncMapsFields()
     {
         var repo = new Mock<IReportRepository>();
-        repo.Setup(r => r.ListAsync(2)).ReturnsAsync(new List<Report>
-        {
+        repo.Setup(r => r.ListAsync(2)).ReturnsAsync(
+        [
             new() { Id = 10, WorkspaceId = 2, Name = "A", Ready = true, LastRun = new DateTime(2024,1,1) }
-        });
+        ]);
 
         var svc = new ReportQueryService(repo.Object);
 
@@ -24,7 +23,7 @@ public class ReportQueryServiceTests
         Assert.Equal(10, item.Id);
         Assert.Equal("A", item.Name);
         Assert.True(item.Ready);
-        Assert.Equal(new DateTime(2024,1,1), item.LastRun);
+        Assert.Equal(new DateTime(2024, 1, 1), item.LastRun);
     }
 }
 

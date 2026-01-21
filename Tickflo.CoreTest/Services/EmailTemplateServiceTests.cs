@@ -1,10 +1,9 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Email;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 public class EmailTemplateServiceTests
 {
@@ -15,7 +14,7 @@ public class EmailTemplateServiceTests
     }
 
     [Fact]
-    public async Task RenderTemplateAsync_ReplacesVariables()
+    public async Task RenderTemplateAsyncReplacesVariables()
     {
         var repo = new Mock<IEmailTemplateRepository>();
         repo.Setup(r => r.FindByTypeAsync(EmailTemplateType.EmailConfirmationThankYou, null, default))
@@ -42,7 +41,7 @@ public class EmailTemplateServiceTests
     }
 
     [Fact]
-    public async Task RenderTemplateAsync_ThrowsWhenTemplateNotFound()
+    public async Task RenderTemplateAsyncThrowsWhenTemplateNotFound()
     {
         var repo = new Mock<IEmailTemplateRepository>();
         repo.Setup(r => r.FindByTypeAsync(EmailTemplateType.ForgotPassword, null, default))
@@ -56,7 +55,7 @@ public class EmailTemplateServiceTests
     }
 
     [Fact]
-    public async Task RenderTemplateAsync_HandlesEmptyVariables()
+    public async Task RenderTemplateAsyncHandlesEmptyVariables()
     {
         var repo = new Mock<IEmailTemplateRepository>();
         repo.Setup(r => r.FindByTypeAsync(EmailTemplateType.EmailConfirmationThankYou, null, default))
@@ -79,7 +78,7 @@ public class EmailTemplateServiceTests
     }
 
     [Fact]
-    public async Task RenderTemplateAsync_HandlesUnusedVariables()
+    public async Task RenderTemplateAsyncHandlesUnusedVariables()
     {
         var repo = new Mock<IEmailTemplateRepository>();
         repo.Setup(r => r.FindByTypeAsync(EmailTemplateType.EmailConfirmationThankYou, null, default))
@@ -106,7 +105,7 @@ public class EmailTemplateServiceTests
     }
 
     [Fact]
-    public async Task RenderTemplateAsync_LeavesUnknownPlaceholders()
+    public async Task RenderTemplateAsyncLeavesUnknownPlaceholders()
     {
         var repo = new Mock<IEmailTemplateRepository>();
         repo.Setup(r => r.FindByTypeAsync(EmailTemplateType.EmailConfirmationThankYou, null, default))
@@ -132,7 +131,7 @@ public class EmailTemplateServiceTests
     }
 
     [Fact]
-    public async Task RenderTemplateAsync_WorkspaceSpecificTemplate()
+    public async Task RenderTemplateAsyncWorkspaceSpecificTemplate()
     {
         var repo = new Mock<IEmailTemplateRepository>();
         repo.Setup(r => r.FindByTypeAsync(EmailTemplateType.EmailConfirmationThankYou, 5, default))
@@ -155,7 +154,7 @@ public class EmailTemplateServiceTests
     }
 
     [Fact]
-    public async Task RenderTemplateAsync_ReplacesMultipleOccurrences()
+    public async Task RenderTemplateAsyncReplacesMultipleOccurrences()
     {
         var repo = new Mock<IEmailTemplateRepository>();
         repo.Setup(r => r.FindByTypeAsync(EmailTemplateType.EmailConfirmationThankYou, null, default))

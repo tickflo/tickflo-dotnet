@@ -40,7 +40,7 @@ public class TicketComment
     /// <summary>
     /// Controls visibility: true means visible to clients, false means internal-only.
     /// </summary>
-    public bool IsVisibleToClient { get; set; } = false;
+    public bool IsVisibleToClient { get; set; }
 
     /// <summary>
     /// Timestamp when the comment was created (UTC).
@@ -56,7 +56,7 @@ public class TicketComment
     /// The user ID of the person who last updated this comment, null if never updated.
     /// </summary>
     public int? UpdatedByUserId { get; set; }
-    
+
     // Navigation properties
 
     /// <summary>

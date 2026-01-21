@@ -1,15 +1,14 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Workspace;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 public class WorkspaceCreationServiceTests
 {
     [Fact]
-    public async Task CreateWorkspaceAsync_Throws_When_Slug_Exists()
+    public async Task CreateWorkspaceAsyncThrowsWhenSlugExists()
     {
         var workspaceRepo = new Mock<IWorkspaceRepository>();
         workspaceRepo.Setup(r => r.FindBySlugAsync(It.IsAny<string>())).ReturnsAsync(new Workspace { Id = 9, Slug = "existing" });
@@ -22,7 +21,7 @@ public class WorkspaceCreationServiceTests
     }
 
     [Fact]
-    public async Task CreateWorkspaceAsync_Adds_Default_Roles_And_Admin_Membership()
+    public async Task CreateWorkspaceAsyncAddsDefaultRolesAndAdminMembership()
     {
         var workspaceRepo = new Mock<IWorkspaceRepository>();
         workspaceRepo.Setup(r => r.FindBySlugAsync(It.IsAny<string>())).ReturnsAsync((Workspace?)null);

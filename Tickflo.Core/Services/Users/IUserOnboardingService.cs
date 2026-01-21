@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Users;
+
+using Tickflo.Core.Entities;
 
 /// <summary>
 /// Handles user onboarding and workspace management workflows.
@@ -15,7 +15,7 @@ public interface IUserOnboardingService
     /// <param name="roleId">Role to assign</param>
     /// <param name="invitedByUserId">User sending invitation</param>
     /// <returns>The user workspace assignment</returns>
-    Task<UserWorkspace> InviteUserToWorkspaceAsync(int workspaceId, string email, int roleId, int invitedByUserId);
+    public Task<UserWorkspace> InviteUserToWorkspaceAsync(int workspaceId, string email, int roleId, int invitedByUserId);
 
     /// <summary>
     /// User accepts a pending workspace invitation.
@@ -23,14 +23,14 @@ public interface IUserOnboardingService
     /// <param name="userId">User accepting invitation</param>
     /// <param name="workspaceId">Workspace to join</param>
     /// <returns>The accepted user workspace assignment</returns>
-    Task<UserWorkspace> AcceptInvitationAsync(int userId, int workspaceId);
+    public Task<UserWorkspace> AcceptInvitationAsync(int userId, int workspaceId);
 
     /// <summary>
     /// User declines a pending workspace invitation.
     /// </summary>
     /// <param name="userId">User declining invitation</param>
     /// <param name="workspaceId">Workspace to decline</param>
-    Task DeclineInvitationAsync(int userId, int workspaceId);
+    public Task DeclineInvitationAsync(int userId, int workspaceId);
 
     /// <summary>
     /// Removes a user from a workspace.
@@ -38,5 +38,5 @@ public interface IUserOnboardingService
     /// <param name="userId">User to remove</param>
     /// <param name="workspaceId">Workspace to remove from</param>
     /// <param name="removedByUserId">User performing the removal</param>
-    Task RemoveUserFromWorkspaceAsync(int userId, int workspaceId, int removedByUserId);
+    public Task RemoveUserFromWorkspaceAsync(int userId, int workspaceId, int removedByUserId);
 }

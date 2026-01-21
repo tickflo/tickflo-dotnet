@@ -1,13 +1,13 @@
-﻿using Moq;
-using Xunit;
-using Tickflo.Core.Data;
-
 namespace Tickflo.CoreTest.Services;
+
+using Moq;
+using Tickflo.Core.Data;
+using Xunit;
 
 public class WorkspaceRolesEditViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_ForAdminUser_ReturnsAdminFlag()
+    public async Task BuildAsyncForAdminUserReturnsAdminFlag()
     {
         // Arrange
         var mockUserWorkspaceRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
@@ -26,7 +26,7 @@ public class WorkspaceRolesEditViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_ForNonAdminUser_ReturnsNonAdminFlag()
+    public async Task BuildAsyncForNonAdminUserReturnsNonAdminFlag()
     {
         // Arrange
         var mockUserWorkspaceRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
@@ -45,7 +45,7 @@ public class WorkspaceRolesEditViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_NonAdminDeniesAllAccess()
+    public async Task BuildAsyncNonAdminDeniesAllAccess()
     {
         // Arrange
         var mockUserWorkspaceRoleRepo = new Mock<IUserWorkspaceRoleRepository>();

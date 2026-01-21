@@ -1,14 +1,14 @@
-﻿using Moq;
-using Xunit;
+namespace Tickflo.CoreTest.Services;
+
+using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.CoreTest.Services;
+using Xunit;
 
 public class WorkspaceReportRunViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_ReturnsPagedData_WhenUserCanView()
+    public async Task BuildAsyncReturnsPagedDataWhenUserCanView()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
@@ -37,15 +37,15 @@ public class WorkspaceReportRunViewServiceTests
             FromRow: 1,
             ToRow: 2,
             HasContent: true,
-            Headers: new List<string> { "Id", "Subject" },
-            Rows: new List<IReadOnlyList<string>>
-            {
+            Headers: ["Id", "Subject"],
+            Rows:
+            [
                 new List<string> { "1", "Foo" },
                 new List<string> { "2", "Bar" }
-            }
+            ]
         );
 
-        reporting.Setup(x => x.GetRunPageAsync(run, 1, 50, It.IsAny<System.Threading.CancellationToken>()))
+        reporting.Setup(x => x.GetRunPageAsync(run, 1, 50, It.IsAny<CancellationToken>()))
             .ReturnsAsync(page);
 
         var svc = new WorkspaceReportRunViewService(uwr.Object, perms.Object, reports.Object, runs.Object, reporting.Object);
@@ -61,7 +61,7 @@ public class WorkspaceReportRunViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_Denies_WhenUserCannotView()
+    public async Task BuildAsyncDeniesWhenUserCannotView()
     {
         var uwr = new Mock<IUserWorkspaceRoleRepository>();
         var perms = new Mock<IRolePermissionRepository>();
@@ -71,7 +71,7 @@ public class WorkspaceReportRunViewServiceTests
 
         uwr.Setup(x => x.IsAdminAsync(1, 10)).ReturnsAsync(false);
         perms.Setup(x => x.GetEffectivePermissionsForUserAsync(10, 1))
-            .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>());
+            .ReturnsAsync([]);
 
         var svc = new WorkspaceReportRunViewService(uwr.Object, perms.Object, reports.Object, runs.Object, reporting.Object);
         var result = await svc.BuildAsync(10, 1, 5, 7, 1, 50);

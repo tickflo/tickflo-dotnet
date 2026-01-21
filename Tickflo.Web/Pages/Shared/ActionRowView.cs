@@ -2,7 +2,7 @@ namespace Tickflo.Web.Pages.Shared;
 
 public class ActionRowView
 {
-    public List<ActionItem> Actions { get; set; } = new();
+    public List<ActionItem> Actions { get; set; } = [];
 }
 
 public class ActionItem

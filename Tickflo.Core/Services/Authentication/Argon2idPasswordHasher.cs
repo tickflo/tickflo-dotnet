@@ -1,17 +1,11 @@
-using Isopoh.Cryptography.Argon2;
-
 namespace Tickflo.Core.Services.Authentication;
+
+using Isopoh.Cryptography.Argon2;
 
 public class Argon2idPasswordHasher : IPasswordHasher
 {
-    public string Hash(string input)
-    {
-        return Argon2.Hash(input);
-    }
+    public string Hash(string input) => Argon2.Hash(input);
 
-    public bool Verify(string input, string hash)
-    {
-        return Argon2.Verify(hash, input);
-    }
+    public bool Verify(string input, string hash) => Argon2.Verify(hash, input);
 }
 

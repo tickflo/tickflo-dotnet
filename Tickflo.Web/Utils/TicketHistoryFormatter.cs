@@ -32,7 +32,9 @@ public static class TicketHistoryFormatter
     public static string FormatFieldName(string? field)
     {
         if (string.IsNullOrWhiteSpace(field))
+        {
             return DefaultFieldName;
+        }
 
         return field switch
         {
@@ -47,14 +49,16 @@ public static class TicketHistoryFormatter
             FieldLocationId => "location",
             FieldInventory => "inventory",
             FieldDueDate => "due date",
-            _ => field.ToLower()
+            _ => field.ToLower(System.Globalization.CultureInfo.CurrentCulture)
         };
     }
 
     public static string FormatActionDescription(string? action, string? field, string? note)
     {
         if (string.IsNullOrWhiteSpace(action))
+        {
             return DefaultActionText;
+        }
 
         return action switch
         {
@@ -78,13 +82,7 @@ public static class TicketHistoryFormatter
         return string.IsNullOrEmpty(note) ? actionText : $"{actionText} {note}".Trim();
     }
 
-    public static string FormatValue(string? value)
-    {
-        return string.IsNullOrWhiteSpace(value) ? EmptyValueText : value;
-    }
+    public static string FormatValue(string? value) => string.IsNullOrWhiteSpace(value) ? EmptyValueText : value;
 
-    public static bool ShouldShowValueChange(string? action)
-    {
-        return action == ActionFieldChanged;
-    }
+    public static bool ShouldShowValueChange(string? action) => action == ActionFieldChanged;
 }

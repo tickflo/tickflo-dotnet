@@ -1,15 +1,14 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Tickets;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 public class TicketUpdateServiceTests
 {
     [Fact]
-    public async Task UpdateStatusAsync_Throws_On_Invalid_Transition()
+    public async Task UpdateStatusAsyncThrowsOnInvalidTransition()
     {
         var ticketRepo = new Mock<ITicketRepository>();
         ticketRepo.Setup(r => r.FindAsync(1, 2, CancellationToken.None)).ReturnsAsync(new Ticket { Id = 2, StatusId = 1 });
@@ -21,7 +20,7 @@ public class TicketUpdateServiceTests
     }
 
     [Fact]
-    public async Task UpdatePriorityAsync_Logs_History()
+    public async Task UpdatePriorityAsyncLogsHistory()
     {
         var ticketRepo = new Mock<ITicketRepository>();
         ticketRepo.Setup(r => r.FindAsync(1, 3, CancellationToken.None)).ReturnsAsync(new Ticket { Id = 3, StatusId = 1, PriorityId = 1 });
@@ -36,7 +35,7 @@ public class TicketUpdateServiceTests
     }
 
     [Fact]
-    public async Task UpdatePriorityAsync_Throws_When_Priority_Not_Found()
+    public async Task UpdatePriorityAsyncThrowsWhenPriorityNotFound()
     {
         var ticketRepo = new Mock<ITicketRepository>();
         ticketRepo.Setup(r => r.FindAsync(1, 3, CancellationToken.None)).ReturnsAsync(new Ticket { Id = 3, StatusId = 1, PriorityId = 1 });
@@ -49,7 +48,7 @@ public class TicketUpdateServiceTests
     }
 
     [Fact]
-    public async Task UpdateStatusAsync_Succeeds_When_Status_Found()
+    public async Task UpdateStatusAsyncSucceedsWhenStatusFound()
     {
         var ticketRepo = new Mock<ITicketRepository>();
         var ticket = new Ticket { Id = 2, StatusId = 1 };
@@ -66,7 +65,7 @@ public class TicketUpdateServiceTests
     }
 
     [Fact]
-    public async Task UpdatePriorityAsync_Updates_Ticket_Priority()
+    public async Task UpdatePriorityAsyncUpdatesTicketPriority()
     {
         var ticketRepo = new Mock<ITicketRepository>();
         var ticket = new Ticket { Id = 3, StatusId = 1, PriorityId = 1 };
