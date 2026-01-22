@@ -226,6 +226,7 @@ public class WorkspaceModel : PageModel
     }
 
 
+    // TODO: Wtf is this even doing? Why on earth would this stupid service be called 3 times and have its own results passed back into it?
     private async Task LoadDashboardDataAsync(int workspaceId, int rangeDays, string assignmentFilter, int userId)
     {
         // First pass: get scope to determine team IDs (use placeholder scope initially)
