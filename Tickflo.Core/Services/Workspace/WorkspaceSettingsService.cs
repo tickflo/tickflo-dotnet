@@ -285,7 +285,7 @@ public class WorkspaceSettingsService(
             }
 
             var name = !string.IsNullOrWhiteSpace(statusUpdate.Name) ? statusUpdate.Name.Trim() : status.Name;
-            var color = !string.IsNullOrWhiteSpace(statusUpdate.Color) ? statusUpdate.Color.Trim() : (string.IsNullOrWhiteSpace(status.Color) ? "neutral" : status.Color);
+            var color = GetColorOrDefault(statusUpdate.Color, status.Color);
             var sortOrder = statusUpdate.SortOrder ?? status.SortOrder;
             var isClosedState = statusUpdate.IsClosedState ?? status.IsClosedState;
 
@@ -338,7 +338,7 @@ public class WorkspaceSettingsService(
             }
 
             var name = !string.IsNullOrWhiteSpace(priorityUpdate.Name) ? priorityUpdate.Name.Trim() : priority.Name;
-            var color = !string.IsNullOrWhiteSpace(priorityUpdate.Color) ? priorityUpdate.Color.Trim() : (string.IsNullOrWhiteSpace(priority.Color) ? "neutral" : priority.Color);
+            var color = GetColorOrDefault(priorityUpdate.Color, priority.Color);
             var sortOrder = priorityUpdate.SortOrder ?? priority.SortOrder;
 
             try
@@ -390,7 +390,7 @@ public class WorkspaceSettingsService(
             }
 
             var name = !string.IsNullOrWhiteSpace(typeUpdate.Name) ? typeUpdate.Name.Trim() : type.Name;
-            var color = !string.IsNullOrWhiteSpace(typeUpdate.Color) ? typeUpdate.Color.Trim() : (string.IsNullOrWhiteSpace(type.Color) ? "neutral" : type.Color);
+            var color = GetColorOrDefault(typeUpdate.Color, type.Color);
             var sortOrder = typeUpdate.SortOrder ?? type.SortOrder;
 
             try
@@ -468,6 +468,8 @@ public class WorkspaceSettingsService(
         var list = await getList();
         return list.Any() ? list.Max(getSortOrder) : 0;
     }
+
+    private static string GetColorOrDefault(string? inputColor, string? currentColor) => !string.IsNullOrWhiteSpace(inputColor) ? inputColor.Trim() : (string.IsNullOrWhiteSpace(currentColor) ? DefaultColor : currentColor);
 }
 
 

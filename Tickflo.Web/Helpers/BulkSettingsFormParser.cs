@@ -55,7 +55,7 @@ public static partial class BulkSettingsFormParser
                 Name = string.IsNullOrWhiteSpace(name) ? null : name,
                 Color = string.IsNullOrWhiteSpace(color) ? null : color,
                 SortOrder = int.TryParse(order, out var sortOrder) ? sortOrder : null,
-                IsClosedState = closed is "true" or "on" ? true : null
+                IsClosedState = closed is "true" or "on" ? (bool?)true : null
             });
         }
 

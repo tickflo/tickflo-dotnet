@@ -58,6 +58,12 @@ public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspac
         return true;
     }
 
+    /// <summary>
+    /// Validates workspace existence and user permissions.
+    /// </summary>
+    /// <param name="slug">Workspace slug</param>
+    /// <param name="permissionCheck">Permission check function</param>
+    /// <returns>Error result if validation fails, null if validation succeeds (guarantees Workspace is not null)</returns>
     private async Task<IActionResult?> ValidateWorkspaceAndPermissionsAsync(string slug, Func<bool> permissionCheck)
     {
         this.WorkspaceSlug = slug;
@@ -79,6 +85,7 @@ public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspac
             return this.Forbid();
         }
 
+        // Returning null guarantees Workspace is not null
         return null;
     }
 
