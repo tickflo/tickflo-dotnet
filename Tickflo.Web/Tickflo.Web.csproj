@@ -11,14 +11,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AWSSDK.S3" Version="4.0.17.1" />
+    <PackageReference Include="AWSSDK.S3" Version="4.0.17.3" />
     <PackageReference Include="DotNetEnv" Version="3.1.1" />
     <PackageReference Include="EFCore.NamingConventions" Version="10.0.0" />
     <PackageReference Include="MiniProfiler.AspNetCore.Mvc" Version="4.5.4" />
     <PackageReference Include="MiniProfiler.EntityFrameworkCore" Version="4.5.4" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
-    <PackageReference Include="System.Drawing.Common" Version="10.0.1" />
+    <PackageReference Include="System.Drawing.Common" Version="10.0.2" />
   </ItemGroup>
 
 </Project>
