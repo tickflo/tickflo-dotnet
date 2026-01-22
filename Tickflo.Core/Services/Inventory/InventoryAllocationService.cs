@@ -14,6 +14,19 @@ public class InventoryAllocationService(
     private readonly ILocationRepository locationRepository = locationRepository;
 
     /// <summary>
+    /// Validates that a location exists and is active.
+    /// </summary>
+    private async Task ValidateLocationAsync(int workspaceId, int locationId)
+    {
+        var location = await this.locationRepository.FindAsync(workspaceId, locationId) ?? throw new InvalidOperationException("Location not found");
+
+        if (!location.Active)
+        {
+            throw new InvalidOperationException("Cannot allocate inventory to inactive location");
+        }
+    }
+
+    /// <summary>
     /// Registers a new inventory item in the system.
     /// </summary>
     public async Task<InventoryEntity> RegisterInventoryItemAsync(
@@ -50,12 +63,7 @@ public class InventoryAllocationService(
         // Validate location if specified
         if (request.LocationId.HasValue)
         {
-            var location = await this.locationRepository.FindAsync(workspaceId, request.LocationId.Value) ?? throw new InvalidOperationException("Specified location does not exist");
-
-            if (!location.Active)
-            {
-                throw new InvalidOperationException("Cannot allocate inventory to inactive location");
-            }
+            await this.ValidateLocationAsync(workspaceId, request.LocationId.Value);
         }
 
         var inventory = new InventoryEntity
@@ -88,12 +96,7 @@ public class InventoryAllocationService(
         var inventory = await this.inventoryRepository.FindAsync(workspaceId, inventoryId) ?? throw new InvalidOperationException("Inventory item not found");
 
         // Validate location
-        var location = await this.locationRepository.FindAsync(workspaceId, locationId) ?? throw new InvalidOperationException("Location not found");
-
-        if (!location.Active)
-        {
-            throw new InvalidOperationException("Cannot allocate to inactive location");
-        }
+        await this.ValidateLocationAsync(workspaceId, locationId);
 
         // Business rule: Track allocation changes
         var previousLocationId = inventory.LocationId;
@@ -109,7 +112,9 @@ public class InventoryAllocationService(
     }
 
     /// <summary>
-    /// Updates inventory item details (not quantity - use InventoryAdjustmentService for that).
+    /// Updates inventory item details.
+    /// Note: This method allows direct quantity updates for use cases like physical inventory counts
+    /// or bulk editing. For tracked quantity changes with audit trails, use InventoryAdjustmentService instead.
     /// </summary>
     public async Task<InventoryEntity> UpdateInventoryDetailsAsync(
         int workspaceId,
@@ -163,12 +168,7 @@ public class InventoryAllocationService(
             // Validate location if specified and not null
             if (request.LocationId.Value > 0)
             {
-                var location = await this.locationRepository.FindAsync(workspaceId, request.LocationId.Value) ?? throw new InvalidOperationException("Specified location does not exist");
-
-                if (!location.Active)
-                {
-                    throw new InvalidOperationException("Cannot allocate inventory to inactive location");
-                }
+                await this.ValidateLocationAsync(workspaceId, request.LocationId.Value);
             }
             inventory.LocationId = request.LocationId.Value > 0 ? request.LocationId.Value : null;
         }
