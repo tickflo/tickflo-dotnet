@@ -58,6 +58,30 @@ public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspac
         return true;
     }
 
+    private async Task<IActionResult?> ValidateWorkspaceAndPermissionsAsync(string slug, Func<bool> permissionCheck)
+    {
+        this.WorkspaceSlug = slug;
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.Workspace == null)
+        {
+            return this.NotFound();
+        }
+
+        var (uid, _) = await this.ResolveUserAsync();
+        if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        await this.EnsurePermissionsAsync(uid);
+        if (!permissionCheck())
+        {
+            return this.Forbid();
+        }
+
+        return null;
+    }
+
     [BindProperty]
     public string? NewStatusName { get; set; }
     [BindProperty]
@@ -158,23 +182,9 @@ public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspac
 
     public async Task<IActionResult> OnPostAddStatusAsync([FromRoute] string slug)
     {
-        this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (this.Workspace == null)
+        if (await this.ValidateWorkspaceAndPermissionsAsync(slug, () => this.CanCreateSettings) is IActionResult error)
         {
-            return this.NotFound();
-        }
-
-        var (uid, _) = await this.ResolveUserAsync();
-        if (uid == 0)
-        {
-            return this.Forbid();
-        }
-
-        await this.EnsurePermissionsAsync(uid);
-        if (this.EnsurePermissionOrForbid(this.CanCreateSettings) is IActionResult permCheck)
-        {
-            return permCheck;
+            return error;
         }
 
         var name = (this.NewStatusName ?? string.Empty).Trim();
@@ -186,7 +196,7 @@ public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspac
         }
         try
         {
-            await this.workspaceSettingsService.AddStatusAsync(this.Workspace.Id, name, color, false);
+            await this.workspaceSettingsService.AddStatusAsync(this.Workspace!.Id, name, color, false);
             this.SetSuccessMessage($"Status '{name}' added successfully!");
         }
         catch (InvalidOperationException ex)
@@ -198,23 +208,9 @@ public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspac
 
     public async Task<IActionResult> OnPostAddPriorityAsync([FromRoute] string slug)
     {
-        this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (this.Workspace == null)
+        if (await this.ValidateWorkspaceAndPermissionsAsync(slug, () => this.CanCreateSettings) is IActionResult error)
         {
-            return this.NotFound();
-        }
-
-        var (uid, _) = await this.ResolveUserAsync();
-        if (uid == 0)
-        {
-            return this.Forbid();
-        }
-
-        await this.EnsurePermissionsAsync(uid);
-        if (!this.CanCreateSettings)
-        {
-            return this.Forbid();
+            return error;
         }
 
         var name = (this.NewPriorityName ?? string.Empty).Trim();
@@ -226,7 +222,7 @@ public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspac
         }
         try
         {
-            await this.workspaceSettingsService.AddPriorityAsync(this.Workspace.Id, name, color);
+            await this.workspaceSettingsService.AddPriorityAsync(this.Workspace!.Id, name, color);
             this.SetSuccessMessage($"Priority '{name}' added successfully!");
         }
         catch (InvalidOperationException ex)
@@ -238,23 +234,9 @@ public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspac
 
     public async Task<IActionResult> OnPostAddTypeAsync([FromRoute] string slug)
     {
-        this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (this.Workspace == null)
+        if (await this.ValidateWorkspaceAndPermissionsAsync(slug, () => this.CanCreateSettings) is IActionResult error)
         {
-            return this.NotFound();
-        }
-
-        var (uid, _) = await this.ResolveUserAsync();
-        if (uid == 0)
-        {
-            return this.Forbid();
-        }
-
-        await this.EnsurePermissionsAsync(uid);
-        if (!this.CanCreateSettings)
-        {
-            return this.Forbid();
+            return error;
         }
 
         var name = (this.NewTypeName ?? string.Empty).Trim();
@@ -266,7 +248,7 @@ public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspac
         }
         try
         {
-            await this.workspaceSettingsService.AddTypeAsync(this.Workspace.Id, name, color);
+            await this.workspaceSettingsService.AddTypeAsync(this.Workspace!.Id, name, color);
             this.SetSuccessMessage($"Type '{name}' added successfully!");
         }
         catch (InvalidOperationException ex)
@@ -278,30 +260,16 @@ public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspac
 
     public async Task<IActionResult> OnPostUpdateStatusAsync([FromRoute] string slug, [FromForm] int id, [FromForm] string name, [FromForm] string color, [FromForm] int sortOrder)
     {
-        this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (this.Workspace == null)
+        if (await this.ValidateWorkspaceAndPermissionsAsync(slug, () => this.CanEditSettings) is IActionResult error)
         {
-            return this.NotFound();
-        }
-
-        var (uid, _) = await this.ResolveUserAsync();
-        if (uid == 0)
-        {
-            return this.Forbid();
-        }
-
-        await this.EnsurePermissionsAsync(uid);
-        if (this.EnsurePermissionOrForbid(this.CanEditSettings) is IActionResult permCheck)
-        {
-            return permCheck;
+            return error;
         }
 
         var isClosedStateStr = this.Request.Form["isClosedState"];
         var isClosedState = !string.IsNullOrEmpty(isClosedStateStr) && (isClosedStateStr == "true" || isClosedStateStr == "on");
         try
         {
-            var s = await this.workspaceSettingsService.UpdateStatusAsync(this.Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder, isClosedState);
+            var s = await this.workspaceSettingsService.UpdateStatusAsync(this.Workspace!.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder, isClosedState);
             this.SetSuccessMessage($"Status '{s.Name}' updated successfully!");
         }
         catch (InvalidOperationException ex)
@@ -313,28 +281,14 @@ public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspac
 
     public async Task<IActionResult> OnPostUpdatePriorityAsync([FromRoute] string slug, [FromForm] int id, [FromForm] string name, [FromForm] string color, [FromForm] int sortOrder)
     {
-        this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (this.Workspace == null)
+        if (await this.ValidateWorkspaceAndPermissionsAsync(slug, () => this.CanEditSettings) is IActionResult error)
         {
-            return this.NotFound();
-        }
-
-        var (uid, _) = await this.ResolveUserAsync();
-        if (uid == 0)
-        {
-            return this.Forbid();
-        }
-
-        await this.EnsurePermissionsAsync(uid);
-        if (this.EnsurePermissionOrForbid(this.CanEditSettings) is IActionResult permCheck)
-        {
-            return permCheck;
+            return error;
         }
 
         try
         {
-            var p = await this.workspaceSettingsService.UpdatePriorityAsync(this.Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
+            var p = await this.workspaceSettingsService.UpdatePriorityAsync(this.Workspace!.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
             this.SetSuccessMessage($"Priority '{p.Name}' updated successfully!");
         }
         catch (InvalidOperationException ex)
@@ -346,28 +300,14 @@ public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspac
 
     public async Task<IActionResult> OnPostUpdateTypeAsync([FromRoute] string slug, [FromForm] int id, [FromForm] string name, [FromForm] string color, [FromForm] int sortOrder)
     {
-        this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (this.Workspace == null)
+        if (await this.ValidateWorkspaceAndPermissionsAsync(slug, () => this.CanEditSettings) is IActionResult error)
         {
-            return this.NotFound();
-        }
-
-        var (uid, _) = await this.ResolveUserAsync();
-        if (uid == 0)
-        {
-            return this.Forbid();
-        }
-
-        await this.EnsurePermissionsAsync(uid);
-        if (this.EnsurePermissionOrForbid(this.CanEditSettings) is IActionResult permCheck)
-        {
-            return permCheck;
+            return error;
         }
 
         try
         {
-            var t = await this.workspaceSettingsService.UpdateTypeAsync(this.Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
+            var t = await this.workspaceSettingsService.UpdateTypeAsync(this.Workspace!.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
             this.SetSuccessMessage($"Type '{t.Name}' updated successfully!");
         }
         catch (InvalidOperationException ex)
@@ -379,101 +319,45 @@ public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspac
 
     public async Task<IActionResult> OnPostDeleteStatusAsync([FromRoute] string slug, [FromForm] int id)
     {
-        this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (this.Workspace == null)
+        if (await this.ValidateWorkspaceAndPermissionsAsync(slug, () => this.CanEditSettings) is IActionResult error)
         {
-            return this.NotFound();
+            return error;
         }
 
-        var (uid, _) = await this.ResolveUserAsync();
-        if (uid == 0)
-        {
-            return this.Forbid();
-        }
-
-        await this.EnsurePermissionsAsync(uid);
-        if (this.EnsurePermissionOrForbid(this.CanEditSettings) is IActionResult permCheck)
-        {
-            return permCheck;
-        }
-
-        await this.workspaceSettingsService.DeleteStatusAsync(this.Workspace.Id, id);
+        await this.workspaceSettingsService.DeleteStatusAsync(this.Workspace!.Id, id);
         this.SetSuccessMessage("Status deleted successfully!");
         return this.RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
     public async Task<IActionResult> OnPostDeletePriorityAsync([FromRoute] string slug, [FromForm] int id)
     {
-        this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (this.Workspace == null)
+        if (await this.ValidateWorkspaceAndPermissionsAsync(slug, () => this.CanEditSettings) is IActionResult error)
         {
-            return this.NotFound();
+            return error;
         }
 
-        var (uid, _) = await this.ResolveUserAsync();
-        if (uid == 0)
-        {
-            return this.Forbid();
-        }
-
-        await this.EnsurePermissionsAsync(uid);
-        if (this.EnsurePermissionOrForbid(this.CanEditSettings) is IActionResult permCheck)
-        {
-            return permCheck;
-        }
-
-        await this.workspaceSettingsService.DeletePriorityAsync(this.Workspace.Id, id);
+        await this.workspaceSettingsService.DeletePriorityAsync(this.Workspace!.Id, id);
         this.SetSuccessMessage("Priority deleted successfully!");
         return this.RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
     public async Task<IActionResult> OnPostDeleteTypeAsync([FromRoute] string slug, [FromForm] int id)
     {
-        this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (this.Workspace == null)
+        if (await this.ValidateWorkspaceAndPermissionsAsync(slug, () => this.CanEditSettings) is IActionResult error)
         {
-            return this.NotFound();
+            return error;
         }
 
-        var (uid, _) = await this.ResolveUserAsync();
-        if (uid == 0)
-        {
-            return this.Forbid();
-        }
-
-        await this.EnsurePermissionsAsync(uid);
-        if (this.EnsurePermissionOrForbid(this.CanEditSettings) is IActionResult permCheck)
-        {
-            return permCheck;
-        }
-
-        await this.workspaceSettingsService.DeleteTypeAsync(this.Workspace.Id, id);
+        await this.workspaceSettingsService.DeleteTypeAsync(this.Workspace!.Id, id);
         this.SetSuccessMessage("Type deleted successfully!");
         return this.RedirectToPage("/Workspaces/Settings", new { slug });
     }
 
     public async Task<IActionResult> OnPostSaveNotificationSettingsAsync([FromRoute] string slug)
     {
-        this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (this.Workspace == null)
+        if (await this.ValidateWorkspaceAndPermissionsAsync(slug, () => this.CanEditSettings) is IActionResult error)
         {
-            return this.NotFound();
-        }
-
-        var (uid, _) = await this.ResolveUserAsync();
-        if (uid == 0)
-        {
-            return this.Forbid();
-        }
-
-        await this.EnsurePermissionsAsync(uid);
-        if (this.EnsurePermissionOrForbid(this.CanEditSettings) is IActionResult permCheck)
-        {
-            return permCheck;
+            return error;
         }
 
         this.TempData["NotificationSettingsSaved"] = true;
@@ -482,29 +366,15 @@ public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspac
 
     public async Task<IActionResult> OnPostSaveAllAsync([FromRoute] string slug)
     {
-        this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (this.Workspace == null)
+        if (await this.ValidateWorkspaceAndPermissionsAsync(slug, () => this.CanEditSettings) is IActionResult error)
         {
-            return this.NotFound();
-        }
-
-        var (uid, _) = await this.ResolveUserAsync();
-        if (uid == 0)
-        {
-            return this.Forbid();
-        }
-
-        await this.EnsurePermissionsAsync(uid);
-        if (this.EnsurePermissionOrForbid(this.CanEditSettings) is IActionResult permCheck)
-        {
-            return permCheck;
+            return error;
         }
 
         try
         {
             var request = BulkSettingsFormParser.Parse(this.Request.Form);
-            var result = await this.workspaceSettingsService.BulkUpdateSettingsAsync(this.Workspace.Id, request);
+            var result = await this.workspaceSettingsService.BulkUpdateSettingsAsync(this.Workspace!.Id, request);
 
             if (result.UpdatedWorkspace != null)
             {
