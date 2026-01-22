@@ -55,4 +55,13 @@ public interface ITicketAssignmentService
     /// <param name="triggeredByUserId">User triggering auto-assignment</param>
     /// <returns>The updated ticket</returns>
     public Task<Ticket> AutoAssignAsync(int workspaceId, int ticketId, int triggeredByUserId);
+
+    /// <summary>
+    /// Updates a ticket's user assignment without validation (for UI operations where access is pre-validated).
+    /// </summary>
+    /// <param name="ticket">The ticket to update</param>
+    /// <param name="newAssignedUserId">New assignee user ID (null to unassign)</param>
+    /// <param name="updatedByUserId">User performing the update</param>
+    /// <returns>Returns true if assignment changed, false otherwise</returns>
+    public Task<bool> UpdateAssignmentAsync(Ticket ticket, int? newAssignedUserId, int updatedByUserId);
 }

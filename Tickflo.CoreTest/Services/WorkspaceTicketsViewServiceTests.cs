@@ -98,6 +98,7 @@ public class WorkspaceTicketsViewServiceTests
             .ReturnsAsync([]);
 
         var service = new WorkspaceTicketsViewService(
+            Mock.Of<ITicketRepository>(),
             statusRepository.Object,
             priorityRepository.Object,
             ticketTypeRepository.Object,
@@ -180,6 +181,7 @@ public class WorkspaceTicketsViewServiceTests
             .ReturnsAsync([]);
 
         var service = new WorkspaceTicketsViewService(
+            Mock.Of<ITicketRepository>(),
             statusRepository.Object,
             priorityRepository.Object,
             ticketTypeRepository.Object,
@@ -264,6 +266,7 @@ public class WorkspaceTicketsViewServiceTests
             ]);
 
         var service = new WorkspaceTicketsViewService(
+            Mock.Of<ITicketRepository>(),
             statusRepository.Object,
             priorityRepository.Object,
             ticketTypeRepository.Object,

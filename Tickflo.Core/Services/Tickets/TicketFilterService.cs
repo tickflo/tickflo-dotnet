@@ -100,6 +100,92 @@ public class TicketFilterService : ITicketFilterService
     }
 
     public int CountMyTickets(IEnumerable<Ticket> tickets, int userId) => tickets.Count(t => t.AssignedUserId == userId);
+
+    public int? ResolveStatusId(string? statusName, IReadOnlyList<TicketStatus> statuses)
+    {
+        if (string.IsNullOrWhiteSpace(statusName) || statusName.Equals(TicketFilterConstants.OpenStatusFilter, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return statuses.FirstOrDefault(s => s.Name.Equals(statusName.Trim(), StringComparison.OrdinalIgnoreCase))?.Id;
+    }
+
+    public int? ResolvePriorityId(string? priorityName, IReadOnlyList<TicketPriority> priorities)
+    {
+        if (string.IsNullOrWhiteSpace(priorityName))
+        {
+            return null;
+        }
+
+        return priorities.FirstOrDefault(p => p.Name.Equals(priorityName.Trim(), StringComparison.OrdinalIgnoreCase))?.Id;
+    }
+
+    public int? ResolveTypeId(string? typeName, IReadOnlyList<TicketType> types)
+    {
+        if (string.IsNullOrWhiteSpace(typeName))
+        {
+            return null;
+        }
+
+        return types.FirstOrDefault(t => t.Name.Equals(typeName.Trim(), StringComparison.OrdinalIgnoreCase))?.Id;
+    }
+
+    public List<Ticket> ApplyOpenStatusFilter(IEnumerable<Ticket> tickets, IReadOnlyList<TicketStatus> statuses)
+    {
+        var closedStatusIds = statuses
+            .Where(s => s.IsClosedState)
+            .Select(s => s.Id)
+            .ToHashSet();
+
+        return [.. tickets.Where(t => !t.StatusId.HasValue || !closedStatusIds.Contains(t.StatusId.Value))];
+    }
+
+    public List<Ticket> ApplyContactFilter(IEnumerable<Ticket> tickets, string? contactQuery, Dictionary<int, Contact> contactsById)
+    {
+        if (string.IsNullOrWhiteSpace(contactQuery))
+        {
+            return [.. tickets];
+        }
+
+        var query = contactQuery.Trim();
+        return [.. tickets.Where(t => TicketMatchesContactQuery(t, query, contactsById))];
+    }
+
+    private static bool TicketMatchesContactQuery(Ticket ticket, string query, Dictionary<int, Contact> contactsById)
+    {
+        if (!ticket.ContactId.HasValue || !contactsById.TryGetValue(ticket.ContactId.Value, out var contact))
+        {
+            return false;
+        }
+
+        return (contact.Name?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ||
+               (contact.Email?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    public List<Ticket> ApplyTeamFilter(IEnumerable<Ticket> tickets, string? teamName, Dictionary<int, Team> teamsById)
+    {
+        if (string.IsNullOrWhiteSpace(teamName))
+        {
+            return [.. tickets];
+        }
+
+        var team = teamsById.Values.FirstOrDefault(t =>
+            string.Equals(t.Name, teamName.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        return team != null
+            ? [.. tickets.Where(t => t.AssignedTeamId == team.Id)]
+            : [];
+    }
+
+    public List<Ticket> Paginate(IEnumerable<Ticket> tickets, int pageNumber, int pageSize)
+    {
+        var normalizedPageSize = pageSize <= 0 ? TicketFilterConstants.DefaultPageSize : Math.Min(pageSize, TicketFilterConstants.MaxPageSize);
+        var normalizedPageNumber = pageNumber <= 0 ? TicketFilterConstants.MinPageNumber : pageNumber;
+
+        var startIndex = (normalizedPageNumber - 1) * normalizedPageSize;
+        return [.. tickets.Skip(startIndex).Take(normalizedPageSize)];
+    }
 }
 
 

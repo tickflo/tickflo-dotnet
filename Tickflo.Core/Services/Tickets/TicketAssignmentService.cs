@@ -197,4 +197,21 @@ public class TicketAssignmentService(
 
         return ticket;
     }
+
+    public async Task<bool> UpdateAssignmentAsync(Ticket ticket, int? newAssignedUserId, int updatedByUserId)
+    {
+        var oldAssignedUserId = ticket.AssignedUserId;
+        var normalizedNewAssignedUserId = newAssignedUserId.HasValue && newAssignedUserId.Value > 0 ? newAssignedUserId : null;
+
+        if (oldAssignedUserId == normalizedNewAssignedUserId)
+        {
+            return false;
+        }
+
+        ticket.AssignedUserId = normalizedNewAssignedUserId;
+        ticket.UpdatedAt = DateTime.UtcNow;
+        await this.ticketRepository.UpdateAsync(ticket);
+
+        return true;
+    }
 }
