@@ -12,7 +12,6 @@ public class WorkspaceReportsViewServiceTests
         // Arrange
         var rolePermissionRepository = new Mock<IRolePermissionRepository>();
         var reportQuery = new Mock<IReportQueryService>();
-        var accessService = new Mock<IWorkspaceAccessService>();
 
         var permissions = new Dictionary<string, EffectiveSectionPermission>
         {
@@ -31,7 +30,10 @@ public class WorkspaceReportsViewServiceTests
         reportQuery.Setup(x => x.ListReportsAsync(1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(reports);
 
-        var service = new WorkspaceReportsViewService(rolePermissionRepository.Object, reportQuery.Object, accessService.Object);
+        var service = new WorkspaceReportsViewService(
+            rolePermissionRepository.Object,
+            reportQuery.Object
+        );
 
         // Act
         var result = await service.BuildAsync(1, 100);
@@ -52,7 +54,6 @@ public class WorkspaceReportsViewServiceTests
         // Arrange
         var rolePermissionRepository = new Mock<IRolePermissionRepository>();
         var reportQuery = new Mock<IReportQueryService>();
-        var accessService = new Mock<IWorkspaceAccessService>();
 
         var permissions = new Dictionary<string, EffectiveSectionPermission>();
 
@@ -62,7 +63,10 @@ public class WorkspaceReportsViewServiceTests
         reportQuery.Setup(x => x.ListReportsAsync(1, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
-        var service = new WorkspaceReportsViewService(rolePermissionRepository.Object, reportQuery.Object, accessService.Object);
+        var service = new WorkspaceReportsViewService(
+            rolePermissionRepository.Object,
+            reportQuery.Object
+        );
 
         // Act
         var result = await service.BuildAsync(1, 100);
@@ -79,7 +83,6 @@ public class WorkspaceReportsViewServiceTests
         // Arrange
         var rolePermissionRepository = new Mock<IRolePermissionRepository>();
         var reportQuery = new Mock<IReportQueryService>();
-        var accessService = new Mock<IWorkspaceAccessService>();
 
         var permissions = new Dictionary<string, EffectiveSectionPermission>
         {
@@ -92,7 +95,10 @@ public class WorkspaceReportsViewServiceTests
         reportQuery.Setup(x => x.ListReportsAsync(1, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
-        var service = new WorkspaceReportsViewService(rolePermissionRepository.Object, reportQuery.Object, accessService.Object);
+        var service = new WorkspaceReportsViewService(
+            rolePermissionRepository.Object,
+            reportQuery.Object
+        );
 
         // Act
         var result = await service.BuildAsync(1, 100);
