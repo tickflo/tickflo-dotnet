@@ -165,12 +165,18 @@ public class InventoryAllocationService(
 
         if (request.LocationId.HasValue)
         {
-            // Validate location if specified and not null
-            if (request.LocationId.Value > 0)
+            var locationId = request.LocationId.Value;
+            
+            // Validate location if specified and not null (0 means clear location)
+            if (locationId > 0)
             {
-                await this.ValidateLocationAsync(workspaceId, request.LocationId.Value);
+                await this.ValidateLocationAsync(workspaceId, locationId);
+                inventory.LocationId = locationId;
             }
-            inventory.LocationId = request.LocationId.Value > 0 ? request.LocationId.Value : null;
+            else
+            {
+                inventory.LocationId = null;
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(request.Status))
