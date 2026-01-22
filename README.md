@@ -3,7 +3,6 @@
 > A modern, multi-tenant ticketing and workspace management system
 
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18.1-336791?logo=postgresql)](https://www.postgresql.org/)
 [![License](https://img.shields.io/github/license/tickflo/tickflo)](LICENSE.txt)
 
 Tickflo is a full-featured help desk and ticketing system designed for teams that need isolated workspaces, flexible permissions, and real-time collaboration.
@@ -23,7 +22,7 @@ Tickflo is a full-featured help desk and ticketing system designed for teams tha
 
 ### Prerequisites
 
-- [.NET 10.0 SDK](https://dotnet.microsoft.com/download)
+- [.NET SDK](https://dotnet.microsoft.com/download)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop)
 - [dbmate](https://github.com/amacneil/dbmate#installation)
 
@@ -53,9 +52,6 @@ docker compose up -d db s3
 # Run migrations
 dbmate up
 
-# (Optional) Load demo data
-docker exec -i $(docker ps -qf name=db) psql -U $POSTGRES_USER -d $POSTGRES_DB -f /work/db/seed_data.sql
-
 # Run the app
 dotnet run --project Tickflo.Web
 ```
@@ -73,8 +69,8 @@ db/                  # Database schema & migrations
 ```
 
 **Tech Stack:**
-- ASP.NET Core 10.0 + Entity Framework Core 9.0
-- PostgreSQL 18.1
+- ASP.NET Core + Entity Framework Core
+- PostgreSQL
 - RustFS (S3-compatible storage)
 - Tailwind CSS + DaisyUI
 - SignalR for real-time updates
@@ -94,23 +90,9 @@ dbmate up                  # Apply
 dbmate down                # Rollback
 ```
 
-## 📖 Documentation
-
-- [Project Structure](docs/PROJECT_STRUCTURE.md) - Navigate the codebase
-- [Contributing Guide](CONTRIBUTING.md) - Development workflow
-- [RustFS Setup](docs/RUSTFS_QUICKSTART.md) - File storage configuration
-- [Notification System](docs/NOTIFICATION_SYSTEM.md) - Email & alerts
-- [UI Style Guide](docs/guides/DAISYUI_QUICK_REFERENCE.md) - Component patterns
-
 ## 🤝 Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Contributions are welcome!
 
 ## 📝 License
 
