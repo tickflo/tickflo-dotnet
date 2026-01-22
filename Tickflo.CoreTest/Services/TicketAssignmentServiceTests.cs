@@ -31,4 +31,31 @@ public class TicketAssignmentServiceTests
 
         history.Verify(h => h.CreateAsync(It.Is<TicketHistory>(th => th.Action == "unassigned")), Times.Once);
     }
+
+    [Fact]
+    public async Task UpdateAssignmentAsyncReturnsFalseWhenAssignmentUnchanged()
+    {
+        var ticketRepository = new Mock<ITicketRepository>();
+        var ticket = new Ticket { Id = 2, AssignedUserId = 5 };
+        var svc = new TicketAssignmentService(ticketRepository.Object, Mock.Of<ITicketHistoryRepository>(), Mock.Of<IUserWorkspaceRepository>(), Mock.Of<ITeamRepository>(), Mock.Of<ITeamMemberRepository>());
+
+        var result = await svc.UpdateAssignmentAsync(ticket, 5, 9);
+
+        Assert.False(result);
+        ticketRepository.Verify(r => r.UpdateAsync(It.IsAny<Ticket>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAssignmentAsyncReturnsTrueWhenAssignmentChanged()
+    {
+        var ticketRepository = new Mock<ITicketRepository>();
+        var ticket = new Ticket { Id = 2, AssignedUserId = 5 };
+        var svc = new TicketAssignmentService(ticketRepository.Object, Mock.Of<ITicketHistoryRepository>(), Mock.Of<IUserWorkspaceRepository>(), Mock.Of<ITeamRepository>(), Mock.Of<ITeamMemberRepository>());
+
+        var result = await svc.UpdateAssignmentAsync(ticket, 7, 9);
+
+        Assert.True(result);
+        Assert.Equal(7, ticket.AssignedUserId);
+        ticketRepository.Verify(r => r.UpdateAsync(ticket), Times.Once);
+    }
 }

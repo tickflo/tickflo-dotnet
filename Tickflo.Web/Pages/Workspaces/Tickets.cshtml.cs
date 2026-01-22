@@ -2,7 +2,6 @@ namespace Tickflo.Web.Pages.Workspaces;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Notifications;
 using Tickflo.Core.Services.Tickets;
@@ -10,16 +9,16 @@ using Tickflo.Core.Services.Views;
 using Tickflo.Core.Services.Workspace;
 
 [Authorize]
-public class TicketsModel(IWorkspaceService workspaceService, ITicketRepository ticketRepository, ITicketFilterService ticketFilterService, IWorkspaceTicketsViewService workspaceTicketsViewService, INotificationTriggerService notificationTriggerService) : WorkspacePageModel
+public class TicketsModel(
+    IWorkspaceService workspaceService,
+    ITicketFilterService ticketFilterService,
+    ITicketAssignmentService ticketAssignmentService,
+    IWorkspaceTicketsViewService workspaceTicketsViewService,
+    INotificationTriggerService notificationTriggerService) : WorkspacePageModel
 {
-    private const int DefaultPageSize = 25;
-    private const int MaxPageSize = 200;
-    private const int MinPageNumber = 1;
-    private const string OpenStatusFilter = "Open";
-
     private readonly IWorkspaceService workspaceService = workspaceService;
-    private readonly ITicketRepository ticketRepository = ticketRepository;
     private readonly ITicketFilterService ticketFilterService = ticketFilterService;
+    private readonly ITicketAssignmentService ticketAssignmentService = ticketAssignmentService;
     private readonly IWorkspaceTicketsViewService workspaceTicketsViewService = workspaceTicketsViewService;
     private readonly INotificationTriggerService notificationTriggerService = notificationTriggerService;
 
@@ -91,13 +90,8 @@ public class TicketsModel(IWorkspaceService workspaceService, ITicketRepository 
 
         await this.LoadViewDataAsync(this.Workspace.Id, currentUserId);
 
-        var allTickets = await this.ticketRepository.ListAsync(this.Workspace.Id);
-        var scopedTickets = this.ticketFilterService.ApplyScopeFilter(allTickets, currentUserId,
-            this.ticketViewScope ?? string.Empty,
-            this.userTeamIds);
-
-        var filteredTickets = await this.ApplyAllFiltersAsync(scopedTickets);
-        await this.PaginateResultsAsync(filteredTickets, currentUserId, allTickets);
+        var filteredTickets = await this.FilterAndPaginateTicketsAsync(currentUserId);
+        this.Tickets = filteredTickets;
 
         return this.Page();
     }
@@ -124,129 +118,50 @@ public class TicketsModel(IWorkspaceService workspaceService, ITicketRepository 
         this.userTeamIds = viewData.UserTeamIds;
     }
 
-    private async Task<List<Ticket>> ApplyAllFiltersAsync(IEnumerable<Ticket> tickets)
+    private async Task<List<Ticket>> FilterAndPaginateTicketsAsync(int currentUserId)
     {
-        var criteria = this.BuildFilterCriteria();
-        var filtered = this.ticketFilterService.ApplyFilters(tickets, criteria).ToList();
+        var allTickets = await this.workspaceTicketsViewService.GetAllTicketsAsync(this.Workspace!.Id);
 
-        filtered = this.ApplyStatusOpenFilter(filtered);
-        filtered = this.ApplyContactFilter(filtered);
-        filtered = this.ApplyTeamFilter(filtered);
+        var scopedTickets = this.ticketFilterService.ApplyScopeFilter(
+            allTickets,
+            currentUserId,
+            this.ticketViewScope ?? string.Empty,
+            this.userTeamIds);
+
+        var filtered = this.ApplyAllFilters(scopedTickets, currentUserId);
+
+        this.MyCount = this.ticketFilterService.CountMyTickets(allTickets, currentUserId);
+        this.Total = filtered.Count;
+
+        return this.ticketFilterService.Paginate(filtered, this.PageNumber, this.PageSize);
+    }
+
+    private List<Ticket> ApplyAllFilters(List<Ticket> tickets, int currentUserId)
+    {
+        var criteria = new TicketFilterCriteria
+        {
+            Query = this.Query?.Trim(),
+            StatusId = this.ticketFilterService.ResolveStatusId(this.Status, this.Statuses),
+            PriorityId = this.ticketFilterService.ResolvePriorityId(this.Priority, this.PrioritiesList),
+            TypeId = this.ticketFilterService.ResolveTypeId(this.Type, this.TypesList),
+            AssigneeUserId = this.AssigneeUserId,
+            LocationId = this.LocationId,
+            Mine = this.Mine,
+            CurrentUserId = currentUserId
+        };
+
+        var filtered = this.ticketFilterService.ApplyFilters(tickets, criteria);
+
+        if (!string.IsNullOrWhiteSpace(this.Status) && this.Status.Equals(TicketFilterConstants.OpenStatusFilter, StringComparison.OrdinalIgnoreCase))
+        {
+            filtered = this.ticketFilterService.ApplyOpenStatusFilter(filtered, this.Statuses);
+        }
+
+        filtered = this.ticketFilterService.ApplyContactFilter(filtered, this.ContactQuery, this.ContactsById);
+        filtered = this.ticketFilterService.ApplyTeamFilter(filtered, this.AssigneeTeamName, this.TeamsById);
 
         return filtered;
     }
-
-    private TicketFilterCriteria BuildFilterCriteria() => new()
-    {
-        Query = this.Query?.Trim(),
-        StatusId = this.ResolveStatusId(),
-        PriorityId = this.ResolvePriorityId(),
-        TypeId = this.ResolveTypeId(),
-        AssigneeUserId = this.AssigneeUserId,
-        LocationId = this.LocationId,
-        Mine = this.Mine,
-        CurrentUserId = this.ExtractCurrentUserId()
-    };
-
-    private int ExtractCurrentUserId() => this.TryGetUserId(out var userId) ? userId : 0;
-
-    private int? ResolveTypeId()
-    {
-        if (string.IsNullOrWhiteSpace(this.Type))
-        {
-            return null;
-        }
-
-        return this.TypesList.FirstOrDefault(t => t.Name.Equals(this.Type.Trim(), StringComparison.OrdinalIgnoreCase))?.Id;
-    }
-
-    private int? ResolveStatusId()
-    {
-        if (string.IsNullOrWhiteSpace(this.Status) || this.Status.Equals(OpenStatusFilter, StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
-
-        return this.Statuses.FirstOrDefault(s => s.Name.Equals(this.Status.Trim(), StringComparison.OrdinalIgnoreCase))?.Id;
-    }
-
-    private int? ResolvePriorityId()
-    {
-        if (string.IsNullOrWhiteSpace(this.Priority))
-        {
-            return null;
-        }
-
-        return this.PrioritiesList.FirstOrDefault(p => p.Name.Equals(this.Priority.Trim(), StringComparison.OrdinalIgnoreCase))?.Id;
-    }
-
-    private List<Ticket> ApplyStatusOpenFilter(List<Ticket> tickets)
-    {
-        if (string.IsNullOrWhiteSpace(this.Status) || !this.Status.Equals(OpenStatusFilter, StringComparison.OrdinalIgnoreCase))
-        {
-            return tickets;
-        }
-
-        var closedStatusIds = this.Statuses
-            .Where(s => s.IsClosedState)
-            .Select(s => s.Id)
-            .ToHashSet();
-
-        return [.. tickets.Where(t => !t.StatusId.HasValue || !closedStatusIds.Contains(t.StatusId.Value))];
-    }
-
-    private List<Ticket> ApplyContactFilter(List<Ticket> tickets)
-    {
-        if (string.IsNullOrWhiteSpace(this.ContactQuery))
-        {
-            return tickets;
-        }
-
-        var query = this.ContactQuery.Trim();
-        return [.. tickets.Where(t => this.TicketMatchesContactQuery(t, query))];
-    }
-
-    private bool TicketMatchesContactQuery(Ticket ticket, string query)
-    {
-        if (!ticket.ContactId.HasValue || !this.ContactsById.TryGetValue(ticket.ContactId.Value, out var contact))
-        {
-            return false;
-        }
-
-        return (contact.Name?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ||
-               (contact.Email?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false);
-    }
-
-    private List<Ticket> ApplyTeamFilter(List<Ticket> tickets)
-    {
-        if (string.IsNullOrWhiteSpace(this.AssigneeTeamName))
-        {
-            return tickets;
-        }
-
-        var team = this.TeamsById.Values.FirstOrDefault(t =>
-            string.Equals(t.Name, this.AssigneeTeamName.Trim(), StringComparison.OrdinalIgnoreCase));
-
-        return team != null
-            ? [.. tickets.Where(t => t.AssignedTeamId == team.Id)]
-            : [];
-    }
-
-    private async Task PaginateResultsAsync(List<Ticket> filteredTickets, int currentUserId, IEnumerable<Ticket> allTickets)
-    {
-        this.MyCount = currentUserId > 0 ? this.ticketFilterService.CountMyTickets(allTickets, currentUserId) : 0;
-        this.Total = filteredTickets.Count;
-
-        var pageSize = NormalizePageSize(this.PageSize);
-        var pageNumber = NormalizePageNumber(this.PageNumber);
-
-        var startIndex = (pageNumber - 1) * pageSize;
-        this.Tickets = [.. filteredTickets.Skip(startIndex).Take(pageSize)];
-    }
-
-    private static int NormalizePageSize(int pageSize) => pageSize <= 0 ? DefaultPageSize : Math.Min(pageSize, MaxPageSize);
-
-    private static int NormalizePageNumber(int pageNumber) => pageNumber <= 0 ? MinPageNumber : pageNumber;
 
     public async Task<IActionResult> OnPostAssignAsync(string slug, int id, int? assignedUserId)
     {
@@ -269,13 +184,24 @@ public class TicketsModel(IWorkspaceService workspaceService, ITicketRepository 
             return this.Forbid();
         }
 
-        var ticket = await this.ticketRepository.FindAsync(this.Workspace.Id, id);
+        var ticket = await this.workspaceTicketsViewService.GetTicketAsync(this.Workspace.Id, id);
         if (ticket == null)
         {
             return this.NotFound();
         }
 
-        await this.UpdateTicketAssignmentAsync(ticket, assignedUserId, currentUserId);
+        var oldAssignedUserId = ticket.AssignedUserId;
+        var assignmentChanged = await this.ticketAssignmentService.UpdateAssignmentAsync(ticket, assignedUserId, currentUserId);
+
+        if (assignmentChanged)
+        {
+            await this.notificationTriggerService.NotifyTicketAssignmentChangedAsync(
+                this.Workspace.Id,
+                ticket,
+                oldAssignedUserId,
+                null,
+                currentUserId);
+        }
 
         return this.RedirectToPage(new
         {
@@ -293,29 +219,4 @@ public class TicketsModel(IWorkspaceService workspaceService, ITicketRepository 
             this.PageSize
         });
     }
-
-    private async Task UpdateTicketAssignmentAsync(Ticket ticket, int? assignedUserId, int currentUserId)
-    {
-        var oldAssignedUserId = ticket.AssignedUserId;
-        var newAssignedUserId = assignedUserId > 0 ? assignedUserId : null;
-
-        if (oldAssignedUserId == newAssignedUserId)
-        {
-            return;
-        }
-
-        ticket.AssignedUserId = newAssignedUserId;
-        ticket.UpdatedAt = DateTime.UtcNow;
-        await this.ticketRepository.UpdateAsync(ticket);
-
-        await this.NotifyAssignmentChangeAsync(ticket, oldAssignedUserId, currentUserId);
-    }
-
-    private async Task NotifyAssignmentChangeAsync(Ticket ticket, int? oldAssignedUserId, int currentUserId) => await this.notificationTriggerService.NotifyTicketAssignmentChangedAsync(
-            this.Workspace!.Id,
-            ticket,
-            oldAssignedUserId,
-            null,
-            currentUserId
-        );
 }

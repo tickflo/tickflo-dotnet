@@ -8,6 +8,7 @@ using Tickflo.Core.Entities;
 /// Aggregates tickets metadata and permissions for list display.
 /// </summary>
 public class WorkspaceTicketsViewService(
+    ITicketRepository ticketRepository,
     ITicketStatusRepository statusRepository,
     ITicketPriorityRepository priorityRepository,
     ITicketTypeRepository ticketTypeRepository,
@@ -20,6 +21,7 @@ public class WorkspaceTicketsViewService(
     ITeamMemberRepository teamMemberRepo,
     IUserWorkspaceRoleRepository userWorkspaceRoleRepository) : IWorkspaceTicketsViewService
 {
+    private readonly ITicketRepository ticketRepository = ticketRepository;
     private readonly ITicketStatusRepository statusRepository = statusRepository;
     private readonly ITicketPriorityRepository priorityRepository = priorityRepository;
     private readonly ITicketTypeRepository ticketTypeRepository = ticketTypeRepository;
@@ -140,6 +142,10 @@ public class WorkspaceTicketsViewService(
 
         return data;
     }
+
+    public async Task<IEnumerable<Ticket>> GetAllTicketsAsync(int workspaceId, CancellationToken cancellationToken = default) => await this.ticketRepository.ListAsync(workspaceId, cancellationToken);
+
+    public async Task<Ticket?> GetTicketAsync(int workspaceId, int ticketId, CancellationToken cancellationToken = default) => await this.ticketRepository.FindAsync(workspaceId, ticketId, cancellationToken);
 }
 
 

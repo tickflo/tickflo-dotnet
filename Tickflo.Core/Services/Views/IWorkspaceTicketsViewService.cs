@@ -19,6 +19,23 @@ public interface IWorkspaceTicketsViewService
         int workspaceId,
         int userId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves all tickets for a workspace.
+    /// </summary>
+    /// <param name="workspaceId">The workspace to load tickets for</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of all tickets in the workspace</returns>
+    public Task<IEnumerable<Ticket>> GetAllTicketsAsync(int workspaceId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves a single ticket by ID.
+    /// </summary>
+    /// <param name="workspaceId">The workspace context</param>
+    /// <param name="ticketId">The ticket ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The ticket if found, null otherwise</returns>
+    public Task<Ticket?> GetTicketAsync(int workspaceId, int ticketId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
