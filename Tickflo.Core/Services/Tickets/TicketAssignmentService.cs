@@ -201,7 +201,7 @@ public class TicketAssignmentService(
     public async Task<bool> UpdateAssignmentAsync(Ticket ticket, int? newAssignedUserId, int updatedByUserId)
     {
         var oldAssignedUserId = ticket.AssignedUserId;
-        var normalizedNewAssignedUserId = newAssignedUserId is > 0 ? newAssignedUserId : null;
+        var normalizedNewAssignedUserId = newAssignedUserId.HasValue && newAssignedUserId.Value > 0 ? newAssignedUserId : null;
 
         if (oldAssignedUserId == normalizedNewAssignedUserId)
         {
