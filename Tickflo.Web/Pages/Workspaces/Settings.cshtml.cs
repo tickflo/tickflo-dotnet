@@ -5,19 +5,17 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Services.Users;
 using Tickflo.Core.Services.Views;
 using Tickflo.Core.Services.Workspace;
 
 [Authorize]
-public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITicketStatusRepository statusRepository, ITicketPriorityRepository priorityRepository, ITicketTypeRepository ticketTypeRepository, IWorkspaceSettingsService workspaceSettingsService, IWorkspaceSettingsViewService workspaceSettingsViewService, IUserRepository userRepository) : WorkspacePageModel
+public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspaceSettingsService workspaceSettingsService, IWorkspaceSettingsViewService workspaceSettingsViewService, IUserManagementService userManagementService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
-    private readonly ITicketStatusRepository statusRepository = statusRepository;
-    private readonly ITicketPriorityRepository priorityRepository = priorityRepository;
-    private readonly ITicketTypeRepository ticketTypeRepository = ticketTypeRepository;
+    private readonly IWorkspaceService workspaceService = workspaceService;
     private readonly IWorkspaceSettingsService workspaceSettingsService = workspaceSettingsService;
     private readonly IWorkspaceSettingsViewService workspaceSettingsViewService = workspaceSettingsViewService;
-    private readonly IUserRepository userRepository = userRepository;
+    private readonly IUserManagementService userManagementService = userManagementService;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
@@ -48,7 +46,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
             return false;
         }
 
-        var user = await this.userRepository.FindByIdAsync(userId);
+        var user = await this.userManagementService.GetUserAsync(userId);
         this.IsSystemAdmin = user?.SystemAdmin == true;
         var data = await this.workspaceSettingsViewService.BuildAsync(this.Workspace.Id, userId);
         this.CanViewSettings = data.CanViewSettings;
@@ -79,7 +77,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
     public async Task<IActionResult> OnPostAsync([FromRoute] string slug)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -138,7 +136,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
     public async Task<IActionResult> OnGetAsync(string slug)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -162,7 +160,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
     public async Task<IActionResult> OnPostAddStatusAsync([FromRoute] string slug)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -202,7 +200,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
     public async Task<IActionResult> OnPostAddPriorityAsync([FromRoute] string slug)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -242,7 +240,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
     public async Task<IActionResult> OnPostAddTypeAsync([FromRoute] string slug)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -282,7 +280,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
     public async Task<IActionResult> OnPostUpdateStatusAsync([FromRoute] string slug, [FromForm] int id, [FromForm] string name, [FromForm] string color, [FromForm] int sortOrder)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -317,7 +315,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
     public async Task<IActionResult> OnPostUpdatePriorityAsync([FromRoute] string slug, [FromForm] int id, [FromForm] string name, [FromForm] string color, [FromForm] int sortOrder)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -350,7 +348,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
     public async Task<IActionResult> OnPostUpdateTypeAsync([FromRoute] string slug, [FromForm] int id, [FromForm] string name, [FromForm] string color, [FromForm] int sortOrder)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -383,7 +381,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
     public async Task<IActionResult> OnPostDeleteStatusAsync([FromRoute] string slug, [FromForm] int id)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -409,7 +407,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
     public async Task<IActionResult> OnPostDeletePriorityAsync([FromRoute] string slug, [FromForm] int id)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -435,7 +433,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
     public async Task<IActionResult> OnPostDeleteTypeAsync([FromRoute] string slug, [FromForm] int id)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -461,7 +459,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
     public async Task<IActionResult> OnPostSaveNotificationSettingsAsync([FromRoute] string slug)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -486,7 +484,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
     public async Task<IActionResult> OnPostSaveAllAsync([FromRoute] string slug)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -513,39 +511,42 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
             var workspaceName = form["Workspace.Name"].ToString();
             var workspaceSlug = form["Workspace.Slug"].ToString();
 
-            if (!string.IsNullOrWhiteSpace(workspaceName))
+            // Update workspace basic settings if provided
+            if (!string.IsNullOrWhiteSpace(workspaceName) || !string.IsNullOrWhiteSpace(workspaceSlug))
             {
-                this.Workspace.Name = workspaceName.Trim();
-            }
-
-            if (!string.IsNullOrWhiteSpace(workspaceSlug))
-            {
-                var newSlug = workspaceSlug.Trim();
-                if (newSlug != this.Workspace.Slug)
+                var name = !string.IsNullOrWhiteSpace(workspaceName) ? workspaceName.Trim() : this.Workspace.Name;
+                var newSlug = !string.IsNullOrWhiteSpace(workspaceSlug) ? workspaceSlug.Trim() : this.Workspace.Slug;
+                
+                try
                 {
-                    var existing = await this.workspaceRepository.FindBySlugAsync(newSlug);
-                    if (existing != null)
-                    {
-                        this.SetErrorMessage("Slug is already in use. Please choose a different one.");
-                        await this.LoadDataAsync();
-                        return this.Page();
-                    }
-                    this.Workspace.Slug = newSlug;
+                    this.Workspace = await this.workspaceSettingsService.UpdateWorkspaceBasicSettingsAsync(this.Workspace.Id, name, newSlug);
+                    changedCount++;
+                }
+                catch (InvalidOperationException ex)
+                {
+                    this.SetErrorMessage(ex.Message);
+                    await this.LoadDataAsync();
+                    return this.Page();
                 }
             }
-
-            await this.workspaceRepository.UpdateAsync(this.Workspace);
-            changedCount++;
 
             var statusMatches = form.Keys
                 .Select(k => MyRegex().Match(k))
                 .Where(m => m.Success)
                 .GroupBy(m => int.Parse(m.Groups[1].Value));
 
+            // Get current status list to validate IDs
+            var statusList = this.Statuses;
+            if (statusList.Count == 0)
+            {
+                var viewData = await this.workspaceSettingsViewService.BuildAsync(this.Workspace.Id, uid);
+                statusList = viewData.Statuses;
+            }
+
             foreach (var group in statusMatches)
             {
                 var statusId = group.Key;
-                var status = await this.statusRepository.FindByIdAsync(this.Workspace.Id, statusId);
+                var status = statusList.FirstOrDefault(s => s.Id == statusId);
                 if (status == null)
                 {
                     continue;
@@ -554,8 +555,15 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
                 var deleteFlag = form[$"statuses[{statusId}].delete"].ToString();
                 if (!string.IsNullOrEmpty(deleteFlag))
                 {
-                    await this.statusRepository.DeleteAsync(this.Workspace.Id, statusId);
-                    changedCount++;
+                    try
+                    {
+                        await this.workspaceSettingsService.DeleteStatusAsync(this.Workspace.Id, statusId);
+                        changedCount++;
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Ignore deletion errors
+                    }
                     continue;
                 }
 
@@ -564,45 +572,34 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
                 var order = form[$"statuses[{statusId}].sortOrder"].ToString();
                 var closed = form[$"statuses[{statusId}].isClosedState"].ToString();
 
-                if (!string.IsNullOrWhiteSpace(name))
+                var statusName = !string.IsNullOrWhiteSpace(name) ? name.Trim() : status.Name;
+                var statusColor = !string.IsNullOrWhiteSpace(color) ? color.Trim() : (string.IsNullOrWhiteSpace(status.Color) ? "neutral" : status.Color);
+                var statusSortOrder = int.TryParse(order, out var sortOrder) ? sortOrder : status.SortOrder;
+                var isClosedState = closed is "true" or "on";
+
+                try
                 {
-                    status.Name = name.Trim();
+                    await this.workspaceSettingsService.UpdateStatusAsync(this.Workspace.Id, statusId, statusName, statusColor, statusSortOrder, isClosedState);
+                    changedCount++;
                 }
-
-                status.Color = string.IsNullOrWhiteSpace(color)
-                    ? (string.IsNullOrWhiteSpace(status.Color) ? "neutral" : status.Color)
-                    : color.Trim();
-
-                if (int.TryParse(order, out var sortOrder))
+                catch (InvalidOperationException)
                 {
-                    status.SortOrder = sortOrder;
+                    // Ignore update errors
                 }
-
-                status.IsClosedState = closed is "true" or "on";
-                await this.statusRepository.UpdateAsync(status);
-                changedCount++;
             }
 
             var newStatusName = (form["NewStatusName"].ToString() ?? string.Empty).Trim();
             var newStatusColor = (form["NewStatusColor"].ToString() ?? "neutral").Trim();
             if (!string.IsNullOrWhiteSpace(newStatusName))
             {
-                var exists = await this.statusRepository.FindByNameAsync(this.Workspace.Id, newStatusName);
-                if (exists == null)
+                try
                 {
-                    var maxOrder = (await this.statusRepository.ListAsync(this.Workspace.Id)).DefaultIfEmpty().Max(s => s?.SortOrder ?? 0);
-                    await this.statusRepository.CreateAsync(new TicketStatus
-                    {
-                        WorkspaceId = this.Workspace.Id,
-                        Name = newStatusName,
-                        Color = string.IsNullOrWhiteSpace(newStatusColor) ? "neutral" : newStatusColor,
-                        SortOrder = maxOrder + 1
-                    });
+                    await this.workspaceSettingsService.AddStatusAsync(this.Workspace.Id, newStatusName, newStatusColor, false);
                     changedCount++;
                 }
-                else
+                catch (InvalidOperationException ex)
                 {
-                    this.SetErrorMessage($"Status '{newStatusName}' already exists.");
+                    this.SetErrorMessage(ex.Message);
                 }
             }
 
@@ -611,7 +608,13 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
                 .Where(m => m.Success)
                 .GroupBy(m => int.Parse(m.Groups[1].Value));
 
-            var priorityList = await this.priorityRepository.ListAsync(this.Workspace.Id);
+            // Get current priority list to validate IDs
+            var priorityList = this.Priorities;
+            if (priorityList.Count == 0)
+            {
+                var viewData = await this.workspaceSettingsViewService.BuildAsync(this.Workspace.Id, uid);
+                priorityList = viewData.Priorities;
+            }
 
             foreach (var group in priorityMatches)
             {
@@ -625,8 +628,15 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
                 var deleteFlag = form[$"priorities[{priorityId}].delete"].ToString();
                 if (!string.IsNullOrEmpty(deleteFlag))
                 {
-                    await this.priorityRepository.DeleteAsync(this.Workspace.Id, priorityId);
-                    changedCount++;
+                    try
+                    {
+                        await this.workspaceSettingsService.DeletePriorityAsync(this.Workspace.Id, priorityId);
+                        changedCount++;
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Ignore deletion errors
+                    }
                     continue;
                 }
 
@@ -634,44 +644,33 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
                 var color = form[$"priorities[{priorityId}].color"].ToString();
                 var order = form[$"priorities[{priorityId}].sortOrder"].ToString();
 
-                if (!string.IsNullOrWhiteSpace(name))
+                var priorityName = !string.IsNullOrWhiteSpace(name) ? name.Trim() : priority.Name;
+                var priorityColor = !string.IsNullOrWhiteSpace(color) ? color.Trim() : (string.IsNullOrWhiteSpace(priority.Color) ? "neutral" : priority.Color);
+                var prioritySortOrder = int.TryParse(order, out var sortOrder) ? sortOrder : priority.SortOrder;
+
+                try
                 {
-                    priority.Name = name.Trim();
+                    await this.workspaceSettingsService.UpdatePriorityAsync(this.Workspace.Id, priorityId, priorityName, priorityColor, prioritySortOrder);
+                    changedCount++;
                 }
-
-                priority.Color = string.IsNullOrWhiteSpace(color)
-                    ? (string.IsNullOrWhiteSpace(priority.Color) ? "neutral" : priority.Color)
-                    : color.Trim();
-
-                if (int.TryParse(order, out var sortOrder))
+                catch (InvalidOperationException)
                 {
-                    priority.SortOrder = sortOrder;
+                    // Ignore update errors
                 }
-
-                await this.priorityRepository.UpdateAsync(priority);
-                changedCount++;
             }
 
             var newPriorityName = (form["NewPriorityName"].ToString() ?? string.Empty).Trim();
             var newPriorityColor = (form["NewPriorityColor"].ToString() ?? "neutral").Trim();
             if (!string.IsNullOrWhiteSpace(newPriorityName))
             {
-                var exists = await this.priorityRepository.FindAsync(this.Workspace.Id, newPriorityName);
-                if (exists == null)
+                try
                 {
-                    var maxOrder = (await this.priorityRepository.ListAsync(this.Workspace.Id)).DefaultIfEmpty().Max(p => p?.SortOrder ?? 0);
-                    await this.priorityRepository.CreateAsync(new TicketPriority
-                    {
-                        WorkspaceId = this.Workspace.Id,
-                        Name = newPriorityName,
-                        Color = string.IsNullOrWhiteSpace(newPriorityColor) ? "neutral" : newPriorityColor,
-                        SortOrder = maxOrder + 1
-                    });
+                    await this.workspaceSettingsService.AddPriorityAsync(this.Workspace.Id, newPriorityName, newPriorityColor);
                     changedCount++;
                 }
-                else
+                catch (InvalidOperationException ex)
                 {
-                    this.SetErrorMessage($"Priority '{newPriorityName}' already exists.");
+                    this.SetErrorMessage(ex.Message);
                 }
             }
 
@@ -680,10 +679,18 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
                 .Where(m => m.Success)
                 .GroupBy(m => int.Parse(m.Groups[1].Value));
 
+            // Get current type list to validate IDs
+            var typeList = this.Types;
+            if (typeList.Count == 0)
+            {
+                var viewData = await this.workspaceSettingsViewService.BuildAsync(this.Workspace.Id, uid);
+                typeList = viewData.Types;
+            }
+
             foreach (var group in typeMatches)
             {
                 var typeId = group.Key;
-                var type = await this.ticketTypeRepository.FindByIdAsync(this.Workspace.Id, typeId);
+                var type = typeList.FirstOrDefault(t => t.Id == typeId);
                 if (type == null)
                 {
                     continue;
@@ -692,8 +699,15 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
                 var deleteFlag = form[$"types[{typeId}].delete"].ToString();
                 if (!string.IsNullOrEmpty(deleteFlag))
                 {
-                    await this.ticketTypeRepository.DeleteAsync(this.Workspace.Id, typeId);
-                    changedCount++;
+                    try
+                    {
+                        await this.workspaceSettingsService.DeleteTypeAsync(this.Workspace.Id, typeId);
+                        changedCount++;
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Ignore deletion errors
+                    }
                     continue;
                 }
 
@@ -701,44 +715,33 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITi
                 var color = form[$"types[{typeId}].color"].ToString();
                 var order = form[$"types[{typeId}].sortOrder"].ToString();
 
-                if (!string.IsNullOrWhiteSpace(name))
+                var typeName = !string.IsNullOrWhiteSpace(name) ? name.Trim() : type.Name;
+                var typeColor = !string.IsNullOrWhiteSpace(color) ? color.Trim() : (string.IsNullOrWhiteSpace(type.Color) ? "neutral" : type.Color);
+                var typeSortOrder = int.TryParse(order, out var sortOrder) ? sortOrder : type.SortOrder;
+
+                try
                 {
-                    type.Name = name.Trim();
+                    await this.workspaceSettingsService.UpdateTypeAsync(this.Workspace.Id, typeId, typeName, typeColor, typeSortOrder);
+                    changedCount++;
                 }
-
-                type.Color = string.IsNullOrWhiteSpace(color)
-                    ? (string.IsNullOrWhiteSpace(type.Color) ? "neutral" : type.Color)
-                    : color.Trim();
-
-                if (int.TryParse(order, out var sortOrder))
+                catch (InvalidOperationException)
                 {
-                    type.SortOrder = sortOrder;
+                    // Ignore update errors
                 }
-
-                await this.ticketTypeRepository.UpdateAsync(type);
-                changedCount++;
             }
 
             var newTypeName = (form["NewTypeName"].ToString() ?? string.Empty).Trim();
             var newTypeColor = (form["NewTypeColor"].ToString() ?? "neutral").Trim();
             if (!string.IsNullOrWhiteSpace(newTypeName))
             {
-                var exists = await this.ticketTypeRepository.FindByNameAsync(this.Workspace.Id, newTypeName);
-                if (exists == null)
+                try
                 {
-                    var maxOrder = (await this.ticketTypeRepository.ListAsync(this.Workspace.Id)).DefaultIfEmpty().Max(t => t?.SortOrder ?? 0);
-                    await this.ticketTypeRepository.CreateAsync(new TicketType
-                    {
-                        WorkspaceId = this.Workspace.Id,
-                        Name = newTypeName,
-                        Color = string.IsNullOrWhiteSpace(newTypeColor) ? "neutral" : newTypeColor,
-                        SortOrder = maxOrder + 1
-                    });
+                    await this.workspaceSettingsService.AddTypeAsync(this.Workspace.Id, newTypeName, newTypeColor);
                     changedCount++;
                 }
-                else
+                catch (InvalidOperationException ex)
                 {
-                    this.SetErrorMessage($"Type '{newTypeName}' already exists.");
+                    this.SetErrorMessage(ex.Message);
                 }
             }
 
