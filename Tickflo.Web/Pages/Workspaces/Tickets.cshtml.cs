@@ -7,17 +7,17 @@ using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Notifications;
 using Tickflo.Core.Services.Tickets;
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
 
 [Authorize]
-public class TicketsModel(IWorkspaceRepository workspaceRepository, IUserWorkspaceRepository userWorkspaceRepository, ITicketRepository ticketRepository, ITicketFilterService ticketFilterService, IWorkspaceTicketsViewService workspaceTicketsViewService, INotificationTriggerService notificationTriggerService) : WorkspacePageModel
+public class TicketsModel(IWorkspaceService workspaceService, ITicketRepository ticketRepository, ITicketFilterService ticketFilterService, IWorkspaceTicketsViewService workspaceTicketsViewService, INotificationTriggerService notificationTriggerService) : WorkspacePageModel
 {
     private const int DefaultPageSize = 25;
     private const int MaxPageSize = 200;
     private const int MinPageNumber = 1;
     private const string OpenStatusFilter = "Open";
 
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
-    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IWorkspaceService workspaceService = workspaceService;
     private readonly ITicketRepository ticketRepository = ticketRepository;
     private readonly ITicketFilterService ticketFilterService = ticketFilterService;
     private readonly IWorkspaceTicketsViewService workspaceTicketsViewService = workspaceTicketsViewService;
@@ -72,18 +72,21 @@ public class TicketsModel(IWorkspaceRepository workspaceRepository, IUserWorkspa
     {
         this.WorkspaceSlug = slug;
 
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
-        if (loadResult is IActionResult actionResult)
-        {
-            return actionResult;
-        }
-
-        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
-        this.Workspace = workspace;
-
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
+        }
+
+        if (!this.TryGetUserId(out var currentUserId))
+        {
+            return this.Forbid();
+        }
+
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(currentUserId, this.Workspace.Id);
+        if (!hasMembership)
+        {
+            return this.Forbid();
         }
 
         await this.LoadViewDataAsync(this.Workspace.Id, currentUserId);
@@ -249,16 +252,24 @@ public class TicketsModel(IWorkspaceRepository workspaceRepository, IUserWorkspa
     {
         this.WorkspaceSlug = slug;
 
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
-        if (loadResult is IActionResult actionResult)
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.Workspace == null)
         {
-            return actionResult;
+            return this.NotFound();
         }
 
-        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
-        this.Workspace = workspace;
+        if (!this.TryGetUserId(out var currentUserId))
+        {
+            return this.Forbid();
+        }
 
-        var ticket = await this.ticketRepository.FindAsync(this.Workspace!.Id, id);
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(currentUserId, this.Workspace.Id);
+        if (!hasMembership)
+        {
+            return this.Forbid();
+        }
+
+        var ticket = await this.ticketRepository.FindAsync(this.Workspace.Id, id);
         if (ticket == null)
         {
             return this.NotFound();

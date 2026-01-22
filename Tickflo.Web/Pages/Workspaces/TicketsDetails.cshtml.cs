@@ -9,9 +9,10 @@ using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Notifications;
 using Tickflo.Core.Services.Tickets;
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
 
 [Authorize]
-public class TicketsDetailsModel(IWorkspaceRepository workspaceRepository, IUserWorkspaceRepository userWorkspaceRepository, ITicketRepository ticketRepository, ITicketManagementService ticketManagementService, IWorkspaceTicketDetailsViewService workspaceTicketDetailsViewService, ITeamRepository teamRepository, IWorkspaceTicketsSaveViewService workspaceTicketsSaveViewService, ITicketCommentService ticketCommentService, INotificationTriggerService notificationTriggerService) : WorkspacePageModel
+public class TicketsDetailsModel(IWorkspaceService workspaceService, ITicketRepository ticketRepository, ITicketManagementService ticketManagementService, IWorkspaceTicketDetailsViewService workspaceTicketDetailsViewService, ITeamRepository teamRepository, IWorkspaceTicketsSaveViewService workspaceTicketsSaveViewService, ITicketCommentService ticketCommentService, INotificationTriggerService notificationTriggerService) : WorkspacePageModel
 {
     #region Constants
     private const string DefaultTicketType = "Standard";
@@ -39,8 +40,7 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepository, IUser
         [JsonPropertyName("unitPrice")]
         public decimal UnitPrice { get; set; }
     }
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
-    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IWorkspaceService workspaceService = workspaceService;
     private readonly ITicketRepository ticketRepository = ticketRepository;
     private readonly ITicketManagementService ticketManagementService = ticketManagementService;
     private readonly IWorkspaceTicketDetailsViewService workspaceTicketDetailsViewService = workspaceTicketDetailsViewService;
@@ -115,17 +115,21 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepository, IUser
     public async Task<IActionResult> OnGetAsync(string slug, int id)
     {
         this.WorkspaceSlug = slug;
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
-        if (loadResult is IActionResult actionResult)
-        {
-            return actionResult;
-        }
-
-        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
-        this.Workspace = workspace;
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
+        }
+
+        if (!this.TryGetUserId(out var currentUserId))
+        {
+            return this.Forbid();
+        }
+
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(currentUserId, this.Workspace.Id);
+        if (!hasMembership)
+        {
+            return this.Forbid();
         }
 
         var viewData = await this.workspaceTicketDetailsViewService.BuildAsync(this.Workspace.Id, id, currentUserId, this.LocationId);
@@ -171,7 +175,7 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepository, IUser
     public async Task<IActionResult> OnPostAddCommentAsync(string slug, int id, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Realtime.TicketsHub> hub)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -179,6 +183,12 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepository, IUser
 
         var currentUserId = this.ExtractCurrentUserId();
         if (currentUserId == InvalidTicketId)
+        {
+            return this.Forbid();
+        }
+
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(currentUserId, this.Workspace.Id);
+        if (!hasMembership)
         {
             return this.Forbid();
         }
@@ -248,7 +258,7 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepository, IUser
     public async Task<IActionResult> OnPostSaveAsync(string slug, int id, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Realtime.TicketsHub> hub)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
@@ -257,6 +267,12 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepository, IUser
         var workspaceId = this.Workspace.Id;
         var currentUserId = this.ExtractCurrentUserId();
         if (currentUserId == InvalidTicketId)
+        {
+            return this.Forbid();
+        }
+
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(currentUserId, this.Workspace.Id);
+        if (!hasMembership)
         {
             return this.Forbid();
         }

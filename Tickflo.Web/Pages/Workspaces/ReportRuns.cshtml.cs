@@ -2,14 +2,14 @@ namespace Tickflo.Web.Pages.Workspaces;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
 
 [Authorize]
-public class ReportRunsModel(IWorkspaceRepository workspaceRepository, IWorkspaceReportRunsViewService workspaceReportRunsViewService) : WorkspacePageModel
+public class ReportRunsModel(IWorkspaceService workspaceService, IWorkspaceReportRunsViewService workspaceReportRunsViewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly IWorkspaceService workspaceService = workspaceService;
     private readonly IWorkspaceReportRunsViewService workspaceReportRunsViewService = workspaceReportRunsViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
@@ -21,7 +21,7 @@ public class ReportRunsModel(IWorkspaceRepository workspaceRepository, IWorkspac
     public async Task<IActionResult> OnGetAsync(string slug, int reportId)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();

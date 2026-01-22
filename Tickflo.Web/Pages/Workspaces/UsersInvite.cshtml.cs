@@ -8,12 +8,12 @@ using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Email;
 using Tickflo.Core.Services.Users;
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
 
 [Authorize]
-public class UsersInviteModel(IWorkspaceRepository workspaceRepository, IUserWorkspaceRepository userWorkspaceRepository, IEmailTemplateService emailTemplateService, IEmailSenderService emailSenderService, INotificationRepository notificationRepository, IRoleRepository roleRepository, IUserInvitationService userInvitationService, IWorkspaceUsersInviteViewService workspaceUsersInviteViewService) : WorkspacePageModel
+public class UsersInviteModel(IWorkspaceService workspaceService, IEmailTemplateService emailTemplateService, IEmailSenderService emailSenderService, INotificationRepository notificationRepository, IRoleRepository roleRepository, IUserInvitationService userInvitationService, IWorkspaceUsersInviteViewService workspaceUsersInviteViewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
-    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IWorkspaceService workspaceService = workspaceService;
     private readonly IEmailTemplateService emailTemplateService = emailTemplateService;
     private readonly IEmailSenderService emailSenderService = emailSenderService;
     private readonly INotificationRepository notificationRepository = notificationRepository;
@@ -34,16 +34,24 @@ public class UsersInviteModel(IWorkspaceRepository workspaceRepository, IUserWor
     public async Task<IActionResult> OnGetAsync(string slug)
     {
         this.WorkspaceSlug = slug;
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
-        if (loadResult is IActionResult actionResult)
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.Workspace == null)
         {
-            return actionResult;
+            return this.NotFound();
         }
 
-        var (workspace, userId) = (WorkspaceUserLoadResult)loadResult;
-        this.Workspace = workspace;
+        if (!this.TryGetUserId(out var userId))
+        {
+            return this.Forbid();
+        }
 
-        var viewData = await this.workspaceUsersInviteViewService.BuildAsync(this.Workspace!.Id, userId);
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(userId, this.Workspace.Id);
+        if (!hasMembership)
+        {
+            return this.Forbid();
+        }
+
+        var viewData = await this.workspaceUsersInviteViewService.BuildAsync(this.Workspace.Id, userId);
         if (this.EnsurePermissionOrForbid(viewData.CanViewUsers && viewData.CanCreateUsers) is IActionResult permCheck)
         {
             return permCheck;
@@ -57,16 +65,24 @@ public class UsersInviteModel(IWorkspaceRepository workspaceRepository, IUserWor
     public async Task<IActionResult> OnPostAsync(string slug)
     {
         this.WorkspaceSlug = slug;
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
-        if (loadResult is IActionResult actionResult)
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.Workspace == null)
         {
-            return actionResult;
+            return this.NotFound();
         }
 
-        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
-        this.Workspace = workspace;
+        if (!this.TryGetUserId(out var currentUserId))
+        {
+            return this.Forbid();
+        }
 
-        var viewData = await this.workspaceUsersInviteViewService.BuildAsync(this.Workspace!.Id, currentUserId);
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(currentUserId, this.Workspace.Id);
+        if (!hasMembership)
+        {
+            return this.Forbid();
+        }
+
+        var viewData = await this.workspaceUsersInviteViewService.BuildAsync(this.Workspace.Id, currentUserId);
         if (this.EnsurePermissionOrForbid(viewData.CanViewUsers && viewData.CanCreateUsers) is IActionResult permCheck)
         {
             return permCheck;

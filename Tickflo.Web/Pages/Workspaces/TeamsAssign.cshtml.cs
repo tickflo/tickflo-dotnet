@@ -4,18 +4,18 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
 using Tickflo.Core.Services.Teams;
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
 
 [Authorize]
-public class TeamsAssignModel(IWorkspaceRepository workspaceRepository, ITeamMemberRepository teamMemberRepository, ITeamManagementService teamManagementService, IWorkspaceTeamsAssignViewService workspaceTeamsAssignViewService) : WorkspacePageModel
+public class TeamsAssignModel(IWorkspaceService workspaceService, ITeamMemberRepository teamMemberRepository, ITeamManagementService teamManagementService, IWorkspaceTeamsAssignViewService workspaceTeamsAssignViewService) : WorkspacePageModel
 {
     #region Constants
     private const string UserSelectionError = "Please select a user to add.";
     #endregion
 
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly IWorkspaceService workspaceService = workspaceService;
     private readonly ITeamMemberRepository teamMemberRepository = teamMemberRepository;
     private readonly ITeamManagementService teamManagementService = teamManagementService;
     private readonly IWorkspaceTeamsAssignViewService workspaceTeamsAssignViewService = workspaceTeamsAssignViewService;
@@ -114,7 +114,7 @@ public class TeamsAssignModel(IWorkspaceRepository workspaceRepository, ITeamMem
 
     private async Task<IActionResult?> AuthorizeAndLoadWorkspaceDataAsync(string slug, int teamId)
     {
-        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
+        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
         {
             return result;

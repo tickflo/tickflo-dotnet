@@ -2,19 +2,16 @@ namespace Tickflo.Web.Pages.Workspaces;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
 
 [Authorize]
 public class ReportsModel(
-    IWorkspaceRepository workspaceRepository,
-    IUserWorkspaceRepository userWorkspaceRepository,
+    IWorkspaceService workspaceService,
     IWorkspaceReportsViewService workspaceReportsViewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
-    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IWorkspaceService workspaceService = workspaceService;
     private readonly IWorkspaceReportsViewService workspaceReportsViewService = workspaceReportsViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
@@ -27,14 +24,22 @@ public class ReportsModel(
     {
         this.WorkspaceSlug = slug;
 
-        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
-        if (result is IActionResult actionResult)
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.Workspace == null)
         {
-            return actionResult;
+            return this.NotFound();
         }
 
-        var (workspace, uid) = (WorkspaceUserLoadResult)result;
-        this.Workspace = workspace;
+        if (!this.TryGetUserId(out var uid))
+        {
+            return this.Forbid();
+        }
+
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, this.Workspace.Id);
+        if (!hasMembership)
+        {
+            return this.Forbid();
+        }
 
         var viewData = await this.workspaceReportsViewService.BuildAsync(this.Workspace!.Id, uid);
         this.Reports = viewData.Reports;

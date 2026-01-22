@@ -7,11 +7,11 @@ using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Contacts;
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
 
 [Authorize]
 public class ContactsEditModel(
-    IWorkspaceRepository workspaceRepository,
-    IUserWorkspaceRepository userWorkspaceRepository,
+    IWorkspaceService workspaceService,
     IWorkspaceContactsEditViewService workspaceContactsEditViewService,
     IContactRepository contactRepository,
     IContactRegistrationService contactRegistrationService) : WorkspacePageModel
@@ -22,11 +22,10 @@ public class ContactsEditModel(
     private static readonly CompositeFormat ContactUpdatedMessage = CompositeFormat.Parse("Contact '{0}' updated.");
     #endregion
 
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
-    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IWorkspaceService workspaceService = workspaceService;
     private readonly IWorkspaceContactsEditViewService workspaceContactsEditViewService = workspaceContactsEditViewService;
     private readonly IContactRepository contactRepository = contactRepository;
-    private readonly IContactRegistrationService contactRegistractionService = contactRegistrationService;
+    private readonly IContactRegistrationService contactRegistrationService = contactRegistrationService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -50,15 +49,24 @@ public class ContactsEditModel(
         this.WorkspaceSlug = slug;
         this.Id = id;
 
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
-        if (loadResult is IActionResult actionResult)
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.Workspace == null)
         {
-            return actionResult;
+            return this.NotFound();
         }
 
-        var (workspace, uid) = (WorkspaceUserLoadResult)loadResult;
-        this.Workspace = workspace;
-        var workspaceId = workspace!.Id;
+        if (!this.TryGetUserId(out var uid))
+        {
+            return this.Forbid();
+        }
+
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, this.Workspace.Id);
+        if (!hasMembership)
+        {
+            return this.Forbid();
+        }
+
+        var workspaceId = this.Workspace.Id;
 
         var viewData = await this.workspaceContactsEditViewService.BuildAsync(workspaceId, uid, id);
         this.CanViewContacts = viewData.CanViewContacts;
@@ -84,15 +92,24 @@ public class ContactsEditModel(
         this.WorkspaceSlug = slug;
         this.Id = id;
 
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
-        if (loadResult is IActionResult actionResult)
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.Workspace == null)
         {
-            return actionResult;
+            return this.NotFound();
         }
 
-        var (workspace, uid) = (WorkspaceUserLoadResult)loadResult;
-        this.Workspace = workspace;
-        var workspaceId = workspace!.Id;
+        if (!this.TryGetUserId(out var uid))
+        {
+            return this.Forbid();
+        }
+
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, this.Workspace.Id);
+        if (!hasMembership)
+        {
+            return this.Forbid();
+        }
+
+        var workspaceId = this.Workspace.Id;
 
         var viewData = await this.workspaceContactsEditViewService.BuildAsync(workspaceId, uid, id);
         var allowed = viewData.CanCreateContacts || viewData.CanEditContacts;
@@ -146,7 +163,7 @@ public class ContactsEditModel(
     {
         var trimmedFields = this.TrimContactFields();
 
-        var created = await this.contactRegistractionService.RegisterContactAsync(workspaceId, new ContactRegistrationRequest
+        var created = await this.contactRegistrationService.RegisterContactAsync(workspaceId, new ContactRegistrationRequest
         {
             Name = trimmedFields.Name,
             Email = string.IsNullOrEmpty(trimmedFields.Email) ? null : trimmedFields.Email,
@@ -169,7 +186,7 @@ public class ContactsEditModel(
     {
         var trimmedFields = this.TrimContactFields();
 
-        var updated = await this.contactRegistractionService.UpdateContactInformationAsync(workspaceId, id, new ContactUpdateRequest
+        var updated = await this.contactRegistrationService.UpdateContactInformationAsync(workspaceId, id, new ContactUpdateRequest
         {
             Name = trimmedFields.Name,
             Email = string.IsNullOrEmpty(trimmedFields.Email) ? null : trimmedFields.Email,

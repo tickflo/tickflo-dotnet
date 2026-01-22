@@ -2,14 +2,13 @@ namespace Tickflo.Web.Pages.Workspaces;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Tickflo.Core.Data;
-
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
 
 [Authorize]
-public class ReportRunsBackfillModel(IWorkspaceRepository workspaceRepository, IWorkspaceReportRunsBackfillViewService workspaceReportRunsBackfillViewService) : WorkspacePageModel
+public class ReportRunsBackfillModel(IWorkspaceService workspaceService, IWorkspaceReportRunsBackfillViewService workspaceReportRunsBackfillViewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly IWorkspaceService workspaceService = workspaceService;
     private readonly IWorkspaceReportRunsBackfillViewService workspaceReportRunsBackfillViewService = workspaceReportRunsBackfillViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
@@ -24,20 +23,24 @@ public class ReportRunsBackfillModel(IWorkspaceRepository workspaceRepository, I
     public async Task<IActionResult> OnGetAsync(string slug)
     {
         this.WorkspaceSlug = slug;
-        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
-        if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.Workspace == null)
         {
-            return result;
+            return this.NotFound();
         }
 
-        this.Workspace = ws;
-        var uid = this.TryGetUserId(out var idVal) ? idVal : 0;
-        if (uid == 0)
+        if (!this.TryGetUserId(out var uid))
         {
             return this.Forbid();
         }
 
-        var data = await this.workspaceReportRunsBackfillViewService.BuildAsync(ws!.Id, uid);
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, this.Workspace.Id);
+        if (!hasMembership)
+        {
+            return this.Forbid();
+        }
+
+        var data = await this.workspaceReportRunsBackfillViewService.BuildAsync(this.Workspace.Id, uid);
         if (this.EnsurePermissionOrForbid(data.CanEditReports) is IActionResult permCheck)
         {
             return permCheck;
@@ -52,20 +55,24 @@ public class ReportRunsBackfillModel(IWorkspaceRepository workspaceRepository, I
     public async Task<IActionResult> OnPostAsync(string slug)
     {
         this.WorkspaceSlug = slug;
-        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
-        if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.Workspace == null)
         {
-            return result;
+            return this.NotFound();
         }
 
-        this.Workspace = ws;
-        var uid = this.TryGetUserId(out var idVal) ? idVal : 0;
-        if (uid == 0)
+        if (!this.TryGetUserId(out var uid))
         {
             return this.Forbid();
         }
 
-        var data = await this.workspaceReportRunsBackfillViewService.BuildAsync(ws!.Id, uid);
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, this.Workspace.Id);
+        if (!hasMembership)
+        {
+            return this.Forbid();
+        }
+
+        var data = await this.workspaceReportRunsBackfillViewService.BuildAsync(this.Workspace.Id, uid);
         if (this.EnsurePermissionOrForbid(data.CanEditReports) is IActionResult permCheck)
         {
             return permCheck;

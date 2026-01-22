@@ -6,9 +6,10 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
 
 [Authorize]
-public class RolesEditModel(IWorkspaceRepository workspaceRepository, IRoleRepository roleRepository, IRolePermissionRepository rolePermissionRepository, IWorkspaceRolesEditViewService workspaceRolesEditViewService) : WorkspacePageModel
+public class RolesEditModel(IWorkspaceService workspaceService, IRoleRepository roleRepository, IRolePermissionRepository rolePermissionRepository, IWorkspaceRolesEditViewService workspaceRolesEditViewService) : WorkspacePageModel
 {
     #region Constants
     private const int NewRoleId = 0;
@@ -21,7 +22,7 @@ public class RolesEditModel(IWorkspaceRepository workspaceRepository, IRoleRepos
     private static readonly string[] DefaultSections = ["dashboard", "contacts", "inventory", "locations", "reports", "roles", "teams", "tickets", "users", "settings"];
     #endregion
 
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly IWorkspaceService workspaceService = workspaceService;
     private readonly IRoleRepository roleRepository = roleRepository;
     private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
     private readonly IWorkspaceRolesEditViewService workspaceRolesEditViewService = workspaceRolesEditViewService;
@@ -50,10 +51,10 @@ public class RolesEditModel(IWorkspaceRepository workspaceRepository, IRoleRepos
     public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
     {
         this.WorkspaceSlug = slug;
-        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
-        if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
+        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (ws == null)
         {
-            return result;
+            return this.NotFound();
         }
 
         if (!this.TryGetUserId(out var uid))
@@ -61,7 +62,13 @@ public class RolesEditModel(IWorkspaceRepository workspaceRepository, IRoleRepos
             return this.Forbid();
         }
 
-        var workspaceId = ws!.Id;
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, ws.Id);
+        if (!hasMembership)
+        {
+            return this.Forbid();
+        }
+
+        var workspaceId = ws.Id;
         var data = await this.workspaceRolesEditViewService.BuildAsync(workspaceId, uid, id);
         if (!data.IsAdmin)
         {
@@ -83,13 +90,19 @@ public class RolesEditModel(IWorkspaceRepository workspaceRepository, IRoleRepos
     public async Task<IActionResult> OnPostAsync(string slug, int id = 0)
     {
         this.WorkspaceSlug = slug;
-        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
+        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (ws == null)
         {
             return this.NotFound();
         }
 
         if (!this.TryGetUserId(out var uid))
+        {
+            return this.Forbid();
+        }
+
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, ws.Id);
+        if (!hasMembership)
         {
             return this.Forbid();
         }
