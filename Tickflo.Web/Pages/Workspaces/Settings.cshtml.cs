@@ -3,7 +3,6 @@ namespace Tickflo.Web.Pages.Workspaces;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Users;
 using Tickflo.Core.Services.Views;
@@ -516,7 +515,7 @@ public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspac
             {
                 var name = !string.IsNullOrWhiteSpace(workspaceName) ? workspaceName.Trim() : this.Workspace.Name;
                 var newSlug = !string.IsNullOrWhiteSpace(workspaceSlug) ? workspaceSlug.Trim() : this.Workspace.Slug;
-                
+
                 try
                 {
                     this.Workspace = await this.workspaceSettingsService.UpdateWorkspaceBasicSettingsAsync(this.Workspace.Id, name, newSlug);
