@@ -122,6 +122,15 @@ public interface IWorkspaceSettingsService
     /// <param name="workspaceId">Workspace context</param>
     /// <param name="typeId">Type to delete</param>
     public Task DeleteTypeAsync(int workspaceId, int typeId);
+
+    /// <summary>
+    /// Performs a bulk update of workspace settings including workspace basic settings,
+    /// statuses, priorities, and types based on the provided request.
+    /// </summary>
+    /// <param name="workspaceId">Workspace context</param>
+    /// <param name="request">The bulk update request containing all changes to apply</param>
+    /// <returns>Result containing updated workspace and change count</returns>
+    public Task<BulkSettingsUpdateResult> BulkUpdateSettingsAsync(int workspaceId, BulkSettingsUpdateRequest request);
 }
 
 

@@ -344,6 +344,7 @@ MethodName_WhenCondition_ShouldExpectedOutcome
 
 * All changes must compile without errors or warnings
 * `dotnet test` must pass successfully before a task is considered complete
+* run `dotnet format` on changed files to ensure consistent formatting
 * Do not introduce new warnings; treat warnings as failures unless explicitly justified
 * Generated code should assume CI enforcement of these rules
 
