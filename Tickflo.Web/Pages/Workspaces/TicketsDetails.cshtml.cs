@@ -1,5 +1,7 @@
 namespace Tickflo.Web.Pages.Workspaces;
 
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
@@ -9,7 +11,7 @@ using Tickflo.Core.Services.Tickets;
 using Tickflo.Core.Services.Views;
 
 [Authorize]
-public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepository, ITicketRepository ticketRepository, ITicketManagementService ticketService, IWorkspaceTicketDetailsViewService viewService, IRolePermissionRepository rolePermissionRepository, ITeamRepository teamRepository, IUserWorkspaceRoleRepository roles, IWorkspaceTicketsSaveViewService savingViewService, ITicketCommentService commentService, IUserRepository userRepository, INotificationTriggerService notificationTrigger) : WorkspacePageModel
+public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepository, ITicketRepository ticketRepository, ITicketManagementService ticketManagementService, IWorkspaceTicketDetailsViewService workspaceTicketDetailsViewService, ITeamRepository teamRepository, IWorkspaceTicketsSaveViewService workspaceTicketsSaveViewService, ITicketCommentService ticketCommentService, INotificationTriggerService notificationTriggerService) : WorkspacePageModel
 {
     #region Constants
     private const string DefaultTicketType = "Standard";
@@ -26,24 +28,26 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
 
     private sealed class TicketInventoryDto
     {
-        public int id { get; set; }
-        public string sku { get; set; } = string.Empty;
-        public string name { get; set; } = string.Empty;
-        public int quantity { get; set; }
-        public decimal unitPrice { get; set; }
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+        [JsonPropertyName("sku")]
+        public string Sku { get; set; } = string.Empty;
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+        [JsonPropertyName("quantity")]
+        public int Quantity { get; set; }
+        [JsonPropertyName("unitPrice")]
+        public decimal UnitPrice { get; set; }
     }
     private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly ITicketRepository ticketRepository = ticketRepository;
-    private readonly ITicketManagementService _ticketService = ticketService;
-    private readonly IWorkspaceTicketDetailsViewService _viewService = viewService;
-    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
+    private readonly ITicketManagementService ticketManagementService = ticketManagementService;
+    private readonly IWorkspaceTicketDetailsViewService workspaceTicketDetailsViewService = workspaceTicketDetailsViewService;
     private readonly ITeamRepository teamRepository = teamRepository;
-    private readonly IUserWorkspaceRoleRepository _roles = roles;
-    private readonly IWorkspaceTicketsSaveViewService _savingViewService = savingViewService;
-    private readonly ITicketCommentService _commentService = commentService;
-    private readonly IUserRepository userRepository = userRepository;
-    private readonly INotificationTriggerService _notificationTrigger = notificationTrigger;
+    private readonly IWorkspaceTicketsSaveViewService workspaceTicketsSaveViewService = workspaceTicketsSaveViewService;
+    private readonly ITicketCommentService ticketCommentService = ticketCommentService;
+    private readonly INotificationTriggerService notificationTriggerService = notificationTriggerService;
 
     public List<Inventory> InventoryItems { get; private set; } = [];
 
@@ -124,7 +128,7 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
             return this.NotFound();
         }
 
-        var viewData = await this._viewService.BuildAsync(this.Workspace.Id, id, currentUserId, this.LocationId);
+        var viewData = await this.workspaceTicketDetailsViewService.BuildAsync(this.Workspace.Id, id, currentUserId, this.LocationId);
         if (viewData == null)
         {
             return this.Forbid();
@@ -135,7 +139,7 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
 
         if (this.Ticket != null && this.Ticket.Id > InvalidTicketId)
         {
-            this.Comments = await this._commentService.GetCommentsAsync(this.Workspace.Id, this.Ticket.Id, isClientView: false);
+            this.Comments = await this.ticketCommentService.GetCommentsAsync(this.Workspace.Id, this.Ticket.Id, isClientView: false);
         }
 
         return this.Page();
@@ -185,7 +189,7 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
             return this.RedirectToPage("/Workspaces/TicketsDetails", new { slug, id });
         }
 
-        var saveViewData = await this._savingViewService.BuildAsync(this.Workspace.Id, currentUserId, false, null);
+        var saveViewData = await this.workspaceTicketsSaveViewService.BuildAsync(this.Workspace.Id, currentUserId, false, null);
         if (!saveViewData.CanEditTickets)
         {
             return this.Forbid();
@@ -193,7 +197,7 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
 
         try
         {
-            var comment = await this._commentService.AddCommentAsync(
+            var comment = await this.ticketCommentService.AddCommentAsync(
                 this.Workspace.Id,
                 id,
                 currentUserId,
@@ -203,7 +207,7 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
             var ticket = await this.ticketRepository.FindAsync(this.Workspace.Id, id);
             if (ticket != null)
             {
-                await this._notificationTrigger.NotifyTicketCommentAddedAsync(
+                await this.notificationTriggerService.NotifyTicketCommentAddedAsync(
                     this.Workspace.Id,
                     ticket,
                     currentUserId,
@@ -241,7 +245,7 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
 
     private int ExtractCurrentUserId() => this.TryGetUserId(out var uid) ? uid : InvalidTicketId;
 
-    public async Task<IActionResult> OnPostSaveAsync(string slug, int id, int? assignedUserId, int? assignedTeamId, int? locationId, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Realtime.TicketsHub> hub)
+    public async Task<IActionResult> OnPostSaveAsync(string slug, int id, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Realtime.TicketsHub> hub)
     {
         this.WorkspaceSlug = slug;
         this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
@@ -262,7 +266,7 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
         var isNew = resolvedId <= InvalidTicketId;
         var existing = !isNew ? await this.ticketRepository.FindAsync(workspaceId, resolvedId) : null;
 
-        var saveViewData = await this._savingViewService.BuildAsync(workspaceId, currentUserId, isNew, existing);
+        var saveViewData = await this.workspaceTicketsSaveViewService.BuildAsync(workspaceId, currentUserId, isNew, existing);
         var authCheck = this.ValidateTicketPermissions(isNew, saveViewData);
         if (authCheck != null)
         {
@@ -298,16 +302,16 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
         {
             try
             {
-                var parsed = System.Text.Json.JsonSerializer.Deserialize<List<TicketInventoryDto>>(this.TicketInventoriesJson);
+                var parsed = JsonSerializer.Deserialize<List<TicketInventoryDto>>(this.TicketInventoriesJson);
                 if (parsed != null)
                 {
                     foreach (var dto in parsed)
                     {
                         inventories.Add(new TicketInventory
                         {
-                            InventoryId = dto.id,
-                            Quantity = dto.quantity,
-                            UnitPrice = dto.unitPrice
+                            InventoryId = dto.Id,
+                            Quantity = dto.Quantity,
+                            UnitPrice = dto.UnitPrice
                         });
                     }
                 }
@@ -350,7 +354,7 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
         return resolvedId;
     }
 
-    private IActionResult? ValidateTicketPermissions(bool isNew, WorkspaceTicketsSaveViewData saveViewData)
+    private ForbidResult? ValidateTicketPermissions(bool isNew, WorkspaceTicketsSaveViewData saveViewData)
     {
         if (isNew && !saveViewData.CanCreateTickets)
         {
@@ -388,8 +392,8 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
             Inventories = inventories
         };
 
-        var ticket = await this._ticketService.CreateTicketAsync(createReq);
-        await this._notificationTrigger.NotifyTicketCreatedAsync(workspaceId, ticket, userId);
+        var ticket = await this.ticketManagementService.CreateTicketAsync(createReq);
+        await this.notificationTriggerService.NotifyTicketCreatedAsync(workspaceId, ticket, userId);
         return ticket;
     }
 
@@ -421,7 +425,7 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
             Inventories = inventories
         };
 
-        var ticket = await this._ticketService.UpdateTicketAsync(updateReq);
+        var ticket = await this.ticketManagementService.UpdateTicketAsync(updateReq);
         await this.NotifyTicketChangesAsync(workspaceId, ticket, userId, oldAssignedUserId, oldAssignedTeamId, oldStatusId);
         return ticket;
     }
@@ -430,13 +434,13 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
     {
         if (oldAssignedUserId != ticket.AssignedUserId || oldAssignedTeamId != ticket.AssignedTeamId)
         {
-            await this._notificationTrigger.NotifyTicketAssignmentChangedAsync(
+            await this.notificationTriggerService.NotifyTicketAssignmentChangedAsync(
                 workspaceId, ticket, oldAssignedUserId, oldAssignedTeamId, userId);
         }
 
         if (oldStatusId != ticket.StatusId)
         {
-            await this._notificationTrigger.NotifyTicketStatusChangedAsync(
+            await this.notificationTriggerService.NotifyTicketStatusChangedAsync(
                 workspaceId, ticket,
                 oldStatusId?.ToString() ?? "Unknown",
                 ticket.StatusId?.ToString() ?? "Unknown",
@@ -447,14 +451,14 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
     private async Task BroadcastTicketChangeAsync(Microsoft.AspNetCore.SignalR.IHubContext<Realtime.TicketsHub> hub, Ticket ticket, bool isNew, int workspaceId)
     {
         var assignedDisplay = ticket.AssignedUserId.HasValue
-            ? await this._ticketService.GetAssigneeDisplayNameAsync(ticket.AssignedUserId.Value)
+            ? await this.ticketManagementService.GetAssigneeDisplayNameAsync(ticket.AssignedUserId.Value)
             : null;
 
         var assignedTeamName = ticket.AssignedTeamId.HasValue
             ? (await this.teamRepository.FindByIdAsync(ticket.AssignedTeamId.Value))?.Name
             : null;
 
-        var (invSummary, invDetails) = await this._ticketService.GenerateInventorySummaryAsync(
+        var (invSummary, invDetails) = await this.ticketManagementService.GenerateInventorySummaryAsync(
             ticket.TicketInventories?.ToList() ?? [],
             workspaceId);
 
@@ -520,5 +524,5 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
         PageSize = this.Request.Query["PageSize"].ToString()
     });
 
-    private static string DefaultOrTrim(string? value, string defaultValue) => string.IsNullOrWhiteSpace(value) ? defaultValue : value!.Trim();
+    private static string DefaultOrTrim(string? value, string defaultValue) => string.IsNullOrWhiteSpace(value) ? defaultValue : value.Trim();
 }

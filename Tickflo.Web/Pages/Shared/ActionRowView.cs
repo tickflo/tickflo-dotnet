@@ -1,4 +1,6 @@
+#pragma warning disable CA1716
 namespace Tickflo.Web.Pages.Shared;
+#pragma warning restore CA1716
 
 public class ActionRowView
 {

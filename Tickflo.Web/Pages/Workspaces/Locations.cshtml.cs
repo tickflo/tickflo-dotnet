@@ -1,5 +1,6 @@
 namespace Tickflo.Web.Pages.Workspaces;
 
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
@@ -16,10 +17,10 @@ public class LocationsModel(
     ILocationRepository locationRepository,
     ICurrentUserService currentUserService,
     IWorkspaceAccessService workspaceAccessService,
-    IWorkspaceLocationsViewService viewService) : WorkspacePageModel
+    IWorkspaceLocationsViewService workspaceLocationsViewService) : WorkspacePageModel
 {
     #region Constants
-    private const string LocationDeletedFormat = "Location #{0} deleted.";
+    private static readonly CompositeFormat LocationDeletedFormat = CompositeFormat.Parse("Location #{0} deleted.");
     private const string LocationNotFoundMessage = "Location not found.";
     private const string LocationsSection = "locations";
     private const string EditAction = "edit";
@@ -28,9 +29,9 @@ public class LocationsModel(
     private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly ILocationRepository locationRepository = locationRepository;
-    private readonly ICurrentUserService _currentUserService = currentUserService;
-    private readonly IWorkspaceAccessService _workspaceAccessService = workspaceAccessService;
-    private readonly IWorkspaceLocationsViewService _viewService = viewService;
+    private readonly ICurrentUserService currentUserService = currentUserService;
+    private readonly IWorkspaceAccessService workspaceAccessService = workspaceAccessService;
+    private readonly IWorkspaceLocationsViewService workspaceLocationsViewService = workspaceLocationsViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -51,7 +52,7 @@ public class LocationsModel(
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
         this.Workspace = workspace;
 
-        var viewData = await this._viewService.BuildAsync(this.Workspace!.Id, uid);
+        var viewData = await this.workspaceLocationsViewService.BuildAsync(this.Workspace!.Id, uid);
         this.Locations = viewData.Locations;
         this.CanCreateLocations = viewData.CanCreateLocations;
         this.CanEditLocations = viewData.CanEditLocations;
@@ -68,7 +69,7 @@ public class LocationsModel(
             return result;
         }
 
-        if (!this._currentUserService.TryGetUserId(this.User, out var uid))
+        if (!this.currentUserService.TryGetUserId(this.User, out var uid))
         {
             return this.Forbid();
         }
@@ -80,13 +81,13 @@ public class LocationsModel(
 
         var ok = await this.locationRepository.DeleteAsync(this.Workspace!.Id, locationId);
         this.SetSuccessMessage(ok
-            ? string.Format(LocationDeletedFormat, locationId)
+            ? string.Format(null, LocationDeletedFormat, locationId)
             : LocationNotFoundMessage);
 
         return this.RedirectToPage("/Workspaces/Locations", new { slug });
     }
 
-    private async Task<bool> CanUserEditLocationsAsync(int userId) => await this._workspaceAccessService.CanUserPerformActionAsync(
+    private async Task<bool> CanUserEditLocationsAsync(int userId) => await this.workspaceAccessService.CanUserPerformActionAsync(
             this.Workspace!.Id, userId, LocationsSection, EditAction);
 }
 

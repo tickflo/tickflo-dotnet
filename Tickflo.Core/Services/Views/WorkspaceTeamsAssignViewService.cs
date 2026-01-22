@@ -7,15 +7,15 @@ public class WorkspaceTeamsAssignViewService(
     IRolePermissionRepository rolePermissionRepository,
     ITeamRepository teams,
     ITeamMemberRepository members,
-    IUserWorkspaceRepository userWorkspaces,
+    IUserWorkspaceRepository userWorkspaceRepository,
     IUserRepository users) : IWorkspaceTeamsAssignViewService
 {
     private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
     private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
-    private readonly ITeamRepository _teams = teams;
+    private readonly ITeamRepository teamRepository = teams;
     private readonly ITeamMemberRepository _members = members;
-    private readonly IUserWorkspaceRepository _userWorkspaces = userWorkspaces;
-    private readonly IUserRepository _users = users;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IUserRepository userRepository = users;
 
     public async Task<WorkspaceTeamsAssignViewData> BuildAsync(int workspaceId, int userId, int teamId)
     {
@@ -30,7 +30,7 @@ public class WorkspaceTeamsAssignViewService(
             return data;
         }
 
-        data.Team = await this._teams.FindByIdAsync(teamId);
+        data.Team = await this.teamRepository.FindByIdAsync(teamId);
         if (data.Team == null || data.Team.WorkspaceId != workspaceId)
         {
             return data;
@@ -39,11 +39,11 @@ public class WorkspaceTeamsAssignViewService(
         var members = await this._members.ListMembersAsync(teamId);
         data.Members = [.. members];
 
-        var memberships = await this._userWorkspaces.FindForWorkspaceAsync(workspaceId);
+        var memberships = await this.userWorkspaceRepository.FindForWorkspaceAsync(workspaceId);
         var userIds = memberships.Select(m => m.UserId).Distinct().ToList();
         foreach (var id in userIds)
         {
-            var u = await this._users.FindByIdAsync(id);
+            var u = await this.userRepository.FindByIdAsync(id);
             if (u != null)
             {
                 data.WorkspaceUsers.Add(u);

@@ -1,5 +1,6 @@
 namespace Tickflo.Web.Pages.Workspaces;
 
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
@@ -11,21 +12,21 @@ using Tickflo.Core.Services.Views;
 public class ContactsEditModel(
     IWorkspaceRepository workspaceRepo,
     IUserWorkspaceRepository userWorkspaceRepository,
-    IWorkspaceContactsEditViewService viewService,
+    IWorkspaceContactsEditViewService workspaceContactsEditViewService,
     IContactRepository contactRepository,
     IContactRegistrationService contactRegistrationService) : WorkspacePageModel
 {
     #region Constants
     private const int NewContactId = 0;
-    private const string ContactCreatedMessage = "Contact '{0}' created.";
-    private const string ContactUpdatedMessage = "Contact '{0}' updated.";
+    private static readonly CompositeFormat ContactCreatedMessage = CompositeFormat.Parse("Contact '{0}' created.");
+    private static readonly CompositeFormat ContactUpdatedMessage = CompositeFormat.Parse("Contact '{0}' updated.");
     #endregion
 
     private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly IWorkspaceContactsEditViewService _viewService = viewService;
+    private readonly IWorkspaceContactsEditViewService workspaceContactsEditViewService = workspaceContactsEditViewService;
     private readonly IContactRepository contactRepository = contactRepository;
-    private readonly IContactRegistrationService _contactRegistrationService = contactRegistrationService;
+    private readonly IContactRegistrationService contactRegistractionService = contactRegistrationService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -59,7 +60,7 @@ public class ContactsEditModel(
         this.Workspace = workspace;
         var workspaceId = workspace!.Id;
 
-        var viewData = await this._viewService.BuildAsync(workspaceId, uid, id);
+        var viewData = await this.workspaceContactsEditViewService.BuildAsync(workspaceId, uid, id);
         this.CanViewContacts = viewData.CanViewContacts;
         this.CanEditContacts = viewData.CanEditContacts;
         this.CanCreateContacts = viewData.CanCreateContacts;
@@ -93,7 +94,7 @@ public class ContactsEditModel(
         this.Workspace = workspace;
         var workspaceId = workspace!.Id;
 
-        var viewData = await this._viewService.BuildAsync(workspaceId, uid, id);
+        var viewData = await this.workspaceContactsEditViewService.BuildAsync(workspaceId, uid, id);
         var allowed = viewData.CanCreateContacts || viewData.CanEditContacts;
         if (!allowed)
         {
@@ -122,7 +123,7 @@ public class ContactsEditModel(
         catch (InvalidOperationException ex)
         {
             this.SetErrorMessage(ex.Message);
-            var errorViewData = await this._viewService.BuildAsync(workspaceId, uid, id);
+            var errorViewData = await this.workspaceContactsEditViewService.BuildAsync(workspaceId, uid, id);
             this.ViewData["Priorities"] = errorViewData.Priorities;
             return this.Page();
         }
@@ -145,7 +146,7 @@ public class ContactsEditModel(
     {
         var trimmedFields = this.TrimContactFields();
 
-        var created = await this._contactRegistrationService.RegisterContactAsync(workspaceId, new ContactRegistrationRequest
+        var created = await this.contactRegistractionService.RegisterContactAsync(workspaceId, new ContactRegistrationRequest
         {
             Name = trimmedFields.Name,
             Email = string.IsNullOrEmpty(trimmedFields.Email) ? null : trimmedFields.Email,
@@ -160,7 +161,7 @@ public class ContactsEditModel(
         created.Priority = trimmedFields.Priority;
         await this.contactRepository.UpdateAsync(created);
 
-        this.SetSuccessMessage(string.Format(ContactCreatedMessage, created.Name));
+        this.SetSuccessMessage(string.Format(null, ContactCreatedMessage, created.Name));
         return created;
     }
 
@@ -168,7 +169,7 @@ public class ContactsEditModel(
     {
         var trimmedFields = this.TrimContactFields();
 
-        var updated = await this._contactRegistrationService.UpdateContactInformationAsync(workspaceId, id, new ContactUpdateRequest
+        var updated = await this.contactRegistractionService.UpdateContactInformationAsync(workspaceId, id, new ContactUpdateRequest
         {
             Name = trimmedFields.Name,
             Email = string.IsNullOrEmpty(trimmedFields.Email) ? null : trimmedFields.Email,
@@ -183,20 +184,20 @@ public class ContactsEditModel(
         updated.Priority = trimmedFields.Priority;
         await this.contactRepository.UpdateAsync(updated);
 
-        this.SetSuccessMessage(string.Format(ContactUpdatedMessage, updated.Name));
+        this.SetSuccessMessage(string.Format(null, ContactUpdatedMessage, updated.Name));
         return updated;
     }
 
     private (string Name, string Email, string? Phone, string? Company, string? Notes, string? Title, string? Tags, string? PreferredChannel, string? Priority) TrimContactFields() => (
             Name: this.Name?.Trim() ?? string.Empty,
             Email: this.Email?.Trim() ?? string.Empty,
-            Phone: string.IsNullOrWhiteSpace(this.Phone) ? null : this.Phone!.Trim(),
-            Company: string.IsNullOrWhiteSpace(this.Company) ? null : this.Company!.Trim(),
-            Notes: string.IsNullOrWhiteSpace(this.Notes) ? null : this.Notes!.Trim(),
-            Title: string.IsNullOrWhiteSpace(this.Title) ? null : this.Title!.Trim(),
-            Tags: string.IsNullOrWhiteSpace(this.Tags) ? null : this.Tags!.Trim(),
-            PreferredChannel: string.IsNullOrWhiteSpace(this.PreferredChannel) ? null : this.PreferredChannel!.Trim(),
-            Priority: string.IsNullOrWhiteSpace(this.Priority) ? null : this.Priority!.Trim()
+            Phone: string.IsNullOrWhiteSpace(this.Phone) ? null : this.Phone.Trim(),
+            Company: string.IsNullOrWhiteSpace(this.Company) ? null : this.Company.Trim(),
+            Notes: string.IsNullOrWhiteSpace(this.Notes) ? null : this.Notes.Trim(),
+            Title: string.IsNullOrWhiteSpace(this.Title) ? null : this.Title.Trim(),
+            Tags: string.IsNullOrWhiteSpace(this.Tags) ? null : this.Tags.Trim(),
+            PreferredChannel: string.IsNullOrWhiteSpace(this.PreferredChannel) ? null : this.PreferredChannel.Trim(),
+            Priority: string.IsNullOrWhiteSpace(this.Priority) ? null : this.Priority.Trim()
         );
 
     private RedirectToPageResult RedirectToContactsWithPreservedFilters(string slug) => this.RedirectToPage("/Workspaces/Contacts", new

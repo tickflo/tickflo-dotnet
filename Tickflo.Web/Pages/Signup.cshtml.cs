@@ -1,25 +1,25 @@
 namespace Tickflo.Web.Pages;
 
 using System.ComponentModel.DataAnnotations;
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Services.Authentication;
 
 [AllowAnonymous]
-public class SignupModel(ILogger<SignupModel> logger, IAuthenticationService authService) : PageModel
+public class SignupModel(IAuthenticationService authenticationService) : PageModel
 {
     #region Constants
     private const string TokenCookieName = "user_token";
     private const int TokenCookieExpirationDays = 30;
-    private const string WorkspaceRedirectUrl = "/workspaces/{0}";
+    private static readonly CompositeFormat WorkspaceRedirectUrl = CompositeFormat.Parse("/workspaces/{0}");
     private const string WorkspacesUrl = "/workspaces";
     private const string RecoveryEmailMismatchError = "Recovery email must be different from your login email.";
     private const string RecoveryEmailFieldName = "Input.RecoveryEmail";
     #endregion
 
-    private readonly ILogger<SignupModel> logger = logger;
-    private readonly IAuthenticationService _authService = authService;
+    private readonly IAuthenticationService authenticationService = authenticationService;
 
     [BindProperty]
     public SignupInput Input { get; set; } = new();
@@ -68,7 +68,7 @@ public class SignupModel(ILogger<SignupModel> logger, IAuthenticationService aut
         var workspaceName = this.Input.WorkspaceName?.Trim() ?? string.Empty;
         var password = this.Input.Password ?? string.Empty;
 
-        return await this._authService.SignupAsync(name, email, recoveryEmail, workspaceName, password);
+        return await this.authenticationService.SignupAsync(name, email, recoveryEmail, workspaceName, password);
     }
 
     private void AppendAuthenticationCookie(string token) => this.Response.Cookies.Append(TokenCookieName, token, new CookieOptions
@@ -79,11 +79,11 @@ public class SignupModel(ILogger<SignupModel> logger, IAuthenticationService aut
         Expires = DateTimeOffset.UtcNow.AddDays(TokenCookieExpirationDays)
     });
 
-    private IActionResult GetPostSignupRedirect(string? workspaceSlug)
+    private RedirectResult GetPostSignupRedirect(string? workspaceSlug)
     {
         if (!string.IsNullOrEmpty(workspaceSlug))
         {
-            return this.Redirect(string.Format(WorkspaceRedirectUrl, workspaceSlug));
+            return this.Redirect(string.Format(null, WorkspaceRedirectUrl, workspaceSlug));
         }
 
         return this.Redirect(WorkspacesUrl);

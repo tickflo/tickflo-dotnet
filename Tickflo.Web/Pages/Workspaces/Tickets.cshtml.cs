@@ -9,7 +9,7 @@ using Tickflo.Core.Services.Tickets;
 using Tickflo.Core.Services.Views;
 
 [Authorize]
-public class TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepository, ITicketRepository ticketRepository, ITicketFilterService filterService, IWorkspaceTicketsViewService viewService, INotificationTriggerService notificationTrigger) : WorkspacePageModel
+public class TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepository, ITicketRepository ticketRepository, ITicketFilterService filterService, IWorkspaceTicketsViewService viewService, INotificationTriggerService notificationTriggerService) : WorkspacePageModel
 {
     private const int DefaultPageSize = 25;
     private const int MaxPageSize = 200;
@@ -21,7 +21,7 @@ public class TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepo
     private readonly ITicketRepository ticketRepository = ticketRepository;
     private readonly ITicketFilterService _filterService = filterService;
     private readonly IWorkspaceTicketsViewService _viewService = viewService;
-    private readonly INotificationTriggerService _notificationTrigger = notificationTrigger;
+    private readonly INotificationTriggerService notificationTriggerService = notificationTriggerService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -300,7 +300,7 @@ public class TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepo
         await this.NotifyAssignmentChangeAsync(ticket, oldAssignedUserId, currentUserId);
     }
 
-    private async Task NotifyAssignmentChangeAsync(Ticket ticket, int? oldAssignedUserId, int currentUserId) => await this._notificationTrigger.NotifyTicketAssignmentChangedAsync(
+    private async Task NotifyAssignmentChangeAsync(Ticket ticket, int? oldAssignedUserId, int currentUserId) => await this.notificationTriggerService.NotifyTicketAssignmentChangedAsync(
             this.Workspace!.Id,
             ticket,
             oldAssignedUserId,

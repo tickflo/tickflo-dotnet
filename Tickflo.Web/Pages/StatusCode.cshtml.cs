@@ -15,7 +15,7 @@ public class StatusCodeModel(ILogger<StatusCodeModel> logger, ICurrentUserServic
     public string? TraceId { get; set; }
 
     private readonly ILogger<StatusCodeModel> logger = logger;
-    private readonly ICurrentUserService _currentUserService = currentUserService;
+    private readonly ICurrentUserService currentUserService = currentUserService;
     private readonly IUserRepository userRepository = userRepository;
 
     public async Task OnGetAsync(int code)

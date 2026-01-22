@@ -11,13 +11,13 @@ using Tickflo.Core.Entities;
 public class ExportService(
     ITicketRepository ticketRepository,
     IContactRepository contactRepository,
-    IInventoryRepository inventoryRepo,
+    IInventoryRepository inventoryRepository,
     ITicketHistoryRepository historyRepository,
     IUserWorkspaceRepository userWorkspaceRepository) : IExportService
 {
     private readonly ITicketRepository ticketRepository = ticketRepository;
     private readonly IContactRepository contactRepository = contactRepository;
-    private readonly IInventoryRepository _inventoryRepo = inventoryRepo;
+    private readonly IInventoryRepository inventoryRepository = inventoryRepository;
     private readonly ITicketHistoryRepository historyRepository = historyRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
 
@@ -77,7 +77,7 @@ public class ExportService(
             throw new InvalidOperationException("User does not have access to this workspace.");
         }
 
-        var inventory = (await this._inventoryRepo.ListAsync(workspaceId)).ToList();
+        var inventory = (await this.inventoryRepository.ListAsync(workspaceId)).ToList();
 
         return request.Format switch
         {

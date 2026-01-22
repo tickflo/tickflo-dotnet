@@ -5,26 +5,21 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Authentication;
 using Tickflo.Core.Services.Email;
 using Tickflo.Core.Services.Users;
 using Tickflo.Core.Services.Views;
 
 [Authorize]
-public class UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepository, IUserWorkspaceRepository userWorkspaceRepository, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IPasswordHasher passwordHasher, IEmailSenderService emailSender, INotificationRepository notificationRepository, ITokenRepository tokenRepo, IRoleRepository roleRepo, IUserInvitationService invitationService, IWorkspaceUsersInviteViewService viewService) : WorkspacePageModel
+public class UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepository, IEmailTemplateService emailTemplateService, IEmailSenderService emailSenderService, INotificationRepository notificationRepository, IRoleRepository roleRepository, IUserInvitationService userInvitationService, IWorkspaceUsersInviteViewService workspaceUsersInviteViewService) : WorkspacePageModel
 {
     private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
-    private readonly IUserRepository userRepository = userRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly IPasswordHasher passwordHasher = passwordHasher;
-    private readonly IEmailSenderService _emailSender = emailSender;
-    private readonly IEmailTemplateService _emailTemplateService;
-    private readonly INotificationRepository _notificationRepository = notificationRepository;
-    private readonly ITokenRepository _tokenRepo = tokenRepo;
-    private readonly IRoleRepository roleRepository = roleRepo;
-    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
-    private readonly IUserInvitationService _invitationService = invitationService;
-    private readonly IWorkspaceUsersInviteViewService _viewService = viewService;
+    private readonly IEmailTemplateService emailTemplateService = emailTemplateService;
+    private readonly IEmailSenderService emailSenderService = emailSenderService;
+    private readonly INotificationRepository notificationRepository = notificationRepository;
+    private readonly IRoleRepository roleRepository = roleRepository;
+    private readonly IUserInvitationService userInvitationService = userInvitationService;
+    private readonly IWorkspaceUsersInviteViewService workspaceUsersInviteViewService = workspaceUsersInviteViewService;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
     [BindProperty]
@@ -48,7 +43,7 @@ public class UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepositor
         var (workspace, userId) = (WorkspaceUserLoadResult)loadResult;
         this.Workspace = workspace;
 
-        var viewData = await this._viewService.BuildAsync(this.Workspace!.Id, userId);
+        var viewData = await this.workspaceUsersInviteViewService.BuildAsync(this.Workspace!.Id, userId);
         if (this.EnsurePermissionOrForbid(viewData.CanViewUsers && viewData.CanCreateUsers) is IActionResult permCheck)
         {
             return permCheck;
@@ -71,7 +66,7 @@ public class UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepositor
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
         this.Workspace = workspace;
 
-        var viewData = await this._viewService.BuildAsync(this.Workspace!.Id, currentUserId);
+        var viewData = await this.workspaceUsersInviteViewService.BuildAsync(this.Workspace!.Id, currentUserId);
         if (this.EnsurePermissionOrForbid(viewData.CanViewUsers && viewData.CanCreateUsers) is IActionResult permCheck)
         {
             return permCheck;
@@ -106,7 +101,7 @@ public class UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepositor
                 roleIds = [role.Id];
             }
 
-            var result = await this._invitationService.InviteUserAsync(ws.Id, this.Email.Trim(), currentUserId, roleIds);
+            var result = await this.userInvitationService.InviteUserAsync(ws.Id, this.Email.Trim(), currentUserId, roleIds);
 
             var baseUrl = $"{this.Request.Scheme}://{this.Request.Host}";
             var confirmationLink = baseUrl + result.ConfirmationLink;
@@ -123,8 +118,8 @@ public class UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepositor
                 { "SET_PASSWORD_LINK", setPasswordLink }
             };
 
-            var (subject, body) = await this._emailTemplateService.RenderTemplateAsync(EmailTemplateType.WorkspaceInviteNewUser, variables, ws.Id);
-            await this._emailSender.SendAsync(result.User.Email!, subject, body);
+            var (subject, body) = await this.emailTemplateService.RenderTemplateAsync(EmailTemplateType.WorkspaceInviteNewUser, variables, ws.Id);
+            await this.emailSenderService.SendAsync(result.User.Email!, subject, body);
 
             // Create a notification record in the database
             var notification = new Notification
@@ -142,7 +137,7 @@ public class UsersInviteModel(IWorkspaceRepository workspaceRepo, IUserRepositor
                 CreatedBy = currentUserId
             };
 
-            await this._notificationRepository.AddAsync(notification);
+            await this.notificationRepository.AddAsync(notification);
 
             this.SetSuccessMessage($"Invite created for '{this.Email}'" + (!string.IsNullOrWhiteSpace(this.Role) ? $" as {this.Role}" : "") + ".");
         }

@@ -72,7 +72,7 @@ public class NotificationService(INotificationRepository notificationRepository)
                 // For now, assuming the email is in the notification data or we need to look it up
                 //var toEmail = notification.Data ?? ""; // This should be properly resolved from user
 
-                //await this._emailSender.SendAsync(toEmail, notification.Subject, notification.Body);
+                //await this.emailSenderService.SendAsync(toEmail, notification.Subject, notification.Body);
                 await this.notificationRepository.MarkAsSentAsync(notification.Id);
             }
             catch (Exception ex)

@@ -2,13 +2,13 @@ namespace Tickflo.Web.Pages.Workspaces;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Roles;
 using Tickflo.Core.Services.Views;
 
 [Authorize]
-public class RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository roles, IRolePermissionRepository rolePermissionRepository, IRoleManagementService roleService, IWorkspaceRolesEditViewService rolesEditViewService) : WorkspacePageModel
+public class RolesEditModel(IWorkspaceRepository workspaceRepository, IRoleRepository roleRepository, IRolePermissionRepository rolePermissionRepository, IWorkspaceRolesEditViewService workspaceRolesEditViewService) : WorkspacePageModel
 {
     #region Constants
     private const int NewRoleId = 0;
@@ -21,11 +21,10 @@ public class RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository rol
     private static readonly string[] DefaultSections = ["dashboard", "contacts", "inventory", "locations", "reports", "roles", "teams", "tickets", "users", "settings"];
     #endregion
 
-    private readonly IWorkspaceRepository _workspaces = workspaces;
-    private readonly IRoleRepository _roles = roles;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly IRoleRepository roleRepository = roleRepository;
     private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
-    private readonly IRoleManagementService _roleService = roleService;
-    private readonly IWorkspaceRolesEditViewService _rolesEditViewService = rolesEditViewService;
+    private readonly IWorkspaceRolesEditViewService workspaceRolesEditViewService = workspaceRolesEditViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Role? Role { get; private set; }
@@ -51,7 +50,7 @@ public class RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository rol
     public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
     {
         this.WorkspaceSlug = slug;
-        var ws = await this._workspaces.FindBySlugAsync(slug);
+        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
         {
             return result;
@@ -63,7 +62,7 @@ public class RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository rol
         }
 
         var workspaceId = ws!.Id;
-        var data = await this._rolesEditViewService.BuildAsync(workspaceId, uid, id);
+        var data = await this.workspaceRolesEditViewService.BuildAsync(workspaceId, uid, id);
         if (!data.IsAdmin)
         {
             return this.Forbid();
@@ -84,7 +83,7 @@ public class RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository rol
     public async Task<IActionResult> OnPostAsync(string slug, int id = 0)
     {
         this.WorkspaceSlug = slug;
-        var ws = await this._workspaces.FindBySlugAsync(slug);
+        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
         if (ws == null)
         {
             return this.NotFound();
@@ -96,7 +95,7 @@ public class RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository rol
         }
 
         var workspaceId = ws.Id;
-        var data = await this._rolesEditViewService.BuildAsync(workspaceId, uid, id);
+        var data = await this.workspaceRolesEditViewService.BuildAsync(workspaceId, uid, id);
         if (!data.IsAdmin)
         {
             return this.Forbid();
@@ -153,7 +152,7 @@ public class RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository rol
         this.Permissions = BuildDefaultPermissions();
     }
 
-    private IActionResult? ValidateRoleName()
+    private PageResult? ValidateRoleName()
     {
         var nameTrim = this.Name?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(nameTrim))
@@ -167,7 +166,7 @@ public class RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository rol
     private async Task CreateNewRoleAsync(int workspaceId, int userId)
     {
         var nameTrim = this.Name?.Trim() ?? string.Empty;
-        var createdId = (await this._roles.AddAsync(workspaceId, nameTrim, this.Admin, userId))?.Id ?? 0;
+        var createdId = (await this.roleRepository.AddAsync(workspaceId, nameTrim, this.Admin, userId))?.Id ?? 0;
 
         if (createdId == 0)
         {
@@ -181,7 +180,7 @@ public class RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository rol
     private async Task UpdateExistingRoleAsync(int id, int workspaceId, int userId, WorkspaceRolesEditViewData viewData)
     {
         var nameTrim = this.Name?.Trim() ?? string.Empty;
-        var role = viewData.ExistingRole ?? await this._roles.FindByIdAsync(id);
+        var role = viewData.ExistingRole ?? await this.roleRepository.FindByIdAsync(id);
 
         var roleCheck = this.EnsureEntityBelongsToWorkspace(role, workspaceId);
         if (roleCheck is not null)
@@ -189,7 +188,7 @@ public class RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository rol
             throw new InvalidOperationException("Role does not belong to this workspace");
         }
 
-        var existingWithName = await this._roles.FindByNameAsync(workspaceId, nameTrim);
+        var existingWithName = await this.roleRepository.FindByNameAsync(workspaceId, nameTrim);
         if (existingWithName != null && existingWithName.Id != role!.Id)
         {
             this.ModelState.AddModelError(nameof(this.Name), RoleNameDuplicate);
@@ -199,7 +198,7 @@ public class RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository rol
 
         role!.Name = nameTrim;
         role.Admin = this.Admin;
-        await this._roles.UpdateAsync(role);
+        await this.roleRepository.UpdateAsync(role);
         await this.rolePermissionRepository.UpsertAsync(role.Id, this.MapEffectivePermissions(), userId);
     }
 
@@ -215,7 +214,7 @@ public class RolesEditModel(IWorkspaceRepository workspaces, IRoleRepository rol
                 dest.CanCreate = p.CanCreate;
                 if (string.Equals(p.Section, TicketSection, StringComparison.OrdinalIgnoreCase))
                 {
-                    dest.TicketViewScope = string.IsNullOrWhiteSpace(p.TicketViewScope) ? DefaultTicketViewScope : p.TicketViewScope!.ToLowerInvariant();
+                    dest.TicketViewScope = string.IsNullOrWhiteSpace(p.TicketViewScope) ? DefaultTicketViewScope : p.TicketViewScope.ToLowerInvariant();
                 }
             }
         }

@@ -6,9 +6,9 @@ using InventoryEntity = Entities.Inventory;
 /// <summary>
 /// Handles inventory quantity adjustments, tracking stock changes.
 /// </summary>
-public class InventoryAdjustmentService(IInventoryRepository inventoryRepo) : IInventoryAdjustmentService
+public class InventoryAdjustmentService(IInventoryRepository inventoryRepository) : IInventoryAdjustmentService
 {
-    private readonly IInventoryRepository _inventoryRepo = inventoryRepo;
+    private readonly IInventoryRepository inventoryRepository = inventoryRepository;
 
     /// <summary>
     /// Increases inventory quantity (e.g., receiving stock, returns).
@@ -25,7 +25,7 @@ public class InventoryAdjustmentService(IInventoryRepository inventoryRepo) : II
             throw new InvalidOperationException("Increase amount must be positive");
         }
 
-        var inventory = await this._inventoryRepo.FindAsync(workspaceId, inventoryId) ?? throw new InvalidOperationException("Inventory item not found");
+        var inventory = await this.inventoryRepository.FindAsync(workspaceId, inventoryId) ?? throw new InvalidOperationException("Inventory item not found");
 
         // Business rule: Check for overflow
         if (inventory.Quantity + amount < 0)
@@ -36,7 +36,7 @@ public class InventoryAdjustmentService(IInventoryRepository inventoryRepo) : II
         inventory.Quantity += amount;
         inventory.UpdatedAt = DateTime.UtcNow;
 
-        await this._inventoryRepo.UpdateAsync(inventory);
+        await this.inventoryRepository.UpdateAsync(inventory);
 
         // Could add: Log adjustment history, trigger reorder alerts, etc.
 
@@ -58,7 +58,7 @@ public class InventoryAdjustmentService(IInventoryRepository inventoryRepo) : II
             throw new InvalidOperationException("Decrease amount must be positive");
         }
 
-        var inventory = await this._inventoryRepo.FindAsync(workspaceId, inventoryId) ?? throw new InvalidOperationException("Inventory item not found");
+        var inventory = await this.inventoryRepository.FindAsync(workspaceId, inventoryId) ?? throw new InvalidOperationException("Inventory item not found");
 
         // Business rule: Prevent negative inventory
         if (inventory.Quantity - amount < 0)
@@ -69,7 +69,7 @@ public class InventoryAdjustmentService(IInventoryRepository inventoryRepo) : II
         inventory.Quantity -= amount;
         inventory.UpdatedAt = DateTime.UtcNow;
 
-        await this._inventoryRepo.UpdateAsync(inventory);
+        await this.inventoryRepository.UpdateAsync(inventory);
 
         // Could add: Log adjustment, notify if below reorder point, etc.
 
@@ -91,7 +91,7 @@ public class InventoryAdjustmentService(IInventoryRepository inventoryRepo) : II
             throw new InvalidOperationException("Quantity cannot be negative");
         }
 
-        var inventory = await this._inventoryRepo.FindAsync(workspaceId, inventoryId) ?? throw new InvalidOperationException("Inventory item not found");
+        var inventory = await this.inventoryRepository.FindAsync(workspaceId, inventoryId) ?? throw new InvalidOperationException("Inventory item not found");
 
         var previousQuantity = inventory.Quantity;
         var variance = newQuantity - previousQuantity;
@@ -99,7 +99,7 @@ public class InventoryAdjustmentService(IInventoryRepository inventoryRepo) : II
         inventory.Quantity = newQuantity;
         inventory.UpdatedAt = DateTime.UtcNow;
 
-        await this._inventoryRepo.UpdateAsync(inventory);
+        await this.inventoryRepository.UpdateAsync(inventory);
 
         // Could add: Log variance for audit, investigate large discrepancies
 

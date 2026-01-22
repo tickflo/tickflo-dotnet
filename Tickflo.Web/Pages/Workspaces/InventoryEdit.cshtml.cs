@@ -9,10 +9,10 @@ using Tickflo.Core.Services.Views;
 
 [Authorize]
 public class InventoryEditModel(
-    IWorkspaceRepository workspaces,
+    IWorkspaceRepository workspaceRepository,
     IUserWorkspaceRepository userWorkspaceRepository,
-    IWorkspaceInventoryEditViewService viewService,
-    IInventoryRepository inventory,
+    IWorkspaceInventoryEditViewService workspaceInventoryEditViewService,
+    IInventoryRepository inventoryRepository,
     IInventoryAllocationService inventoryAllocationService) : WorkspacePageModel
 {
     #region Constants
@@ -20,11 +20,11 @@ public class InventoryEditModel(
     private const string DefaultInventoryStatus = "active";
     #endregion
 
-    private readonly IWorkspaceRepository _workspaces = workspaces;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly IWorkspaceInventoryEditViewService _viewService = viewService;
-    private readonly IInventoryRepository _inventory = inventory;
-    private readonly IInventoryAllocationService _inventoryAllocationService = inventoryAllocationService;
+    private readonly IWorkspaceInventoryEditViewService workspaceInventoryEditViewService = workspaceInventoryEditViewService;
+    private readonly IInventoryRepository inventoryRepository = inventoryRepository;
+    private readonly IInventoryAllocationService inventoryAllocationService = inventoryAllocationService;
 
     public bool CanViewInventory { get; private set; }
     public bool CanEditInventory { get; private set; }
@@ -40,7 +40,7 @@ public class InventoryEditModel(
     public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
     {
         this.WorkspaceSlug = slug;
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaces, this.userWorkspaceRepository, slug);
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (loadResult is IActionResult actionResult)
         {
             return actionResult;
@@ -50,7 +50,7 @@ public class InventoryEditModel(
         this.Workspace = workspace;
         var workspaceId = workspace!.Id;
 
-        var viewData = await this._viewService.BuildAsync(workspaceId, uid, id);
+        var viewData = await this.workspaceInventoryEditViewService.BuildAsync(workspaceId, uid, id);
         this.CanViewInventory = viewData.CanViewInventory;
         this.CanEditInventory = viewData.CanEditInventory;
         this.CanCreateInventory = viewData.CanCreateInventory;
@@ -68,7 +68,7 @@ public class InventoryEditModel(
     public async Task<IActionResult> OnPostAsync(string slug, int id = 0)
     {
         this.WorkspaceSlug = slug;
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaces, this.userWorkspaceRepository, slug);
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (loadResult is IActionResult actionResult)
         {
             return actionResult;
@@ -77,7 +77,7 @@ public class InventoryEditModel(
         var (workspace, uid) = (WorkspaceUserLoadResult)loadResult;
         this.Workspace = workspace;
         var workspaceId = workspace!.Id;
-        var viewData = await this._viewService.BuildAsync(workspaceId, uid, id);
+        var viewData = await this.workspaceInventoryEditViewService.BuildAsync(workspaceId, uid, id);
         if (this.EnsureCreateOrEditPermission(id, viewData.CanCreateInventory, viewData.CanEditInventory) is IActionResult permCheck)
         {
             return permCheck;
@@ -104,7 +104,7 @@ public class InventoryEditModel(
         catch (InvalidOperationException ex)
         {
             this.SetErrorMessage(ex.Message);
-            var errorViewData = await this._viewService.BuildAsync(workspaceId, uid, id);
+            var errorViewData = await this.workspaceInventoryEditViewService.BuildAsync(workspaceId, uid, id);
             this.LocationOptions = errorViewData.LocationOptions;
             return this.Page();
         }
@@ -114,7 +114,7 @@ public class InventoryEditModel(
 
     private async Task CreateInventoryItemAsync(int workspaceId, int userId)
     {
-        var created = await this._inventoryAllocationService.RegisterInventoryItemAsync(workspaceId, new InventoryRegistrationRequest
+        var created = await this.inventoryAllocationService.RegisterInventoryItemAsync(workspaceId, new InventoryRegistrationRequest
         {
             Sku = this.Item.Sku?.Trim() ?? string.Empty,
             Name = this.Item.Name?.Trim() ?? string.Empty,
@@ -125,12 +125,12 @@ public class InventoryEditModel(
         }, userId);
 
         created.Status = this.Item.Status;
-        await this._inventory.UpdateAsync(created);
+        await this.inventoryRepository.UpdateAsync(created);
     }
 
     private async Task UpdateInventoryItemAsync(int workspaceId, int inventoryId, int userId)
     {
-        var updated = await this._inventoryAllocationService.UpdateInventoryDetailsAsync(workspaceId, inventoryId, new InventoryDetailsUpdateRequest
+        var updated = await this.inventoryAllocationService.UpdateInventoryDetailsAsync(workspaceId, inventoryId, new InventoryDetailsUpdateRequest
         {
             Sku = this.Item.Sku?.Trim() ?? string.Empty,
             Name = this.Item.Name?.Trim() ?? string.Empty,
@@ -141,10 +141,10 @@ public class InventoryEditModel(
         updated.Quantity = this.Item.Quantity;
         updated.LocationId = this.Item.LocationId;
         updated.Status = this.Item.Status;
-        await this._inventory.UpdateAsync(updated);
+        await this.inventoryRepository.UpdateAsync(updated);
     }
 
-    private IActionResult RedirectToInventoryWithPreservedFilters(string slug)
+    private RedirectResult RedirectToInventoryWithPreservedFilters(string slug)
     {
         var queryQ = this.Request.Query["Query"].ToString();
         var locationQ = this.Request.Query["LocationId"].ToString();

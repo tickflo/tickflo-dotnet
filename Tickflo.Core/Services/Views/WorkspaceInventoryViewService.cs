@@ -7,7 +7,7 @@ public class WorkspaceInventoryViewService(
     IWorkspaceAccessService workspaceAccessService,
     IInventoryListingService listingService) : IWorkspaceInventoryViewService
 {
-    private readonly IWorkspaceAccessService _workspaceAccessService = workspaceAccessService;
+    private readonly IWorkspaceAccessService workspaceAccessService = workspaceAccessService;
     private readonly IInventoryListingService _listingService = listingService;
 
     public async Task<WorkspaceInventoryViewData> BuildAsync(int workspaceId, int userId)
@@ -15,11 +15,11 @@ public class WorkspaceInventoryViewService(
         var data = new WorkspaceInventoryViewData
         {
             // Check if user is admin
-            IsWorkspaceAdmin = await this._workspaceAccessService.UserIsWorkspaceAdminAsync(userId, workspaceId)
+            IsWorkspaceAdmin = await this.workspaceAccessService.UserIsWorkspaceAdminAsync(userId, workspaceId)
         };
 
         // Get user's permissions
-        var permissions = await this._workspaceAccessService.GetUserPermissionsAsync(workspaceId, userId);
+        var permissions = await this.workspaceAccessService.GetUserPermissionsAsync(workspaceId, userId);
 
         if (permissions.TryGetValue("inventory", out var inventoryPermissions))
         {

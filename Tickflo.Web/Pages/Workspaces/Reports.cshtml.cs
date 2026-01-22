@@ -17,7 +17,7 @@ public class ReportsModel(
 {
     private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly ICurrentUserService _currentUserService = currentUserService;
+    private readonly ICurrentUserService currentUserService = currentUserService;
     private readonly IWorkspaceReportsViewService _viewService = viewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;

@@ -19,7 +19,7 @@ public class NotificationsModel(
     ICurrentUserService currentUserService) : PageModel
 {
     private readonly INotificationRepository _notificationRepo = notificationRepo;
-    private readonly ICurrentUserService _currentUserService = currentUserService;
+    private readonly ICurrentUserService currentUserService = currentUserService;
 
     public List<Notification> Notifications { get; set; } = [];
 
@@ -42,7 +42,7 @@ public class NotificationsModel(
 
     public async Task<IActionResult> OnGetAsync()
     {
-        if (!this._currentUserService.TryGetUserId(this.User, out var userId))
+        if (!this.currentUserService.TryGetUserId(this.User, out var userId))
         {
             return this.Forbid();
         }
@@ -53,7 +53,7 @@ public class NotificationsModel(
 
     public async Task<IActionResult> OnPostMarkAsReadAsync(int id)
     {
-        if (!this._currentUserService.TryGetUserId(this.User, out var userId))
+        if (!this.currentUserService.TryGetUserId(this.User, out var userId))
         {
             return this.Forbid();
         }
@@ -70,7 +70,7 @@ public class NotificationsModel(
 
     public async Task<IActionResult> OnPostMarkAllAsReadAsync()
     {
-        if (!this._currentUserService.TryGetUserId(this.User, out var userId))
+        if (!this.currentUserService.TryGetUserId(this.User, out var userId))
         {
             return this.Forbid();
         }

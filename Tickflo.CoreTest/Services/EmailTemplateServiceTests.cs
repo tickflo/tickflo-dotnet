@@ -7,7 +7,7 @@ using Xunit;
 
 public class EmailTemplateServiceTests
 {
-    private static IEmailTemplateService CreateService(IEmailTemplateRepository? repo = null)
+    private static EmailTemplateService CreateService(IEmailTemplateRepository? repo = null)
     {
         repo ??= Mock.Of<IEmailTemplateRepository>();
         return new EmailTemplateService(repo);

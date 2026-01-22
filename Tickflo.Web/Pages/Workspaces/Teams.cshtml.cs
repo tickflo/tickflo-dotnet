@@ -4,20 +4,17 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Common;
 using Tickflo.Core.Services.Views;
 
 [Authorize]
 public class TeamsModel(
-    IWorkspaceRepository workspaces,
+    IWorkspaceRepository workspaceRepository,
     IUserWorkspaceRepository userWorkspaceRepository,
-    ICurrentUserService currentUserService,
-    IWorkspaceTeamsViewService viewService) : WorkspacePageModel
+    IWorkspaceTeamsViewService workspaceTeamsViewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository _workspaces = workspaces;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly ICurrentUserService _currentUserService = currentUserService;
-    private readonly IWorkspaceTeamsViewService _viewService = viewService;
+    private readonly IWorkspaceTeamsViewService workspaceTeamsViewService = workspaceTeamsViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -30,7 +27,7 @@ public class TeamsModel(
     {
         this.WorkspaceSlug = slug;
 
-        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaces, this.userWorkspaceRepository, slug);
+        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (result is IActionResult actionResult)
         {
             return actionResult;
@@ -39,7 +36,7 @@ public class TeamsModel(
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
         this.Workspace = workspace;
 
-        var viewData = await this._viewService.BuildAsync(this.Workspace!.Id, uid);
+        var viewData = await this.workspaceTeamsViewService.BuildAsync(this.Workspace!.Id, uid);
 
         if (this.EnsurePermissionOrForbid(viewData.CanViewTeams) is IActionResult permCheck)
         {

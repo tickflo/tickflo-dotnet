@@ -7,7 +7,7 @@ using Xunit;
 
 public class UserManagementServiceTests
 {
-    private static IUserManagementService CreateService(
+    private static UserManagementService CreateService(
         IUserRepository? userRepository = null,
         IPasswordHasher? hasher = null)
     {

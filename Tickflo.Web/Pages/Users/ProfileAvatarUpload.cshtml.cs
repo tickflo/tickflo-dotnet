@@ -12,15 +12,15 @@ public class ProfileAvatarUploadModel(IUserRepository userRepository, IImageStor
 {
     private readonly IUserRepository userRepository = userRepository;
     private readonly IImageStorageService _imageStorageService = imageStorageService;
-    private readonly ICurrentUserService _currentUserService = currentUserService;
+    private readonly ICurrentUserService currentUserService = currentUserService;
     public string UserId { get; set; } = "";
     public string Message { get; set; } = "";
 
-    public void OnGet() => this.UserId = this._currentUserService.TryGetUserId(this.User, out var uid) ? uid.ToString() : "";
+    public void OnGet() => this.UserId = this.currentUserService.TryGetUserId(this.User, out var uid) ? uid.ToString() : "";
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (!this._currentUserService.TryGetUserId(this.User, out var uid))
+        if (!this.currentUserService.TryGetUserId(this.User, out var uid))
         {
             return this.Challenge();
         }

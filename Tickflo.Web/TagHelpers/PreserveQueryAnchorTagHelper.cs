@@ -32,9 +32,9 @@ public class PreserveQueryAnchorTagHelper : TagHelper
             return;
         }
 
-        if (href!.Contains('?'))
+        if (href.Contains('?'))
         {
-            var append = qs.StartsWith("?") ? "&" + qs[1..] : (qs.StartsWith("&") ? qs : "&" + qs);
+            var append = qs.StartsWith('?') ? "&" + qs[1..] : (qs.StartsWith('&') ? qs : "&" + qs);
             output.Attributes.SetAttribute("href", href + append);
         }
         else

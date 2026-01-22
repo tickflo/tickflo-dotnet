@@ -7,7 +7,7 @@ using Xunit;
 
 public class ContactRegistrationServiceTests
 {
-    private static IContactRegistrationService CreateService(IContactRepository? repo = null)
+    private static ContactRegistrationService CreateService(IContactRepository? repo = null)
     {
         repo ??= Mock.Of<IContactRepository>();
         return new ContactRegistrationService(repo);

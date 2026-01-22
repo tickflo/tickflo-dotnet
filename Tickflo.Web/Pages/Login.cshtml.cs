@@ -1,24 +1,24 @@
 namespace Tickflo.Web.Pages;
 
 using System.ComponentModel.DataAnnotations;
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Services.Authentication;
 
 [AllowAnonymous]
-public class LoginModel(ILogger<LoginModel> logger, IAuthenticationService authService) : PageModel
+public class LoginModel(IAuthenticationService authenticationService) : PageModel
 {
     #region Constants
     private const string TokenCookieName = "user_token";
     private const int TokenCookieExpirationDays = 30;
-    private const string PasswordSetupUrl = "/setpassword?userId={0}";
-    private const string WorkspaceRedirectUrl = "/workspaces/{0}";
+    private static readonly CompositeFormat PasswordSetupUrl = CompositeFormat.Parse("/setpassword?userId={0}");
+    private static readonly CompositeFormat WorkspaceRedirectUrl = CompositeFormat.Parse("/workspaces/{0}");
     private const string NoWorkspaceError = "No workspace found for your account. Please contact support.";
     #endregion
 
-    private readonly ILogger<LoginModel> logger = logger;
-    private readonly IAuthenticationService _authService = authService;
+    private readonly IAuthenticationService authenticationService = authenticationService;
 
     [BindProperty]
     public LoginInput Input { get; set; } = new();
@@ -37,11 +37,11 @@ public class LoginModel(ILogger<LoginModel> logger, IAuthenticationService authS
 
         var email = this.Input.Email?.Trim() ?? string.Empty;
         var password = this.Input.Password ?? string.Empty;
-        var result = await this._authService.AuthenticateAsync(email, password);
+        var result = await this.authenticationService.AuthenticateAsync(email, password);
 
         if (result.RequiresPasswordSetup && result.UserId.HasValue)
         {
-            return this.Redirect(string.Format(PasswordSetupUrl, result.UserId));
+            return this.Redirect(string.Format(null, PasswordSetupUrl, result.UserId));
         }
 
         if (!result.Success)
@@ -71,7 +71,7 @@ public class LoginModel(ILogger<LoginModel> logger, IAuthenticationService authS
 
         if (!string.IsNullOrEmpty(workspaceSlug))
         {
-            return this.Redirect(string.Format(WorkspaceRedirectUrl, workspaceSlug));
+            return this.Redirect(string.Format(null, WorkspaceRedirectUrl, workspaceSlug));
         }
 
         this.ErrorMessage = NoWorkspaceError;

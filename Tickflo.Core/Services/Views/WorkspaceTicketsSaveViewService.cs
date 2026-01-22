@@ -8,11 +8,11 @@ using Tickflo.Core.Services.Tickets;
 public class WorkspaceTicketsSaveViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
     IRolePermissionRepository rolePermissionRepository,
-    ITicketManagementService ticketService) : IWorkspaceTicketsSaveViewService
+    ITicketManagementService ticketManagementService) : IWorkspaceTicketsSaveViewService
 {
     private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
     private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
-    private readonly ITicketManagementService _ticketService = ticketService;
+    private readonly ITicketManagementService ticketManagementService = ticketManagementService;
 
     public async Task<WorkspaceTicketsSaveViewData> BuildAsync(int workspaceId, int userId, bool isNew, Ticket? existing = null)
     {
@@ -38,7 +38,7 @@ public class WorkspaceTicketsSaveViewService(
             // For existing tickets, also check scope access
             if (!isNew && existing != null)
             {
-                data.CanAccessTicket = await this._ticketService.CanUserAccessTicketAsync(existing, userId, workspaceId, isAdmin);
+                data.CanAccessTicket = await this.ticketManagementService.CanUserAccessTicketAsync(existing, userId, workspaceId, isAdmin);
             }
             else
             {

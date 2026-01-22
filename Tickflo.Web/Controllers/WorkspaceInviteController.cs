@@ -6,16 +6,16 @@ using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
 [ApiController]
-public class WorkspaceInviteController(IWorkspaceRepository workspaces, ITokenRepository tokens, IUserRepository users, IUserWorkspaceRepository userWorkspaces) : ControllerBase
+public class WorkspaceInviteController(IWorkspaceRepository workspaceRepository, ITokenRepository tokenRepository, IUserRepository users, IUserWorkspaceRepository userWorkspaceRepository) : ControllerBase
 {
     #region Constants
     private const string InvalidTokenError = "Invalid or expired token.";
     #endregion
 
-    private readonly IWorkspaceRepository _workspaces = workspaces;
-    private readonly ITokenRepository _tokens = tokens;
-    private readonly IUserRepository _users = users;
-    private readonly IUserWorkspaceRepository _userWorkspaces = userWorkspaces;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly ITokenRepository tokenRepository = tokenRepository;
+    private readonly IUserRepository userRepository = users;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
 
     [HttpGet("workspaces/{slug}/accept")]
     [AllowAnonymous]
@@ -26,25 +26,25 @@ public class WorkspaceInviteController(IWorkspaceRepository workspaces, ITokenRe
             return this.BadRequest(InvalidTokenError);
         }
 
-        var ws = await this._workspaces.FindBySlugAsync(slug);
+        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
         if (ws == null)
         {
             return this.NotFound();
         }
 
-        var tok = await this._tokens.FindByValueAsync(token);
+        var tok = await this.tokenRepository.FindByValueAsync(token);
         if (tok == null)
         {
             return this.BadRequest(InvalidTokenError);
         }
 
-        var user = await this._users.FindByIdAsync(tok.UserId);
+        var user = await this.userRepository.FindByIdAsync(tok.UserId);
         if (user == null)
         {
             return this.NotFound();
         }
 
-        var uw = await this._userWorkspaces.FindAsync(user.Id, ws.Id);
+        var uw = await this.userWorkspaceRepository.FindAsync(user.Id, ws.Id);
         if (uw == null)
         {
             return this.NotFound();
@@ -53,7 +53,7 @@ public class WorkspaceInviteController(IWorkspaceRepository workspaces, ITokenRe
         await this.AcceptWorkspaceInviteAsync(uw, user);
         await this.ConfirmUserEmailIfNeededAsync(user);
 
-        var reset = await this._tokens.CreatePasswordResetForUserIdAsync(user.Id);
+        var reset = await this.tokenRepository.CreatePasswordResetForUserIdAsync(user.Id);
         return this.Redirect($"/account/set-password?token={Uri.EscapeDataString(reset.Value)}");
     }
 
@@ -66,7 +66,7 @@ public class WorkspaceInviteController(IWorkspaceRepository workspaces, ITokenRe
             userWorkspace.Accepted = true;
             userWorkspace.UpdatedAt = DateTime.UtcNow;
             userWorkspace.UpdatedBy = user.Id;
-            await this._userWorkspaces.UpdateAsync(userWorkspace);
+            await this.userWorkspaceRepository.UpdateAsync(userWorkspace);
         }
     }
 
@@ -76,7 +76,7 @@ public class WorkspaceInviteController(IWorkspaceRepository workspaces, ITokenRe
         {
             user.EmailConfirmed = true;
             user.EmailConfirmationCode = null;
-            await this._users.UpdateAsync(user);
+            await this.userRepository.UpdateAsync(user);
         }
     }
 }

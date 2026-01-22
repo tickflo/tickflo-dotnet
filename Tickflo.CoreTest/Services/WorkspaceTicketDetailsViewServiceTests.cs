@@ -25,7 +25,7 @@ public class WorkspaceTicketDetailsViewServiceTests
         var userWorkspaceRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
         var teamRepo = new Mock<ITeamRepository>();
         var teamMemberRepo = new Mock<ITeamMemberRepository>();
-        var inventoryRepo = new Mock<IInventoryRepository>();
+        var inventoryRepository = new Mock<IInventoryRepository>();
         var locationRepository = new Mock<ILocationRepository>();
         var rolePermissionRepo = new Mock<IRolePermissionRepository>();
 
@@ -55,7 +55,7 @@ public class WorkspaceTicketDetailsViewServiceTests
 
         contactRepository.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
-        inventoryRepo.Setup(r => r.ListAsync(workspaceId, null, "active"))
+        inventoryRepository.Setup(r => r.ListAsync(workspaceId, null, "active"))
             .ReturnsAsync([]);
         userWorkspaceRepository.Setup(r => r.FindForWorkspaceAsync(workspaceId))
             .ReturnsAsync([]);
@@ -76,7 +76,7 @@ public class WorkspaceTicketDetailsViewServiceTests
             userWorkspaceRoleRepo.Object,
             teamRepo.Object,
             teamMemberRepo.Object,
-            inventoryRepo.Object,
+            inventoryRepository.Object,
             locationRepository.Object,
             rolePermissionRepo.Object);
 
@@ -112,7 +112,7 @@ public class WorkspaceTicketDetailsViewServiceTests
         var userWorkspaceRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
         var teamRepo = new Mock<ITeamRepository>();
         var teamMemberRepo = new Mock<ITeamMemberRepository>();
-        var inventoryRepo = new Mock<IInventoryRepository>();
+        var inventoryRepository = new Mock<IInventoryRepository>();
         var locationRepository = new Mock<ILocationRepository>();
         var rolePermissionRepo = new Mock<IRolePermissionRepository>();
 
@@ -142,7 +142,7 @@ public class WorkspaceTicketDetailsViewServiceTests
 
         contactRepository.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
-        inventoryRepo.Setup(r => r.ListAsync(workspaceId, null, "active"))
+        inventoryRepository.Setup(r => r.ListAsync(workspaceId, null, "active"))
             .ReturnsAsync([]);
         userWorkspaceRepository.Setup(r => r.FindForWorkspaceAsync(workspaceId))
             .ReturnsAsync([]);
@@ -163,7 +163,7 @@ public class WorkspaceTicketDetailsViewServiceTests
             userWorkspaceRoleRepo.Object,
             teamRepo.Object,
             teamMemberRepo.Object,
-            inventoryRepo.Object,
+            inventoryRepository.Object,
             locationRepository.Object,
             rolePermissionRepo.Object);
 
@@ -193,7 +193,7 @@ public class WorkspaceTicketDetailsViewServiceTests
         var userWorkspaceRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
         var teamRepo = new Mock<ITeamRepository>();
         var teamMemberRepo = new Mock<ITeamMemberRepository>();
-        var inventoryRepo = new Mock<IInventoryRepository>();
+        var inventoryRepository = new Mock<IInventoryRepository>();
         var locationRepository = new Mock<ILocationRepository>();
         var rolePermissionRepo = new Mock<IRolePermissionRepository>();
 
@@ -222,7 +222,7 @@ public class WorkspaceTicketDetailsViewServiceTests
             userWorkspaceRoleRepo.Object,
             teamRepo.Object,
             teamMemberRepo.Object,
-            inventoryRepo.Object,
+            inventoryRepository.Object,
             locationRepository.Object,
             rolePermissionRepo.Object);
 
@@ -249,7 +249,7 @@ public class WorkspaceTicketDetailsViewServiceTests
         var userWorkspaceRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
         var teamRepo = new Mock<ITeamRepository>();
         var teamMemberRepo = new Mock<ITeamMemberRepository>();
-        var inventoryRepo = new Mock<IInventoryRepository>();
+        var inventoryRepository = new Mock<IInventoryRepository>();
         var locationRepository = new Mock<ILocationRepository>();
         var rolePermissionRepo = new Mock<IRolePermissionRepository>();
 
@@ -274,7 +274,7 @@ public class WorkspaceTicketDetailsViewServiceTests
 
         contactRepository.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
-        inventoryRepo.Setup(r => r.ListAsync(workspaceId, null, "active"))
+        inventoryRepository.Setup(r => r.ListAsync(workspaceId, null, "active"))
             .ReturnsAsync([]);
         userWorkspaceRepository.Setup(r => r.FindForWorkspaceAsync(workspaceId))
             .ReturnsAsync([]);
@@ -297,7 +297,7 @@ public class WorkspaceTicketDetailsViewServiceTests
             userWorkspaceRoleRepo.Object,
             teamRepo.Object,
             teamMemberRepo.Object,
-            inventoryRepo.Object,
+            inventoryRepository.Object,
             locationRepository.Object,
             rolePermissionRepo.Object);
 

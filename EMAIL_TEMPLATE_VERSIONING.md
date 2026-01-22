@@ -123,7 +123,7 @@ var variables = new Dictionary<string, string>
     { "CONFIRMATION_LINK", "https://..." }
 };
 
-var (subject, body) = await _emailTemplateService.RenderTemplateAsync(
+var (subject, body) = await emailTemplateService.RenderTemplateAsync(
     EmailTemplateType.EmailConfirmationRequest, 
     variables
 );

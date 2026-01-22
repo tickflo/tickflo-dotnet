@@ -11,13 +11,13 @@ public class WorkspaceRolesAssignViewServiceTests
     public async Task BuildAsyncReturnsMembersRolesWhenAdmin()
     {
         var userWorkspaceRoleRepository = new Mock<IUserWorkspaceRoleRepository>();
-        var userWorkspaces = new Mock<IUserWorkspaceRepository>();
+        var userWorkspaceRepository = new Mock<IUserWorkspaceRepository>();
         var users = new Mock<IUserRepository>();
         var roles = new Mock<IRoleRepository>();
 
         userWorkspaceRoleRepository.Setup(x => x.IsAdminAsync(1, 10)).ReturnsAsync(true);
 
-        userWorkspaces.Setup(x => x.FindForWorkspaceAsync(10))
+        userWorkspaceRepository.Setup(x => x.FindForWorkspaceAsync(10))
             .ReturnsAsync(
             [
                 new UserWorkspace { UserId = 2, WorkspaceId = 10, Accepted = true },
@@ -35,7 +35,7 @@ public class WorkspaceRolesAssignViewServiceTests
         userWorkspaceRoleRepository.Setup(x => x.GetRolesAsync(3, 10))
             .ReturnsAsync([]);
 
-        var svc = new WorkspaceRolesAssignViewService(userWorkspaceRoleRepository.Object, userWorkspaces.Object, users.Object, roles.Object);
+        var svc = new WorkspaceRolesAssignViewService(userWorkspaceRoleRepository.Object, userWorkspaceRepository.Object, users.Object, roles.Object);
         var result = await svc.BuildAsync(10, 1);
 
         Assert.True(result.IsAdmin);
@@ -51,13 +51,13 @@ public class WorkspaceRolesAssignViewServiceTests
     public async Task BuildAsyncDeniesWhenNotAdmin()
     {
         var userWorkspaceRoleRepository = new Mock<IUserWorkspaceRoleRepository>();
-        var userWorkspaces = new Mock<IUserWorkspaceRepository>();
+        var userWorkspaceRepository = new Mock<IUserWorkspaceRepository>();
         var users = new Mock<IUserRepository>();
         var roles = new Mock<IRoleRepository>();
 
         userWorkspaceRoleRepository.Setup(x => x.IsAdminAsync(1, 10)).ReturnsAsync(false);
 
-        var svc = new WorkspaceRolesAssignViewService(userWorkspaceRoleRepository.Object, userWorkspaces.Object, users.Object, roles.Object);
+        var svc = new WorkspaceRolesAssignViewService(userWorkspaceRoleRepository.Object, userWorkspaceRepository.Object, users.Object, roles.Object);
         var result = await svc.BuildAsync(10, 1);
 
         Assert.False(result.IsAdmin);

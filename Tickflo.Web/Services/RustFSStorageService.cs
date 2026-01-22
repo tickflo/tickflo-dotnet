@@ -12,29 +12,29 @@ using Tickflo.Core.Services.Storage;
 /// </summary>
 public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILogger<RustFSStorageService> logger) : IFileStorageService
 {
-    private readonly IAmazonS3 _s3Client = s3Client;
-    private readonly TickfloConfig _config = config;
+    private readonly IAmazonS3 amazonS3 = s3Client;
+    private readonly TickfloConfig config = config;
     private readonly ILogger<RustFSStorageService> logger = logger;
 
     public async Task<string> UploadFileAsync(string filePath, Stream fileStream, string contentType, bool compress = false)
     {
         try
         {
-            if (compress && contentType.StartsWith("image/"))
+            if (compress && contentType.StartsWith("image/", StringComparison.Ordinal))
             {
                 return await this.UploadImageAsync(filePath, fileStream, 800, 600, 80);
             }
 
             var putRequest = new PutObjectRequest
             {
-                BucketName = this._config.S3Bucket,
+                BucketName = this.config.S3Bucket,
                 Key = filePath,
                 InputStream = fileStream,
                 ContentType = contentType,
                 CannedACL = S3CannedACL.PublicRead
             };
 
-            await this._s3Client.PutObjectAsync(putRequest);
+            await this.amazonS3.PutObjectAsync(putRequest);
 
             this.logger.LogInformation($"File uploaded successfully: {filePath}");
             return this.GetFileUrl(filePath);
@@ -59,14 +59,14 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
 
             var putRequest = new PutObjectRequest
             {
-                BucketName = this._config.S3Bucket,
+                BucketName = this.config.S3Bucket,
                 Key = imagePath,
                 InputStream = compressedStream,
                 ContentType = "image/jpeg",
                 CannedACL = S3CannedACL.PublicRead
             };
 
-            await this._s3Client.PutObjectAsync(putRequest);
+            await this.amazonS3.PutObjectAsync(putRequest);
 
             this.logger.LogInformation($"Image uploaded and compressed: {imagePath}");
             return this.GetFileUrl(imagePath);
@@ -85,11 +85,11 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
             // Download the original image
             var getRequest = new GetObjectRequest
             {
-                BucketName = this._config.S3Bucket,
+                BucketName = this.config.S3Bucket,
                 Key = imagePath
             };
 
-            using var response = await this._s3Client.GetObjectAsync(getRequest);
+            using var response = await this.amazonS3.GetObjectAsync(getRequest);
             using var originalStream = new MemoryStream();
             await response.ResponseStream.CopyToAsync(originalStream);
             originalStream.Position = 0;
@@ -102,14 +102,14 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
             // Upload thumbnail
             var putRequest = new PutObjectRequest
             {
-                BucketName = this._config.S3Bucket,
+                BucketName = this.config.S3Bucket,
                 Key = thumbnailPath,
                 InputStream = thumbnailStream,
                 ContentType = "image/jpeg",
                 CannedACL = S3CannedACL.PublicRead
             };
 
-            await this._s3Client.PutObjectAsync(putRequest);
+            await this.amazonS3.PutObjectAsync(putRequest);
 
             this.logger.LogInformation($"Thumbnail generated: {thumbnailPath}");
             return this.GetFileUrl(thumbnailPath);
@@ -127,11 +127,11 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
         {
             var getRequest = new GetObjectRequest
             {
-                BucketName = this._config.S3Bucket,
+                BucketName = this.config.S3Bucket,
                 Key = filePath
             };
 
-            var response = await this._s3Client.GetObjectAsync(getRequest);
+            var response = await this.amazonS3.GetObjectAsync(getRequest);
             var memoryStream = new MemoryStream();
             await response.ResponseStream.CopyToAsync(memoryStream);
             memoryStream.Position = 0;
@@ -157,11 +157,11 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
         {
             var deleteRequest = new DeleteObjectRequest
             {
-                BucketName = this._config.S3Bucket,
+                BucketName = this.config.S3Bucket,
                 Key = filePath
             };
 
-            await this._s3Client.DeleteObjectAsync(deleteRequest);
+            await this.amazonS3.DeleteObjectAsync(deleteRequest);
 
             this.logger.LogInformation($"File deleted: {filePath}");
             return true;
@@ -179,11 +179,11 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
         {
             var metadataRequest = new GetObjectMetadataRequest
             {
-                BucketName = this._config.S3Bucket,
+                BucketName = this.config.S3Bucket,
                 Key = filePath
             };
 
-            await this._s3Client.GetObjectMetadataAsync(metadataRequest);
+            await this.amazonS3.GetObjectMetadataAsync(metadataRequest);
             return true;
         }
         catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -203,11 +203,11 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
         {
             var metadataRequest = new GetObjectMetadataRequest
             {
-                BucketName = this._config.S3Bucket,
+                BucketName = this.config.S3Bucket,
                 Key = filePath
             };
 
-            var response = await this._s3Client.GetObjectMetadataAsync(metadataRequest);
+            var response = await this.amazonS3.GetObjectMetadataAsync(metadataRequest);
 
             return new FileMetadata
             {
@@ -228,8 +228,8 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
     public string GetFileUrl(string filePath)
     {
         // Construct the public URL based on the S3 endpoint and bucket
-        var endpoint = this._config.S3EndPoint.TrimEnd('/');
-        return $"{endpoint}/{this._config.S3Bucket}/{filePath}";
+        var endpoint = this.config.S3EndPoint.TrimEnd('/');
+        return $"{endpoint}/{this.config.S3Bucket}/{filePath}";
     }
 
     public async Task<IReadOnlyList<string>> ListFilesAsync(string prefix)
@@ -238,11 +238,11 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
         {
             var listRequest = new ListObjectsV2Request
             {
-                BucketName = this._config.S3Bucket,
+                BucketName = this.config.S3Bucket,
                 Prefix = prefix
             };
 
-            var response = await this._s3Client.ListObjectsV2Async(listRequest);
+            var response = await this.amazonS3.ListObjectsV2Async(listRequest);
             var files = response.S3Objects.Select(obj => obj.Key).ToList();
 
             this.logger.LogInformation($"Listed {files.Count} files with prefix: {prefix}");

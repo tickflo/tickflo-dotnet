@@ -14,7 +14,7 @@ public class TicketManagementService(
     ITeamRepository teamRepository,
     ITeamMemberRepository teamMemberRepo,
     ILocationRepository locationRepository,
-    IInventoryRepository inventoryRepo,
+    IInventoryRepository inventoryRepository,
     IRolePermissionRepository rolePermRepo,
     ITicketTypeRepository ticketTypeRepository,
     ITicketPriorityRepository priorityRepository,
@@ -33,7 +33,7 @@ public class TicketManagementService(
     private readonly ITeamRepository teamRepository = teamRepository;
     private readonly ITeamMemberRepository teamMemberRepository = teamMemberRepo;
     private readonly ILocationRepository locationRepository = locationRepository;
-    private readonly IInventoryRepository _inventoryRepo = inventoryRepo;
+    private readonly IInventoryRepository inventoryRepository = inventoryRepository;
     private readonly IRolePermissionRepository _rolePermRepo = rolePermRepo;
     private readonly ITicketTypeRepository ticketTypeRepository = ticketTypeRepository;
     private readonly ITicketPriorityRepository priorityRepository = priorityRepository;
@@ -381,7 +381,7 @@ public class TicketManagementService(
             return name;
         }
 
-        var inventory = await this._inventoryRepo.FindAsync(workspaceId, ticketInventory.InventoryId);
+        var inventory = await this.inventoryRepository.FindAsync(workspaceId, ticketInventory.InventoryId);
         return inventory?.Name ?? $"Item #{ticketInventory.InventoryId}";
     }
 

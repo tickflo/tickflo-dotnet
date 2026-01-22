@@ -12,7 +12,7 @@ public class WorkspaceReportsViewService(
 {
     private readonly IRolePermissionRepository _rolePermissions = rolePermissions;
     private readonly IReportQueryService _reportQueryService = reportQueryService;
-    private readonly IWorkspaceAccessService _workspaceAccessService = workspaceAccessService;
+    private readonly IWorkspaceAccessService workspaceAccessService = workspaceAccessService;
 
     public async Task<WorkspaceReportsViewData> BuildAsync(int workspaceId, int userId)
     {

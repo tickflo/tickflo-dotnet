@@ -1,5 +1,6 @@
 namespace Tickflo.Web.Pages.Workspaces;
 
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
@@ -12,20 +13,20 @@ public class LocationsEditModel(
     IWorkspaceRepository workspaceRepo,
     IUserWorkspaceRepository userWorkspaceRepository,
     ILocationRepository locationRepository,
-    IWorkspaceLocationsEditViewService viewService,
+    IWorkspaceLocationsEditViewService workspaceLocationsEditViewService,
     ILocationSetupService locationSetupService) : WorkspacePageModel
 {
     #region Constants
     private const int NewLocationId = 0;
-    private const string LocationCreatedSuccessfully = "Location '{0}' created successfully.";
-    private const string LocationUpdatedSuccessfully = "Location '{0}' updated successfully.";
+    private static readonly CompositeFormat LocationCreatedSuccessfully = CompositeFormat.Parse("Location '{0}' created successfully.");
+    private static readonly CompositeFormat LocationUpdatedSuccessfully = CompositeFormat.Parse("Location '{0}' updated successfully.");
     #endregion
 
     private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly ILocationRepository locationRepository = locationRepository;
-    private readonly IWorkspaceLocationsEditViewService _viewService = viewService;
-    private readonly ILocationSetupService _locationSetupService = locationSetupService;
+    private readonly IWorkspaceLocationsEditViewService workspaceLocationsEditViewService = workspaceLocationsEditViewService;
+    private readonly ILocationSetupService locationSetupService = locationSetupService;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
@@ -61,7 +62,7 @@ public class LocationsEditModel(
         this.Workspace = workspace;
         var workspaceId = workspace!.Id;
 
-        var viewData = await this._viewService.BuildAsync(workspaceId, uid, locationId);
+        var viewData = await this.workspaceLocationsEditViewService.BuildAsync(workspaceId, uid, locationId);
         this.CanViewLocations = viewData.CanViewLocations;
         this.CanEditLocations = viewData.CanEditLocations;
         this.CanCreateLocations = viewData.CanCreateLocations;
@@ -100,7 +101,7 @@ public class LocationsEditModel(
         this.Workspace = workspace;
         var workspaceId = workspace!.Id;
 
-        var viewData = await this._viewService.BuildAsync(workspaceId, uid, this.LocationId);
+        var viewData = await this.workspaceLocationsEditViewService.BuildAsync(workspaceId, uid, this.LocationId);
         if (this.EnsureCreateOrEditPermission(this.LocationId, viewData.CanCreateLocations, viewData.CanEditLocations) is IActionResult permCheck)
         {
             return permCheck;
@@ -160,7 +161,7 @@ public class LocationsEditModel(
 
     private async Task<int> CreateAndSaveLocationAsync(int workspaceId, int userId)
     {
-        var created = await this._locationSetupService.CreateLocationAsync(workspaceId, new LocationCreationRequest
+        var created = await this.locationSetupService.CreateLocationAsync(workspaceId, new LocationCreationRequest
         {
             Name = this.Name?.Trim() ?? string.Empty,
             Address = this.Address?.Trim() ?? string.Empty
@@ -168,14 +169,14 @@ public class LocationsEditModel(
 
         this.ApplyLocationSettings(created);
         await this.locationRepository.UpdateAsync(created);
-        this.SetSuccessMessage(string.Format(LocationCreatedSuccessfully, created.Name));
+        this.SetSuccessMessage(string.Format(null, LocationCreatedSuccessfully, created.Name));
 
         return created.Id;
     }
 
     private async Task<int> UpdateAndSaveLocationAsync(int workspaceId, int userId)
     {
-        var updated = await this._locationSetupService.UpdateLocationDetailsAsync(workspaceId, this.LocationId, new LocationUpdateRequest
+        var updated = await this.locationSetupService.UpdateLocationDetailsAsync(workspaceId, this.LocationId, new LocationUpdateRequest
         {
             Name = this.Name?.Trim() ?? string.Empty,
             Address = this.Address?.Trim() ?? string.Empty
@@ -183,7 +184,7 @@ public class LocationsEditModel(
 
         this.ApplyLocationSettings(updated);
         await this.locationRepository.UpdateAsync(updated);
-        this.SetSuccessMessage(string.Format(LocationUpdatedSuccessfully, updated.Name));
+        this.SetSuccessMessage(string.Format(null, LocationUpdatedSuccessfully, updated.Name));
 
         return updated.Id;
     }
@@ -194,7 +195,7 @@ public class LocationsEditModel(
         location.Active = this.Active;
     }
 
-    private IActionResult RedirectToLocationsWithPreservedFilters(string slug)
+    private RedirectToPageResult RedirectToLocationsWithPreservedFilters(string slug)
     {
         var queryQ = this.Request.Query["Query"].ToString();
         var pageQ = this.Request.Query["PageNumber"].ToString();

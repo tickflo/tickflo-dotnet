@@ -6,12 +6,12 @@ using InventoryEntity = Entities.Inventory;
 public class WorkspaceInventoryEditViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
     IRolePermissionRepository rolePermissionRepository,
-    IInventoryRepository inventoryRepo,
+    IInventoryRepository inventoryRepository,
     ILocationRepository locationRepository) : IWorkspaceInventoryEditViewService
 {
     private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
     private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
-    private readonly IInventoryRepository _inventoryRepo = inventoryRepo;
+    private readonly IInventoryRepository inventoryRepository = inventoryRepository;
     private readonly ILocationRepository locationRepository = locationRepository;
 
     public async Task<WorkspaceInventoryEditViewData> BuildAsync(int workspaceId, int userId, int inventoryId = 0)
@@ -37,7 +37,7 @@ public class WorkspaceInventoryEditViewService(
 
         if (inventoryId > 0)
         {
-            data.ExistingItem = await this._inventoryRepo.FindAsync(workspaceId, inventoryId);
+            data.ExistingItem = await this.inventoryRepository.FindAsync(workspaceId, inventoryId);
         }
         else
         {

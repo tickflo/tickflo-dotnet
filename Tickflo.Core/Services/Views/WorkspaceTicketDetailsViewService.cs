@@ -19,7 +19,7 @@ public class WorkspaceTicketDetailsViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
     ITeamRepository teamRepository,
     ITeamMemberRepository teamMemberRepo,
-    IInventoryRepository inventoryRepo,
+    IInventoryRepository inventoryRepository,
     ILocationRepository locationRepository,
     IRolePermissionRepository rolePermissionRepo) : IWorkspaceTicketDetailsViewService
 {
@@ -34,7 +34,7 @@ public class WorkspaceTicketDetailsViewService(
     private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
     private readonly ITeamRepository teamRepository = teamRepository;
     private readonly ITeamMemberRepository teamMemberRepository = teamMemberRepo;
-    private readonly IInventoryRepository _inventoryRepo = inventoryRepo;
+    private readonly IInventoryRepository inventoryRepository = inventoryRepository;
     private readonly ILocationRepository locationRepository = locationRepository;
     private readonly IRolePermissionRepository _rolePermissionRepo = rolePermissionRepo;
 
@@ -150,7 +150,7 @@ public class WorkspaceTicketDetailsViewService(
         data.Contacts = await this.contactRepository.ListAsync(workspaceId, cancellationToken);
 
         // Load inventory items
-        data.InventoryItems = [.. await this._inventoryRepo.ListAsync(workspaceId, null, "active")];
+        data.InventoryItems = [.. await this.inventoryRepository.ListAsync(workspaceId, null, "active")];
 
         // Load statuses with fallback defaults
         var statuses = await this.statusRepository.ListAsync(workspaceId, cancellationToken);

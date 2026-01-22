@@ -7,7 +7,7 @@ using Xunit;
 
 public class RoleManagementServiceTests
 {
-    private static IRoleManagementService CreateService(
+    private static RoleManagementService CreateService(
         IUserWorkspaceRoleRepository? uwrRepo = null,
         IRoleRepository? roleRepo = null)
     {
@@ -74,7 +74,7 @@ public class RoleManagementServiceTests
     {
         var uwrRepo = new Mock<IUserWorkspaceRoleRepository>();
         uwrRepo.Setup(r => r.RemoveAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()))
-            .ThrowsAsync(new Exception("Test error"));
+            .ThrowsAsync(new InvalidOperationException("Test error"));
 
         var svc = CreateService(uwrRepo.Object);
 

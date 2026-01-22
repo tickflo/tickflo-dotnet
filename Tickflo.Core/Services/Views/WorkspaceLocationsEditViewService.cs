@@ -7,15 +7,15 @@ public class WorkspaceLocationsEditViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
     IRolePermissionRepository rolePermissionRepository,
     ILocationRepository locationRepository,
-    IUserWorkspaceRepository userWorkspaces,
+    IUserWorkspaceRepository userWorkspaceRepository,
     IUserRepository users,
     IContactRepository contacts) : IWorkspaceLocationsEditViewService
 {
     private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
     private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
     private readonly ILocationRepository locationRepository = locationRepository;
-    private readonly IUserWorkspaceRepository _userWorkspaces = userWorkspaces;
-    private readonly IUserRepository _users = users;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IUserRepository userRepository = users;
     private readonly IContactRepository _contacts = contacts;
 
     public async Task<WorkspaceLocationsEditViewData> BuildAsync(int workspaceId, int userId, int locationId = 0)
@@ -37,12 +37,12 @@ public class WorkspaceLocationsEditViewService(
         }
 
         // Load members for default assignee selection
-        var memberships = await this._userWorkspaces.FindForWorkspaceAsync(workspaceId);
+        var memberships = await this.userWorkspaceRepository.FindForWorkspaceAsync(workspaceId);
         if (memberships != null)
         {
             foreach (var m in memberships.Select(m => m.UserId).Distinct())
             {
-                var u = await this._users.FindByIdAsync(m);
+                var u = await this.userRepository.FindByIdAsync(m);
                 if (u != null)
                 {
                     data.MemberOptions.Add(u);

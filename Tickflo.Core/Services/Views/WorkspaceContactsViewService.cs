@@ -7,7 +7,7 @@ public class WorkspaceContactsViewService(
     IWorkspaceAccessService workspaceAccessService,
     IContactListingService listingService) : IWorkspaceContactsViewService
 {
-    private readonly IWorkspaceAccessService _workspaceAccessService = workspaceAccessService;
+    private readonly IWorkspaceAccessService workspaceAccessService = workspaceAccessService;
     private readonly IContactListingService _listingService = listingService;
 
     public async Task<WorkspaceContactsViewData> BuildAsync(int workspaceId, int userId, string? priorityFilter = null, string? searchQuery = null)
@@ -15,7 +15,7 @@ public class WorkspaceContactsViewService(
         var data = new WorkspaceContactsViewData();
 
         // Get permissions
-        var permissions = await this._workspaceAccessService.GetUserPermissionsAsync(workspaceId, userId);
+        var permissions = await this.workspaceAccessService.GetUserPermissionsAsync(workspaceId, userId);
         if (permissions.TryGetValue("contacts", out var contactPermissions))
         {
             data.CanCreateContacts = contactPermissions.CanCreate;

@@ -11,12 +11,12 @@ using Tickflo.Core.Services.Workspace;
 
 [Authorize]
 public class InventoryModel(
-    IWorkspaceRepository workspaces,
+    IWorkspaceRepository workspaceRepository,
     IUserWorkspaceRepository userWorkspaceRepository,
-    IInventoryRepository inventoryRepo,
+    IInventoryRepository inventoryRepository,
     ICurrentUserService currentUserService,
     IWorkspaceAccessService workspaceAccessService,
-    IWorkspaceInventoryViewService viewService) : WorkspacePageModel
+    IWorkspaceInventoryViewService workspaceInventoryViewService) : WorkspacePageModel
 {
     #region Constants
     private const string InventorySection = "inventory";
@@ -27,12 +27,12 @@ public class InventoryModel(
     private const string ItemRestoredMessage = "Inventory item restored.";
     #endregion
 
-    private readonly IWorkspaceRepository _workspaces = workspaces;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly IInventoryRepository _inventoryRepo = inventoryRepo;
-    private readonly ICurrentUserService _currentUserService = currentUserService;
-    private readonly IWorkspaceAccessService _workspaceAccessService = workspaceAccessService;
-    private readonly IWorkspaceInventoryViewService _viewService = viewService;
+    private readonly IInventoryRepository inventoryRepository = inventoryRepository;
+    private readonly ICurrentUserService currentUserService = currentUserService;
+    private readonly IWorkspaceAccessService workspaceAccessService = workspaceAccessService;
+    private readonly IWorkspaceInventoryViewService workspaceInventoryViewService = workspaceInventoryViewService;
 
     [BindProperty(SupportsGet = true)]
     public string? Query { get; set; }
@@ -51,7 +51,7 @@ public class InventoryModel(
     {
         this.WorkspaceSlug = slug;
 
-        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this._workspaces, this.userWorkspaceRepository, slug);
+        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (result is IActionResult actionResult)
         {
             return actionResult;
@@ -60,7 +60,7 @@ public class InventoryModel(
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
         this.Workspace = workspace;
 
-        var viewData = await this._viewService.BuildAsync(this.Workspace!.Id, uid);
+        var viewData = await this.workspaceInventoryViewService.BuildAsync(this.Workspace!.Id, uid);
         this.IsWorkspaceAdmin = viewData.IsWorkspaceAdmin;
         this.CanCreateInventory = viewData.CanCreateInventory;
         this.CanEditInventory = viewData.CanEditInventory;
@@ -87,7 +87,7 @@ public class InventoryModel(
             return authResult;
         }
 
-        var item = await this._inventoryRepo.FindAsync(this.Workspace!.Id, id);
+        var item = await this.inventoryRepository.FindAsync(this.Workspace!.Id, id);
         if (item == null)
         {
             return this.NotFound();
@@ -108,7 +108,7 @@ public class InventoryModel(
             return authResult;
         }
 
-        var item = await this._inventoryRepo.FindAsync(this.Workspace!.Id, id);
+        var item = await this.inventoryRepository.FindAsync(this.Workspace!.Id, id);
         if (item == null)
         {
             return this.NotFound();
@@ -122,18 +122,18 @@ public class InventoryModel(
 
     private async Task<IActionResult?> AuthorizeInventoryEditAsync(string slug)
     {
-        this.Workspace = await this._workspaces.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.Workspace == null)
         {
             return this.NotFound();
         }
 
-        if (!this._currentUserService.TryGetUserId(this.User, out var uid))
+        if (!this.currentUserService.TryGetUserId(this.User, out var uid))
         {
             return this.Forbid();
         }
 
-        var allowed = await this._workspaceAccessService.CanUserPerformActionAsync(
+        var allowed = await this.workspaceAccessService.CanUserPerformActionAsync(
             this.Workspace.Id, uid, InventorySection, EditAction);
 
         if (!allowed)
@@ -147,9 +147,9 @@ public class InventoryModel(
     private async Task UpdateInventoryStatusAsync(Inventory item, string status)
     {
         item.Status = status;
-        await this._inventoryRepo.UpdateAsync(item);
+        await this.inventoryRepository.UpdateAsync(item);
     }
 
-    private IActionResult RedirectToInventoryPage() => this.Redirect($"/workspaces/{this.Workspace!.Slug}/inventory");
+    private RedirectResult RedirectToInventoryPage() => this.Redirect($"/workspaces/{this.Workspace!.Slug}/inventory");
 }
 

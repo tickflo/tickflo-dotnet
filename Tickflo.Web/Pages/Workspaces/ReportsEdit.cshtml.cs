@@ -1,5 +1,6 @@
 namespace Tickflo.Web.Pages.Workspaces;
 
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
@@ -9,22 +10,22 @@ using Tickflo.Core.Services.Reporting;
 using Tickflo.Core.Services.Views;
 
 [Authorize]
-public class ReportsEditModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepository, IReportCommandService reportCommandService, IReportDefinitionValidator defValidator, IWorkspaceReportsEditViewService reportsEditViewService) : WorkspacePageModel
+public class ReportsEditModel(IWorkspaceRepository workspaceRepository, IUserWorkspaceRepository userWorkspaceRepository, IReportCommandService reportCommandService, IReportDefinitionValidator reportDefinitionService, IWorkspaceReportsEditViewService workspaceReportsEditViewService) : WorkspacePageModel
 {
     #region Constants
     private const int NewReportId = 0;
     private const string DefaultReportSource = "tickets";
     private const string DefaultFieldsCsv = "Id,Subject,Status,CreatedAt";
     private const string DefaultScheduleType = "none";
-    private const string ReportCreatedSuccessfully = "Report '{0}' created successfully.";
-    private const string ReportUpdatedSuccessfully = "Report '{0}' updated successfully.";
+    private static readonly CompositeFormat ReportCreatedSuccessfully = CompositeFormat.Parse("Report '{0}' created successfully.");
+    private static readonly CompositeFormat ReportUpdatedSuccessfully = CompositeFormat.Parse("Report '{0}' updated successfully.");
     #endregion
 
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly IReportCommandService _reportCommandService = reportCommandService;
-    private readonly IReportDefinitionValidator _defValidator = defValidator;
-    private readonly IWorkspaceReportsEditViewService _reportsEditViewService = reportsEditViewService;
+    private readonly IReportCommandService reportCommandService = reportCommandService;
+    private readonly IReportDefinitionValidator reportDefinitionService = reportDefinitionService;
+    private readonly IWorkspaceReportsEditViewService workspaceReportsEditViewService = workspaceReportsEditViewService;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
@@ -70,7 +71,7 @@ public class ReportsEditModel(IWorkspaceRepository workspaceRepo, IUserWorkspace
         var (workspace, uid) = (WorkspaceUserLoadResult)workspaceLoadResult;
         this.Workspace = workspace;
         var workspaceId = this.Workspace!.Id;
-        var data = await this._reportsEditViewService.BuildAsync(workspaceId, uid, reportId);
+        var data = await this.workspaceReportsEditViewService.BuildAsync(workspaceId, uid, reportId);
         this.CanViewReports = data.CanViewReports;
         this.CanEditReports = data.CanEditReports;
         this.CanCreateReports = data.CanCreateReports;
@@ -107,7 +108,7 @@ public class ReportsEditModel(IWorkspaceRepository workspaceRepo, IUserWorkspace
         var (workspace, uid) = (WorkspaceUserLoadResult)loadResult;
         this.Workspace = workspace;
         var workspaceId = workspace!.Id;
-        var data = await this._reportsEditViewService.BuildAsync(workspaceId, uid, this.ReportId);
+        var data = await this.workspaceReportsEditViewService.BuildAsync(workspaceId, uid, this.ReportId);
 
         if (!this.ValidateReportPermissions(data))
         {
@@ -120,7 +121,7 @@ public class ReportsEditModel(IWorkspaceRepository workspaceRepo, IUserWorkspace
         }
 
         var nameTrim = this.Name?.Trim() ?? string.Empty;
-        var defJson = this._defValidator.BuildJson(this.Source, this.FieldsCsv, this.FiltersJson);
+        var defJson = this.reportDefinitionService.BuildJson(this.Source, this.FieldsCsv, this.FiltersJson);
         var schedTime = this.ParseScheduleTime();
 
         if (this.ReportId == NewReportId)
@@ -150,7 +151,7 @@ public class ReportsEditModel(IWorkspaceRepository workspaceRepo, IUserWorkspace
         this.Name = rep.Name;
         this.Ready = rep.Ready;
 
-        var def = this._defValidator.Parse(rep.DefinitionJson);
+        var def = this.reportDefinitionService.Parse(rep.DefinitionJson);
         this.Source = def.Source;
         this.FieldsCsv = string.Join(",", def.Fields);
         this.FiltersJson = def.FiltersJson;
@@ -193,7 +194,7 @@ public class ReportsEditModel(IWorkspaceRepository workspaceRepo, IUserWorkspace
 
     private async Task CreateReportAsync(int workspaceId, string name, string definitionJson, TimeSpan? scheduleTime)
     {
-        await this._reportCommandService.CreateAsync(new Report
+        await this.reportCommandService.CreateAsync(new Report
         {
             WorkspaceId = workspaceId,
             Name = name,
@@ -205,12 +206,12 @@ public class ReportsEditModel(IWorkspaceRepository workspaceRepo, IUserWorkspace
             ScheduleDayOfWeek = this.ScheduleDayOfWeek,
             ScheduleDayOfMonth = this.ScheduleDayOfMonth
         });
-        this.SetSuccessMessage(string.Format(ReportCreatedSuccessfully, this.Name));
+        this.SetSuccessMessage(string.Format(null, ReportCreatedSuccessfully, this.Name));
     }
 
     private async Task<IActionResult?> UpdateReportAsync(int workspaceId, string name, string definitionJson, TimeSpan? scheduleTime)
     {
-        var updated = await this._reportCommandService.UpdateAsync(new Report
+        var updated = await this.reportCommandService.UpdateAsync(new Report
         {
             Id = this.ReportId,
             WorkspaceId = workspaceId,
@@ -229,11 +230,11 @@ public class ReportsEditModel(IWorkspaceRepository workspaceRepo, IUserWorkspace
             return result;
         }
 
-        this.SetSuccessMessage(string.Format(ReportUpdatedSuccessfully, this.Name));
+        this.SetSuccessMessage(string.Format(null, ReportUpdatedSuccessfully, this.Name));
         return null;
     }
 
-    private IActionResult RedirectToReportsWithPreservedFilters(string slug)
+    private RedirectToPageResult RedirectToReportsWithPreservedFilters(string slug)
     {
         var queryQ = this.Request.Query["Query"].ToString();
         var pageQ = this.Request.Query["PageNumber"].ToString();

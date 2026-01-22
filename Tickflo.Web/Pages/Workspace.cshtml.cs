@@ -15,12 +15,12 @@ public class WorkspaceModel : PageModel
 {
     private readonly IWorkspaceRepository workspaceRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository;
-    private readonly IUserRepository _users;
-    private readonly IWorkspaceDashboardViewService _dashboardViewService;
+    private readonly IUserRepository userRepository;
+    private readonly IWorkspaceDashboardViewService workspaceDashboardViewService;
     private readonly ITeamMemberRepository teamMemberRepository;
-    private readonly SettingsConfig _settingsConfig;
-    private readonly ICurrentUserService _currentUserService;
-    private readonly IWorkspaceCreationService _workspaceCreationService;
+    private readonly SettingsConfig settingsConfig;
+    private readonly ICurrentUserService currentUserService;
+    private readonly IWorkspaceCreationService workspaceCreationService;
 
     public Workspace? Workspace { get; set; }
     public bool IsMember { get; set; }
@@ -78,19 +78,19 @@ public class WorkspaceModel : PageModel
     {
         this.workspaceRepository = workspaceRepo;
         this.userWorkspaceRepository = userWorkspaceRepository;
-        this._users = users;
-        this._dashboardViewService = dashboardViewService;
+        this.userRepository = users;
+        this.workspaceDashboardViewService = dashboardViewService;
         this.teamMemberRepository = teamMembers;
-        this._settingsConfig = settingsConfig;
-        this._currentUserService = currentUserService;
-        this._workspaceCreationService = workspaceCreationService;
+        this.settingsConfig = settingsConfig;
+        this.currentUserService = currentUserService;
+        this.workspaceCreationService = workspaceCreationService;
 
         this.InitializeTheme();
     }
 
     private void InitializeTheme()
     {
-        this.DashboardTheme = this._settingsConfig?.Theme?.Default ?? "light";
+        this.DashboardTheme = this.settingsConfig?.Theme?.Default ?? "light";
         this.PrimaryColor = "primary";
         this.SuccessColor = "success";
         this.InfoColor = "info";
@@ -164,7 +164,7 @@ public class WorkspaceModel : PageModel
 
         try
         {
-            var workspace = await this._workspaceCreationService.CreateWorkspaceAsync(
+            var workspace = await this.workspaceCreationService.CreateWorkspaceAsync(
                 new WorkspaceCreationRequest { Name = trimmedName },
                 userId);
 
@@ -193,12 +193,12 @@ public class WorkspaceModel : PageModel
 
     private async Task<(int UserId, User User)?> GetAuthenticatedUserAsync()
     {
-        if (!this._currentUserService.TryGetUserId(this.User, out var userId))
+        if (!this.currentUserService.TryGetUserId(this.User, out var userId))
         {
             return null;
         }
 
-        var user = await this._users.FindByIdAsync(userId);
+        var user = await this.userRepository.FindByIdAsync(userId);
         return user == null ? null : (userId, user);
     }
 
@@ -229,7 +229,7 @@ public class WorkspaceModel : PageModel
     private async Task LoadDashboardDataAsync(int workspaceId, int rangeDays, string assignmentFilter, int userId)
     {
         // First pass: get scope to determine team IDs (use placeholder scope initially)
-        var view = await this._dashboardViewService.BuildAsync(workspaceId, userId, "all", [], rangeDays, assignmentFilter);
+        var view = await this.workspaceDashboardViewService.BuildAsync(workspaceId, userId, "all", [], rangeDays, assignmentFilter);
 
         // Extract permissions from view
         this.CanViewDashboard = view.CanViewDashboard;
@@ -241,12 +241,12 @@ public class WorkspaceModel : PageModel
         {
             var myTeams = await this.teamMemberRepository.ListTeamsForUserAsync(workspaceId, userId);
             var teamIds = myTeams.Select(t => t.Id).ToList();
-            view = await this._dashboardViewService.BuildAsync(workspaceId, userId, view.TicketViewScope, teamIds, rangeDays, assignmentFilter);
+            view = await this.workspaceDashboardViewService.BuildAsync(workspaceId, userId, view.TicketViewScope, teamIds, rangeDays, assignmentFilter);
         }
         else if (view.TicketViewScope != "all")
         {
             // Re-fetch with correct scope if not "all"
-            view = await this._dashboardViewService.BuildAsync(workspaceId, userId, view.TicketViewScope, [], rangeDays, assignmentFilter);
+            view = await this.workspaceDashboardViewService.BuildAsync(workspaceId, userId, view.TicketViewScope, [], rangeDays, assignmentFilter);
         }
 
         this.TotalTickets = view.TotalTickets;
@@ -288,7 +288,7 @@ public class WorkspaceModel : PageModel
 
     public static string HexToRgba(string hex, double opacity)
     {
-        if (string.IsNullOrWhiteSpace(hex) || !hex.StartsWith("#"))
+        if (string.IsNullOrWhiteSpace(hex) || !hex.StartsWith('#'))
         {
             return hex;
         }

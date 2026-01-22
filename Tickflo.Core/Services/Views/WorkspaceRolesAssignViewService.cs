@@ -4,12 +4,12 @@ using Tickflo.Core.Data;
 
 public class WorkspaceRolesAssignViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
-    IUserWorkspaceRepository userWorkspaces,
+    IUserWorkspaceRepository userWorkspaceRepository,
     IUserRepository userRepository,
     IRoleRepository roleRepo) : IWorkspaceRolesAssignViewService
 {
     private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaces = userWorkspaces;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly IUserRepository userRepository = userRepository;
     private readonly IRoleRepository roleRepository = roleRepo;
 
@@ -24,7 +24,7 @@ public class WorkspaceRolesAssignViewService(
             return data;
         }
 
-        var memberships = await this._userWorkspaces.FindForWorkspaceAsync(workspaceId);
+        var memberships = await this.userWorkspaceRepository.FindForWorkspaceAsync(workspaceId);
         var userIds = memberships.Select(m => m.UserId).Distinct().ToList();
         foreach (var id in userIds)
         {

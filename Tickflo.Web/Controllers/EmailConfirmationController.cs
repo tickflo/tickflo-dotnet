@@ -11,16 +11,16 @@ using Tickflo.Core.Utils;
 [ApiController]
 public class EmailConfirmationController(
     IUserRepository users,
-    IEmailSenderService emailSender,
+    IEmailSenderService emailSenderService,
     IEmailTemplateService emailTemplateService,
     INotificationRepository notificationRepository,
     ICurrentUserService currentUserService) : ControllerBase
 {
-    private readonly IUserRepository _users = users;
-    private readonly IEmailSenderService _emailSender = emailSender;
-    private readonly IEmailTemplateService _emailTemplateService = emailTemplateService;
-    private readonly INotificationRepository _notificationRepository = notificationRepository;
-    private readonly ICurrentUserService _currentUserService = currentUserService;
+    private readonly IUserRepository userRepository = users;
+    private readonly IEmailSenderService emailSenderService = emailSenderService;
+    private readonly IEmailTemplateService emailTemplateService = emailTemplateService;
+    private readonly INotificationRepository notificationRepository = notificationRepository;
+    private readonly ICurrentUserService currentUserService = currentUserService;
 
     [HttpGet("email-confirmation/confirm")]
     [AllowAnonymous]
@@ -32,7 +32,7 @@ public class EmailConfirmationController(
         }
 
         var normalizedEmail = email.Trim().ToLowerInvariant();
-        var user = await this._users.FindByEmailAsync(normalizedEmail);
+        var user = await this.userRepository.FindByEmailAsync(normalizedEmail);
         if (user == null)
         {
             return this.NotFound();
@@ -50,7 +50,7 @@ public class EmailConfirmationController(
 
         user.EmailConfirmed = true;
         user.EmailConfirmationCode = null;
-        await this._users.UpdateAsync(user);
+        await this.userRepository.UpdateAsync(user);
         return this.Redirect("/email-confirmation/thank-you");
     }
 
@@ -59,12 +59,12 @@ public class EmailConfirmationController(
     public async Task<IActionResult> Resend()
     {
         // Get the current authenticated user
-        if (!this._currentUserService.TryGetUserId(this.User, out var userId))
+        if (!this.currentUserService.TryGetUserId(this.User, out var userId))
         {
             return this.Unauthorized();
         }
 
-        var user = await this._users.FindByIdAsync(userId);
+        var user = await this.userRepository.FindByIdAsync(userId);
         if (user == null)
         {
             return this.NotFound("User not found.");
@@ -78,7 +78,7 @@ public class EmailConfirmationController(
         // Generate a new confirmation code
         var newCode = TokenGenerator.GenerateToken(16);
         user.EmailConfirmationCode = newCode;
-        await this._users.UpdateAsync(user);
+        await this.userRepository.UpdateAsync(user);
 
         // Create confirmation link
         var confirmationLink = $"{this.Request.Scheme}://{this.Request.Host}/email-confirmation/confirm?email={Uri.EscapeDataString(user.Email)}&code={Uri.EscapeDataString(newCode)}";
@@ -89,10 +89,10 @@ public class EmailConfirmationController(
             { "CONFIRMATION_LINK", confirmationLink }
         };
 
-        var (subject, body) = await this._emailTemplateService.RenderTemplateAsync(EmailTemplateType.EmailConfirmationRequest, variables);
+        var (subject, body) = await this.emailTemplateService.RenderTemplateAsync(EmailTemplateType.EmailConfirmationRequest, variables);
 
         // Send the email
-        await this._emailSender.SendAsync(user.Email, subject, body);
+        await this.emailSenderService.SendAsync(user.Email, subject, body);
 
         // Create a notification record in the database
         var notification = new Notification
@@ -110,7 +110,7 @@ public class EmailConfirmationController(
             CreatedBy = userId
         };
 
-        await this._notificationRepository.AddAsync(notification);
+        await this.notificationRepository.AddAsync(notification);
 
         return this.Ok(new { message = "Confirmation email resent successfully." });
     }

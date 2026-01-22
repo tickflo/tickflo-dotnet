@@ -2,6 +2,7 @@ namespace Tickflo.Web.Pages.Workspaces;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Teams;
@@ -9,18 +10,18 @@ using Tickflo.Core.Services.Views;
 
 [Authorize]
 public class TeamsEditModel(
-    IWorkspaceRepository workspaces,
-    ITeamManagementService teamService,
-    IWorkspaceTeamsEditViewService teamsEditViewService) : WorkspacePageModel
+    IWorkspaceRepository workspaceRepository,
+    ITeamManagementService teamManagementService,
+    IWorkspaceTeamsEditViewService workspaceTeamsEditViewService) : WorkspacePageModel
 {
     #region Constants
     private const int NewTeamId = 0;
     private const string TeamNameRequired = "Team name is required";
     #endregion
 
-    private readonly IWorkspaceRepository _workspaces = workspaces;
-    private readonly ITeamManagementService _teamService = teamService;
-    private readonly IWorkspaceTeamsEditViewService _teamsEditViewService = teamsEditViewService;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly ITeamManagementService teamManagementService = teamManagementService;
+    private readonly IWorkspaceTeamsEditViewService workspaceTeamsEditViewService = workspaceTeamsEditViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -42,7 +43,7 @@ public class TeamsEditModel(
     public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
     {
         this.WorkspaceSlug = slug;
-        var ws = await this._workspaces.FindBySlugAsync(slug);
+        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
         {
             return result;
@@ -54,7 +55,7 @@ public class TeamsEditModel(
         }
 
         this.Workspace = ws;
-        var data = await this._teamsEditViewService.BuildAsync(ws!.Id, uid, id);
+        var data = await this.workspaceTeamsEditViewService.BuildAsync(ws!.Id, uid, id);
 
         this.CanViewTeams = data.CanViewTeams;
         this.CanEditTeams = data.CanEditTeams;
@@ -78,7 +79,7 @@ public class TeamsEditModel(
     public async Task<IActionResult> OnPostAsync(string slug, int id = 0)
     {
         this.WorkspaceSlug = slug;
-        var ws = await this._workspaces.FindBySlugAsync(slug);
+        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
         if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
         {
             return result;
@@ -90,7 +91,7 @@ public class TeamsEditModel(
         }
 
         this.Workspace = ws;
-        var data = await this._teamsEditViewService.BuildAsync(ws!.Id, uid, id);
+        var data = await this.workspaceTeamsEditViewService.BuildAsync(ws!.Id, uid, id);
 
         this.CanViewTeams = data.CanViewTeams;
         this.CanEditTeams = data.CanEditTeams;
@@ -142,7 +143,7 @@ public class TeamsEditModel(
         this.SelectedMemberIds = [.. existingMemberIds ?? []];
     }
 
-    private IActionResult? ValidateTeamName()
+    private PageResult? ValidateTeamName()
     {
         var nameTrim = this.Name?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(nameTrim))
@@ -158,9 +159,9 @@ public class TeamsEditModel(
         var nameTrim = this.Name?.Trim() ?? string.Empty;
         var descTrim = string.IsNullOrWhiteSpace(this.Description) ? null : this.Description.Trim();
 
-        var created = await this._teamService.CreateTeamAsync(ws.Id, nameTrim, descTrim);
+        var created = await this.teamManagementService.CreateTeamAsync(ws.Id, nameTrim, descTrim);
         var selectedIds = (this.SelectedMemberIds ?? []).Distinct().ToList();
-        await this._teamService.SyncTeamMembersAsync(created.Id, ws.Id, selectedIds);
+        await this.teamManagementService.SyncTeamMembersAsync(created.Id, ws.Id, selectedIds);
 
         return created;
     }
@@ -170,9 +171,9 @@ public class TeamsEditModel(
         var nameTrim = this.Name?.Trim() ?? string.Empty;
         var descTrim = string.IsNullOrWhiteSpace(this.Description) ? null : this.Description.Trim();
 
-        var updated = await this._teamService.UpdateTeamAsync(id, nameTrim, descTrim);
+        var updated = await this.teamManagementService.UpdateTeamAsync(id, nameTrim, descTrim);
         var selectedIds = (this.SelectedMemberIds ?? []).Distinct().ToList();
-        await this._teamService.SyncTeamMembersAsync(updated.Id, ws.Id, selectedIds);
+        await this.teamManagementService.SyncTeamMembersAsync(updated.Id, ws.Id, selectedIds);
 
         return updated;
     }

@@ -9,7 +9,7 @@ using Tickflo.Core.Services.Views;
 using Tickflo.Core.Utils;
 
 [Authorize]
-public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepository, IUserWorkspaceRepository userWorkspaceRepository, IUserWorkspaceRoleRepository userWorkspaceRoleRepo, IEmailSenderService emailSender, IEmailTemplateService emailTemplateService, INotificationRepository notificationRepository, IWorkspaceUsersViewService viewService, IWorkspaceUsersManageViewService manageViewService) : WorkspacePageModel
+public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepository, IUserWorkspaceRepository userWorkspaceRepository, IEmailSenderService emailSenderService, IEmailTemplateService emailTemplateService, INotificationRepository notificationRepository, IWorkspaceUsersViewService workspaceUsersViewService, IWorkspaceUsersManageViewService workspaceUsersManageViewService) : WorkspacePageModel
 {
     #region Constants
     private const string InviteAcceptedMessage = "Invite accepted.";
@@ -23,12 +23,11 @@ public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository user
     private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
     private readonly IUserRepository userRepository = userRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
-    private readonly IEmailSenderService _emailSender = emailSender;
-    private readonly IEmailTemplateService _emailTemplateService = emailTemplateService;
-    private readonly INotificationRepository _notificationRepository = notificationRepository;
-    private readonly IWorkspaceUsersViewService _viewService = viewService;
-    private readonly IWorkspaceUsersManageViewService _manageViewService = manageViewService;
+    private readonly IEmailSenderService emailSenderService = emailSenderService;
+    private readonly IEmailTemplateService emailTemplateService = emailTemplateService;
+    private readonly INotificationRepository notificationRepository = notificationRepository;
+    private readonly IWorkspaceUsersViewService workspaceUsersViewService = workspaceUsersViewService;
+    private readonly IWorkspaceUsersManageViewService workspaceUsersManageViewService = workspaceUsersManageViewService;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
@@ -48,7 +47,7 @@ public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository user
         var (workspace, uid) = (WorkspaceUserLoadResult)loadResult;
         this.Workspace = workspace;
 
-        var viewData = await this._viewService.BuildAsync(this.Workspace!.Id, uid);
+        var viewData = await this.workspaceUsersViewService.BuildAsync(this.Workspace!.Id, uid);
         if (this.EnsurePermissionOrForbid(viewData.CanViewUsers) is IActionResult permCheck)
         {
             return permCheck;
@@ -104,7 +103,7 @@ public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository user
             return this.Forbid();
         }
 
-        var viewData = await this._manageViewService.BuildAsync(this.Workspace!.Id, currentUserId);
+        var viewData = await this.workspaceUsersManageViewService.BuildAsync(this.Workspace!.Id, currentUserId);
         if (this.EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck)
         {
             return permCheck;
@@ -141,7 +140,7 @@ public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository user
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
         this.Workspace = workspace;
 
-        var viewData = await this._manageViewService.BuildAsync(this.Workspace!.Id, currentUserId);
+        var viewData = await this.workspaceUsersManageViewService.BuildAsync(this.Workspace!.Id, currentUserId);
         if (this.EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck)
         {
             return permCheck;
@@ -173,8 +172,8 @@ public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository user
             { "CONFIRMATION_LINK", confirmationLink }
         };
 
-        var (subject, body) = await this._emailTemplateService.RenderTemplateAsync(EmailTemplateType.WorkspaceInviteResend, variables, workspace.Id);
-        await this._emailSender.SendAsync(user.Email, subject, body);
+        var (subject, body) = await this.emailTemplateService.RenderTemplateAsync(EmailTemplateType.WorkspaceInviteResend, variables, workspace.Id);
+        await this.emailSenderService.SendAsync(user.Email, subject, body);
     }
 
     private async Task CreateNotificationRecordAsync(int userId, int workspaceId, int createdBy)
@@ -194,9 +193,9 @@ public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository user
             CreatedBy = createdBy
         };
 
-        await this._notificationRepository.AddAsync(notification);
+        await this.notificationRepository.AddAsync(notification);
     }
 
-    private IActionResult RedirectToUsersPage(string slug) => this.RedirectToPage("/Workspaces/Users", new { slug });
+    private RedirectToPageResult RedirectToUsersPage(string slug) => this.RedirectToPage("/Workspaces/Users", new { slug });
 }
 

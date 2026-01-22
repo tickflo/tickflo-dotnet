@@ -13,7 +13,7 @@ public class ProfileModel(
     INotificationPreferenceService notificationPreferenceService) : PageModel
 {
     private readonly IUserRepository userRepository = userRepository;
-    private readonly ICurrentUserService _currentUserService = currentUserService;
+    private readonly ICurrentUserService currentUserService = currentUserService;
     private readonly INotificationPreferenceService _notificationPreferenceService = notificationPreferenceService;
 
     [BindProperty]
@@ -36,7 +36,7 @@ public class ProfileModel(
 
     public async Task OnGetAsync()
     {
-        if (!this._currentUserService.TryGetUserId(this.User, out var uid))
+        if (!this.currentUserService.TryGetUserId(this.User, out var uid))
         {
             return;
         }
@@ -82,7 +82,7 @@ public class ProfileModel(
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (!this._currentUserService.TryGetUserId(this.User, out var uid))
+        if (!this.currentUserService.TryGetUserId(this.User, out var uid))
         {
             return this.RedirectToPage();
         }

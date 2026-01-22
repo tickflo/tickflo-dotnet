@@ -18,7 +18,7 @@ public class ErrorModel(ILogger<ErrorModel> logger, ICurrentUserService currentU
     public bool ShowRequestId => !string.IsNullOrEmpty(this.RequestId);
 
     private readonly ILogger<ErrorModel> logger = logger;
-    private readonly ICurrentUserService _currentUserService = currentUserService;
+    private readonly ICurrentUserService currentUserService = currentUserService;
     private readonly IUserRepository userRepository = userRepository;
 
     public async Task OnGetAsync()
@@ -26,7 +26,7 @@ public class ErrorModel(ILogger<ErrorModel> logger, ICurrentUserService currentU
         this.RequestId = Activity.Current?.Id ?? this.HttpContext.TraceIdentifier;
 
         // Check if user is a system admin
-        if (this._currentUserService.TryGetUserId(this.User, out var userId))
+        if (this.currentUserService.TryGetUserId(this.User, out var userId))
         {
             var user = await this.userRepository.FindByIdAsync(userId);
             this.IsAdmin = user?.SystemAdmin ?? false;

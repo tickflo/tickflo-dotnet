@@ -11,7 +11,7 @@ public class LogoutModel : PageModel
 
     public IActionResult OnPost() => this.SignOutAndRedirect();
 
-    private IActionResult SignOutAndRedirect()
+    private RedirectResult SignOutAndRedirect()
     {
         // Delete the auth cookie and clear session to fully sign out.
         this.Response.Cookies.Delete("user_token", new CookieOptions

@@ -6,14 +6,14 @@ public class WorkspaceTeamsEditViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
     IRolePermissionRepository rolePermissionRepository,
     ITeamRepository teamRepository,
-    IUserWorkspaceRepository userWorkspaces,
+    IUserWorkspaceRepository userWorkspaceRepository,
     IUserRepository userRepository,
     ITeamMemberRepository teamMembers) : IWorkspaceTeamsEditViewService
 {
     private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
     private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
     private readonly ITeamRepository teamRepository = teamRepository;
-    private readonly IUserWorkspaceRepository _userWorkspaces = userWorkspaces;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly IUserRepository userRepository = userRepository;
     private readonly ITeamMemberRepository teamMemberRepository = teamMembers;
 
@@ -36,7 +36,7 @@ public class WorkspaceTeamsEditViewService(
         }
 
         // Load workspace users
-        var memberships = await this._userWorkspaces.FindForWorkspaceAsync(workspaceId);
+        var memberships = await this.userWorkspaceRepository.FindForWorkspaceAsync(workspaceId);
         if (memberships != null)
         {
             foreach (var m in memberships.Select(m => m.UserId).Distinct())

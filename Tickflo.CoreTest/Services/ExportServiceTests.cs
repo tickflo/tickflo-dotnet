@@ -10,9 +10,9 @@ public class ExportServiceTests
     [Fact]
     public async Task ValidateExportAsyncFailsWhenNoAccess()
     {
-        var userWorkspaces = new Mock<IUserWorkspaceRepository>();
-        userWorkspaces.Setup(r => r.FindAsync(5, 1)).ReturnsAsync((UserWorkspace?)null);
-        var svc = new ExportService(Mock.Of<ITicketRepository>(), Mock.Of<IContactRepository>(), Mock.Of<IInventoryRepository>(), Mock.Of<ITicketHistoryRepository>(), userWorkspaces.Object);
+        var userWorkspaceRepository = new Mock<IUserWorkspaceRepository>();
+        userWorkspaceRepository.Setup(r => r.FindAsync(5, 1)).ReturnsAsync((UserWorkspace?)null);
+        var svc = new ExportService(Mock.Of<ITicketRepository>(), Mock.Of<IContactRepository>(), Mock.Of<IInventoryRepository>(), Mock.Of<ITicketHistoryRepository>(), userWorkspaceRepository.Object);
 
         var (isValid, error) = await svc.ValidateExportAsync(1, new ExportRequest { EntityType = "tickets", Format = ExportFormat.CSV }, 5);
 
