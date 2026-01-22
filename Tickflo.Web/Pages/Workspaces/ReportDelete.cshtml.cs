@@ -3,18 +3,18 @@ namespace Tickflo.Web.Pages.Workspaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
-
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
 
 [Authorize]
 public class ReportDeleteModel(
-    IWorkspaceRepository workspaceRepository,
+    IWorkspaceService workspaceService,
     IReportRepository reporyRepository,
     IReportRunRepository reportRunRepository,
     IWorkspaceReportDeleteViewService workspaceReportDeleteViewService,
     IWebHostEnvironment webHostEnvironment) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly IWorkspaceService workspaceService = workspaceService;
     private readonly IReportRepository reporyRepository = reporyRepository;
     private readonly IReportRunRepository reportRunRepository = reportRunRepository;
     private readonly IWorkspaceReportDeleteViewService workspaceReportDeleteViewService = workspaceReportDeleteViewService;
@@ -22,7 +22,7 @@ public class ReportDeleteModel(
 
     public async Task<IActionResult> OnPostAsync(string slug, int reportId)
     {
-        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
+        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (ws == null)
         {
             return this.NotFound();

@@ -2,19 +2,18 @@ namespace Tickflo.Web.Pages.Workspaces;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Tickflo.Core.Data;
-
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
 
 [Authorize]
-public class ReportRunDownloadModel(IWorkspaceRepository workspaceRepository, IWorkspaceReportRunDownloadViewService workspaceReportRunDownloadViewService) : WorkspacePageModel
+public class ReportRunDownloadModel(IWorkspaceService workspaceService, IWorkspaceReportRunDownloadViewService workspaceReportRunDownloadViewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly IWorkspaceService workspaceService = workspaceService;
     private readonly IWorkspaceReportRunDownloadViewService workspaceReportRunDownloadViewService = workspaceReportRunDownloadViewService;
 
     public async Task<IActionResult> OnGetAsync(string slug, int reportId, int runId)
     {
-        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
+        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (ws == null)
         {
             return this.NotFound();
@@ -22,6 +21,12 @@ public class ReportRunDownloadModel(IWorkspaceRepository workspaceRepository, IW
 
         var uid = this.TryGetUserId(out var idVal) ? idVal : 0;
         if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, ws.Id);
+        if (!hasMembership)
         {
             return this.Forbid();
         }

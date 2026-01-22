@@ -3,14 +3,13 @@ namespace Tickflo.Web.Pages.Workspaces;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
 using Tickflo.Core.Services.Reporting;
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
 
 [Authorize]
-public class ReportsEditModel(IWorkspaceRepository workspaceRepository, IUserWorkspaceRepository userWorkspaceRepository, IReportCommandService reportCommandService, IReportDefinitionValidator reportDefinitionService, IWorkspaceReportsEditViewService workspaceReportsEditViewService) : WorkspacePageModel
+public class ReportsEditModel(IWorkspaceService workspaceService, IReportCommandService reportCommandService, IReportDefinitionValidator reportDefinitionService, IWorkspaceReportsEditViewService workspaceReportsEditViewService) : WorkspacePageModel
 {
     #region Constants
     private const int NewReportId = 0;
@@ -21,8 +20,7 @@ public class ReportsEditModel(IWorkspaceRepository workspaceRepository, IUserWor
     private static readonly CompositeFormat ReportUpdatedSuccessfully = CompositeFormat.Parse("Report '{0}' updated successfully.");
     #endregion
 
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
-    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IWorkspaceService workspaceService = workspaceService;
     private readonly IReportCommandService reportCommandService = reportCommandService;
     private readonly IReportDefinitionValidator reportDefinitionService = reportDefinitionService;
     private readonly IWorkspaceReportsEditViewService workspaceReportsEditViewService = workspaceReportsEditViewService;
@@ -62,15 +60,24 @@ public class ReportsEditModel(IWorkspaceRepository workspaceRepository, IUserWor
     public async Task<IActionResult> OnGetAsync(string slug, int reportId = 0)
     {
         this.WorkspaceSlug = slug;
-        var workspaceLoadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
-        if (workspaceLoadResult is IActionResult actionResult)
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.Workspace == null)
         {
-            return actionResult;
+            return this.NotFound();
         }
 
-        var (workspace, uid) = (WorkspaceUserLoadResult)workspaceLoadResult;
-        this.Workspace = workspace;
-        var workspaceId = this.Workspace!.Id;
+        if (!this.TryGetUserId(out var uid))
+        {
+            return this.Forbid();
+        }
+
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, this.Workspace.Id);
+        if (!hasMembership)
+        {
+            return this.Forbid();
+        }
+
+        var workspaceId = this.Workspace.Id;
         var data = await this.workspaceReportsEditViewService.BuildAsync(workspaceId, uid, reportId);
         this.CanViewReports = data.CanViewReports;
         this.CanEditReports = data.CanEditReports;
@@ -99,15 +106,24 @@ public class ReportsEditModel(IWorkspaceRepository workspaceRepository, IUserWor
     {
         this.WorkspaceSlug = slug;
 
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
-        if (loadResult is IActionResult actionResult)
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.Workspace == null)
         {
-            return actionResult;
+            return this.NotFound();
         }
 
-        var (workspace, uid) = (WorkspaceUserLoadResult)loadResult;
-        this.Workspace = workspace;
-        var workspaceId = workspace!.Id;
+        if (!this.TryGetUserId(out var uid))
+        {
+            return this.Forbid();
+        }
+
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, this.Workspace.Id);
+        if (!hasMembership)
+        {
+            return this.Forbid();
+        }
+
+        var workspaceId = this.Workspace.Id;
         var data = await this.workspaceReportsEditViewService.BuildAsync(workspaceId, uid, this.ReportId);
 
         if (!this.ValidateReportPermissions(data))

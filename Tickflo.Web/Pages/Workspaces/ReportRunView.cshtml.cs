@@ -2,15 +2,14 @@ namespace Tickflo.Web.Pages.Workspaces;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
 
 [Authorize]
-public class ReportRunViewModel(IWorkspaceRepository workspaceRepository, IWorkspaceReportRunViewService workspaceReportRunViewService) : WorkspacePageModel
+public class ReportRunViewModel(IWorkspaceService workspaceService, IWorkspaceReportRunViewService workspaceReportRunViewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly IWorkspaceService workspaceService = workspaceService;
     private readonly IWorkspaceReportRunViewService workspaceReportRunViewService = workspaceReportRunViewService;
 
     [BindProperty(SupportsGet = true)]
@@ -58,20 +57,25 @@ public class ReportRunViewModel(IWorkspaceRepository workspaceRepository, IWorks
 
         this.DisplayLimit = this.Take;
 
-        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
-        if (ws == null)
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.Workspace == null)
         {
             return this.NotFound();
         }
 
-        this.Workspace = ws;
         var uid = this.TryGetUserId(out var idVal) ? idVal : 0;
         if (uid == 0)
         {
             return this.Forbid();
         }
 
-        var data = await this.workspaceReportRunViewService.BuildAsync(ws.Id, uid, reportId, runId, this.Page, this.Take);
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, this.Workspace.Id);
+        if (!hasMembership)
+        {
+            return this.Forbid();
+        }
+
+        var data = await this.workspaceReportRunViewService.BuildAsync(this.Workspace.Id, uid, reportId, runId, this.Page, this.Take);
         if (this.EnsurePermissionOrForbid(data.CanViewReports) is IActionResult permCheck)
         {
             return permCheck;

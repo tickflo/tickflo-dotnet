@@ -6,10 +6,11 @@ using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Email;
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
 using Tickflo.Core.Utils;
 
 [Authorize]
-public class UsersModel(IWorkspaceRepository workspaceRepository, IUserRepository userRepository, IUserWorkspaceRepository userWorkspaceRepository, IEmailSenderService emailSenderService, IEmailTemplateService emailTemplateService, INotificationRepository notificationRepository, IWorkspaceUsersViewService workspaceUsersViewService, IWorkspaceUsersManageViewService workspaceUsersManageViewService) : WorkspacePageModel
+public class UsersModel(IWorkspaceService workspaceService, IUserRepository userRepository, IUserWorkspaceRepository userWorkspaceRepository, IEmailSenderService emailSenderService, IEmailTemplateService emailTemplateService, INotificationRepository notificationRepository, IWorkspaceUsersViewService workspaceUsersViewService, IWorkspaceUsersManageViewService workspaceUsersManageViewService) : WorkspacePageModel
 {
     #region Constants
     private const string InviteAcceptedMessage = "Invite accepted.";
@@ -20,7 +21,7 @@ public class UsersModel(IWorkspaceRepository workspaceRepository, IUserRepositor
     private const string SentStatus = "sent";
     #endregion
 
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly IWorkspaceService workspaceService = workspaceService;
     private readonly IUserRepository userRepository = userRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly IEmailSenderService emailSenderService = emailSenderService;
@@ -38,14 +39,22 @@ public class UsersModel(IWorkspaceRepository workspaceRepository, IUserRepositor
     public async Task<IActionResult> OnGetAsync(string slug)
     {
         this.WorkspaceSlug = slug;
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
-        if (loadResult is IActionResult actionResult)
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.Workspace == null)
         {
-            return actionResult;
+            return this.NotFound();
         }
 
-        var (workspace, uid) = (WorkspaceUserLoadResult)loadResult;
-        this.Workspace = workspace;
+        if (!this.TryGetUserId(out var uid))
+        {
+            return this.Forbid();
+        }
+
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, this.Workspace.Id);
+        if (!hasMembership)
+        {
+            return this.Forbid();
+        }
 
         var viewData = await this.workspaceUsersViewService.BuildAsync(this.Workspace!.Id, uid);
         if (this.EnsurePermissionOrForbid(viewData.CanViewUsers) is IActionResult permCheck)
@@ -92,7 +101,7 @@ public class UsersModel(IWorkspaceRepository workspaceRepository, IUserRepositor
     public async Task<IActionResult> OnPostResendAsync(string slug, int userId)
     {
         this.WorkspaceSlug = slug;
-        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.EnsureWorkspaceExistsOrNotFound(this.Workspace) is IActionResult result)
         {
             return result;
@@ -131,16 +140,24 @@ public class UsersModel(IWorkspaceRepository workspaceRepository, IUserRepositor
 
     private async Task<IActionResult?> AuthorizeWorkspaceAccessAsync(string slug)
     {
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
-        if (loadResult is IActionResult actionResult)
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.Workspace == null)
         {
-            return actionResult;
+            return this.NotFound();
         }
 
-        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
-        this.Workspace = workspace;
+        if (!this.TryGetUserId(out var currentUserId))
+        {
+            return this.Forbid();
+        }
 
-        var viewData = await this.workspaceUsersManageViewService.BuildAsync(this.Workspace!.Id, currentUserId);
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(currentUserId, this.Workspace.Id);
+        if (!hasMembership)
+        {
+            return this.Forbid();
+        }
+
+        var viewData = await this.workspaceUsersManageViewService.BuildAsync(this.Workspace.Id, currentUserId);
         if (this.EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck)
         {
             return permCheck;

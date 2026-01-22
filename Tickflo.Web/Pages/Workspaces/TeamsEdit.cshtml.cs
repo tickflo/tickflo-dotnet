@@ -3,14 +3,14 @@ namespace Tickflo.Web.Pages.Workspaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Teams;
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
 
 [Authorize]
 public class TeamsEditModel(
-    IWorkspaceRepository workspaceRepository,
+    IWorkspaceService workspaceService,
     ITeamManagementService teamManagementService,
     IWorkspaceTeamsEditViewService workspaceTeamsEditViewService) : WorkspacePageModel
 {
@@ -19,7 +19,7 @@ public class TeamsEditModel(
     private const string TeamNameRequired = "Team name is required";
     #endregion
 
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly IWorkspaceService workspaceService = workspaceService;
     private readonly ITeamManagementService teamManagementService = teamManagementService;
     private readonly IWorkspaceTeamsEditViewService workspaceTeamsEditViewService = workspaceTeamsEditViewService;
 
@@ -43,7 +43,7 @@ public class TeamsEditModel(
     public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
     {
         this.WorkspaceSlug = slug;
-        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
+        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
         {
             return result;
@@ -79,7 +79,7 @@ public class TeamsEditModel(
     public async Task<IActionResult> OnPostAsync(string slug, int id = 0)
     {
         this.WorkspaceSlug = slug;
-        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
+        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
         if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
         {
             return result;

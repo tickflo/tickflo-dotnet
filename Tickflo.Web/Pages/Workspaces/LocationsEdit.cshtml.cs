@@ -7,11 +7,11 @@ using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Locations;
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
 
 [Authorize]
 public class LocationsEditModel(
-    IWorkspaceRepository workspaceRepository,
-    IUserWorkspaceRepository userWorkspaceRepository,
+    IWorkspaceService workspaceService,
     ILocationRepository locationRepository,
     IWorkspaceLocationsEditViewService workspaceLocationsEditViewService,
     ILocationSetupService locationSetupService) : WorkspacePageModel
@@ -22,8 +22,7 @@ public class LocationsEditModel(
     private static readonly CompositeFormat LocationUpdatedSuccessfully = CompositeFormat.Parse("Location '{0}' updated successfully.");
     #endregion
 
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
-    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IWorkspaceService workspaceService = workspaceService;
     private readonly ILocationRepository locationRepository = locationRepository;
     private readonly IWorkspaceLocationsEditViewService workspaceLocationsEditViewService = workspaceLocationsEditViewService;
     private readonly ILocationSetupService locationSetupService = locationSetupService;
@@ -52,15 +51,24 @@ public class LocationsEditModel(
     {
         this.WorkspaceSlug = slug;
 
-        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
-        if (result is IActionResult actionResult)
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.Workspace == null)
         {
-            return actionResult;
+            return this.NotFound();
         }
 
-        var (workspace, uid) = (WorkspaceUserLoadResult)result;
-        this.Workspace = workspace;
-        var workspaceId = workspace!.Id;
+        if (!this.TryGetUserId(out var uid))
+        {
+            return this.Forbid();
+        }
+
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, this.Workspace.Id);
+        if (!hasMembership)
+        {
+            return this.Forbid();
+        }
+
+        var workspaceId = this.Workspace.Id;
 
         var viewData = await this.workspaceLocationsEditViewService.BuildAsync(workspaceId, uid, locationId);
         this.CanViewLocations = viewData.CanViewLocations;
@@ -91,15 +99,24 @@ public class LocationsEditModel(
     {
         this.WorkspaceSlug = slug;
 
-        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
-        if (result is IActionResult actionResult)
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.Workspace == null)
         {
-            return actionResult;
+            return this.NotFound();
         }
 
-        var (workspace, uid) = (WorkspaceUserLoadResult)result;
-        this.Workspace = workspace;
-        var workspaceId = workspace!.Id;
+        if (!this.TryGetUserId(out var uid))
+        {
+            return this.Forbid();
+        }
+
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, this.Workspace.Id);
+        if (!hasMembership)
+        {
+            return this.Forbid();
+        }
+
+        var workspaceId = this.Workspace.Id;
 
         var viewData = await this.workspaceLocationsEditViewService.BuildAsync(workspaceId, uid, this.LocationId);
         if (this.EnsureCreateOrEditPermission(this.LocationId, viewData.CanCreateLocations, viewData.CanEditLocations) is IActionResult permCheck)
