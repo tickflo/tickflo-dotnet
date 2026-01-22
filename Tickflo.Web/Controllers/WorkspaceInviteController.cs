@@ -44,7 +44,7 @@ public class WorkspaceInviteController(IWorkspaceRepository workspaceRepository,
             return this.NotFound();
         }
 
-        var uw = await this.userWorkspaceRepository.FindAsync(user.Id, ws.Id);
+        var uw = await this.userWorkspaceRepository.FindAsync(user.Id, workspace.Id);
         if (uw == null)
         {
             return this.NotFound();

@@ -108,16 +108,16 @@ public class UsersInviteModel(IWorkspaceService workspaceService, IEmailTemplate
             var selectedRoleName = this.Role?.Trim();
             if (!string.IsNullOrWhiteSpace(selectedRoleName))
             {
-                var role = await this.roleRepository.FindByNameAsync(ws.Id, selectedRoleName);
+                var role = await this.roleRepository.FindByNameAsync(workspace.Id, selectedRoleName);
                 if (role == null)
                 {
                     var adminFlag = string.Equals(selectedRoleName, "Admin", StringComparison.OrdinalIgnoreCase);
-                    role = await this.roleRepository.AddAsync(ws.Id, selectedRoleName, adminFlag, currentUserId);
+                    role = await this.roleRepository.AddAsync(workspace.Id, selectedRoleName, adminFlag, currentUserId);
                 }
                 roleIds = [role.Id];
             }
 
-            var result = await this.userInvitationService.InviteUserAsync(ws.Id, this.Email.Trim(), currentUserId, roleIds);
+            var result = await this.userInvitationService.InviteUserAsync(workspace.Id, this.Email.Trim(), currentUserId, roleIds);
 
             var baseUrl = $"{this.Request.Scheme}://{this.Request.Host}";
             var confirmationLink = baseUrl + result.ConfirmationLink;
@@ -127,21 +127,21 @@ public class UsersInviteModel(IWorkspaceService workspaceService, IEmailTemplate
             // Template Type ID 2 = Workspace Invite (new user)
             var variables = new Dictionary<string, string>
             {
-                { "WORKSPACE_NAME", ws.Name },
+                { "WORKSPACE_NAME", workspace.Name },
                 { "TEMPORARY_PASSWORD", result.TemporaryPassword },
                 { "CONFIRMATION_LINK", confirmationLink },
                 { "ACCEPT_LINK", acceptLink },
                 { "SET_PASSWORD_LINK", setPasswordLink }
             };
 
-            var (subject, body) = await this.emailTemplateService.RenderTemplateAsync(EmailTemplateType.WorkspaceInviteNewUser, variables, ws.Id);
+            var (subject, body) = await this.emailTemplateService.RenderTemplateAsync(EmailTemplateType.WorkspaceInviteNewUser, variables, workspace.Id);
             await this.emailSenderService.SendAsync(result.User.Email!, subject, body);
 
             // Create a notification record in the database
             var notification = new Notification
             {
                 UserId = result.User.Id,
-                WorkspaceId = ws.Id,
+                WorkspaceId = workspace.Id,
                 Type = "workspace_invite",
                 DeliveryMethod = "email",
                 Priority = "high",

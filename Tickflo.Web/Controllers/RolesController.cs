@@ -43,7 +43,7 @@ public class RolesController(
         }
 
         var role = await this.roleRepository.FindByIdAsync(id);
-        if (role == null || role.WorkspaceId != ws.Id)
+        if (role == null || role.WorkspaceId != workspace.Id)
         {
             return this.NotFound();
         }
@@ -51,7 +51,7 @@ public class RolesController(
         // Use service to check if role can be deleted (guard against assignments)
         try
         {
-            await this.roleManagementService.EnsureRoleCanBeDeletedAsync(ws.Id, id, role.Name);
+            await this.roleManagementService.EnsureRoleCanBeDeletedAsync(workspace.Id, id, role.Name);
         }
         catch (InvalidOperationException ex)
         {

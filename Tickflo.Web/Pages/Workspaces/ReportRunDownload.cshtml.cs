@@ -25,13 +25,13 @@ public class ReportRunDownloadModel(IWorkspaceService workspaceService, IWorkspa
             return this.Forbid();
         }
 
-        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, ws.Id);
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, workspace.Id);
         if (!hasMembership)
         {
             return this.Forbid();
         }
 
-        var data = await this.workspaceReportRunDownloadViewService.BuildAsync(ws.Id, uid, reportId, runId);
+        var data = await this.workspaceReportRunDownloadViewService.BuildAsync(workspace.Id, uid, reportId, runId);
         if (this.EnsurePermissionOrForbid(data.CanViewReports) is IActionResult permCheck)
         {
             return permCheck;

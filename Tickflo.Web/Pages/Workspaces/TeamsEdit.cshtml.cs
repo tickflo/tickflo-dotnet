@@ -90,8 +90,8 @@ public class TeamsEditModel(
             return this.Forbid();
         }
 
-        this.Workspace = ws;
-        var data = await this.workspaceTeamsEditViewService.BuildAsync(ws!.Id, uid, id);
+        this.Workspace = workspace;
+        var data = await this.workspaceTeamsEditViewService.BuildAsync(workspace!.Id, uid, id);
 
         this.CanViewTeams = data.CanViewTeams;
         this.CanEditTeams = data.CanEditTeams;

@@ -125,10 +125,10 @@ public class TeamsAssignModel(IWorkspaceService workspaceService, ITeamMemberRep
             return this.Forbid();
         }
 
-        var data = await this.workspaceTeamsAssignViewService.BuildAsync(ws!.Id, uid, teamId);
+        var data = await this.workspaceTeamsAssignViewService.BuildAsync(workspace!.Id, uid, teamId);
         this.CanViewTeams = data.CanViewTeams;
         this.CanEditTeams = data.CanEditTeams;
-        this.Workspace = ws;
+        this.Workspace = workspace;
         this.Team = data.Team;
         this.TeamId = teamId;
         this.Members = data.Members ?? [];

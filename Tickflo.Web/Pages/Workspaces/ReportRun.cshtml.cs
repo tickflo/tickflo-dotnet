@@ -32,13 +32,13 @@ public class ReportRunModel(IWorkspaceService workspaceService, IReportRunServic
             return this.Forbid();
         }
 
-        var viewData = await this.workspaceReportRunExecuteViewService.BuildAsync(ws.Id, userId);
+        var viewData = await this.workspaceReportRunExecuteViewService.BuildAsync(workspace.Id, userId);
         if (this.EnsurePermissionOrForbid(viewData.CanEditReports) is IActionResult permCheck)
         {
             return permCheck;
         }
 
-        var run = await this.reportRunService.RunReportAsync(ws.Id, reportId);
+        var run = await this.reportRunService.RunReportAsync(workspace.Id, reportId);
         this.SetSuccessMessage(run?.Status == "Succeeded" ? "Report run completed." : "Report run failed.");
         return this.RedirectToPage("/Workspaces/ReportRuns", new { slug, reportId });
     }
