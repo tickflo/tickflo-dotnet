@@ -67,6 +67,7 @@ public class InventoryAllocationService(
             Quantity = request.InitialQuantity,
             Cost = request.UnitCost ?? 0,
             LocationId = request.LocationId,
+            Status = string.IsNullOrWhiteSpace(request.Status) ? "active" : request.Status.Trim(),
             CreatedAt = DateTime.UtcNow
         };
 
@@ -152,6 +153,31 @@ public class InventoryAllocationService(
             inventory.Cost = request.UnitCost.Value;
         }
 
+        if (request.Quantity.HasValue)
+        {
+            inventory.Quantity = request.Quantity.Value;
+        }
+
+        if (request.LocationId.HasValue)
+        {
+            // Validate location if specified and not null
+            if (request.LocationId.Value > 0)
+            {
+                var location = await this.locationRepository.FindAsync(workspaceId, request.LocationId.Value) ?? throw new InvalidOperationException("Specified location does not exist");
+
+                if (!location.Active)
+                {
+                    throw new InvalidOperationException("Cannot allocate inventory to inactive location");
+                }
+            }
+            inventory.LocationId = request.LocationId.Value > 0 ? request.LocationId.Value : null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Status))
+        {
+            inventory.Status = request.Status.Trim();
+        }
+
         inventory.UpdatedAt = DateTime.UtcNow;
 
         await this.inventoryRepository.UpdateAsync(inventory);
@@ -184,6 +210,7 @@ public class InventoryRegistrationRequest
     public int InitialQuantity { get; set; }
     public decimal? UnitCost { get; set; }
     public int? LocationId { get; set; }
+    public string? Status { get; set; }
 }
 
 /// <summary>
@@ -195,4 +222,7 @@ public class InventoryDetailsUpdateRequest
     public string? Name { get; set; }
     public string? Description { get; set; }
     public decimal? UnitCost { get; set; }
+    public int? Quantity { get; set; }
+    public int? LocationId { get; set; }
+    public string? Status { get; set; }
 }

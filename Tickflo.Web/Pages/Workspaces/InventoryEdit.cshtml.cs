@@ -2,7 +2,6 @@ namespace Tickflo.Web.Pages.Workspaces;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Inventory;
 using Tickflo.Core.Services.Views;
@@ -12,7 +11,6 @@ using Tickflo.Core.Services.Workspace;
 public class InventoryEditModel(
     IWorkspaceService workspaceService,
     IWorkspaceInventoryEditViewService workspaceInventoryEditViewService,
-    IInventoryRepository inventoryRepository,
     IInventoryAllocationService inventoryAllocationService) : WorkspacePageModel
 {
     #region Constants
@@ -22,7 +20,6 @@ public class InventoryEditModel(
 
     private readonly IWorkspaceService workspaceService = workspaceService;
     private readonly IWorkspaceInventoryEditViewService workspaceInventoryEditViewService = workspaceInventoryEditViewService;
-    private readonly IInventoryRepository inventoryRepository = inventoryRepository;
     private readonly IInventoryAllocationService inventoryAllocationService = inventoryAllocationService;
 
     public bool CanViewInventory { get; private set; }
@@ -129,37 +126,27 @@ public class InventoryEditModel(
         return this.RedirectToInventoryWithPreservedFilters(slug);
     }
 
-    private async Task CreateInventoryItemAsync(int workspaceId, int userId)
+    private async Task CreateInventoryItemAsync(int workspaceId, int userId) => await this.inventoryAllocationService.RegisterInventoryItemAsync(workspaceId, new InventoryRegistrationRequest
     {
-        var created = await this.inventoryAllocationService.RegisterInventoryItemAsync(workspaceId, new InventoryRegistrationRequest
-        {
-            Sku = this.Item.Sku?.Trim() ?? string.Empty,
-            Name = this.Item.Name?.Trim() ?? string.Empty,
-            Description = this.Item.Description,
-            InitialQuantity = this.Item.Quantity,
-            UnitCost = this.Item.Cost,
-            LocationId = this.Item.LocationId
-        }, userId);
+        Sku = this.Item.Sku?.Trim() ?? string.Empty,
+        Name = this.Item.Name?.Trim() ?? string.Empty,
+        Description = this.Item.Description,
+        InitialQuantity = this.Item.Quantity,
+        UnitCost = this.Item.Cost,
+        LocationId = this.Item.LocationId,
+        Status = this.Item.Status
+    }, userId);
 
-        created.Status = this.Item.Status;
-        await this.inventoryRepository.UpdateAsync(created);
-    }
-
-    private async Task UpdateInventoryItemAsync(int workspaceId, int inventoryId, int userId)
+    private async Task UpdateInventoryItemAsync(int workspaceId, int inventoryId, int userId) => await this.inventoryAllocationService.UpdateInventoryDetailsAsync(workspaceId, inventoryId, new InventoryDetailsUpdateRequest
     {
-        var updated = await this.inventoryAllocationService.UpdateInventoryDetailsAsync(workspaceId, inventoryId, new InventoryDetailsUpdateRequest
-        {
-            Sku = this.Item.Sku?.Trim() ?? string.Empty,
-            Name = this.Item.Name?.Trim() ?? string.Empty,
-            Description = this.Item.Description,
-            UnitCost = this.Item.Cost
-        }, userId);
-
-        updated.Quantity = this.Item.Quantity;
-        updated.LocationId = this.Item.LocationId;
-        updated.Status = this.Item.Status;
-        await this.inventoryRepository.UpdateAsync(updated);
-    }
+        Sku = this.Item.Sku?.Trim() ?? string.Empty,
+        Name = this.Item.Name?.Trim() ?? string.Empty,
+        Description = this.Item.Description,
+        UnitCost = this.Item.Cost,
+        Quantity = this.Item.Quantity,
+        LocationId = this.Item.LocationId,
+        Status = this.Item.Status
+    }, userId);
 
     private RedirectResult RedirectToInventoryWithPreservedFilters(string slug)
     {
