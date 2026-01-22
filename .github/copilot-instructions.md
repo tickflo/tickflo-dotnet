@@ -267,6 +267,23 @@ Avoid:
 
 ---
 
+## Schema changes
+
+* **NEVER** change existing migration files that have been merged (assume anything on `dev` is merged/immutable).
+* **Always** create new migrations for schema changes (do not "fix" old migrations).
+* Migrations must follow **dbmate migration format**.
+* It's okay to edit migrations **only** if they were created on the current branch and have not been merged.
+
+---
+
+## Hard coded string literals
+
+* Avoid hard coded string literals for domain/system values (e.g. `DefaultTicketType = "Standard"`, `string DefaultPriority = "Normal";`).
+* Prefer **enumerations** for fixed system values.
+* Prefer **reference tables** for workspace-configured values (e.g. `ticket_types`, `ticket_statuses`) and store references (ids/keys), not display strings.
+
+---
+
 ## Testing Guidelines
 
 Copilot should generate tests that:
@@ -318,6 +335,8 @@ MethodName_WhenCondition_ShouldExpectedOutcome
 * Business logic in controllers or Razor PageModels
 * Large static helper classes
 * Overly generic abstractions
+* Hard-coded domain/system strings where an enum or reference table is appropriate
+* Editing merged migrations instead of creating a new dbmate-format migration
 
 ---
 
