@@ -15,8 +15,8 @@ public class ReportRunModel(IWorkspaceService workspaceService, IReportRunServic
 
     public async Task<IActionResult> OnPostAsync(string slug, int reportId)
     {
-        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (ws == null)
+        var workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (workspace == null)
         {
             return this.NotFound();
         }
@@ -26,7 +26,7 @@ public class ReportRunModel(IWorkspaceService workspaceService, IReportRunServic
             return this.Forbid();
         }
 
-        var hasMembership = await this.workspaceService.UserHasMembershipAsync(userId, ws.Id);
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(userId, workspace.Id);
         if (!hasMembership)
         {
             return this.Forbid();

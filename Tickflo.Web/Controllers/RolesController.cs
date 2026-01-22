@@ -25,8 +25,8 @@ public class RolesController(
     [HttpPost("delete")]
     public async Task<IActionResult> Delete(string slug, int id)
     {
-        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
-        if (ws == null)
+        var workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        if (workspace == null)
         {
             return this.NotFound();
         }
@@ -36,7 +36,7 @@ public class RolesController(
             return this.Unauthorized();
         }
 
-        var isAdmin = await this.workspaceAccessService.UserIsWorkspaceAdminAsync(uid, ws.Id);
+        var isAdmin = await this.workspaceAccessService.UserIsWorkspaceAdminAsync(uid, workspace.Id);
         if (!isAdmin)
         {
             return this.Forbid();

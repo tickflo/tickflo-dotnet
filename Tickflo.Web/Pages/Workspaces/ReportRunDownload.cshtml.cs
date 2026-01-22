@@ -13,8 +13,8 @@ public class ReportRunDownloadModel(IWorkspaceService workspaceService, IWorkspa
 
     public async Task<IActionResult> OnGetAsync(string slug, int reportId, int runId)
     {
-        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (ws == null)
+        var workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (workspace == null)
         {
             return this.NotFound();
         }

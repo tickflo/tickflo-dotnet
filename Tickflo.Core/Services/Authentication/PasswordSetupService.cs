@@ -114,8 +114,8 @@ public class PasswordSetupService(
         var uw = await this.userWorkspaceRepository.FindAcceptedForUserAsync(user.Id);
         if (uw != null)
         {
-            var ws = await this.workspaceRepository.FindByIdAsync(uw.WorkspaceId);
-            workspaceSlug = ws?.Slug;
+            var workspace = await this.workspaceRepository.FindByIdAsync(uw.WorkspaceId);
+            workspaceSlug = workspace?.Slug;
         }
 
         return new SetPasswordResult(true, null, loginToken.Value, workspaceSlug, user.Id, user.Email);

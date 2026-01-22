@@ -22,8 +22,8 @@ public class ReportDeleteModel(
 
     public async Task<IActionResult> OnPostAsync(string slug, int reportId)
     {
-        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (ws == null)
+        var workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (workspace == null)
         {
             return this.NotFound();
         }

@@ -43,8 +43,8 @@ public class TeamsEditModel(
     public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
     {
         this.WorkspaceSlug = slug;
-        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
+        var workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.EnsureWorkspaceExistsOrNotFound(workspace) is IActionResult result)
         {
             return result;
         }
@@ -54,8 +54,8 @@ public class TeamsEditModel(
             return this.Forbid();
         }
 
-        this.Workspace = ws;
-        var data = await this.workspaceTeamsEditViewService.BuildAsync(ws!.Id, uid, id);
+        this.Workspace = workspace;
+        var data = await this.workspaceTeamsEditViewService.BuildAsync(workspace!.Id, uid, id);
 
         this.CanViewTeams = data.CanViewTeams;
         this.CanEditTeams = data.CanEditTeams;
@@ -70,7 +70,7 @@ public class TeamsEditModel(
         this.Id = id;
         if (id > 0)
         {
-            this.LoadTeamDataFromExisting(data.ExistingTeam, ws.Id, data.ExistingMemberIds);
+            this.LoadTeamDataFromExisting(data.ExistingTeam, workspace.Id, data.ExistingMemberIds);
         }
 
         return this.Page();
@@ -79,8 +79,8 @@ public class TeamsEditModel(
     public async Task<IActionResult> OnPostAsync(string slug, int id = 0)
     {
         this.WorkspaceSlug = slug;
-        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
+        var workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.EnsureWorkspaceExistsOrNotFound(workspace) is IActionResult result)
         {
             return result;
         }
@@ -113,8 +113,8 @@ public class TeamsEditModel(
         try
         {
             var team = id == NewTeamId
-                ? await this.CreateTeamAsync(ws)
-                : await this.UpdateTeamAsync(id, ws);
+                ? await this.CreateTeamAsync(workspace)
+                : await this.UpdateTeamAsync(id, workspace);
 
             return this.RedirectToPage("/Workspaces/Teams", new { slug });
         }
@@ -154,26 +154,26 @@ public class TeamsEditModel(
         return null;
     }
 
-    private async Task<Team> CreateTeamAsync(Workspace ws)
+    private async Task<Team> CreateTeamAsync(Workspace workspace)
     {
         var nameTrim = this.Name?.Trim() ?? string.Empty;
         var descTrim = string.IsNullOrWhiteSpace(this.Description) ? null : this.Description.Trim();
 
-        var created = await this.teamManagementService.CreateTeamAsync(ws.Id, nameTrim, descTrim);
+        var created = await this.teamManagementService.CreateTeamAsync(workspace.Id, nameTrim, descTrim);
         var selectedIds = (this.SelectedMemberIds ?? []).Distinct().ToList();
-        await this.teamManagementService.SyncTeamMembersAsync(created.Id, ws.Id, selectedIds);
+        await this.teamManagementService.SyncTeamMembersAsync(created.Id, workspace.Id, selectedIds);
 
         return created;
     }
 
-    private async Task<Team> UpdateTeamAsync(int id, Workspace ws)
+    private async Task<Team> UpdateTeamAsync(int id, Workspace workspace)
     {
         var nameTrim = this.Name?.Trim() ?? string.Empty;
         var descTrim = string.IsNullOrWhiteSpace(this.Description) ? null : this.Description.Trim();
 
         var updated = await this.teamManagementService.UpdateTeamAsync(id, nameTrim, descTrim);
         var selectedIds = (this.SelectedMemberIds ?? []).Distinct().ToList();
-        await this.teamManagementService.SyncTeamMembersAsync(updated.Id, ws.Id, selectedIds);
+        await this.teamManagementService.SyncTeamMembersAsync(updated.Id, workspace.Id, selectedIds);
 
         return updated;
     }

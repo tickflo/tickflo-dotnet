@@ -51,8 +51,8 @@ public class RolesEditModel(IWorkspaceService workspaceService, IRoleRepository 
     public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
     {
         this.WorkspaceSlug = slug;
-        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (ws == null)
+        var workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (workspace == null)
         {
             return this.NotFound();
         }
@@ -62,13 +62,13 @@ public class RolesEditModel(IWorkspaceService workspaceService, IRoleRepository 
             return this.Forbid();
         }
 
-        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, ws.Id);
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, workspace.Id);
         if (!hasMembership)
         {
             return this.Forbid();
         }
 
-        var workspaceId = ws.Id;
+        var workspaceId = workspace.Id;
         var data = await this.workspaceRolesEditViewService.BuildAsync(workspaceId, uid, id);
         if (!data.IsAdmin)
         {
@@ -90,8 +90,8 @@ public class RolesEditModel(IWorkspaceService workspaceService, IRoleRepository 
     public async Task<IActionResult> OnPostAsync(string slug, int id = 0)
     {
         this.WorkspaceSlug = slug;
-        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (ws == null)
+        var workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (workspace == null)
         {
             return this.NotFound();
         }

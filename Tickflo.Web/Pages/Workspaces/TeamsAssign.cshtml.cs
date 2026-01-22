@@ -114,8 +114,8 @@ public class TeamsAssignModel(IWorkspaceService workspaceService, ITeamMemberRep
 
     private async Task<IActionResult?> AuthorizeAndLoadWorkspaceDataAsync(string slug, int teamId)
     {
-        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
+        var workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.EnsureWorkspaceExistsOrNotFound(workspace) is IActionResult result)
         {
             return result;
         }

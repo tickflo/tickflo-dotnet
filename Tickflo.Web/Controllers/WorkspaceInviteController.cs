@@ -26,8 +26,8 @@ public class WorkspaceInviteController(IWorkspaceRepository workspaceRepository,
             return this.BadRequest(InvalidTokenError);
         }
 
-        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
-        if (ws == null)
+        var workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        if (workspace == null)
         {
             return this.NotFound();
         }

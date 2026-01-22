@@ -161,9 +161,9 @@ public class PasswordSetupServiceTests
         var uwRepo = new Mock<IUserWorkspaceRepository>();
         uwRepo.Setup(r => r.FindAcceptedForUserAsync(4)).ReturnsAsync(uw);
 
-        var ws = new Workspace { Id = 10, Slug = "ws-slug" };
+        var workspace = new Workspace { Id = 10, Slug = "ws-slug" };
         var wsRepo = new Mock<IWorkspaceRepository>();
-        wsRepo.Setup(r => r.FindByIdAsync(10)).ReturnsAsync(ws);
+        wsRepo.Setup(r => r.FindByIdAsync(10)).ReturnsAsync(workspace);
 
         var service = CreateService(
             userRepository: userRepository.Object,

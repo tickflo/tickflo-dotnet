@@ -102,8 +102,8 @@ public partial class AuthenticationService(
             var uw = await this.userWorkspaceRepository.FindAcceptedForUserAsync(userId);
             if (uw != null)
             {
-                var ws = await this.workspaceRepository.FindByIdAsync(uw.WorkspaceId);
-                return ws?.Slug;
+                var workspace = await this.workspaceRepository.FindByIdAsync(uw.WorkspaceId);
+                return workspace?.Slug;
             }
         }
         return null;

@@ -91,8 +91,8 @@ public class UsersInviteModel(IWorkspaceService workspaceService, IEmailTemplate
         this.CanViewUsers = viewData.CanViewUsers;
         this.CanCreateUsers = viewData.CanCreateUsers;
 
-        var ws = this.Workspace;
-        if (ws == null)
+        var workspace = this.Workspace;
+        if (workspace == null)
         {
             return this.Forbid();
         }
