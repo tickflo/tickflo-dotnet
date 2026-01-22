@@ -1,8 +1,10 @@
+#pragma warning disable CA1716
 namespace Tickflo.Web.Pages.Shared;
+#pragma warning restore CA1716
 
 public class ActionRowView
 {
-    public List<ActionItem> Actions { get; set; } = new();
+    public List<ActionItem> Actions { get; set; } = [];
 }
 
 public class ActionItem

@@ -7,7 +7,7 @@ public class WorkspaceFilesViewData
 
 public interface IWorkspaceFilesViewService
 {
-    Task<WorkspaceFilesViewData> BuildAsync(int workspaceId, int userId);
+    public Task<WorkspaceFilesViewData> BuildAsync(int workspaceId, int userId);
 }
 
 

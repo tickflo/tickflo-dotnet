@@ -1,3 +1,6 @@
+namespace Tickflo.Web.Pages;
+
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -5,34 +8,30 @@ using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Common;
 
-namespace Tickflo.Web.Pages;
-
 public class NotificationTicketData
 {
-    public int ticketId { get; set; }
-    public string? workspaceSlug { get; set; }
+    [JsonPropertyName("ticketId")]
+    public int TicketId { get; set; }
+    [JsonPropertyName("workspaceSlug")]
+    public string? WorkspaceSlug { get; set; }
 }
 
 [Authorize]
-public class NotificationsModel : PageModel
+public class NotificationsModel(
+    INotificationRepository notificationRepository,
+    ICurrentUserService currentUserService) : PageModel
 {
-    private readonly INotificationRepository _notificationRepo;
-    private readonly ICurrentUserService _currentUserService;
+    private readonly INotificationRepository notificationRepository = notificationRepository;
+    private readonly ICurrentUserService currentUserService = currentUserService;
 
-    public NotificationsModel(
-        INotificationRepository notificationRepo,
-        ICurrentUserService currentUserService)
-    {
-        _notificationRepo = notificationRepo;
-        _currentUserService = currentUserService;
-    }
-
-    public List<Notification> Notifications { get; set; } = new();
+    public List<Notification> Notifications { get; set; } = [];
 
     public NotificationTicketData? GetTicketData(Notification notification)
     {
         if (string.IsNullOrEmpty(notification.Data))
+        {
             return null;
+        }
 
         try
         {
@@ -46,45 +45,45 @@ public class NotificationsModel : PageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
-        if (!_currentUserService.TryGetUserId(User, out var userId))
+        if (!this.currentUserService.TryGetUserId(this.User, out var userId))
         {
-            return Forbid();
+            return this.Forbid();
         }
 
-        Notifications = await _notificationRepo.ListForUserAsync(userId);
-        return Page();
+        this.Notifications = await this.notificationRepository.ListForUserAsync(userId);
+        return this.Page();
     }
 
     public async Task<IActionResult> OnPostMarkAsReadAsync(int id)
     {
-        if (!_currentUserService.TryGetUserId(User, out var userId))
+        if (!this.currentUserService.TryGetUserId(this.User, out var userId))
         {
-            return Forbid();
+            return this.Forbid();
         }
 
-        var notification = await _notificationRepo.FindByIdAsync(id);
+        var notification = await this.notificationRepository.FindByIdAsync(id);
         if (notification == null || notification.UserId != userId)
         {
-            return NotFound();
+            return this.NotFound();
         }
 
-        await _notificationRepo.MarkAsReadAsync(id);
-        return RedirectToPage();
+        await this.notificationRepository.MarkAsReadAsync(id);
+        return this.RedirectToPage();
     }
 
     public async Task<IActionResult> OnPostMarkAllAsReadAsync()
     {
-        if (!_currentUserService.TryGetUserId(User, out var userId))
+        if (!this.currentUserService.TryGetUserId(this.User, out var userId))
         {
-            return Forbid();
+            return this.Forbid();
         }
 
-        var notifications = await _notificationRepo.ListForUserAsync(userId, unreadOnly: true);
+        var notifications = await this.notificationRepository.ListForUserAsync(userId, unreadOnly: true);
         foreach (var notification in notifications)
         {
-            await _notificationRepo.MarkAsReadAsync(notification.Id);
+            await this.notificationRepository.MarkAsReadAsync(notification.Id);
         }
 
-        return RedirectToPage();
+        return this.RedirectToPage();
     }
 }

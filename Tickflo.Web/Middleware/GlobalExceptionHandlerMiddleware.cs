@@ -1,36 +1,29 @@
-using System.Diagnostics;
+namespace Tickflo.Web.Middleware;
+
 using Tickflo.Core.Data;
 using Tickflo.Core.Services.Common;
-
-namespace Tickflo.Web.Middleware;
 
 /// <summary>
 /// Middleware for handling unhandled exceptions globally.
 /// Logs errors and routes to the error page while preserving exception context.
 /// </summary>
-public class GlobalExceptionHandlerMiddleware
+public class GlobalExceptionHandlerMiddleware(RequestDelegate next, ILogger<GlobalExceptionHandlerMiddleware> logger)
 {
-    private readonly RequestDelegate _next;
-    private readonly ILogger<GlobalExceptionHandlerMiddleware> _logger;
-
-    public GlobalExceptionHandlerMiddleware(RequestDelegate next, ILogger<GlobalExceptionHandlerMiddleware> logger)
-    {
-        _next = next;
-        _logger = logger;
-    }
+    private readonly RequestDelegate next = next;
+    private readonly ILogger<GlobalExceptionHandlerMiddleware> logger = logger;
 
     public async Task InvokeAsync(HttpContext context, ICurrentUserService currentUserService, IUserRepository userRepository)
     {
         try
         {
-            await _next(context);
+            await this.next(context);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception occurred. Request ID: {TraceId}", context.TraceIdentifier);
+            this.logger.LogError(ex, "Unhandled exception occurred. Request ID: {TraceId}", context.TraceIdentifier);
 
             // Check if user is admin
-            bool isAdmin = false;
+            var isAdmin = false;
             if (currentUserService.TryGetUserId(context.User, out var userId))
             {
                 try
@@ -40,7 +33,7 @@ public class GlobalExceptionHandlerMiddleware
                 }
                 catch (Exception uex)
                 {
-                    _logger.LogError(uex, "Error retrieving user info for exception handling");
+                    this.logger.LogError(uex, "Error retrieving user info for exception handling");
                 }
             }
 
@@ -51,7 +44,7 @@ public class GlobalExceptionHandlerMiddleware
 
             if (context.Response.HasStarted)
             {
-                _logger.LogWarning("Response has already started, cannot redirect to error page");
+                this.logger.LogWarning("Response has already started, cannot redirect to error page");
                 throw;
             }
 
@@ -62,7 +55,7 @@ public class GlobalExceptionHandlerMiddleware
             context.Request.Path = "/Error";
             context.Request.QueryString = QueryString.Empty;
 
-            await _next(context);
+            await this.next(context);
         }
     }
 }
@@ -72,8 +65,5 @@ public class GlobalExceptionHandlerMiddleware
 /// </summary>
 public static class GlobalExceptionHandlerMiddlewareExtensions
 {
-    public static IApplicationBuilder UseGlobalExceptionHandler(this IApplicationBuilder app)
-    {
-        return app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
-    }
+    public static IApplicationBuilder UseGlobalExceptionHandler(this IApplicationBuilder app) => app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 }

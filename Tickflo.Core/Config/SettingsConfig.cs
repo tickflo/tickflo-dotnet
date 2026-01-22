@@ -12,7 +12,7 @@ public class SettingsConfig
 public class ThemeSettings
 {
     public string Default { get; set; } = "light";
-    public List<string> AvailableOptions { get; set; } = new();
+    public List<string> AvailableOptions { get; set; } = [];
 }
 
 public class NotificationSettings
@@ -22,7 +22,7 @@ public class NotificationSettings
     public bool EmailOnTicketUpdated { get; set; } = true;
     public bool EmailOnTeamInvite { get; set; } = true;
     public string DigestFrequency { get; set; } = "daily";
-    public List<string> AvailableFrequencies { get; set; } = new();
+    public List<string> AvailableFrequencies { get; set; } = [];
 }
 
 public class DisplaySettings
@@ -30,7 +30,7 @@ public class DisplaySettings
     public int ItemsPerPage { get; set; } = 25;
     public string DateFormat { get; set; } = "YYYY-MM-DD";
     public string TimeFormat { get; set; } = "HH:mm";
-    public List<int> AvailablePageSizes { get; set; } = new();
+    public List<int> AvailablePageSizes { get; set; } = [];
 }
 
 public class SecuritySettings

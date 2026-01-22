@@ -1,14 +1,13 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Roles;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 public class RoleManagementServiceTests
 {
-    private static IRoleManagementService CreateService(
+    private static RoleManagementService CreateService(
         IUserWorkspaceRoleRepository? uwrRepo = null,
         IRoleRepository? roleRepo = null)
     {
@@ -18,7 +17,7 @@ public class RoleManagementServiceTests
     }
 
     [Fact]
-    public async Task AssignRoleToUserAsync_CreatesAssignment()
+    public async Task AssignRoleToUserAsyncCreatesAssignment()
     {
         var uwrRepo = new Mock<IUserWorkspaceRoleRepository>();
         var roleRepo = new Mock<IRoleRepository>();
@@ -35,7 +34,7 @@ public class RoleManagementServiceTests
     }
 
     [Fact]
-    public async Task AssignRoleToUserAsync_ThrowsWhenRoleNotFound()
+    public async Task AssignRoleToUserAsyncThrowsWhenRoleNotFound()
     {
         var roleRepo = new Mock<IRoleRepository>();
         roleRepo.Setup(r => r.FindByIdAsync(99)).ReturnsAsync((Role)null!);
@@ -47,7 +46,7 @@ public class RoleManagementServiceTests
     }
 
     [Fact]
-    public async Task AssignRoleToUserAsync_ThrowsWhenRoleNotInWorkspace()
+    public async Task AssignRoleToUserAsyncThrowsWhenRoleNotInWorkspace()
     {
         var roleRepo = new Mock<IRoleRepository>();
         roleRepo.Setup(r => r.FindByIdAsync(5)).ReturnsAsync(new Role { Id = 5, WorkspaceId = 2 });
@@ -59,7 +58,7 @@ public class RoleManagementServiceTests
     }
 
     [Fact]
-    public async Task RemoveRoleFromUserAsync_RemovesRole()
+    public async Task RemoveRoleFromUserAsyncRemovesRole()
     {
         var uwrRepo = new Mock<IUserWorkspaceRoleRepository>();
         var svc = CreateService(uwrRepo.Object);
@@ -71,11 +70,11 @@ public class RoleManagementServiceTests
     }
 
     [Fact]
-    public async Task RemoveRoleFromUserAsync_ReturnsFalseOnError()
+    public async Task RemoveRoleFromUserAsyncReturnsFalseOnError()
     {
         var uwrRepo = new Mock<IUserWorkspaceRoleRepository>();
         uwrRepo.Setup(r => r.RemoveAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()))
-            .ThrowsAsync(new Exception("Test error"));
+            .ThrowsAsync(new InvalidOperationException("Test error"));
 
         var svc = CreateService(uwrRepo.Object);
 
@@ -85,7 +84,7 @@ public class RoleManagementServiceTests
     }
 
     [Fact]
-    public async Task CountRoleAssignmentsAsync_ReturnsCount()
+    public async Task CountRoleAssignmentsAsyncReturnsCount()
     {
         var uwrRepo = new Mock<IUserWorkspaceRoleRepository>();
         uwrRepo.Setup(r => r.CountAssignmentsForRoleAsync(1, 2)).ReturnsAsync(3);
@@ -98,7 +97,7 @@ public class RoleManagementServiceTests
     }
 
     [Fact]
-    public async Task RoleBelongsToWorkspaceAsync_ReturnsTrue()
+    public async Task RoleBelongsToWorkspaceAsyncReturnsTrue()
     {
         var roleRepo = new Mock<IRoleRepository>();
         roleRepo.Setup(r => r.FindByIdAsync(5)).ReturnsAsync(new Role { Id = 5, WorkspaceId = 1 });
@@ -111,7 +110,7 @@ public class RoleManagementServiceTests
     }
 
     [Fact]
-    public async Task RoleBelongsToWorkspaceAsync_ReturnsFalseWhenDifferentWorkspace()
+    public async Task RoleBelongsToWorkspaceAsyncReturnsFalseWhenDifferentWorkspace()
     {
         var roleRepo = new Mock<IRoleRepository>();
         roleRepo.Setup(r => r.FindByIdAsync(5)).ReturnsAsync(new Role { Id = 5, WorkspaceId = 2 });
@@ -124,7 +123,7 @@ public class RoleManagementServiceTests
     }
 
     [Fact]
-    public async Task RoleBelongsToWorkspaceAsync_ReturnsFalseWhenNotFound()
+    public async Task RoleBelongsToWorkspaceAsyncReturnsFalseWhenNotFound()
     {
         var roleRepo = new Mock<IRoleRepository>();
         roleRepo.Setup(r => r.FindByIdAsync(99)).ReturnsAsync((Role)null!);
@@ -137,7 +136,7 @@ public class RoleManagementServiceTests
     }
 
     [Fact]
-    public async Task GetWorkspaceRolesAsync_ReturnsRoles()
+    public async Task GetWorkspaceRolesAsyncReturnsRoles()
     {
         var roles = new List<Role>
         {
@@ -157,7 +156,7 @@ public class RoleManagementServiceTests
     }
 
     [Fact]
-    public async Task GetUserRolesAsync_ReturnsUserRoles()
+    public async Task GetUserRolesAsyncReturnsUserRoles()
     {
         var roles = new List<Role>
         {
@@ -175,7 +174,7 @@ public class RoleManagementServiceTests
     }
 
     [Fact]
-    public async Task EnsureRoleCanBeDeletedAsync_ThrowsWhenAssigned()
+    public async Task EnsureRoleCanBeDeletedAsyncThrowsWhenAssigned()
     {
         var uwrRepo = new Mock<IUserWorkspaceRoleRepository>();
         uwrRepo.Setup(r => r.CountAssignmentsForRoleAsync(1, 5)).ReturnsAsync(3);
@@ -190,7 +189,7 @@ public class RoleManagementServiceTests
     }
 
     [Fact]
-    public async Task EnsureRoleCanBeDeletedAsync_SucceedsWhenNoAssignments()
+    public async Task EnsureRoleCanBeDeletedAsyncSucceedsWhenNoAssignments()
     {
         var uwrRepo = new Mock<IUserWorkspaceRoleRepository>();
         uwrRepo.Setup(r => r.CountAssignmentsForRoleAsync(1, 5)).ReturnsAsync(0);

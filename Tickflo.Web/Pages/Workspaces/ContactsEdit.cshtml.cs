@@ -1,28 +1,32 @@
+namespace Tickflo.Web.Pages.Workspaces;
+
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
 using Tickflo.Core.Services.Contacts;
 using Tickflo.Core.Services.Views;
 
-namespace Tickflo.Web.Pages.Workspaces;
-
 [Authorize]
-public class ContactsEditModel : WorkspacePageModel
+public class ContactsEditModel(
+    IWorkspaceRepository workspaceRepository,
+    IUserWorkspaceRepository userWorkspaceRepository,
+    IWorkspaceContactsEditViewService workspaceContactsEditViewService,
+    IContactRepository contactRepository,
+    IContactRegistrationService contactRegistrationService) : WorkspacePageModel
 {
     #region Constants
     private const int NewContactId = 0;
-    private const string ContactCreatedMessage = "Contact '{0}' created.";
-    private const string ContactUpdatedMessage = "Contact '{0}' updated.";
-    private const string ContactErrorHandled = "Failed to save contact. Please check the form and try again.";
+    private static readonly CompositeFormat ContactCreatedMessage = CompositeFormat.Parse("Contact '{0}' created.");
+    private static readonly CompositeFormat ContactUpdatedMessage = CompositeFormat.Parse("Contact '{0}' updated.");
     #endregion
 
-    private readonly IWorkspaceRepository _workspaceRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
-    private readonly IWorkspaceContactsEditViewService _viewService;
-    private readonly IContactRepository _contactRepo;
-    private readonly IContactRegistrationService _contactRegistrationService;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IWorkspaceContactsEditViewService workspaceContactsEditViewService = workspaceContactsEditViewService;
+    private readonly IContactRepository contactRepository = contactRepository;
+    private readonly IContactRegistrationService contactRegistractionService = contactRegistrationService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -41,104 +45,108 @@ public class ContactsEditModel : WorkspacePageModel
     [BindProperty] public string? PreferredChannel { get; set; }
     [BindProperty] public string? Priority { get; set; }
 
-    public ContactsEditModel(
-        IWorkspaceRepository workspaceRepo, 
-        IUserWorkspaceRepository userWorkspaceRepo,
-        IWorkspaceContactsEditViewService viewService, 
-        IContactRepository contactRepo, 
-        IContactRegistrationService contactRegistrationService)
-    {
-        _workspaceRepo = workspaceRepo;
-        _userWorkspaceRepo = userWorkspaceRepo;
-        _viewService = viewService;
-        _contactRepo = contactRepo;
-        _contactRegistrationService = contactRegistrationService;
-    }
-
     public async Task<IActionResult> OnGetAsync(string slug, int id = 0)
     {
-        WorkspaceSlug = slug;
-        Id = id;
+        this.WorkspaceSlug = slug;
+        this.Id = id;
 
-        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
-        if (loadResult is IActionResult actionResult) return actionResult;
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
+        if (loadResult is IActionResult actionResult)
+        {
+            return actionResult;
+        }
 
         var (workspace, uid) = (WorkspaceUserLoadResult)loadResult;
-        Workspace = workspace;
+        this.Workspace = workspace;
         var workspaceId = workspace!.Id;
 
-        var viewData = await _viewService.BuildAsync(workspaceId, uid, id);
-        CanViewContacts = viewData.CanViewContacts;
-        CanEditContacts = viewData.CanEditContacts;
-        CanCreateContacts = viewData.CanCreateContacts;
+        var viewData = await this.workspaceContactsEditViewService.BuildAsync(workspaceId, uid, id);
+        this.CanViewContacts = viewData.CanViewContacts;
+        this.CanEditContacts = viewData.CanEditContacts;
+        this.CanCreateContacts = viewData.CanCreateContacts;
 
-        if (EnsurePermissionOrForbid(CanViewContacts) is IActionResult permCheck) return permCheck;
+        if (this.EnsurePermissionOrForbid(this.CanViewContacts) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
 
         if (viewData.ExistingContact != null)
-            LoadContactFieldsFromEntity(viewData.ExistingContact);
+        {
+            this.LoadContactFieldsFromEntity(viewData.ExistingContact);
+        }
 
-        ViewData["Priorities"] = viewData.Priorities;
-        return Page();
+        this.ViewData["Priorities"] = viewData.Priorities;
+        return this.Page();
     }
 
     public async Task<IActionResult> OnPostAsync(string slug, int id = 0)
     {
-        WorkspaceSlug = slug;
-        Id = id;
+        this.WorkspaceSlug = slug;
+        this.Id = id;
 
-        var loadResult = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaceRepo, _userWorkspaceRepo, slug);
-        if (loadResult is IActionResult actionResult) return actionResult;
+        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
+        if (loadResult is IActionResult actionResult)
+        {
+            return actionResult;
+        }
 
         var (workspace, uid) = (WorkspaceUserLoadResult)loadResult;
-        Workspace = workspace;
+        this.Workspace = workspace;
         var workspaceId = workspace!.Id;
 
-        var viewData = await _viewService.BuildAsync(workspaceId, uid, id);
-        bool allowed = viewData.CanCreateContacts || viewData.CanEditContacts;
-        if (!allowed) return Forbid();
-        if (EnsureCreateOrEditPermission(id, viewData.CanCreateContacts, viewData.CanEditContacts) is IActionResult permCheck) return permCheck;
-
-        if (!ModelState.IsValid)
+        var viewData = await this.workspaceContactsEditViewService.BuildAsync(workspaceId, uid, id);
+        var allowed = viewData.CanCreateContacts || viewData.CanEditContacts;
+        if (!allowed)
         {
-            ViewData["Priorities"] = viewData.Priorities;
-            return Page();
+            return this.Forbid();
+        }
+
+        if (this.EnsureCreateOrEditPermission(id, viewData.CanCreateContacts, viewData.CanEditContacts) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
+
+        if (!this.ModelState.IsValid)
+        {
+            this.ViewData["Priorities"] = viewData.Priorities;
+            return this.Page();
         }
 
         try
         {
             var contact = id == NewContactId
-                ? await CreateContactAsync(workspaceId, uid)
-                : await UpdateContactAsync(workspaceId, id, uid);
+                ? await this.CreateContactAsync(workspaceId, uid)
+                : await this.UpdateContactAsync(workspaceId, id, uid);
 
-            return RedirectToContactsWithPreservedFilters(slug);
+            return this.RedirectToContactsWithPreservedFilters(slug);
         }
         catch (InvalidOperationException ex)
         {
-            SetErrorMessage(ex.Message);
-            var errorViewData = await _viewService.BuildAsync(workspaceId, uid, id);
-            ViewData["Priorities"] = errorViewData.Priorities;
-            return Page();
+            this.SetErrorMessage(ex.Message);
+            var errorViewData = await this.workspaceContactsEditViewService.BuildAsync(workspaceId, uid, id);
+            this.ViewData["Priorities"] = errorViewData.Priorities;
+            return this.Page();
         }
     }
 
     private void LoadContactFieldsFromEntity(Contact contact)
     {
-        Name = contact.Name ?? string.Empty;
-        Email = contact.Email ?? string.Empty;
-        Phone = contact.Phone;
-        Company = contact.Company;
-        Title = contact.Title;
-        Notes = contact.Notes;
-        Tags = contact.Tags;
-        PreferredChannel = contact.PreferredChannel;
-        Priority = contact.Priority;
+        this.Name = contact.Name ?? string.Empty;
+        this.Email = contact.Email ?? string.Empty;
+        this.Phone = contact.Phone;
+        this.Company = contact.Company;
+        this.Title = contact.Title;
+        this.Notes = contact.Notes;
+        this.Tags = contact.Tags;
+        this.PreferredChannel = contact.PreferredChannel;
+        this.Priority = contact.Priority;
     }
 
     private async Task<Contact> CreateContactAsync(int workspaceId, int userId)
     {
-        var trimmedFields = TrimContactFields();
+        var trimmedFields = this.TrimContactFields();
 
-        var created = await _contactRegistrationService.RegisterContactAsync(workspaceId, new ContactRegistrationRequest
+        var created = await this.contactRegistractionService.RegisterContactAsync(workspaceId, new ContactRegistrationRequest
         {
             Name = trimmedFields.Name,
             Email = string.IsNullOrEmpty(trimmedFields.Email) ? null : trimmedFields.Email,
@@ -151,17 +159,17 @@ public class ContactsEditModel : WorkspacePageModel
         created.Tags = trimmedFields.Tags;
         created.PreferredChannel = trimmedFields.PreferredChannel;
         created.Priority = trimmedFields.Priority;
-        await _contactRepo.UpdateAsync(created);
+        await this.contactRepository.UpdateAsync(created);
 
-        SetSuccessMessage(string.Format(ContactCreatedMessage, created.Name));
+        this.SetSuccessMessage(string.Format(null, ContactCreatedMessage, created.Name));
         return created;
     }
 
     private async Task<Contact> UpdateContactAsync(int workspaceId, int id, int userId)
     {
-        var trimmedFields = TrimContactFields();
+        var trimmedFields = this.TrimContactFields();
 
-        var updated = await _contactRegistrationService.UpdateContactInformationAsync(workspaceId, id, new ContactUpdateRequest
+        var updated = await this.contactRegistractionService.UpdateContactInformationAsync(workspaceId, id, new ContactUpdateRequest
         {
             Name = trimmedFields.Name,
             Email = string.IsNullOrEmpty(trimmedFields.Email) ? null : trimmedFields.Email,
@@ -174,35 +182,29 @@ public class ContactsEditModel : WorkspacePageModel
         updated.Tags = trimmedFields.Tags;
         updated.PreferredChannel = trimmedFields.PreferredChannel;
         updated.Priority = trimmedFields.Priority;
-        await _contactRepo.UpdateAsync(updated);
+        await this.contactRepository.UpdateAsync(updated);
 
-        SetSuccessMessage(string.Format(ContactUpdatedMessage, updated.Name));
+        this.SetSuccessMessage(string.Format(null, ContactUpdatedMessage, updated.Name));
         return updated;
     }
 
-    private (string Name, string Email, string? Phone, string? Company, string? Notes, string? Title, string? Tags, string? PreferredChannel, string? Priority) TrimContactFields()
-    {
-        return (
-            Name: Name?.Trim() ?? string.Empty,
-            Email: Email?.Trim() ?? string.Empty,
-            Phone: string.IsNullOrWhiteSpace(Phone) ? null : Phone!.Trim(),
-            Company: string.IsNullOrWhiteSpace(Company) ? null : Company!.Trim(),
-            Notes: string.IsNullOrWhiteSpace(Notes) ? null : Notes!.Trim(),
-            Title: string.IsNullOrWhiteSpace(Title) ? null : Title!.Trim(),
-            Tags: string.IsNullOrWhiteSpace(Tags) ? null : Tags!.Trim(),
-            PreferredChannel: string.IsNullOrWhiteSpace(PreferredChannel) ? null : PreferredChannel!.Trim(),
-            Priority: string.IsNullOrWhiteSpace(Priority) ? null : Priority!.Trim()
+    private (string Name, string Email, string? Phone, string? Company, string? Notes, string? Title, string? Tags, string? PreferredChannel, string? Priority) TrimContactFields() => (
+            Name: this.Name?.Trim() ?? string.Empty,
+            Email: this.Email?.Trim() ?? string.Empty,
+            Phone: string.IsNullOrWhiteSpace(this.Phone) ? null : this.Phone.Trim(),
+            Company: string.IsNullOrWhiteSpace(this.Company) ? null : this.Company.Trim(),
+            Notes: string.IsNullOrWhiteSpace(this.Notes) ? null : this.Notes.Trim(),
+            Title: string.IsNullOrWhiteSpace(this.Title) ? null : this.Title.Trim(),
+            Tags: string.IsNullOrWhiteSpace(this.Tags) ? null : this.Tags.Trim(),
+            PreferredChannel: string.IsNullOrWhiteSpace(this.PreferredChannel) ? null : this.PreferredChannel.Trim(),
+            Priority: string.IsNullOrWhiteSpace(this.Priority) ? null : this.Priority.Trim()
         );
-    }
 
-    private RedirectToPageResult RedirectToContactsWithPreservedFilters(string slug)
+    private RedirectToPageResult RedirectToContactsWithPreservedFilters(string slug) => this.RedirectToPage("/Workspaces/Contacts", new
     {
-        return RedirectToPage("/Workspaces/Contacts", new
-        {
-            slug,
-            Priority = Request.Query["Priority"].ToString(),
-            Query = Request.Query["Query"].ToString(),
-            PageNumber = Request.Query["PageNumber"].ToString()
-        });
-    }
+        slug,
+        Priority = this.Request.Query["Priority"].ToString(),
+        Query = this.Request.Query["Query"].ToString(),
+        PageNumber = this.Request.Query["PageNumber"].ToString()
+    });
 }

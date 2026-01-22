@@ -1,32 +1,22 @@
+namespace Tickflo.Core.Services.Views;
+
 using Tickflo.Core.Data;
 
 using Tickflo.Core.Services.Reporting;
-using Tickflo.Core.Services.Workspace;
 
-namespace Tickflo.Core.Services.Views;
-
-public class WorkspaceReportsViewService : IWorkspaceReportsViewService
+public class WorkspaceReportsViewService(
+    IRolePermissionRepository rolePermissionRepository,
+    IReportQueryService reportQueryService) : IWorkspaceReportsViewService
 {
-    private readonly IRolePermissionRepository _rolePermissions;
-    private readonly IReportQueryService _reportQueryService;
-    private readonly IWorkspaceAccessService _workspaceAccessService;
-
-    public WorkspaceReportsViewService(
-        IRolePermissionRepository rolePermissions,
-        IReportQueryService reportQueryService,
-        IWorkspaceAccessService workspaceAccessService)
-    {
-        _rolePermissions = rolePermissions;
-        _reportQueryService = reportQueryService;
-        _workspaceAccessService = workspaceAccessService;
-    }
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
+    private readonly IReportQueryService reportQueryService = reportQueryService;
 
     public async Task<WorkspaceReportsViewData> BuildAsync(int workspaceId, int userId)
     {
         var data = new WorkspaceReportsViewData();
 
         // Get user's effective permissions for reports
-        var permissions = await _rolePermissions.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+        var permissions = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
 
         if (permissions.TryGetValue("reports", out var reportPermissions))
         {
@@ -35,16 +25,15 @@ public class WorkspaceReportsViewService : IWorkspaceReportsViewService
         }
 
         // Load reports list
-        var reports = await _reportQueryService.ListReportsAsync(workspaceId);
-        data.Reports = reports
+        var reports = await this.reportQueryService.ListReportsAsync(workspaceId);
+        data.Reports = [.. reports
             .Select(r => new ReportSummary
             {
                 Id = r.Id,
                 Name = r.Name,
                 Ready = r.Ready,
                 LastRun = r.LastRun
-            })
-            .ToList();
+            })];
 
         return data;
     }

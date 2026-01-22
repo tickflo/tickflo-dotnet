@@ -1,18 +1,16 @@
+namespace Tickflo.Web.Pages;
+
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Services.Authentication;
 
-namespace Tickflo.Web.Pages;
-
 [AllowAnonymous]
 public class SetPasswordModel(
-    ILogger<SetPasswordModel> logger,
     IPasswordSetupService passwordSetupService) : PageModel
 {
-    private readonly ILogger<SetPasswordModel> _logger = logger;
-    private readonly IPasswordSetupService _passwordSetupService = passwordSetupService;
+    private readonly IPasswordSetupService passwordSetupService = passwordSetupService;
 
     [BindProperty]
     public SetPasswordInput Input { get; set; } = new();
@@ -25,51 +23,51 @@ public class SetPasswordModel(
 
     public async Task<IActionResult> OnGetAsync()
     {
-        var validation = await _passwordSetupService.ValidateInitialUserAsync(UserId);
+        var validation = await this.passwordSetupService.ValidateInitialUserAsync(this.UserId);
         if (!validation.IsValid)
         {
-            return Redirect("/login");
+            return this.Redirect("/login");
         }
 
-        UserEmail = validation.UserEmail;
-        return Page();
+        this.UserEmail = validation.UserEmail;
+        return this.Page();
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
-        var validation = await _passwordSetupService.ValidateInitialUserAsync(UserId);
+        var validation = await this.passwordSetupService.ValidateInitialUserAsync(this.UserId);
         if (!validation.IsValid || validation.UserId == null)
         {
-            return Redirect("/login");
+            return this.Redirect("/login");
         }
 
-        if (!ModelState.IsValid)
+        if (!this.ModelState.IsValid)
         {
-            UserEmail = validation.UserEmail;
-            return Page();
+            this.UserEmail = validation.UserEmail;
+            return this.Page();
         }
 
-        var result = await _passwordSetupService.SetInitialPasswordAsync(validation.UserId.Value, Input.Password);
+        var result = await this.passwordSetupService.SetInitialPasswordAsync(validation.UserId.Value, this.Input.Password);
         if (!result.Success || string.IsNullOrWhiteSpace(result.LoginToken))
         {
-            ErrorMessage = result.ErrorMessage ?? "Could not set password.";
-            UserEmail = validation.UserEmail;
-            return Page();
+            this.ErrorMessage = result.ErrorMessage ?? "Could not set password.";
+            this.UserEmail = validation.UserEmail;
+            return this.Page();
         }
-        Response.Cookies.Append("user_token", result.LoginToken, new CookieOptions
+        this.Response.Cookies.Append("user_token", result.LoginToken, new CookieOptions
         {
             HttpOnly = true,
-            Secure = Request.IsHttps,
+            Secure = this.Request.IsHttps,
             SameSite = SameSiteMode.Lax,
             Expires = DateTimeOffset.UtcNow.AddDays(30)
         });
 
         if (!string.IsNullOrWhiteSpace(result.WorkspaceSlug))
         {
-            return Redirect($"/workspaces/{result.WorkspaceSlug}");
+            return this.Redirect($"/workspaces/{result.WorkspaceSlug}");
         }
 
-        return Redirect("/");
+        return this.Redirect("/");
     }
 }
 

@@ -1,18 +1,18 @@
-﻿using Moq;
-using Xunit;
+namespace Tickflo.CoreTest.Services;
+
+using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.CoreTest.Services;
+using Xunit;
 
 public class WorkspaceTeamsViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_LoadsTeamsWithPermissions()
+    public async Task BuildAsyncLoadsTeamsWithPermissions()
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
-        var listingService = new Mock<ITeamListingService>();
+        var contactListingService = new Mock<ITeamListingService>();
 
         var permissions = new Dictionary<string, EffectiveSectionPermission>
         {
@@ -21,8 +21,8 @@ public class WorkspaceTeamsViewServiceTests
 
         var teams = new List<Team>
         {
-            new Team { Id = 1, WorkspaceId = 1, Name = "Engineering" },
-            new Team { Id = 2, WorkspaceId = 1, Name = "Sales" }
+            new() { Id = 1, WorkspaceId = 1, Name = "Engineering" },
+            new() { Id = 2, WorkspaceId = 1, Name = "Sales" }
         };
 
         var memberCounts = new Dictionary<int, int> { { 1, 5 }, { 2, 3 } };
@@ -33,10 +33,10 @@ public class WorkspaceTeamsViewServiceTests
         accessService.Setup(x => x.GetUserPermissionsAsync(1, 100))
             .ReturnsAsync(permissions);
 
-        listingService.Setup(x => x.GetListAsync(1))
+        contactListingService.Setup(x => x.GetListAsync(1))
             .ReturnsAsync((teams, memberCounts));
 
-        var service = new WorkspaceTeamsViewService(accessService.Object, listingService.Object);
+        var service = new WorkspaceTeamsViewService(accessService.Object, contactListingService.Object);
 
         // Act
         var result = await service.BuildAsync(1, 100);
@@ -51,11 +51,11 @@ public class WorkspaceTeamsViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_AdminAlwaysCanView()
+    public async Task BuildAsyncAdminAlwaysCanView()
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
-        var listingService = new Mock<ITeamListingService>();
+        var contactListingService = new Mock<ITeamListingService>();
 
         var permissions = new Dictionary<string, EffectiveSectionPermission>();
 
@@ -68,10 +68,10 @@ public class WorkspaceTeamsViewServiceTests
         accessService.Setup(x => x.GetUserPermissionsAsync(1, 100))
             .ReturnsAsync(permissions);
 
-        listingService.Setup(x => x.GetListAsync(1))
+        contactListingService.Setup(x => x.GetListAsync(1))
             .ReturnsAsync((teams, memberCounts));
 
-        var service = new WorkspaceTeamsViewService(accessService.Object, listingService.Object);
+        var service = new WorkspaceTeamsViewService(accessService.Object, contactListingService.Object);
 
         // Act
         var result = await service.BuildAsync(1, 100);
@@ -83,11 +83,11 @@ public class WorkspaceTeamsViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_DeniesAccessWhenNoPermissions()
+    public async Task BuildAsyncDeniesAccessWhenNoPermissions()
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
-        var listingService = new Mock<ITeamListingService>();
+        var contactListingService = new Mock<ITeamListingService>();
 
         var permissions = new Dictionary<string, EffectiveSectionPermission>();
 
@@ -97,7 +97,7 @@ public class WorkspaceTeamsViewServiceTests
         accessService.Setup(x => x.GetUserPermissionsAsync(1, 100))
             .ReturnsAsync(permissions);
 
-        var service = new WorkspaceTeamsViewService(accessService.Object, listingService.Object);
+        var service = new WorkspaceTeamsViewService(accessService.Object, contactListingService.Object);
 
         // Act
         var result = await service.BuildAsync(1, 100);
@@ -108,7 +108,7 @@ public class WorkspaceTeamsViewServiceTests
         Assert.False(result.CanEditTeams);
         Assert.Empty(result.Teams);
         Assert.Empty(result.MemberCounts);
-        listingService.Verify(x => x.GetListAsync(It.IsAny<int>()), Times.Never);
+        contactListingService.Verify(x => x.GetListAsync(It.IsAny<int>()), Times.Never);
     }
 }
 

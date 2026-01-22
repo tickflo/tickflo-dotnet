@@ -1,30 +1,29 @@
 using System.Web;
+using Amazon.S3;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Config;
 using Tickflo.Core.Data;
-using Tickflo.Core.Services;
 using Tickflo.Core.Services.Authentication;
-using Tickflo.Core.Services.Email;
-using Tickflo.Core.Services.Notifications;
-using Tickflo.Core.Services.Contacts;
 using Tickflo.Core.Services.Common;
-using Tickflo.Core.Services.Locations;
+using Tickflo.Core.Services.Contacts;
+using Tickflo.Core.Services.Email;
+using Tickflo.Core.Services.Export;
 using Tickflo.Core.Services.Inventory;
+using Tickflo.Core.Services.Locations;
+using Tickflo.Core.Services.Notifications;
+using Tickflo.Core.Services.Reporting;
 using Tickflo.Core.Services.Roles;
 using Tickflo.Core.Services.Teams;
 using Tickflo.Core.Services.Tickets;
 using Tickflo.Core.Services.Users;
-using Tickflo.Core.Services.Workspace;
-using Tickflo.Core.Services.Reporting;
-using Tickflo.Core.Services.Export;
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
+using Tickflo.Web.Authentication;
+using Tickflo.Web.Middleware;
 using AuthenticationService = Tickflo.Core.Services.Authentication.AuthenticationService;
 using IAuthenticationService = Tickflo.Core.Services.Authentication.IAuthenticationService;
-using Amazon.S3;
-using Amazon;
-using Tickflo.Web.Middleware;
 
 DotNetEnv.Env.Load();
 
@@ -40,7 +39,7 @@ builder.Configuration.Bind(appConfig);
 var settingsConfig = new SettingsConfig();
 builder.Configuration.GetSection("SETTINGS").Bind(settingsConfig);
 
-var connectionString = $"Host={appConfig.POSTGRES_HOST};Port=5432;Database={appConfig.POSTGRES_DB};Username={appConfig.POSTGRES_USER};Password={appConfig.POSTGRES_PASSWORD}";
+var connectionString = $"Host={appConfig.PostgresHost};Port=5432;Database={appConfig.PostresDatabase};Username={appConfig.PostgresUser};Password={appConfig.PostgresPassword}";
 
 builder.Services.AddSingleton(appConfig);
 builder.Services.AddSingleton(settingsConfig);
@@ -73,7 +72,7 @@ builder.Services.AddScoped<IFileStorageRepository, FileStorageRepository>();
 builder.Services.AddScoped<IWorkspaceRoleBootstrapper, WorkspaceRoleBootstrapper>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<IPasswordSetupService, PasswordSetupService>();
-builder.Services.AddScoped<Tickflo.Core.Services.Notifications.INotificationService, Tickflo.Core.Services.Notifications.NotificationService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IUserManagementService, UserManagementService>();
@@ -102,19 +101,19 @@ builder.Services.AddScoped<IWorkspaceInventoryEditViewService, WorkspaceInventor
 builder.Services.AddScoped<IWorkspaceReportsEditViewService, WorkspaceReportsEditViewService>();
 builder.Services.AddScoped<IWorkspaceRolesEditViewService, WorkspaceRolesEditViewService>();
 builder.Services.AddScoped<IWorkspaceTeamsEditViewService, WorkspaceTeamsEditViewService>();
-    builder.Services.AddScoped<IWorkspaceSettingsViewService, WorkspaceSettingsViewService>();
-    builder.Services.AddScoped<IWorkspaceRolesAssignViewService, WorkspaceRolesAssignViewService>();
-    builder.Services.AddScoped<IWorkspaceTeamsAssignViewService, WorkspaceTeamsAssignViewService>();
-    builder.Services.AddScoped<IWorkspaceReportRunViewService, WorkspaceReportRunViewService>();
-    builder.Services.AddScoped<IWorkspaceReportRunDownloadViewService, WorkspaceReportRunDownloadViewService>();
-    builder.Services.AddScoped<IWorkspaceReportDeleteViewService, WorkspaceReportDeleteViewService>();
-    builder.Services.AddScoped<IWorkspaceFilesViewService, WorkspaceFilesViewService>();
-    builder.Services.AddScoped<IWorkspaceReportRunsBackfillViewService, WorkspaceReportRunsBackfillViewService>();
-    builder.Services.AddScoped<IWorkspaceReportRunExecuteViewService, WorkspaceReportRunExecuteViewService>();
-    builder.Services.AddScoped<IWorkspaceReportRunsViewService, WorkspaceReportRunsViewService>();
-    builder.Services.AddScoped<IWorkspaceUsersInviteViewService, WorkspaceUsersInviteViewService>();
-    builder.Services.AddScoped<IWorkspaceUsersManageViewService, WorkspaceUsersManageViewService>();
-    builder.Services.AddScoped<IWorkspaceTicketsSaveViewService, WorkspaceTicketsSaveViewService>();
+builder.Services.AddScoped<IWorkspaceSettingsViewService, WorkspaceSettingsViewService>();
+builder.Services.AddScoped<IWorkspaceRolesAssignViewService, WorkspaceRolesAssignViewService>();
+builder.Services.AddScoped<IWorkspaceTeamsAssignViewService, WorkspaceTeamsAssignViewService>();
+builder.Services.AddScoped<IWorkspaceReportRunViewService, WorkspaceReportRunViewService>();
+builder.Services.AddScoped<IWorkspaceReportRunDownloadViewService, WorkspaceReportRunDownloadViewService>();
+builder.Services.AddScoped<IWorkspaceReportDeleteViewService, WorkspaceReportDeleteViewService>();
+builder.Services.AddScoped<IWorkspaceFilesViewService, WorkspaceFilesViewService>();
+builder.Services.AddScoped<IWorkspaceReportRunsBackfillViewService, WorkspaceReportRunsBackfillViewService>();
+builder.Services.AddScoped<IWorkspaceReportRunExecuteViewService, WorkspaceReportRunExecuteViewService>();
+builder.Services.AddScoped<IWorkspaceReportRunsViewService, WorkspaceReportRunsViewService>();
+builder.Services.AddScoped<IWorkspaceUsersInviteViewService, WorkspaceUsersInviteViewService>();
+builder.Services.AddScoped<IWorkspaceUsersManageViewService, WorkspaceUsersManageViewService>();
+builder.Services.AddScoped<IWorkspaceTicketsSaveViewService, WorkspaceTicketsSaveViewService>();
 
 // Phase 2 & 3: Domain entity services
 builder.Services.AddScoped<IWorkspaceSettingsService, WorkspaceSettingsService>();
@@ -151,19 +150,10 @@ builder.Services.AddScoped<ITeamListingService, TeamListingService>();
 // RustFS file and image storage services (Web implementations)
 builder.Services.AddScoped<Tickflo.Core.Services.Storage.IFileStorageService, Tickflo.Web.Services.RustFSStorageService>();
 builder.Services.AddScoped<Tickflo.Core.Services.Storage.IImageStorageService, Tickflo.Web.Services.RustFSImageStorageService>();
-
-var useSmtp = !string.IsNullOrWhiteSpace(appConfig.EMAIL.SMTP_HOST);
-if (useSmtp)
-{
-    builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
-}
-else
-{
-    builder.Services.AddScoped<IEmailSender, DebugEmailSender>();
-}
+builder.Services.AddScoped<IEmailSenderService, EmailSenderService>();
 builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
 builder.Services.AddDbContext<TickfloDbContext>(options =>
-    options.UseNpgsql(connectionString!)
+    options.UseNpgsql(connectionString)
         .UseSnakeCaseNamingConvention());
 
 builder.Services.AddRazorPages(options =>
@@ -173,13 +163,13 @@ builder.Services.AddRazorPages(options =>
 builder.Services.AddControllers();
 
 // Reporting services (moved to Core)
-builder.Services.AddScoped<Tickflo.Core.Services.Reporting.IReportingService, Tickflo.Core.Services.Reporting.ReportingService>();
+builder.Services.AddScoped<IReportingService, ReportingService>();
 builder.Services.AddHostedService<Tickflo.Web.Services.ScheduledReportsHostedService>();
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(appConfig.SESSION_TIMEOUT_MINUTES);
+    options.IdleTimeout = TimeSpan.FromMinutes(appConfig.SessionTimeoutMinutes);
     options.Cookie.HttpOnly = true;
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     options.Cookie.SameSite = SameSiteMode.Lax;
@@ -187,17 +177,12 @@ builder.Services.AddSession(options =>
 });
 
 builder.Services.AddAuthentication("TokenAuth")
-    .AddScheme<AuthenticationSchemeOptions, TokenAuthenticationHandler>("TokenAuth", options =>
-    {
-        options.TimeProvider = TimeProvider.System;
-    });
+    .AddScheme<AuthenticationSchemeOptions, TokenAuthenticationHandler>("TokenAuth", options => options.TimeProvider = TimeProvider.System);
 
-builder.Services.AddAuthorization(options =>
-{
-    options.FallbackPolicy = new AuthorizationPolicyBuilder("TokenAuth")
+builder.Services.AddAuthorizationBuilder()
+    .AddDefaultPolicy("AuthenticationPolicy", new AuthorizationPolicyBuilder("TokenAuth")
         .RequireAuthenticatedUser()
-        .Build();
-});
+        .Build());
 
 builder.Services.AddMiniProfiler().AddEntityFramework();
 
@@ -208,11 +193,11 @@ builder.Services.AddSingleton<IAmazonS3>(sp =>
     var config = sp.GetRequiredService<TickfloConfig>();
     var s3Config = new AmazonS3Config
     {
-        ServiceURL = config.S3_ENDPOINT,
+        ServiceURL = config.S3EndPoint,
         ForcePathStyle = true,
-        AuthenticationRegion = config.S3_REGION,
+        AuthenticationRegion = config.S3Region,
     };
-    return new AmazonS3Client(config.S3_ACCESS_KEY, config.S3_SECRET_KEY, s3Config);
+    return new AmazonS3Client(config.S3AccessKey, config.S3SecretKey, s3Config);
 });
 
 var app = builder.Build();

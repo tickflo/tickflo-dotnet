@@ -1,6 +1,6 @@
-using InventoryEntity = Tickflo.Core.Entities.Inventory;
-
 namespace Tickflo.Core.Services.Inventory;
+
+using InventoryEntity = Entities.Inventory;
 
 /// <summary>
 /// Handles inventory quantity adjustments.
@@ -16,7 +16,7 @@ public interface IInventoryAdjustmentService
     /// <param name="reason">Reason for adjustment</param>
     /// <param name="adjustedByUserId">User performing adjustment</param>
     /// <returns>Updated inventory item</returns>
-    Task<InventoryEntity> IncreaseQuantityAsync(int workspaceId, int inventoryId, int amount, string reason, int adjustedByUserId);
+    public Task<InventoryEntity> IncreaseQuantityAsync(int workspaceId, int inventoryId, int amount, string reason, int adjustedByUserId);
 
     /// <summary>
     /// Decreases inventory quantity with validation.
@@ -27,7 +27,7 @@ public interface IInventoryAdjustmentService
     /// <param name="reason">Reason for adjustment</param>
     /// <param name="adjustedByUserId">User performing adjustment</param>
     /// <returns>Updated inventory item</returns>
-    Task<InventoryEntity> DecreaseQuantityAsync(int workspaceId, int inventoryId, int amount, string reason, int adjustedByUserId);
+    public Task<InventoryEntity> DecreaseQuantityAsync(int workspaceId, int inventoryId, int amount, string reason, int adjustedByUserId);
 
     /// <summary>
     /// Sets inventory to a specific quantity (e.g., physical count).
@@ -38,5 +38,5 @@ public interface IInventoryAdjustmentService
     /// <param name="reason">Reason for adjustment</param>
     /// <param name="adjustedByUserId">User performing adjustment</param>
     /// <returns>Updated inventory item</returns>
-    Task<InventoryEntity> SetQuantityAsync(int workspaceId, int inventoryId, int newQuantity, string reason, int adjustedByUserId);
+    public Task<InventoryEntity> SetQuantityAsync(int workspaceId, int inventoryId, int newQuantity, string reason, int adjustedByUserId);
 }

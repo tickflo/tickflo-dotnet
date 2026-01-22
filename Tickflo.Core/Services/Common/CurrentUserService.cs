@@ -1,6 +1,6 @@
-using System.Security.Claims;
-
 namespace Tickflo.Core.Services.Common;
+
+using System.Security.Claims;
 
 /// <summary>
 /// Implementation of ICurrentUserService for extracting current user from claims.
@@ -19,14 +19,11 @@ public class CurrentUserService : ICurrentUserService
         return false;
     }
 
-    public int? GetUserId(ClaimsPrincipal principal)
-    {
-        return TryGetUserId(principal, out var userId) ? userId : null;
-    }
+    public int? GetUserId(ClaimsPrincipal principal) => this.TryGetUserId(principal, out var userId) ? userId : null;
 
     public int GetUserIdOrThrow(ClaimsPrincipal principal)
     {
-        if (!TryGetUserId(principal, out var userId))
+        if (!this.TryGetUserId(principal, out var userId))
         {
             throw new InvalidOperationException("Unable to extract user ID from claims.");
         }

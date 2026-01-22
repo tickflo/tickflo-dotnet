@@ -1,13 +1,11 @@
-﻿
-using Tickflo.Core.Services.Authentication;
-using Xunit;
-
 namespace Tickflo.CoreTest.Services.Auth;
+
+using Xunit;
 
 public class Argon2idPasswordHasherTests
 {
     [Fact]
-    public void Hash_CreatesValidHash()
+    public void HashCreatesValidHash()
     {
         var hasher = new Argon2idPasswordHasher();
         var hash = hasher.Hash("password");
@@ -16,7 +14,7 @@ public class Argon2idPasswordHasherTests
     }
 
     [Fact]
-    public void Verify_PassesValidHash()
+    public void VerifyPassesValidHash()
     {
         var hasher = new Argon2idPasswordHasher();
         var hash = hasher.Hash("password");
@@ -25,7 +23,7 @@ public class Argon2idPasswordHasherTests
     }
 
     [Fact]
-    public void Verify_FailsInvalidHash()
+    public void VerifyFailsInvalidHash()
     {
         var hasher = new Argon2idPasswordHasher();
         var hash = hasher.Hash("password");
@@ -34,7 +32,7 @@ public class Argon2idPasswordHasherTests
     }
 
     [Fact]
-    public void Hash_ProducesDifferentHashesForSamePassword()
+    public void HashProducesDifferentHashesForSamePassword()
     {
         var hasher = new Argon2idPasswordHasher();
         var hash1 = hasher.Hash("password");
@@ -44,7 +42,7 @@ public class Argon2idPasswordHasherTests
     }
 
     [Fact]
-    public void Verify_InvalidHashFormat_ReturnsFalse()
+    public void VerifyInvalidHashFormatReturnsFalse()
     {
         var hasher = new Argon2idPasswordHasher();
         var result = hasher.Verify("password", "not-a-real-hash");

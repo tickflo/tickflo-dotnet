@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Views;
+
+using Tickflo.Core.Entities;
 
 public record DashboardActivityPoint(string Label, int Created, int Closed);
 public record DashboardMemberStat(int UserId, string Name, int ResolvedCount);
@@ -31,7 +31,7 @@ public record WorkspaceDashboardView(
 
 public interface IWorkspaceDashboardViewService
 {
-    Task<WorkspaceDashboardView> BuildAsync(
+    public Task<WorkspaceDashboardView> BuildAsync(
         int workspaceId,
         int userId,
         string scope,

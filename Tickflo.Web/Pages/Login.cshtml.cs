@@ -1,27 +1,24 @@
+namespace Tickflo.Web.Pages;
+
 using System.ComponentModel.DataAnnotations;
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Tickflo.Core.Services;
 using Tickflo.Core.Services.Authentication;
 
-namespace Tickflo.Web.Pages;
-
 [AllowAnonymous]
-public class LoginModel(ILogger<LoginModel> logger, IAuthenticationService authService) : PageModel
+public class LoginModel(IAuthenticationService authenticationService) : PageModel
 {
     #region Constants
     private const string TokenCookieName = "user_token";
     private const int TokenCookieExpirationDays = 30;
-    private const string PasswordSetupUrl = "/setpassword?userId={0}";
-    private const string WorkspaceRedirectUrl = "/workspaces/{0}";
-    private const string WorkspacesUrl = "/workspaces";
+    private static readonly CompositeFormat PasswordSetupUrl = CompositeFormat.Parse("/setpassword?userId={0}");
+    private static readonly CompositeFormat WorkspaceRedirectUrl = CompositeFormat.Parse("/workspaces/{0}");
     private const string NoWorkspaceError = "No workspace found for your account. Please contact support.";
-    private const string PasswordSetupRequiredMessage = "Please set your password before logging in.";
     #endregion
 
-    private readonly ILogger<LoginModel> _logger = logger;
-    private readonly IAuthenticationService _authService = authService;
+    private readonly IAuthenticationService authenticationService = authenticationService;
 
     [BindProperty]
     public LoginInput Input { get; set; } = new();
@@ -33,47 +30,52 @@ public class LoginModel(ILogger<LoginModel> logger, IAuthenticationService authS
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (!ModelState.IsValid)
-            return Page();
+        if (!this.ModelState.IsValid)
+        {
+            return this.Page();
+        }
 
-        var email = Input.Email?.Trim() ?? string.Empty;
-        var password = Input.Password ?? string.Empty;
-        var result = await _authService.AuthenticateAsync(email, password);
+        var email = this.Input.Email?.Trim() ?? string.Empty;
+        var password = this.Input.Password ?? string.Empty;
+        var result = await this.authenticationService.AuthenticateAsync(email, password);
 
         if (result.RequiresPasswordSetup && result.UserId.HasValue)
-            return Redirect(string.Format(PasswordSetupUrl, result.UserId));
+        {
+            return this.Redirect(string.Format(null, PasswordSetupUrl, result.UserId));
+        }
 
         if (!result.Success)
         {
-            ErrorMessage = result.ErrorMessage;
-            return Page();
+            this.ErrorMessage = result.ErrorMessage;
+            return this.Page();
         }
 
-        AppendAuthenticationCookie(result.Token!);
-        return GetPostLoginRedirect(result.WorkspaceSlug);
+        this.AppendAuthenticationCookie(result.Token!);
+        return this.GetPostLoginRedirect(result.WorkspaceSlug);
     }
 
-    private void AppendAuthenticationCookie(string token)
+    private void AppendAuthenticationCookie(string token) => this.Response.Cookies.Append(TokenCookieName, token, new CookieOptions
     {
-        Response.Cookies.Append(TokenCookieName, token, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = Request.IsHttps,
-            SameSite = SameSiteMode.Lax,
-            Expires = DateTimeOffset.UtcNow.AddDays(TokenCookieExpirationDays)
-        });
-    }
+        HttpOnly = true,
+        Secure = this.Request.IsHttps,
+        SameSite = SameSiteMode.Lax,
+        Expires = DateTimeOffset.UtcNow.AddDays(TokenCookieExpirationDays)
+    });
 
     private IActionResult GetPostLoginRedirect(string? workspaceSlug)
     {
-        if (!string.IsNullOrWhiteSpace(ReturnUrl) && Url.IsLocalUrl(ReturnUrl))
-            return Redirect(ReturnUrl);
+        if (!string.IsNullOrWhiteSpace(this.ReturnUrl) && this.Url.IsLocalUrl(this.ReturnUrl))
+        {
+            return this.Redirect(this.ReturnUrl);
+        }
 
         if (!string.IsNullOrEmpty(workspaceSlug))
-            return Redirect(string.Format(WorkspaceRedirectUrl, workspaceSlug));
+        {
+            return this.Redirect(string.Format(null, WorkspaceRedirectUrl, workspaceSlug));
+        }
 
-        ErrorMessage = NoWorkspaceError;
-        return Page();
+        this.ErrorMessage = NoWorkspaceError;
+        return this.Page();
     }
 }
 

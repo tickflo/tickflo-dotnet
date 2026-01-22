@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Tickets;
+
+using Tickflo.Core.Entities;
 
 /// <summary>
 /// Handles ticket update workflows.
@@ -15,7 +15,7 @@ public interface ITicketUpdateService
     /// <param name="request">Update details</param>
     /// <param name="updatedByUserId">User making the update</param>
     /// <returns>The updated ticket</returns>
-    Task<Ticket> UpdateTicketInfoAsync(int workspaceId, int ticketId, TicketUpdateRequest request, int updatedByUserId);
+    public Task<Ticket> UpdateTicketInfoAsync(int workspaceId, int ticketId, TicketUpdateRequest request, int updatedByUserId);
 
     /// <summary>
     /// Updates ticket priority with audit trail.
@@ -26,7 +26,7 @@ public interface ITicketUpdateService
     /// <param name="reason">Optional reason for change</param>
     /// <param name="updatedByUserId">User making the update</param>
     /// <returns>The updated ticket</returns>
-    Task<Ticket> UpdatePriorityAsync(int workspaceId, int ticketId, string newPriority, string? reason, int updatedByUserId);
+    public Task<Ticket> UpdatePriorityAsync(int workspaceId, int ticketId, string newPriority, string? reason, int updatedByUserId);
 
     /// <summary>
     /// Updates ticket status with transition validation.
@@ -37,7 +37,7 @@ public interface ITicketUpdateService
     /// <param name="reason">Optional reason for change</param>
     /// <param name="updatedByUserId">User making the update</param>
     /// <returns>The updated ticket</returns>
-    Task<Ticket> UpdateStatusAsync(int workspaceId, int ticketId, string newStatus, string? reason, int updatedByUserId);
+    public Task<Ticket> UpdateStatusAsync(int workspaceId, int ticketId, string newStatus, string? reason, int updatedByUserId);
 
     /// <summary>
     /// Adds a note to a ticket.
@@ -47,5 +47,5 @@ public interface ITicketUpdateService
     /// <param name="note">Note content</param>
     /// <param name="addedByUserId">User adding the note</param>
     /// <returns>The ticket</returns>
-    Task<Ticket> AddNoteAsync(int workspaceId, int ticketId, string note, int addedByUserId);
+    public Task<Ticket> AddNoteAsync(int workspaceId, int ticketId, string note, int addedByUserId);
 }

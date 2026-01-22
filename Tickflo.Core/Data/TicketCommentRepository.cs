@@ -1,20 +1,21 @@
+namespace Tickflo.Core.Data;
+
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.Core.Data;
 
 /// <summary>
 /// Data access implementation for ticket comment persistence.
 /// Provides workspace-scoped CRUD operations with user audit trail support.
 /// </summary>
-public class TicketCommentRepository(TickfloDbContext db) : ITicketCommentRepository
+public class TicketCommentRepository(TickfloDbContext dbContext) : ITicketCommentRepository
 {
+    private readonly TickfloDbContext dbContext = dbContext;
     /// <summary>
     /// Retrieves all comments for a ticket, ordered by creation date.
     /// Includes user information for comment authors.
     /// </summary>
     public async Task<IReadOnlyList<TicketComment>> ListByTicketAsync(int workspaceId, int ticketId, CancellationToken ct = default)
-        => await db.TicketComments
+        => await this.dbContext.TicketComments
             .Where(c => c.WorkspaceId == workspaceId && c.TicketId == ticketId)
             .Include(c => c.CreatedByUser)
             .Include(c => c.UpdatedByUser)
@@ -26,7 +27,7 @@ public class TicketCommentRepository(TickfloDbContext db) : ITicketCommentReposi
     /// Includes user information for creators and editors.
     /// </summary>
     public async Task<TicketComment?> FindAsync(int workspaceId, int commentId, CancellationToken ct = default)
-        => await db.TicketComments
+        => await this.dbContext.TicketComments
             .Where(c => c.WorkspaceId == workspaceId && c.Id == commentId)
             .Include(c => c.CreatedByUser)
             .Include(c => c.UpdatedByUser)
@@ -37,8 +38,8 @@ public class TicketCommentRepository(TickfloDbContext db) : ITicketCommentReposi
     /// </summary>
     public async Task<TicketComment> CreateAsync(TicketComment comment, CancellationToken ct = default)
     {
-        db.TicketComments.Add(comment);
-        await db.SaveChangesAsync(ct);
+        this.dbContext.TicketComments.Add(comment);
+        await this.dbContext.SaveChangesAsync(ct);
         return comment;
     }
 
@@ -47,8 +48,8 @@ public class TicketCommentRepository(TickfloDbContext db) : ITicketCommentReposi
     /// </summary>
     public async Task<TicketComment> UpdateAsync(TicketComment comment, CancellationToken ct = default)
     {
-        db.TicketComments.Update(comment);
-        await db.SaveChangesAsync(ct);
+        this.dbContext.TicketComments.Update(comment);
+        await this.dbContext.SaveChangesAsync(ct);
         return comment;
     }
 
@@ -58,11 +59,11 @@ public class TicketCommentRepository(TickfloDbContext db) : ITicketCommentReposi
     /// </summary>
     public async Task DeleteAsync(int workspaceId, int commentId, CancellationToken ct = default)
     {
-        var comment = await db.TicketComments.FirstOrDefaultAsync(c => c.WorkspaceId == workspaceId && c.Id == commentId, ct);
+        var comment = await this.dbContext.TicketComments.FirstOrDefaultAsync(c => c.WorkspaceId == workspaceId && c.Id == commentId, ct);
         if (comment != null)
         {
-            db.TicketComments.Remove(comment);
-            await db.SaveChangesAsync(ct);
+            this.dbContext.TicketComments.Remove(comment);
+            await this.dbContext.SaveChangesAsync(ct);
         }
     }
 }

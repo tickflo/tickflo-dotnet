@@ -1,35 +1,35 @@
+namespace Tickflo.Core.Services.Views;
+
 using Tickflo.Core.Data;
 
 using Tickflo.Core.Services.Reporting;
 
-namespace Tickflo.Core.Services.Views;
-
-public class WorkspaceReportRunDownloadViewService : IWorkspaceReportRunDownloadViewService
+public class WorkspaceReportRunDownloadViewService(
+    IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
+    IRolePermissionRepository rolePermissionRepository,
+    IReportRunService reportRunService) : IWorkspaceReportRunDownloadViewService
 {
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePerms;
-    private readonly IReportRunService _reportRunService;
-
-    public WorkspaceReportRunDownloadViewService(
-        IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
-        IRolePermissionRepository rolePerms,
-        IReportRunService reportRunService)
-    {
-        _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-        _rolePerms = rolePerms;
-        _reportRunService = reportRunService;
-    }
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
+    private readonly IReportRunService reportRunService = reportRunService;
 
     public async Task<WorkspaceReportRunDownloadViewData> BuildAsync(int workspaceId, int userId, int reportId, int runId)
     {
         var data = new WorkspaceReportRunDownloadViewData();
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
-        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+        var isAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(userId, workspaceId);
+        var eff = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
         data.CanViewReports = isAdmin || (eff.TryGetValue("reports", out var rp) && rp.CanView);
-        if (!data.CanViewReports) return data;
+        if (!data.CanViewReports)
+        {
+            return data;
+        }
 
-        var run = await _reportRunService.GetRunAsync(workspaceId, runId);
-        if (run == null || run.ReportId != reportId) return data;
+        var run = await this.reportRunService.GetRunAsync(workspaceId, runId);
+        if (run == null || run.ReportId != reportId)
+        {
+            return data;
+        }
+
         data.Run = run;
         return data;
     }

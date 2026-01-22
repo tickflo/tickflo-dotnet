@@ -7,6 +7,6 @@ public class TicketStatus
     public string Name { get; set; } = string.Empty;
     // DaisyUI color keyword: primary, secondary, accent, info, success, warning, error, neutral
     public string Color { get; set; } = "neutral";
-    public int SortOrder { get; set; } = 0;
-    public bool IsClosedState { get; set; } = false;
+    public int SortOrder { get; set; }
+    public bool IsClosedState { get; set; }
 }

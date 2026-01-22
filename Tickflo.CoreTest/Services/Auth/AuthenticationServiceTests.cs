@@ -1,15 +1,14 @@
-﻿using Moq;
+namespace Tickflo.CoreTest.Services.Auth;
+
+using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Authentication;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services.Auth;
 
 public class AuthenticationServiceTests
 {
     [Fact]
-    public async Task AuthenticateAsync_ValidCredentials_ReturnsSuccess()
+    public async Task AuthenticateAsyncValidCredentialsReturnsSuccess()
     {
         var email = "user@example.com";
         var password = "securePassword";
@@ -44,7 +43,7 @@ public class AuthenticationServiceTests
     }
 
     [Fact]
-    public async Task AuthenticateAsync_UserNotFound_ReturnsError()
+    public async Task AuthenticateAsyncUserNotFoundReturnsError()
     {
         var userRepoMock = new Mock<IUserRepository>();
         userRepoMock.Setup(repo => repo.FindByEmailAsync(It.IsAny<string>())).ReturnsAsync((User?)null);
@@ -62,7 +61,7 @@ public class AuthenticationServiceTests
     }
 
     [Fact]
-    public async Task AuthenticateAsync_InvalidPassword_ReturnsError()
+    public async Task AuthenticateAsyncInvalidPasswordReturnsError()
     {
         var email = "user@example.com";
         var user = new User { Id = 1, Email = email, PasswordHash = "hash" };
@@ -86,7 +85,7 @@ public class AuthenticationServiceTests
     }
 
     [Fact]
-    public async Task AuthenticateAsync_NullHash_ReturnsError()
+    public async Task AuthenticateAsyncNullHashReturnsError()
     {
         var email = "user@example.com";
         var user = new User { Id = 1, Email = email, PasswordHash = null };

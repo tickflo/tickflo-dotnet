@@ -1,8 +1,8 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Data;
 
+#pragma warning disable CA1711
 public class EffectiveSectionPermission
+#pragma warning restore CA1711
 {
     public string Section { get; set; } = string.Empty;
     public bool CanView { get; set; }
@@ -13,8 +13,8 @@ public class EffectiveSectionPermission
 
 public interface IRolePermissionRepository
 {
-    Task<List<EffectiveSectionPermission>> ListByRoleAsync(int roleId);
-    Task UpsertAsync(int roleId, IEnumerable<EffectiveSectionPermission> permissions, int? actorUserId = null);
-    Task<Dictionary<string, EffectiveSectionPermission>> GetEffectivePermissionsForUserAsync(int workspaceId, int userId);
-    Task<string> GetTicketViewScopeForUserAsync(int workspaceId, int userId, bool isAdmin);
+    public Task<List<EffectiveSectionPermission>> ListByRoleAsync(int roleId);
+    public Task UpsertAsync(int roleId, IEnumerable<EffectiveSectionPermission> permissions, int? actorUserId = null);
+    public Task<Dictionary<string, EffectiveSectionPermission>> GetEffectivePermissionsForUserAsync(int workspaceId, int userId);
+    public Task<string> GetTicketViewScopeForUserAsync(int workspaceId, int userId, bool isAdmin);
 }

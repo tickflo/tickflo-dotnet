@@ -1,46 +1,36 @@
+namespace Tickflo.Core.Services.Views;
+
 using Tickflo.Core.Data;
 
 using Tickflo.Core.Services.Workspace;
 
-namespace Tickflo.Core.Services.Views;
-
-public class WorkspaceSettingsViewService : IWorkspaceSettingsViewService
+public class WorkspaceSettingsViewService(
+    IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
+    IRolePermissionRepository rolePermissionRepository,
+    ITicketStatusRepository statusRepository,
+    ITicketPriorityRepository priorityRepository,
+    ITicketTypeRepository ticketTypeRepository,
+    IWorkspaceSettingsService workspaceSettingsService) : IWorkspaceSettingsViewService
 {
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePermRepo;
-    private readonly ITicketStatusRepository _statusRepo;
-    private readonly ITicketPriorityRepository _priorityRepo;
-    private readonly ITicketTypeRepository _typeRepo;
-    private readonly IWorkspaceSettingsService _settingsService;
-
-    public WorkspaceSettingsViewService(
-        IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
-        IRolePermissionRepository rolePermRepo,
-        ITicketStatusRepository statusRepo,
-        ITicketPriorityRepository priorityRepo,
-        ITicketTypeRepository typeRepo,
-        IWorkspaceSettingsService settingsService)
-    {
-        _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-        _rolePermRepo = rolePermRepo;
-        _statusRepo = statusRepo;
-        _priorityRepo = priorityRepo;
-        _typeRepo = typeRepo;
-        _settingsService = settingsService;
-    }
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
+    private readonly ITicketStatusRepository statusRepository = statusRepository;
+    private readonly ITicketPriorityRepository priorityRepository = priorityRepository;
+    private readonly ITicketTypeRepository ticketTypeRepository = ticketTypeRepository;
+    private readonly IWorkspaceSettingsService workspaceSettingsService = workspaceSettingsService;
 
     public async Task<WorkspaceSettingsViewData> BuildAsync(int workspaceId, int userId)
     {
         var data = new WorkspaceSettingsViewData();
 
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
+        var isAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(userId, workspaceId);
         if (isAdmin)
         {
             data.CanViewSettings = data.CanEditSettings = data.CanCreateSettings = true;
         }
         else
         {
-            var perms = await _rolePermRepo.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+            var perms = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
             if (perms.TryGetValue("settings", out var eff))
             {
                 data.CanViewSettings = eff.CanView;
@@ -50,10 +40,10 @@ public class WorkspaceSettingsViewService : IWorkspaceSettingsViewService
         }
 
         // Ensure defaults and load lists
-        await _settingsService.EnsureDefaultsExistAsync(workspaceId);
-        data.Statuses = await _statusRepo.ListAsync(workspaceId);
-        data.Priorities = await _priorityRepo.ListAsync(workspaceId);
-        data.Types = await _typeRepo.ListAsync(workspaceId);
+        await this.workspaceSettingsService.EnsureDefaultsExistAsync(workspaceId);
+        data.Statuses = await this.statusRepository.ListAsync(workspaceId);
+        data.Priorities = await this.priorityRepository.ListAsync(workspaceId);
+        data.Types = await this.ticketTypeRepository.ListAsync(workspaceId);
 
         // Notification defaults (placeholder until persisted storage exists)
         data.NotificationsEnabled = true;

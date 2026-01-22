@@ -1,41 +1,41 @@
-﻿using Xunit;
-
 namespace Tickflo.CoreTest.Services;
+
+using Xunit;
 
 public class ReportDefinitionValidatorTests
 {
     [Fact]
-    public void Parse_EmptyJson_ReturnsDefaults()
+    public void ParseEmptyJsonReturnsDefaults()
     {
         var validator = new ReportDefinitionValidator();
-        
+
         var def = validator.Parse(null);
-        
+
         Assert.Equal("tickets", def.Source);
-        Assert.Equal(new[] { "Id", "Subject", "Status", "CreatedAt" }, def.Fields);
+        Assert.Equal(["Id", "Subject", "Status", "CreatedAt"], def.Fields);
         Assert.Null(def.FiltersJson);
     }
 
     [Fact]
-    public void Parse_ValidJson_ExtractsSourceFieldsFilters()
+    public void ParseValidJsonExtractsSourceFieldsFilters()
     {
         var validator = new ReportDefinitionValidator();
-        var json = """{"source":"contacts","fields":["Id","Name"],"filters":[]}""";
-        
+        var json = /*lang=json,strict*/ """{"source":"contacts","fields":["Id","Name"],"filters":[]}""";
+
         var def = validator.Parse(json);
-        
+
         Assert.Equal("contacts", def.Source);
-        Assert.Equal(new[] { "Id", "Name" }, def.Fields);
+        Assert.Equal(["Id", "Name"], def.Fields);
         Assert.NotNull(def.FiltersJson);
     }
 
     [Fact]
-    public void BuildJson_ConstructsValidJson()
+    public void BuildJsonConstructsValidJson()
     {
         var validator = new ReportDefinitionValidator();
-        
+
         var json = validator.BuildJson("tickets", "Id,Subject,Status", null);
-        
+
         Assert.Contains("\"source\":\"tickets\"", json);
         Assert.Contains("\"Id\"", json);
         Assert.Contains("\"Subject\"", json);
@@ -43,12 +43,12 @@ public class ReportDefinitionValidatorTests
     }
 
     [Fact]
-    public void GetAvailableSources_ReturnsAllSources()
+    public void GetAvailableSourcesReturnsAllSources()
     {
         var validator = new ReportDefinitionValidator();
-        
+
         var sources = validator.GetAvailableSources();
-        
+
         Assert.Contains("tickets", sources.Keys);
         Assert.Contains("contacts", sources.Keys);
         Assert.Contains("locations", sources.Keys);

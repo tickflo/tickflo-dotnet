@@ -1,5 +1,3 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Views;
 
 /// <summary>
@@ -7,7 +5,7 @@ namespace Tickflo.Core.Services.Views;
 /// </summary>
 public interface IWorkspaceUsersViewService
 {
-    Task<WorkspaceUsersViewData> BuildAsync(int workspaceId, int currentUserId, CancellationToken cancellationToken = default);
+    public Task<WorkspaceUsersViewData> BuildAsync(int workspaceId, int currentUserId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -19,8 +17,8 @@ public class WorkspaceUsersViewData
     public bool CanViewUsers { get; set; }
     public bool CanCreateUsers { get; set; }
     public bool CanEditUsers { get; set; }
-    public List<InviteView> PendingInvites { get; set; } = new();
-    public List<AcceptedUserView> AcceptedUsers { get; set; } = new();
+    public List<InviteView> PendingInvites { get; set; } = [];
+    public List<AcceptedUserView> AcceptedUsers { get; set; } = [];
 }
 
 public class InviteView
@@ -28,7 +26,7 @@ public class InviteView
     public int UserId { get; set; }
     public string Email { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
-    public List<string> Roles { get; set; } = new();
+    public List<string> Roles { get; set; } = [];
 }
 
 public class AcceptedUserView
@@ -37,7 +35,7 @@ public class AcceptedUserView
     public string Email { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public DateTime JoinedAt { get; set; }
-    public List<string> Roles { get; set; } = new();
+    public List<string> Roles { get; set; } = [];
     public bool IsAdmin { get; set; }
 }
 

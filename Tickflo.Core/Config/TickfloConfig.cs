@@ -2,65 +2,60 @@ namespace Tickflo.Core.Config;
 
 public class TickfloConfig
 {
-    public string POSTGRES_USER { get; set; } = string.Empty;
-    public string POSTGRES_PASSWORD { get; set; } = string.Empty;
-    public string POSTGRES_DB { get; set; } = string.Empty;
-    public string POSTGRES_HOST { get; set; } = string.Empty;
-    public string BASE_URL { get; set; } = "https://app.tickflo.co";
-    public string S3_ENDPOINT { get; set; } = string.Empty;
-    public string S3_ACCESS_KEY { get; set; } = string.Empty;
-    public string S3_SECRET_KEY { get; set; } = string.Empty;
-    public string S3_BUCKET { get; set; } = string.Empty;
-    public string S3_REGION { get; set; } = string.Empty;
-    public int SESSION_TIMEOUT_MINUTES { get; set; }
-    public UserConfig USER { get; set; } = new();
-    public ContactConfig CONTACT { get; set; } = new();
-    public LocationConfig LOCATION { get; set; } = new();
-    public RoleConfig ROLE { get; set; } = new();
-    public WorkspaceConfig WORKSPACE { get; set; } = new();
-    public EmailConfig EMAIL { get; set; } = new();
+    public string PostgresUser { get; set; } = string.Empty;
+    public string PostgresPassword { get; set; } = string.Empty;
+    public string PostresDatabase { get; set; } = string.Empty;
+    public string PostgresHost { get; set; } = string.Empty;
+    public string BaseUrl { get; set; } = "https://app.tickflo.co";
+    public string S3EndPoint { get; set; } = string.Empty;
+    public string S3AccessKey { get; set; } = string.Empty;
+    public string S3SecretKey { get; set; } = string.Empty;
+    public string S3Bucket { get; set; } = string.Empty;
+    public string S3Region { get; set; } = string.Empty;
+    public int SessionTimeoutMinutes { get; set; }
+    public UserConfig User { get; set; } = new();
+    public ContactConfig Contact { get; set; } = new();
+    public LocationConfig Location { get; set; } = new();
+    public RoleConfig Role { get; set; } = new();
+    public WorkspaceConfig Workspace { get; set; } = new();
+    public EmailConfig Email { get; set; } = new();
 }
 
 public class UserConfig
 {
-    public int MIN_NAME_LENGTH { get; set; }
-    public int MAX_NAME_LENGTH { get; set; }
-    public int CHANGE_EMAIL_CONFIRM_TIMEOUT_MINUTES { get; set; }
-    public int CHANGE_EMAIL_UNDO_TIMEOUT_MINUTES { get; set; }
+    public int MinNameLength { get; set; }
+    public int MaxNameLength { get; set; }
+    public int ChangeEmailConfirmTimeoutMinutes { get; set; }
+    public int ChangeEmailUndoTimeoutMinutes { get; set; }
 }
 
 public class LocationConfig
 {
-    public int MIN_NAME_LENGTH { get; set; }
-    public int MAX_NAME_LENGTH { get; set; }
+    public int MinNameLength { get; set; }
+    public int MaxNameLength { get; set; }
 }
 
 public class ContactConfig
 {
-    public int MIN_NAME_LENGTH { get; set; }
-    public int MAX_NAME_LENGTH { get; set; }
+    public int MinNameLength { get; set; }
+    public int MaxNameLength { get; set; }
 }
 
 public class WorkspaceConfig
 {
-    public int MIN_NAME_LENGTH { get; set; }
-    public int MAX_NAME_LENGTH { get; set; }
-    public int MAX_SLUG_LENGTH { get; set; }
+    public int MinNameLength { get; set; }
+    public int MaxNameLength { get; set; }
+    public int MaxSlugLength { get; set; }
 }
 
 public class RoleConfig
 {
-    public int MIN_NAME_LENGTH { get; set; }
-    public int MAX_NAME_LENGTH { get; set; }
+    public int MinNameLength { get; set; }
+    public int MaxNameLength { get; set; }
 }
 
 public class EmailConfig
 {
-    public string SMTP_HOST { get; set; } = string.Empty;
-    public int SMTP_PORT { get; set; } = 587;
-    public bool SMTP_SSL { get; set; } = true;
-    public string SMTP_USERNAME { get; set; } = string.Empty;
-    public string SMTP_PASSWORD { get; set; } = string.Empty;
-    public string FROM_ADDRESS { get; set; } = "no-reply@tickflo.local";
-    public string FROM_NAME { get; set; } = "Tickflo";
+    public string FromAddress { get; set; } = "no-reply@tickflo.local";
+    public string FromName { get; set; } = "Tickflo";
 }

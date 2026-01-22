@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Users;
+
+using Tickflo.Core.Entities;
 
 /// <summary>
 /// Service for managing user invitations and onboarding workflows.
@@ -15,10 +15,10 @@ public interface IUserInvitationService
     /// <param name="invitedByUserId">User sending the invitation</param>
     /// <param name="roleIds">Optional role IDs to assign upon acceptance</param>
     /// <returns>Invitation details including user, confirmation code, and temp password</returns>
-    Task<UserInvitationResult> InviteUserAsync(
-        int workspaceId, 
-        string email, 
-        int invitedByUserId, 
+    public Task<UserInvitationResult> InviteUserAsync(
+        int workspaceId,
+        string email,
+        int invitedByUserId,
         List<int>? roleIds = null);
 
     /// <summary>
@@ -28,21 +28,21 @@ public interface IUserInvitationService
     /// <param name="userId">User to resend invitation to</param>
     /// <param name="resentByUserId">User triggering the resend</param>
     /// <returns>New confirmation code</returns>
-    Task<string> ResendInvitationAsync(int workspaceId, int userId, int resentByUserId);
+    public Task<string> ResendInvitationAsync(int workspaceId, int userId, int resentByUserId);
 
     /// <summary>
     /// Accepts a workspace invitation.
     /// </summary>
     /// <param name="workspaceId">Workspace to accept</param>
     /// <param name="userId">User accepting the invitation</param>
-    Task AcceptInvitationAsync(int workspaceId, int userId);
+    public Task AcceptInvitationAsync(int workspaceId, int userId);
 
     /// <summary>
     /// Generates a secure temporary password.
     /// </summary>
     /// <param name="length">Password length</param>
     /// <returns>Temporary password string</returns>
-    string GenerateTemporaryPassword(int length = 12);
+    public string GenerateTemporaryPassword(int length = 12);
 }
 
 /// <summary>

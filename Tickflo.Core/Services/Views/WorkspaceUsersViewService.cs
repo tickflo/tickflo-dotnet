@@ -1,39 +1,31 @@
-using Tickflo.Core.Data;
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Views;
+
+using Tickflo.Core.Data;
 
 /// <summary>
 /// Implementation of workspace users view service.
 /// </summary>
-public class WorkspaceUsersViewService : IWorkspaceUsersViewService
+public class WorkspaceUsersViewService(
+    IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
+    IRolePermissionRepository rolePermissionRepository,
+    IUserWorkspaceRepository userWorkspaceRepository,
+    IUserRepository userRepository) : IWorkspaceUsersViewService
 {
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePerms;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
-    private readonly IUserRepository _userRepo;
-
-    public WorkspaceUsersViewService(
-        IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
-        IRolePermissionRepository rolePerms,
-        IUserWorkspaceRepository userWorkspaceRepo,
-        IUserRepository userRepo)
-    {
-        _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-        _rolePerms = rolePerms;
-        _userWorkspaceRepo = userWorkspaceRepo;
-        _userRepo = userRepo;
-    }
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IUserRepository userRepository = userRepository;
 
     public async Task<WorkspaceUsersViewData> BuildAsync(int workspaceId, int currentUserId, CancellationToken cancellationToken = default)
     {
-        var data = new WorkspaceUsersViewData();
-
-        // Determine admin and permissions
-        data.IsWorkspaceAdmin = currentUserId > 0 && await _userWorkspaceRoleRepo.IsAdminAsync(currentUserId, workspaceId);
+        var data = new WorkspaceUsersViewData
+        {
+            // Determine admin and permissions
+            IsWorkspaceAdmin = currentUserId > 0 && await this.userWorkspaceRoleRepository.IsAdminAsync(currentUserId, workspaceId)
+        };
         if (currentUserId > 0)
         {
-            var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, currentUserId);
+            var eff = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, currentUserId);
             if (eff.TryGetValue("users", out var up))
             {
                 data.CanViewUsers = up.CanView || data.IsWorkspaceAdmin;
@@ -49,12 +41,16 @@ public class WorkspaceUsersViewService : IWorkspaceUsersViewService
         }
 
         // Build pending invites
-        var memberships = await _userWorkspaceRepo.FindForWorkspaceAsync(workspaceId);
+        var memberships = await this.userWorkspaceRepository.FindForWorkspaceAsync(workspaceId);
         foreach (var m in memberships.Where(m => !m.Accepted))
         {
-            var u = await _userRepo.FindByIdAsync(m.UserId);
-            if (u == null) continue;
-            var roles = await _userWorkspaceRoleRepo.GetRoleNamesAsync(u.Id, workspaceId);
+            var u = await this.userRepository.FindByIdAsync(m.UserId);
+            if (u == null)
+            {
+                continue;
+            }
+
+            var roles = await this.userWorkspaceRoleRepository.GetRoleNamesAsync(u.Id, workspaceId);
             data.PendingInvites.Add(new InviteView
             {
                 UserId = u.Id,
@@ -67,10 +63,14 @@ public class WorkspaceUsersViewService : IWorkspaceUsersViewService
         // Build accepted users
         foreach (var m in memberships.Where(m => m.Accepted))
         {
-            var u = await _userRepo.FindByIdAsync(m.UserId);
-            if (u == null) continue;
-            var roles = await _userWorkspaceRoleRepo.GetRoleNamesAsync(u.Id, workspaceId);
-            var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(u.Id, workspaceId);
+            var u = await this.userRepository.FindByIdAsync(m.UserId);
+            if (u == null)
+            {
+                continue;
+            }
+
+            var roles = await this.userWorkspaceRoleRepository.GetRoleNamesAsync(u.Id, workspaceId);
+            var isAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(u.Id, workspaceId);
             data.AcceptedUsers.Add(new AcceptedUserView
             {
                 UserId = u.Id,

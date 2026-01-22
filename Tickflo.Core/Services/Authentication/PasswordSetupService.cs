@@ -1,29 +1,19 @@
-using Tickflo.Core.Data;
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Authentication;
 
-public class PasswordSetupService : IPasswordSetupService
-{
-    private readonly IUserRepository _userRepository;
-    private readonly ITokenRepository _tokenRepository;
-    private readonly IPasswordHasher _passwordHasher;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepository;
-    private readonly IWorkspaceRepository _workspaceRepository;
+using Tickflo.Core.Data;
 
-    public PasswordSetupService(
-        IUserRepository userRepository,
-        ITokenRepository tokenRepository,
-        IPasswordHasher passwordHasher,
-        IUserWorkspaceRepository userWorkspaceRepository,
-        IWorkspaceRepository workspaceRepository)
-    {
-        _userRepository = userRepository;
-        _tokenRepository = tokenRepository;
-        _passwordHasher = passwordHasher;
-        _userWorkspaceRepository = userWorkspaceRepository;
-        _workspaceRepository = workspaceRepository;
-    }
+public class PasswordSetupService(
+    IUserRepository userRepository,
+    ITokenRepository tokenRepository,
+    IPasswordHasher passwordHasher,
+    IUserWorkspaceRepository userWorkspaceRepository,
+    IWorkspaceRepository workspaceRepository) : IPasswordSetupService
+{
+    private readonly IUserRepository userRepository = userRepository;
+    private readonly ITokenRepository tokenRepository = tokenRepository;
+    private readonly IPasswordHasher passwordHasher = passwordHasher;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
 
     public async Task<TokenValidationResult> ValidateResetTokenAsync(string tokenValue)
     {
@@ -32,13 +22,13 @@ public class PasswordSetupService : IPasswordSetupService
             return new TokenValidationResult(false, "Missing token.", null, null);
         }
 
-        var token = await _tokenRepository.FindByValueAsync(tokenValue);
+        var token = await this.tokenRepository.FindByValueAsync(tokenValue);
         if (token == null)
         {
             return new TokenValidationResult(false, "Invalid or expired token.", null, null);
         }
 
-        var user = await _userRepository.FindByIdAsync(token.UserId);
+        var user = await this.userRepository.FindByIdAsync(token.UserId);
         if (user == null)
         {
             return new TokenValidationResult(false, "User not found.", null, null);
@@ -54,7 +44,7 @@ public class PasswordSetupService : IPasswordSetupService
             return new TokenValidationResult(false, "Missing user id.", null, null);
         }
 
-        var user = await _userRepository.FindByIdAsync(userId);
+        var user = await this.userRepository.FindByIdAsync(userId);
         if (user == null)
         {
             return new TokenValidationResult(false, "User not found.", null, null);
@@ -70,7 +60,7 @@ public class PasswordSetupService : IPasswordSetupService
 
     public async Task<SetPasswordResult> SetPasswordWithTokenAsync(string tokenValue, string newPassword)
     {
-        var validation = await ValidateResetTokenAsync(tokenValue);
+        var validation = await this.ValidateResetTokenAsync(tokenValue);
         if (!validation.IsValid || validation.UserId == null)
         {
             return new SetPasswordResult(false, validation.ErrorMessage, null, null, null, null);
@@ -81,23 +71,23 @@ public class PasswordSetupService : IPasswordSetupService
             return new SetPasswordResult(false, "Password must be at least 8 characters long.", null, null, validation.UserId, validation.UserEmail);
         }
 
-        var user = await _userRepository.FindByIdAsync(validation.UserId.Value);
+        var user = await this.userRepository.FindByIdAsync(validation.UserId.Value);
         if (user == null)
         {
             return new SetPasswordResult(false, "User not found.", null, null, null, null);
         }
 
-        var passwordHash = _passwordHasher.Hash($"{user.Email}{newPassword}");
+        var passwordHash = this.passwordHasher.Hash($"{user.Email}{newPassword}");
         user.PasswordHash = passwordHash;
         user.UpdatedAt = DateTime.UtcNow;
-        await _userRepository.UpdateAsync(user);
+        await this.userRepository.UpdateAsync(user);
 
         return new SetPasswordResult(true, null, null, null, user.Id, user.Email);
     }
 
     public async Task<SetPasswordResult> SetInitialPasswordAsync(int userId, string newPassword)
     {
-        var user = await _userRepository.FindByIdAsync(userId);
+        var user = await this.userRepository.FindByIdAsync(userId);
         if (user == null)
         {
             return new SetPasswordResult(false, "User not found.", null, null, null, null);
@@ -113,18 +103,18 @@ public class PasswordSetupService : IPasswordSetupService
             return new SetPasswordResult(false, "Password must be at least 8 characters long.", null, null, user.Id, user.Email);
         }
 
-        var passwordHash = _passwordHasher.Hash($"{user.Email}{newPassword}");
+        var passwordHash = this.passwordHasher.Hash($"{user.Email}{newPassword}");
         user.PasswordHash = passwordHash;
         user.UpdatedAt = DateTime.UtcNow;
-        await _userRepository.UpdateAsync(user);
+        await this.userRepository.UpdateAsync(user);
 
-        var loginToken = await _tokenRepository.CreateForUserIdAsync(user.Id);
+        var loginToken = await this.tokenRepository.CreateForUserIdAsync(user.Id);
 
         string? workspaceSlug = null;
-        var uw = await _userWorkspaceRepository.FindAcceptedForUserAsync(user.Id);
+        var uw = await this.userWorkspaceRepository.FindAcceptedForUserAsync(user.Id);
         if (uw != null)
         {
-            var ws = await _workspaceRepository.FindByIdAsync(uw.WorkspaceId);
+            var ws = await this.workspaceRepository.FindByIdAsync(uw.WorkspaceId);
             workspaceSlug = ws?.Slug;
         }
 

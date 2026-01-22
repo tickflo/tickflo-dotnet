@@ -1,43 +1,43 @@
-﻿using Moq;
+namespace Tickflo.CoreTest.Services;
+
+using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Xunit;
 
-namespace Tickflo.CoreTest.Services;
-
 public class WorkspaceUsersViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_LoadsPermissionsAndPendingInvites()
+    public async Task BuildAsyncLoadsPermissionsAndPendingInvites()
     {
         var workspaceId = 1;
         var userId = 10;
 
         var uwRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
-        var rolePermRepo = new Mock<IRolePermissionRepository>();
+        var rolePermissionRepository = new Mock<IRolePermissionRepository>();
         var uwRepo = new Mock<IUserWorkspaceRepository>();
-        var userRepo = new Mock<IUserRepository>();
+        var userRepository = new Mock<IUserRepository>();
 
         uwRoleRepo.Setup(r => r.IsAdminAsync(userId, workspaceId)).ReturnsAsync(false);
-        rolePermRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
+        rolePermissionRepository.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
             .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>
             {
                 { "users", new EffectiveSectionPermission { Section = "users", CanCreate = true, CanEdit = true, CanView = true } }
             });
 
-        uwRepo.Setup(r => r.FindForWorkspaceAsync(workspaceId)).ReturnsAsync(new List<UserWorkspace>
-        {
+        uwRepo.Setup(r => r.FindForWorkspaceAsync(workspaceId)).ReturnsAsync(
+        [
             new UserWorkspace { UserId = 20, WorkspaceId = workspaceId, Accepted = false, CreatedAt = new DateTime(2024,1,1) }
-        });
+        ]);
 
-        userRepo.Setup(r => r.FindByIdAsync(20)).ReturnsAsync(new User { Id = 20, Email = "a@test.com" });
-        uwRoleRepo.Setup(r => r.GetRoleNamesAsync(20, workspaceId)).ReturnsAsync(new List<string> { "member" });
+        userRepository.Setup(r => r.FindByIdAsync(20)).ReturnsAsync(new User { Id = 20, Email = "a@test.com" });
+        uwRoleRepo.Setup(r => r.GetRoleNamesAsync(20, workspaceId)).ReturnsAsync(["member"]);
 
         var service = new WorkspaceUsersViewService(
             uwRoleRepo.Object,
-            rolePermRepo.Object,
+            rolePermissionRepository.Object,
             uwRepo.Object,
-            userRepo.Object);
+            userRepository.Object);
 
         var view = await service.BuildAsync(workspaceId, userId);
 
@@ -51,27 +51,27 @@ public class WorkspaceUsersViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_AdminOverridesPermissions()
+    public async Task BuildAsyncAdminOverridesPermissions()
     {
         var workspaceId = 1;
         var userId = 10;
 
         var uwRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
-        var rolePermRepo = new Mock<IRolePermissionRepository>();
+        var rolePermissionRepository = new Mock<IRolePermissionRepository>();
         var uwRepo = new Mock<IUserWorkspaceRepository>();
-        var userRepo = new Mock<IUserRepository>();
+        var userRepository = new Mock<IUserRepository>();
 
         uwRoleRepo.Setup(r => r.IsAdminAsync(userId, workspaceId)).ReturnsAsync(true);
-        rolePermRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
-            .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>());
+        rolePermissionRepository.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
+            .ReturnsAsync([]);
 
-        uwRepo.Setup(r => r.FindForWorkspaceAsync(workspaceId)).ReturnsAsync(new List<UserWorkspace>());
+        uwRepo.Setup(r => r.FindForWorkspaceAsync(workspaceId)).ReturnsAsync([]);
 
         var service = new WorkspaceUsersViewService(
             uwRoleRepo.Object,
-            rolePermRepo.Object,
+            rolePermissionRepository.Object,
             uwRepo.Object,
-            userRepo.Object);
+            userRepository.Object);
 
         var view = await service.BuildAsync(workspaceId, userId);
 

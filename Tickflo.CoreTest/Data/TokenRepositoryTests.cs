@@ -1,29 +1,27 @@
-﻿using System;
-using System.Threading.Tasks;
+namespace Tickflo.CoreTest.Data;
+
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Config;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Xunit;
 
-namespace Tickflo.CoreTest.Data;
-
 public class TokenRepositoryTests
 {
-    private TokenRepository CreateRepository(out TickfloDbContext context)
+    private static TokenRepository CreateRepository(out TickfloDbContext context)
     {
         var options = new DbContextOptionsBuilder<TickfloDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
 
         context = new TickfloDbContext(options);
-        var config = new TickfloConfig { SESSION_TIMEOUT_MINUTES = 30 };
+        var config = new TickfloConfig { SessionTimeoutMinutes = 30 };
 
         return new TokenRepository(context, config);
     }
 
     [Fact]
-    public async Task CreateForUserIdAsync_CreatesTokenCorrectly()
+    public async Task CreateForUserIdAsyncCreatesTokenCorrectly()
     {
         // Arrange
         var repo = CreateRepository(out var db);
@@ -39,7 +37,7 @@ public class TokenRepositoryTests
     }
 
     [Fact]
-    public async Task FindByUserIdAsync_ReturnsValidToken()
+    public async Task FindByUserIdAsyncReturnsValidToken()
     {
         // Arrange
         var repo = CreateRepository(out var db);
@@ -58,11 +56,11 @@ public class TokenRepositoryTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("abc123", result!.Value);
+        Assert.Equal("abc123", result.Value);
     }
 
     [Fact]
-    public async Task FindByUserIdAsync_ReturnsNull_WhenTokenExpired()
+    public async Task FindByUserIdAsyncReturnsNullWhenTokenExpired()
     {
         // Arrange
         var repo = CreateRepository(out var db);
@@ -84,7 +82,7 @@ public class TokenRepositoryTests
     }
 
     [Fact]
-    public async Task FindByUserIdAsync_ReturnsNewestValidToken_WhenMultipleExist()
+    public async Task FindByUserIdAsyncReturnsNewestValidTokenWhenMultipleExist()
     {
         // Arrange
         var repo = CreateRepository(out var db);
@@ -114,6 +112,6 @@ public class TokenRepositoryTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("new_token", result!.Value);
+        Assert.Equal("new_token", result.Value);
     }
 }

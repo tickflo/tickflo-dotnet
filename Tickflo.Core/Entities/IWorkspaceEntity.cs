@@ -9,5 +9,5 @@ public interface IWorkspaceEntity
     /// <summary>
     /// Gets the ID of the workspace this entity belongs to.
     /// </summary>
-    int WorkspaceId { get; }
+    public int WorkspaceId { get; }
 }

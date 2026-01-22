@@ -1,47 +1,52 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Security.Claims;
-using Tickflo.Core.Data;
-using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
-
-using Tickflo.Core.Services.Views;
 namespace Tickflo.Web.Pages.Workspaces;
 
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Tickflo.Core.Data;
+using Tickflo.Core.Entities;
+using Tickflo.Core.Services.Views;
+
 [Authorize]
-public class ReportRunsModel : WorkspacePageModel
+public class ReportRunsModel(IWorkspaceRepository workspaceRepository, IWorkspaceReportRunsViewService workspaceReportRunsViewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository _workspaceRepo;
-    private readonly IWorkspaceReportRunsViewService _viewService;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly IWorkspaceReportRunsViewService workspaceReportRunsViewService = workspaceReportRunsViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
     public int ReportId { get; private set; }
     public Report? Report { get; private set; }
-    public List<ReportRun> Runs { get; private set; } = new();
-
-    public ReportRunsModel(IWorkspaceRepository workspaceRepo, IWorkspaceReportRunsViewService viewService)
-    {
-        _workspaceRepo = workspaceRepo;
-        _viewService = viewService;
-    }
+    public List<ReportRun> Runs { get; private set; } = [];
 
     public async Task<IActionResult> OnGetAsync(string slug, int reportId)
     {
-        WorkspaceSlug = slug;
-        Workspace = await _workspaceRepo.FindBySlugAsync(slug);
-        if (Workspace == null) return NotFound();
+        this.WorkspaceSlug = slug;
+        this.Workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        if (this.Workspace == null)
+        {
+            return this.NotFound();
+        }
 
-        if (!TryGetUserId(out var userId)) return Forbid();
-        var viewData = await _viewService.BuildAsync(Workspace.Id, userId, reportId);
-        if (EnsurePermissionOrForbid(viewData.CanViewReports) is IActionResult permCheck) return permCheck;
-        if (viewData.Report == null) return NotFound();
+        if (!this.TryGetUserId(out var userId))
+        {
+            return this.Forbid();
+        }
 
-        ReportId = viewData.Report.Id;
-        Report = viewData.Report;
-        Runs = viewData.Runs;
-        return Page();
+        var viewData = await this.workspaceReportRunsViewService.BuildAsync(this.Workspace.Id, userId, reportId);
+        if (this.EnsurePermissionOrForbid(viewData.CanViewReports) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
+
+        if (viewData.Report == null)
+        {
+            return this.NotFound();
+        }
+
+        this.ReportId = viewData.Report.Id;
+        this.Report = viewData.Report;
+        this.Runs = viewData.Runs;
+        return this.Page();
     }
 }
 

@@ -7,7 +7,7 @@ public class WorkspaceReportRunExecuteData
 
 public interface IWorkspaceReportRunExecuteViewService
 {
-    Task<WorkspaceReportRunExecuteData> BuildAsync(int workspaceId, int userId);
+    public Task<WorkspaceReportRunExecuteData> BuildAsync(int workspaceId, int userId);
 }
 
 

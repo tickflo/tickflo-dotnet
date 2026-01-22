@@ -1,61 +1,54 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using Tickflo.Core.Data;
-using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
-
-using Tickflo.Core.Services.Views;
-using Tickflo.Core.Services.Common;
 namespace Tickflo.Web.Pages.Workspaces;
 
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Tickflo.Core.Data;
+using Tickflo.Core.Entities;
+using Tickflo.Core.Services.Views;
+
 [Authorize]
-public class TeamsModel : WorkspacePageModel
+public class TeamsModel(
+    IWorkspaceRepository workspaceRepository,
+    IUserWorkspaceRepository userWorkspaceRepository,
+    IWorkspaceTeamsViewService workspaceTeamsViewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository _workspaces;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
-    private readonly ICurrentUserService _currentUserService;
-    private readonly IWorkspaceTeamsViewService _viewService;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IWorkspaceTeamsViewService workspaceTeamsViewService = workspaceTeamsViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
-    public List<Team> Teams { get; private set; } = new();
-    public Dictionary<int, int> MemberCounts { get; private set; } = new();
+    public List<Team> Teams { get; private set; } = [];
+    public Dictionary<int, int> MemberCounts { get; private set; } = [];
     public bool CanCreateTeams { get; private set; }
     public bool CanEditTeams { get; private set; }
 
-    public TeamsModel(
-        IWorkspaceRepository workspaces,
-        IUserWorkspaceRepository userWorkspaceRepo,
-        ICurrentUserService currentUserService,
-        IWorkspaceTeamsViewService viewService)
-    {
-        _workspaces = workspaces;
-        _userWorkspaceRepo = userWorkspaceRepo;
-        _currentUserService = currentUserService;
-        _viewService = viewService;
-    }
-
     public async Task<IActionResult> OnGetAsync(string slug)
     {
-        WorkspaceSlug = slug;
-        
-        var result = await LoadWorkspaceAndValidateUserMembershipAsync(_workspaces, _userWorkspaceRepo, slug);
-        if (result is IActionResult actionResult) return actionResult;
-        
+        this.WorkspaceSlug = slug;
+
+        var result = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
+        if (result is IActionResult actionResult)
+        {
+            return actionResult;
+        }
+
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
-        Workspace = workspace;
+        this.Workspace = workspace;
 
-        var viewData = await _viewService.BuildAsync(Workspace!.Id, uid);
-        
-        if (EnsurePermissionOrForbid(viewData.CanViewTeams) is IActionResult permCheck) return permCheck;
+        var viewData = await this.workspaceTeamsViewService.BuildAsync(this.Workspace!.Id, uid);
 
-        Teams = viewData.Teams;
-        MemberCounts = viewData.MemberCounts;
-        CanCreateTeams = viewData.CanCreateTeams;
-        CanEditTeams = viewData.CanEditTeams;
+        if (this.EnsurePermissionOrForbid(viewData.CanViewTeams) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
 
-        return Page();
+        this.Teams = viewData.Teams;
+        this.MemberCounts = viewData.MemberCounts;
+        this.CanCreateTeams = viewData.CanCreateTeams;
+        this.CanEditTeams = viewData.CanEditTeams;
+
+        return this.Page();
     }
 }
 

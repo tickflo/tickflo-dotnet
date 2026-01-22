@@ -1,26 +1,25 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Locations;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 public class LocationSetupServiceTests
 {
     [Fact]
-    public async Task CreateLocationAsync_Throws_When_Duplicate_Name()
+    public async Task CreateLocationAsyncThrowsWhenDuplicateName()
     {
         var repo = new Mock<ILocationRepository>();
-        repo.Setup(r => r.ListAsync(1)).ReturnsAsync(new List<Location> { new() { Name = "Main" } });
-        var contactRepo = Mock.Of<IContactRepository>();
-        var svc = new LocationSetupService(repo.Object, contactRepo);
+        repo.Setup(r => r.ListAsync(1)).ReturnsAsync([new() { Name = "Main" }]);
+        var contactRepository = Mock.Of<IContactRepository>();
+        var svc = new LocationSetupService(repo.Object, contactRepository);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateLocationAsync(1, new LocationCreationRequest { Name = "Main" }, 9));
     }
 
     [Fact]
-    public async Task ActivateLocationAsync_Sets_Active()
+    public async Task ActivateLocationAsyncSetsActive()
     {
         var repo = new Mock<ILocationRepository>();
         repo.Setup(r => r.FindAsync(1, 2)).ReturnsAsync(new Location { Id = 2, Active = false });

@@ -1,51 +1,36 @@
+namespace Tickflo.Core.Services.Views;
+
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.Core.Services.Views;
 
 /// <summary>
 /// Implementation of tickets view service.
 /// Aggregates tickets metadata and permissions for list display.
 /// </summary>
-public class WorkspaceTicketsViewService : IWorkspaceTicketsViewService
+public class WorkspaceTicketsViewService(
+    ITicketStatusRepository statusRepository,
+    ITicketPriorityRepository priorityRepository,
+    ITicketTypeRepository ticketTypeRepository,
+    ITeamRepository teamRepository,
+    IContactRepository contactRepository,
+    IUserWorkspaceRepository userWorkspaceRepository,
+    IUserRepository userRepository,
+    ILocationRepository locationRepository,
+    IRolePermissionRepository rolePermissionRepository,
+    ITeamMemberRepository teamMemberRepo,
+    IUserWorkspaceRoleRepository userWorkspaceRoleRepository) : IWorkspaceTicketsViewService
 {
-    private readonly ITicketStatusRepository _statusRepo;
-    private readonly ITicketPriorityRepository _priorityRepo;
-    private readonly ITicketTypeRepository _typeRepo;
-    private readonly ITeamRepository _teamRepo;
-    private readonly IContactRepository _contactRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaceRepo;
-    private readonly IUserRepository _userRepo;
-    private readonly ILocationRepository _locationRepo;
-    private readonly IRolePermissionRepository _rolePermissionRepo;
-    private readonly ITeamMemberRepository _teamMemberRepo;
-    private readonly IUserWorkspaceRoleRepository _uwr;
-
-    public WorkspaceTicketsViewService(
-        ITicketStatusRepository statusRepo,
-        ITicketPriorityRepository priorityRepo,
-        ITicketTypeRepository typeRepo,
-        ITeamRepository teamRepo,
-        IContactRepository contactRepo,
-        IUserWorkspaceRepository userWorkspaceRepo,
-        IUserRepository userRepo,
-        ILocationRepository locationRepo,
-        IRolePermissionRepository rolePermissionRepo,
-        ITeamMemberRepository teamMemberRepo,
-        IUserWorkspaceRoleRepository uwr)
-    {
-        _statusRepo = statusRepo;
-        _priorityRepo = priorityRepo;
-        _typeRepo = typeRepo;
-        _teamRepo = teamRepo;
-        _contactRepo = contactRepo;
-        _userWorkspaceRepo = userWorkspaceRepo;
-        _userRepo = userRepo;
-        _locationRepo = locationRepo;
-        _rolePermissionRepo = rolePermissionRepo;
-        _teamMemberRepo = teamMemberRepo;
-        _uwr = uwr;
-    }
+    private readonly ITicketStatusRepository statusRepository = statusRepository;
+    private readonly ITicketPriorityRepository priorityRepository = priorityRepository;
+    private readonly ITicketTypeRepository ticketTypeRepository = ticketTypeRepository;
+    private readonly ITeamRepository teamRepository = teamRepository;
+    private readonly IContactRepository contactRepository = contactRepository;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IUserRepository userRepository = userRepository;
+    private readonly ILocationRepository locationRepository = locationRepository;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
+    private readonly ITeamMemberRepository teamMemberRepository = teamMemberRepo;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepository;
 
     public async Task<WorkspaceTicketsViewData> BuildAsync(
         int workspaceId,
@@ -53,82 +38,85 @@ public class WorkspaceTicketsViewService : IWorkspaceTicketsViewService
         CancellationToken cancellationToken = default)
     {
         // Determine if user is admin
-        bool isAdmin = userId > 0 && await _uwr.IsAdminAsync(userId, workspaceId);
+        var isAdmin = userId > 0 && await this.userWorkspaceRoleRepository.IsAdminAsync(userId, workspaceId);
         var data = new WorkspaceTicketsViewData();
 
         // Load statuses with fallback defaults
-        var statuses = await _statusRepo.ListAsync(workspaceId, cancellationToken);
+        var statuses = await this.statusRepository.ListAsync(workspaceId, cancellationToken);
         var statusList = statuses.Count > 0
             ? statuses
-            : new List<TicketStatus>
-            {
+            :
+            [
                 new() { WorkspaceId = workspaceId, Name = "New", Color = "info", SortOrder = 1, IsClosedState = false },
                 new() { WorkspaceId = workspaceId, Name = "Completed", Color = "success", SortOrder = 2, IsClosedState = true },
                 new() { WorkspaceId = workspaceId, Name = "Closed", Color = "error", SortOrder = 3, IsClosedState = true },
-            };
+            ];
         data.Statuses = statusList;
         data.StatusColorByName = statusList
             .GroupBy(s => s.Name)
             .ToDictionary(g => g.Key, g => string.IsNullOrWhiteSpace(g.Last().Color) ? "neutral" : g.Last().Color);
 
         // Load priorities with fallback defaults
-        var priorities = await _priorityRepo.ListAsync(workspaceId, cancellationToken);
+        var priorities = await this.priorityRepository.ListAsync(workspaceId, cancellationToken);
         var priorityList = priorities.Count > 0
             ? priorities
-            : new List<TicketPriority>
-            {
+            :
+            [
                 new() { WorkspaceId = workspaceId, Name = "Low", Color = "warning", SortOrder = 1 },
                 new() { WorkspaceId = workspaceId, Name = "Normal", Color = "neutral", SortOrder = 2 },
                 new() { WorkspaceId = workspaceId, Name = "High", Color = "error", SortOrder = 3 },
-            };
+            ];
         data.Priorities = priorityList;
         data.PriorityColorByName = priorityList
             .GroupBy(p => p.Name)
             .ToDictionary(g => g.Key, g => string.IsNullOrWhiteSpace(g.Last().Color) ? "neutral" : g.Last().Color);
 
         // Load types with fallback defaults
-        var types = await _typeRepo.ListAsync(workspaceId, cancellationToken);
+        var types = await this.ticketTypeRepository.ListAsync(workspaceId, cancellationToken);
         var typeList = types.Count > 0
             ? types
-            : new List<TicketType>
-            {
+            :
+            [
                 new() { WorkspaceId = workspaceId, Name = "Standard", Color = "neutral", SortOrder = 1 },
                 new() { WorkspaceId = workspaceId, Name = "Bug", Color = "error", SortOrder = 2 },
                 new() { WorkspaceId = workspaceId, Name = "Feature", Color = "primary", SortOrder = 3 },
-            };
+            ];
         data.Types = typeList;
         data.TypeColorByName = typeList
             .GroupBy(t => t.Name)
             .ToDictionary(g => g.Key, g => string.IsNullOrWhiteSpace(g.Last().Color) ? "neutral" : g.Last().Color);
 
         // Load teams
-        var teams = await _teamRepo.ListForWorkspaceAsync(workspaceId);
+        var teams = await this.teamRepository.ListForWorkspaceAsync(workspaceId);
         data.TeamsById = teams.ToDictionary(t => t.Id, t => t);
 
         // Load contacts
-        var contacts = await _contactRepo.ListAsync(workspaceId, cancellationToken);
+        var contacts = await this.contactRepository.ListAsync(workspaceId, cancellationToken);
         data.ContactsById = contacts.ToDictionary(c => c.Id, c => c);
 
         // Load workspace members
-        var memberships = await _userWorkspaceRepo.FindForWorkspaceAsync(workspaceId);
+        var memberships = await this.userWorkspaceRepository.FindForWorkspaceAsync(workspaceId);
         var userIds = memberships.Select(m => m.UserId).Distinct().ToList();
         var users = new List<User>();
         foreach (var id in userIds)
         {
-            var user = await _userRepo.FindByIdAsync(id);
-            if (user != null) users.Add(user);
+            var user = await this.userRepository.FindByIdAsync(id);
+            if (user != null)
+            {
+                users.Add(user);
+            }
         }
         data.UsersById = users.ToDictionary(u => u.Id, u => u);
 
         // Load locations
-        var locations = await _locationRepo.ListAsync(workspaceId);
-        data.LocationOptions = locations.ToList();
+        var locations = await this.locationRepository.ListAsync(workspaceId);
+        data.LocationOptions = [.. locations];
         data.LocationsById = locations.ToDictionary(l => l.Id, l => l);
 
         // Determine permissions
         if (userId > 0)
         {
-            var permissions = await _rolePermissionRepo.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+            var permissions = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
             if (permissions.TryGetValue("tickets", out var ticketPerms))
             {
                 data.CanCreateTickets = ticketPerms.CanCreate;
@@ -142,12 +130,12 @@ public class WorkspaceTicketsViewService : IWorkspaceTicketsViewService
         }
 
         // Determine scope and team IDs
-        var scope = await _rolePermissionRepo.GetTicketViewScopeForUserAsync(workspaceId, userId, isAdmin);
+        var scope = await this.rolePermissionRepository.GetTicketViewScopeForUserAsync(workspaceId, userId, isAdmin);
         data.TicketViewScope = scope;
         if (scope == "team" && userId > 0)
         {
-            var userTeams = await _teamMemberRepo.ListTeamsForUserAsync(workspaceId, userId);
-            data.UserTeamIds = userTeams.Select(t => t.Id).ToList();
+            var userTeams = await this.teamMemberRepository.ListTeamsForUserAsync(workspaceId, userId);
+            data.UserTeamIds = [.. userTeams.Select(t => t.Id)];
         }
 
         return data;

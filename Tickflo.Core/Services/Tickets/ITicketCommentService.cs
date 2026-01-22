@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Tickets;
+
+using Tickflo.Core.Entities;
 
 /// <summary>
 /// Service for managing ticket comments with support for client-visible and internal-only comments.
@@ -17,8 +17,8 @@ public interface ITicketCommentService
     /// <param name="isClientView">If true, filters to only client-visible comments; if false, returns all comments</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>Read-only list of comments matching the visibility criteria, ordered by creation date</returns>
-    Task<IReadOnlyList<TicketComment>> GetCommentsAsync(int workspaceId, int ticketId, bool isClientView = false, CancellationToken ct = default);
-    
+    public Task<IReadOnlyList<TicketComment>> GetCommentsAsync(int workspaceId, int ticketId, bool isClientView = false, CancellationToken ct = default);
+
     /// <summary>
     /// Creates a new comment on a ticket with specified visibility and audit trail.
     /// </summary>
@@ -30,8 +30,8 @@ public interface ITicketCommentService
     /// <param name="ct">Cancellation token</param>
     /// <returns>The newly created comment with assigned ID and timestamps</returns>
     /// <exception cref="InvalidOperationException">Thrown if content is empty or null</exception>
-    Task<TicketComment> AddCommentAsync(int workspaceId, int ticketId, int createdByUserId, string content, bool isVisibleToClient, CancellationToken ct = default);
-    
+    public Task<TicketComment> AddCommentAsync(int workspaceId, int ticketId, int createdByUserId, string content, bool isVisibleToClient, CancellationToken ct = default);
+
     /// <summary>
     /// Updates the content of an existing comment and records the update timestamp and user.
     /// </summary>
@@ -42,8 +42,8 @@ public interface ITicketCommentService
     /// <param name="ct">Cancellation token</param>
     /// <returns>The updated comment with new content and update metadata</returns>
     /// <exception cref="InvalidOperationException">Thrown if comment not found or content is empty</exception>
-    Task<TicketComment> UpdateCommentAsync(int workspaceId, int commentId, string content, int updatedByUserId, CancellationToken ct = default);
-    
+    public Task<TicketComment> UpdateCommentAsync(int workspaceId, int commentId, string content, int updatedByUserId, CancellationToken ct = default);
+
     /// <summary>
     /// Creates a new comment on a ticket from a client with specified visibility.
     /// Automatically marks the comment as visible to client since it's submitted by the client.
@@ -55,8 +55,8 @@ public interface ITicketCommentService
     /// <param name="ct">Cancellation token</param>
     /// <returns>The newly created comment with assigned ID and timestamps</returns>
     /// <exception cref="InvalidOperationException">Thrown if content is empty or null</exception>
-    Task<TicketComment> AddClientCommentAsync(int workspaceId, int ticketId, int contactId, string content, CancellationToken ct = default);
-    
+    public Task<TicketComment> AddClientCommentAsync(int workspaceId, int ticketId, int contactId, string content, CancellationToken ct = default);
+
     /// <summary>
     /// Deletes a comment from a ticket. This is a hard delete operation.
     /// </summary>
@@ -64,5 +64,5 @@ public interface ITicketCommentService
     /// <param name="commentId">The comment ID to delete</param>
     /// <param name="ct">Cancellation token</param>
     /// <remarks>If the comment does not exist, the operation completes silently (idempotent)</remarks>
-    Task DeleteCommentAsync(int workspaceId, int commentId, CancellationToken ct = default);
+    public Task DeleteCommentAsync(int workspaceId, int commentId, CancellationToken ct = default);
 }

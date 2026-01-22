@@ -1,15 +1,14 @@
-﻿using Moq;
+namespace Tickflo.CoreTest.Services.Auth;
+
+using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Authentication;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services.Auth;
 
 public class PasswordSetupServiceTests
 {
     [Fact]
-    public async Task ValidateResetTokenAsync_MissingToken_ReturnsError()
+    public async Task ValidateResetTokenAsyncMissingTokenReturnsError()
     {
         var service = CreateService();
 
@@ -20,7 +19,7 @@ public class PasswordSetupServiceTests
     }
 
     [Fact]
-    public async Task ValidateResetTokenAsync_InvalidToken_ReturnsError()
+    public async Task ValidateResetTokenAsyncInvalidTokenReturnsError()
     {
         var tokenRepo = new Mock<ITokenRepository>();
         tokenRepo.Setup(r => r.FindByValueAsync("bad")).ReturnsAsync((Token?)null);
@@ -33,16 +32,16 @@ public class PasswordSetupServiceTests
     }
 
     [Fact]
-    public async Task ValidateResetTokenAsync_UserMissing_ReturnsError()
+    public async Task ValidateResetTokenAsyncUserMissingReturnsError()
     {
         var token = new Token { UserId = 7, Value = "tok" };
         var tokenRepo = new Mock<ITokenRepository>();
         tokenRepo.Setup(r => r.FindByValueAsync("tok")).ReturnsAsync(token);
 
-        var userRepo = new Mock<IUserRepository>();
-        userRepo.Setup(r => r.FindByIdAsync(7)).ReturnsAsync((User?)null);
+        var userRepository = new Mock<IUserRepository>();
+        userRepository.Setup(r => r.FindByIdAsync(7)).ReturnsAsync((User?)null);
 
-        var service = CreateService(userRepository: userRepo.Object, tokenRepository: tokenRepo.Object);
+        var service = CreateService(userRepository: userRepository.Object, tokenRepository: tokenRepo.Object);
 
         var result = await service.ValidateResetTokenAsync("tok");
 
@@ -51,17 +50,17 @@ public class PasswordSetupServiceTests
     }
 
     [Fact]
-    public async Task ValidateResetTokenAsync_Valid_ReturnsUser()
+    public async Task ValidateResetTokenAsyncValidReturnsUser()
     {
         var token = new Token { UserId = 3, Value = "tok" };
         var tokenRepo = new Mock<ITokenRepository>();
         tokenRepo.Setup(r => r.FindByValueAsync("tok")).ReturnsAsync(token);
 
         var user = new User { Id = 3, Email = "u@example.com" };
-        var userRepo = new Mock<IUserRepository>();
-        userRepo.Setup(r => r.FindByIdAsync(3)).ReturnsAsync(user);
+        var userRepository = new Mock<IUserRepository>();
+        userRepository.Setup(r => r.FindByIdAsync(3)).ReturnsAsync(user);
 
-        var service = CreateService(userRepository: userRepo.Object, tokenRepository: tokenRepo.Object);
+        var service = CreateService(userRepository: userRepository.Object, tokenRepository: tokenRepo.Object);
 
         var result = await service.ValidateResetTokenAsync("tok");
 
@@ -71,7 +70,7 @@ public class PasswordSetupServiceTests
     }
 
     [Fact]
-    public async Task SetPasswordWithTokenAsync_InvalidToken_ReturnsError()
+    public async Task SetPasswordWithTokenAsyncInvalidTokenReturnsError()
     {
         var tokenRepo = new Mock<ITokenRepository>();
         tokenRepo.Setup(r => r.FindByValueAsync("tok")).ReturnsAsync((Token?)null);
@@ -85,17 +84,17 @@ public class PasswordSetupServiceTests
     }
 
     [Fact]
-    public async Task SetPasswordWithTokenAsync_TooShort_ReturnsError()
+    public async Task SetPasswordWithTokenAsyncTooShortReturnsError()
     {
         var token = new Token { UserId = 5, Value = "tok" };
         var tokenRepo = new Mock<ITokenRepository>();
         tokenRepo.Setup(r => r.FindByValueAsync("tok")).ReturnsAsync(token);
 
         var user = new User { Id = 5, Email = "short@example.com" };
-        var userRepo = new Mock<IUserRepository>();
-        userRepo.Setup(r => r.FindByIdAsync(5)).ReturnsAsync(user);
+        var userRepository = new Mock<IUserRepository>();
+        userRepository.Setup(r => r.FindByIdAsync(5)).ReturnsAsync(user);
 
-        var service = CreateService(userRepository: userRepo.Object, tokenRepository: tokenRepo.Object);
+        var service = CreateService(userRepository: userRepository.Object, tokenRepository: tokenRepo.Object);
 
         var result = await service.SetPasswordWithTokenAsync("tok", "short");
 
@@ -104,21 +103,21 @@ public class PasswordSetupServiceTests
     }
 
     [Fact]
-    public async Task SetPasswordWithTokenAsync_SetsHashAndUpdatesUser()
+    public async Task SetPasswordWithTokenAsyncSetsHashAndUpdatesUser()
     {
         var token = new Token { UserId = 9, Value = "tok" };
         var tokenRepo = new Mock<ITokenRepository>();
         tokenRepo.Setup(r => r.FindByValueAsync("tok")).ReturnsAsync(token);
 
         var user = new User { Id = 9, Email = "user@example.com" };
-        var userRepo = new Mock<IUserRepository>();
-        userRepo.Setup(r => r.FindByIdAsync(9)).ReturnsAsync(user);
-        userRepo.Setup(r => r.UpdateAsync(user)).Returns(Task.CompletedTask).Verifiable();
+        var userRepository = new Mock<IUserRepository>();
+        userRepository.Setup(r => r.FindByIdAsync(9)).ReturnsAsync(user);
+        userRepository.Setup(r => r.UpdateAsync(user)).Returns(Task.CompletedTask).Verifiable();
 
         var hasher = new Mock<IPasswordHasher>();
         hasher.Setup(h => h.Hash("user@example.comnewpass123")).Returns("hashed");
 
-        var service = CreateService(userRepository: userRepo.Object, tokenRepository: tokenRepo.Object, passwordHasher: hasher.Object);
+        var service = CreateService(userRepository: userRepository.Object, tokenRepository: tokenRepo.Object, passwordHasher: hasher.Object);
 
         var result = await service.SetPasswordWithTokenAsync("tok", "newpass123");
 
@@ -126,17 +125,17 @@ public class PasswordSetupServiceTests
         Assert.Equal(9, result.UserId);
         Assert.Equal("user@example.com", result.UserEmail);
         Assert.Equal("hashed", user.PasswordHash);
-        userRepo.Verify();
+        userRepository.Verify();
     }
 
     [Fact]
-    public async Task SetInitialPasswordAsync_WhenAlreadySet_ReturnsError()
+    public async Task SetInitialPasswordAsyncWhenAlreadySetReturnsError()
     {
         var user = new User { Id = 2, Email = "u@example.com", PasswordHash = "exists" };
-        var userRepo = new Mock<IUserRepository>();
-        userRepo.Setup(r => r.FindByIdAsync(2)).ReturnsAsync(user);
+        var userRepository = new Mock<IUserRepository>();
+        userRepository.Setup(r => r.FindByIdAsync(2)).ReturnsAsync(user);
 
-        var service = CreateService(userRepository: userRepo.Object);
+        var service = CreateService(userRepository: userRepository.Object);
 
         var result = await service.SetInitialPasswordAsync(2, "whatever123");
 
@@ -145,12 +144,12 @@ public class PasswordSetupServiceTests
     }
 
     [Fact]
-    public async Task SetInitialPasswordAsync_SucceedsAndReturnsTokenAndSlug()
+    public async Task SetInitialPasswordAsyncSucceedsAndReturnsTokenAndSlug()
     {
         var user = new User { Id = 4, Email = "u@example.com", PasswordHash = null };
-        var userRepo = new Mock<IUserRepository>();
-        userRepo.Setup(r => r.FindByIdAsync(4)).ReturnsAsync(user);
-        userRepo.Setup(r => r.UpdateAsync(user)).Returns(Task.CompletedTask).Verifiable();
+        var userRepository = new Mock<IUserRepository>();
+        userRepository.Setup(r => r.FindByIdAsync(4)).ReturnsAsync(user);
+        userRepository.Setup(r => r.UpdateAsync(user)).Returns(Task.CompletedTask).Verifiable();
 
         var hasher = new Mock<IPasswordHasher>();
         hasher.Setup(h => h.Hash("u@example.comnewpass123")).Returns("hashed");
@@ -167,7 +166,7 @@ public class PasswordSetupServiceTests
         wsRepo.Setup(r => r.FindByIdAsync(10)).ReturnsAsync(ws);
 
         var service = CreateService(
-            userRepository: userRepo.Object,
+            userRepository: userRepository.Object,
             tokenRepository: tokenRepo.Object,
             passwordHasher: hasher.Object,
             userWorkspaceRepository: uwRepo.Object,
@@ -179,7 +178,7 @@ public class PasswordSetupServiceTests
         Assert.Equal("login-token", result.LoginToken);
         Assert.Equal("ws-slug", result.WorkspaceSlug);
         Assert.Equal("hashed", user.PasswordHash);
-        userRepo.Verify();
+        userRepository.Verify();
     }
 
     private static PasswordSetupService CreateService(

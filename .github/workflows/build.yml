@@ -29,3 +29,6 @@ jobs:
 
       - name: Run tests
         run: dotnet test Tickflo.sln --configuration Release --no-build --logger "trx;LogFileName=test_results.trx"
+
+      - name: Check formatting
+        run: dotnet format --verify-no-changes -v detailed

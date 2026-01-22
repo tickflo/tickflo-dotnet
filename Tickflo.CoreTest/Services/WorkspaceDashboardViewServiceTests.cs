@@ -1,15 +1,14 @@
-﻿using Moq;
-using System.Threading;
+namespace Tickflo.CoreTest.Services;
+
+using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Xunit;
 
-namespace Tickflo.CoreTest.Services;
-
 public class WorkspaceDashboardViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_ReturnsAggregatedView()
+    public async Task BuildAsyncReturnsAggregatedView()
     {
         var workspaceId = 1;
         var userId = 10;
@@ -17,11 +16,11 @@ public class WorkspaceDashboardViewServiceTests
         var rangeDays = 30;
 
         // Repos
-        var ticketRepo = new Mock<ITicketRepository>();
-        var statusRepo = new Mock<ITicketStatusRepository>();
-        var typeRepo = new Mock<ITicketTypeRepository>();
-        var priorityRepo = new Mock<ITicketPriorityRepository>();
-        var userRepo = new Mock<IUserRepository>();
+        var ticketRepository = new Mock<ITicketRepository>();
+        var statusRepository = new Mock<ITicketStatusRepository>();
+        var ticketTypeRepository = new Mock<ITicketTypeRepository>();
+        var priorityRepository = new Mock<ITicketPriorityRepository>();
+        var userRepository = new Mock<IUserRepository>();
         var teamRepo = new Mock<ITeamRepository>();
         var uwRepo = new Mock<IUserWorkspaceRepository>();
 
@@ -35,63 +34,63 @@ public class WorkspaceDashboardViewServiceTests
             ActiveMembers = 2
         });
         dashboard.Setup(d => d.GetPriorityCountsAsync(workspaceId, userId, "all", teamIds)).ReturnsAsync(new Dictionary<string, int> { { "High", 2 } });
-        dashboard.Setup(d => d.GetActivitySeriesAsync(workspaceId, userId, "all", teamIds, rangeDays)).ReturnsAsync(new List<ActivityDataPoint>
-        {
+        dashboard.Setup(d => d.GetActivitySeriesAsync(workspaceId, userId, "all", teamIds, rangeDays)).ReturnsAsync(
+        [
             new ActivityDataPoint { Date = "2024-01-01", Created = 1, Closed = 0 }
-        });
-        dashboard.Setup(d => d.GetTopMembersAsync(workspaceId, userId, "all", teamIds, 5)).ReturnsAsync(new List<TopMember>
-        {
+        ]);
+        dashboard.Setup(d => d.GetTopMembersAsync(workspaceId, userId, "all", teamIds, 5)).ReturnsAsync(
+        [
             new TopMember { UserId = 10, Name = "U", ClosedCount = 2 }
-        });
+        ]);
         dashboard.Setup(d => d.GetAverageResolutionTimeAsync(workspaceId, userId, "all", teamIds)).ReturnsAsync("2h");
         dashboard.Setup(d => d.FilterTicketsByAssignment(It.IsAny<List<Ticket>>(), "all", userId))
             .Returns((List<Ticket> t, string _, int _) => t);
 
         // Status/type/priority lists
-        statusRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<TicketStatus>
-        {
-            new TicketStatus { Name = "Open", IsClosedState = false, Color = "#00ff00" }
-        });
-        typeRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<TicketType>
-        {
-            new TicketType { Name = "Bug", Color = "red" }
-        });
-        priorityRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<TicketPriority>
-        {
-            new TicketPriority { Name = "High", Color = "orange" }
-        });
+        statusRepository.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>())).ReturnsAsync(
+        [
+            new() { Name = "Open", IsClosedState = false, Color = "#00ff00" }
+        ]);
+        ticketTypeRepository.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>())).ReturnsAsync(
+        [
+            new() { Name = "Bug", Color = "red" }
+        ]);
+        priorityRepository.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>())).ReturnsAsync(
+        [
+            new() { Name = "High", Color = "orange" }
+        ]);
 
         // Tickets
-        ticketRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Ticket>
-        {
-            new Ticket { Id = 1, WorkspaceId = workspaceId, Subject = "S", TicketTypeId = 1, StatusId = 1, CreatedAt = DateTime.UtcNow }
-        });
+        ticketRepository.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>())).ReturnsAsync(
+        [
+            new() { Id = 1, WorkspaceId = workspaceId, Subject = "S", TicketTypeId = 1, StatusId = 1, CreatedAt = DateTime.UtcNow }
+        ]);
 
         // Users/teams
-        uwRepo.Setup(r => r.FindForWorkspaceAsync(workspaceId)).ReturnsAsync(new List<UserWorkspace>
-        {
+        uwRepo.Setup(r => r.FindForWorkspaceAsync(workspaceId)).ReturnsAsync(
+        [
             new UserWorkspace { UserId = 10, WorkspaceId = workspaceId, Accepted = true }
-        });
-        userRepo.Setup(r => r.FindByIdAsync(10)).ReturnsAsync(new User { Id = 10, Name = "User" });
-        teamRepo.Setup(r => r.ListForWorkspaceAsync(workspaceId)).ReturnsAsync(new List<Team>());
+        ]);
+        userRepository.Setup(r => r.FindByIdAsync(10)).ReturnsAsync(new User { Id = 10, Name = "User" });
+        teamRepo.Setup(r => r.ListForWorkspaceAsync(workspaceId)).ReturnsAsync([]);
 
         // Permission repositories
         var uwrRepo = new Mock<IUserWorkspaceRoleRepository>();
-        var rolePerms = new Mock<IRolePermissionRepository>();
+        var rolePermissionRepository = new Mock<IRolePermissionRepository>();
         uwrRepo.Setup(r => r.IsAdminAsync(userId, workspaceId)).ReturnsAsync(true);
-        rolePerms.Setup(r => r.GetTicketViewScopeForUserAsync(workspaceId, userId, true)).ReturnsAsync("all");
+        rolePermissionRepository.Setup(r => r.GetTicketViewScopeForUserAsync(workspaceId, userId, true)).ReturnsAsync("all");
 
         var service = new WorkspaceDashboardViewService(
-            ticketRepo.Object,
-            statusRepo.Object,
-            typeRepo.Object,
-            priorityRepo.Object,
-            userRepo.Object,
+            ticketRepository.Object,
+            statusRepository.Object,
+            ticketTypeRepository.Object,
+            priorityRepository.Object,
+            userRepository.Object,
             teamRepo.Object,
             uwRepo.Object,
             dashboard.Object,
             uwrRepo.Object,
-            rolePerms.Object);
+            rolePermissionRepository.Object);
 
         var view = await service.BuildAsync(workspaceId, userId, "all", teamIds, rangeDays, "all");
 

@@ -1,40 +1,39 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Tickets;
 using Xunit;
-
-namespace Tickflo.CoreTest.Services;
 
 public class TicketClosingServiceTests
 {
     [Fact]
-    public async Task CloseTicketAsync_Throws_When_Already_Closed()
+    public async Task CloseTicketAsyncThrowsWhenAlreadyClosed()
     {
-        var ticketRepo = new Mock<ITicketRepository>();
-        var statuses = new List<TicketStatus> 
-        { 
-            new TicketStatus { Id = 1, Name = "Closed", IsClosedState = true } 
+        var ticketRepository = new Mock<ITicketRepository>();
+        var statuses = new List<TicketStatus>
+        {
+            new() { Id = 1, Name = "Closed", IsClosedState = true }
         };
-        ticketRepo.Setup(r => r.FindAsync(1, 2, CancellationToken.None)).ReturnsAsync(new Ticket { Id = 2, StatusId = 1 });
-        var statusRepo = new Mock<ITicketStatusRepository>();
-        statusRepo.Setup(r => r.FindByNameAsync(1, "Closed")).ReturnsAsync(statuses[0]);
-        var svc = new TicketClosingService(ticketRepo.Object, Mock.Of<ITicketHistoryRepository>(), statusRepo.Object);
+        ticketRepository.Setup(r => r.FindAsync(1, 2, CancellationToken.None)).ReturnsAsync(new Ticket { Id = 2, StatusId = 1 });
+        var statusRepository = new Mock<ITicketStatusRepository>();
+        statusRepository.Setup(r => r.FindByNameAsync(1, "Closed")).ReturnsAsync(statuses[0]);
+        var svc = new TicketClosingService(ticketRepository.Object, Mock.Of<ITicketHistoryRepository>(), statusRepository.Object);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CloseTicketAsync(1, 2, "note", 5));
     }
 
     [Fact]
-    public async Task ResolveTicketAsync_Writes_History()
+    public async Task ResolveTicketAsyncWritesHistory()
     {
-        var ticketRepo = new Mock<ITicketRepository>();
+        var ticketRepository = new Mock<ITicketRepository>();
         var openStatus = new TicketStatus { Id = 2, Name = "Open", IsClosedState = false };
         var resolvedStatus = new TicketStatus { Id = 3, Name = "Resolved", IsClosedState = true };
-        ticketRepo.Setup(r => r.FindAsync(1, 3, CancellationToken.None)).ReturnsAsync(new Ticket { Id = 3, StatusId = 2 });
+        ticketRepository.Setup(r => r.FindAsync(1, 3, CancellationToken.None)).ReturnsAsync(new Ticket { Id = 3, StatusId = 2 });
         var history = new Mock<ITicketHistoryRepository>();
-        var statusRepo = new Mock<ITicketStatusRepository>();
-        statusRepo.Setup(r => r.FindByNameAsync(1, "Resolved")).ReturnsAsync(resolvedStatus);
-        var svc = new TicketClosingService(ticketRepo.Object, history.Object, statusRepo.Object);
+        var statusRepository = new Mock<ITicketStatusRepository>();
+        statusRepository.Setup(r => r.FindByNameAsync(1, "Resolved")).ReturnsAsync(resolvedStatus);
+        var svc = new TicketClosingService(ticketRepository.Object, history.Object, statusRepository.Object);
 
         var ticket = await svc.ResolveTicketAsync(1, 3, "done", 7);
 

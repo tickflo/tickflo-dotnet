@@ -1,5 +1,3 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Views;
 
 public class WorkspaceSettingsViewData
@@ -8,16 +6,16 @@ public class WorkspaceSettingsViewData
     public bool CanEditSettings { get; set; }
     public bool CanCreateSettings { get; set; }
 
-    public IReadOnlyList<Tickflo.Core.Entities.TicketStatus> Statuses { get; set; } = Array.Empty<Tickflo.Core.Entities.TicketStatus>();
-    public IReadOnlyList<Tickflo.Core.Entities.TicketPriority> Priorities { get; set; } = Array.Empty<Tickflo.Core.Entities.TicketPriority>();
-    public IReadOnlyList<Tickflo.Core.Entities.TicketType> Types { get; set; } = Array.Empty<Tickflo.Core.Entities.TicketType>();
+    public IReadOnlyList<Entities.TicketStatus> Statuses { get; set; } = [];
+    public IReadOnlyList<Entities.TicketPriority> Priorities { get; set; } = [];
+    public IReadOnlyList<Entities.TicketType> Types { get; set; } = [];
 
     public bool NotificationsEnabled { get; set; } = true;
     public bool EmailIntegrationEnabled { get; set; } = true;
     public string EmailProvider { get; set; } = "smtp";
-    public bool SmsIntegrationEnabled { get; set; } = false;
+    public bool SmsIntegrationEnabled { get; set; }
     public string SmsProvider { get; set; } = "none";
-    public bool PushIntegrationEnabled { get; set; } = false;
+    public bool PushIntegrationEnabled { get; set; }
     public string PushProvider { get; set; } = "none";
     public bool InAppNotificationsEnabled { get; set; } = true;
     public int BatchNotificationDelay { get; set; } = 30;
@@ -28,7 +26,7 @@ public class WorkspaceSettingsViewData
 
 public interface IWorkspaceSettingsViewService
 {
-    Task<WorkspaceSettingsViewData> BuildAsync(int workspaceId, int userId);
+    public Task<WorkspaceSettingsViewData> BuildAsync(int workspaceId, int userId);
 }
 
 

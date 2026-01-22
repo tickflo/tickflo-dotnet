@@ -1,26 +1,25 @@
+namespace Tickflo.Web.Pages;
+
 using System.ComponentModel.DataAnnotations;
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Tickflo.Core.Services;
 using Tickflo.Core.Services.Authentication;
 
-namespace Tickflo.Web.Pages;
-
 [AllowAnonymous]
-public class SignupModel(ILogger<SignupModel> logger, IAuthenticationService authService) : PageModel
+public class SignupModel(IAuthenticationService authenticationService) : PageModel
 {
     #region Constants
     private const string TokenCookieName = "user_token";
     private const int TokenCookieExpirationDays = 30;
-    private const string WorkspaceRedirectUrl = "/workspaces/{0}";
+    private static readonly CompositeFormat WorkspaceRedirectUrl = CompositeFormat.Parse("/workspaces/{0}");
     private const string WorkspacesUrl = "/workspaces";
     private const string RecoveryEmailMismatchError = "Recovery email must be different from your login email.";
     private const string RecoveryEmailFieldName = "Input.RecoveryEmail";
     #endregion
 
-    private readonly ILogger<SignupModel> _logger = logger;
-    private readonly IAuthenticationService _authService = authService;
+    private readonly IAuthenticationService authenticationService = authenticationService;
 
     [BindProperty]
     public SignupInput Input { get; set; } = new();
@@ -29,29 +28,33 @@ public class SignupModel(ILogger<SignupModel> logger, IAuthenticationService aut
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (ValidateRecoveryEmailDifference() is IActionResult validationResult)
-            return validationResult;
-
-        if (!ModelState.IsValid)
-            return Page();
-
-        var result = await ExecuteSignupAsync();
-        if (!result.Success)
+        if (this.ValidateRecoveryEmailDifference() is IActionResult validationResult)
         {
-            ErrorMessage = result.ErrorMessage;
-            return Page();
+            return validationResult;
         }
 
-        AppendAuthenticationCookie(result.Token!);
-        return GetPostSignupRedirect(result.WorkspaceSlug);
+        if (!this.ModelState.IsValid)
+        {
+            return this.Page();
+        }
+
+        var result = await this.ExecuteSignupAsync();
+        if (!result.Success)
+        {
+            this.ErrorMessage = result.ErrorMessage;
+            return this.Page();
+        }
+
+        this.AppendAuthenticationCookie(result.Token!);
+        return this.GetPostSignupRedirect(result.WorkspaceSlug);
     }
 
     private IActionResult? ValidateRecoveryEmailDifference()
     {
-        if (!string.IsNullOrEmpty(Input.Email) && !string.IsNullOrEmpty(Input.RecoveryEmail) &&
-            Input.Email.Equals(Input.RecoveryEmail, StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrEmpty(this.Input.Email) && !string.IsNullOrEmpty(this.Input.RecoveryEmail) &&
+            this.Input.Email.Equals(this.Input.RecoveryEmail, StringComparison.OrdinalIgnoreCase))
         {
-            ModelState.AddModelError(RecoveryEmailFieldName, RecoveryEmailMismatchError);
+            this.ModelState.AddModelError(RecoveryEmailFieldName, RecoveryEmailMismatchError);
         }
 
         return null;
@@ -59,32 +62,31 @@ public class SignupModel(ILogger<SignupModel> logger, IAuthenticationService aut
 
     private async Task<AuthenticationResult> ExecuteSignupAsync()
     {
-        var name = Input.Name?.Trim() ?? string.Empty;
-        var email = Input.Email?.Trim() ?? string.Empty;
-        var recoveryEmail = Input.RecoveryEmail?.Trim() ?? string.Empty;
-        var workspaceName = Input.WorkspaceName?.Trim() ?? string.Empty;
-        var password = Input.Password ?? string.Empty;
+        var name = this.Input.Name?.Trim() ?? string.Empty;
+        var email = this.Input.Email?.Trim() ?? string.Empty;
+        var recoveryEmail = this.Input.RecoveryEmail?.Trim() ?? string.Empty;
+        var workspaceName = this.Input.WorkspaceName?.Trim() ?? string.Empty;
+        var password = this.Input.Password ?? string.Empty;
 
-        return await _authService.SignupAsync(name, email, recoveryEmail, workspaceName, password);
+        return await this.authenticationService.SignupAsync(name, email, recoveryEmail, workspaceName, password);
     }
 
-    private void AppendAuthenticationCookie(string token)
+    private void AppendAuthenticationCookie(string token) => this.Response.Cookies.Append(TokenCookieName, token, new CookieOptions
     {
-        Response.Cookies.Append(TokenCookieName, token, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = Request.IsHttps,
-            SameSite = SameSiteMode.Lax,
-            Expires = DateTimeOffset.UtcNow.AddDays(TokenCookieExpirationDays)
-        });
-    }
+        HttpOnly = true,
+        Secure = this.Request.IsHttps,
+        SameSite = SameSiteMode.Lax,
+        Expires = DateTimeOffset.UtcNow.AddDays(TokenCookieExpirationDays)
+    });
 
-    private IActionResult GetPostSignupRedirect(string? workspaceSlug)
+    private RedirectResult GetPostSignupRedirect(string? workspaceSlug)
     {
         if (!string.IsNullOrEmpty(workspaceSlug))
-            return Redirect(string.Format(WorkspaceRedirectUrl, workspaceSlug));
+        {
+            return this.Redirect(string.Format(null, WorkspaceRedirectUrl, workspaceSlug));
+        }
 
-        return Redirect(WorkspacesUrl);
+        return this.Redirect(WorkspacesUrl);
     }
 }
 

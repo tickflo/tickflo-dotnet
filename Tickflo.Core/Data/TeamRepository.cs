@@ -1,20 +1,20 @@
+namespace Tickflo.Core.Data;
+
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
 
-namespace Tickflo.Core.Data;
-
-public class TeamRepository(TickfloDbContext db) : ITeamRepository
+public class TeamRepository(TickfloDbContext dbContext) : ITeamRepository
 {
-    private readonly TickfloDbContext _db = db;
+    private readonly TickfloDbContext dbContext = dbContext;
 
     public Task<Team?> FindByIdAsync(int id)
-        => _db.Teams.FirstOrDefaultAsync(t => t.Id == id);
+        => this.dbContext.Teams.FirstOrDefaultAsync(t => t.Id == id);
 
     public Task<Team?> FindByNameAsync(int workspaceId, string name)
-        => _db.Teams.FirstOrDefaultAsync(t => t.WorkspaceId == workspaceId && t.Name == name);
+        => this.dbContext.Teams.FirstOrDefaultAsync(t => t.WorkspaceId == workspaceId && t.Name == name);
 
     public Task<List<Team>> ListForWorkspaceAsync(int workspaceId)
-        => _db.Teams.Where(t => t.WorkspaceId == workspaceId).OrderBy(t => t.Name).ToListAsync();
+        => this.dbContext.Teams.Where(t => t.WorkspaceId == workspaceId).OrderBy(t => t.Name).ToListAsync();
 
     public async Task<Team> AddAsync(int workspaceId, string name, string? description, int createdBy)
     {
@@ -22,31 +22,31 @@ public class TeamRepository(TickfloDbContext db) : ITeamRepository
         {
             WorkspaceId = workspaceId,
             Name = name,
-            Description = string.IsNullOrWhiteSpace(description) ? null : description!.Trim(),
+            Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
-        _db.Teams.Add(team);
-        await _db.SaveChangesAsync();
+        this.dbContext.Teams.Add(team);
+        await this.dbContext.SaveChangesAsync();
         return team;
     }
 
     public async Task UpdateAsync(Team team)
     {
-        _db.Teams.Update(team);
-        await _db.SaveChangesAsync();
+        this.dbContext.Teams.Update(team);
+        await this.dbContext.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(int id)
     {
-        var team = await _db.Teams.FirstOrDefaultAsync(t => t.Id == id);
+        var team = await this.dbContext.Teams.FirstOrDefaultAsync(t => t.Id == id);
         if (team != null)
         {
             // Remove members first to maintain FK integrity
-            var members = _db.TeamMembers.Where(m => m.TeamId == id);
-            _db.TeamMembers.RemoveRange(members);
-            _db.Teams.Remove(team);
-            await _db.SaveChangesAsync();
+            var members = this.dbContext.TeamMembers.Where(m => m.TeamId == id);
+            this.dbContext.TeamMembers.RemoveRange(members);
+            this.dbContext.Teams.Remove(team);
+            await this.dbContext.SaveChangesAsync();
         }
     }
 }

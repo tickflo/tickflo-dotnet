@@ -1,60 +1,63 @@
+namespace Tickflo.Web.Controllers;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
-namespace Tickflo.Web.Controllers;
-
 [ApiController]
-public class WorkspaceInviteController : ControllerBase
+public class WorkspaceInviteController(IWorkspaceRepository workspaceRepository, ITokenRepository tokenRepository, IUserRepository users, IUserWorkspaceRepository userWorkspaceRepository) : ControllerBase
 {
     #region Constants
     private const string InvalidTokenError = "Invalid or expired token.";
     #endregion
 
-    private readonly IWorkspaceRepository _workspaces;
-    private readonly ITokenRepository _tokens;
-    private readonly IUserRepository _users;
-    private readonly IUserWorkspaceRepository _userWorkspaces;
-
-    public WorkspaceInviteController(IWorkspaceRepository workspaces, ITokenRepository tokens, IUserRepository users, IUserWorkspaceRepository userWorkspaces)
-    {
-        _workspaces = workspaces;
-        _tokens = tokens;
-        _users = users;
-        _userWorkspaces = userWorkspaces;
-    }
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly ITokenRepository tokenRepository = tokenRepository;
+    private readonly IUserRepository userRepository = users;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
 
     [HttpGet("workspaces/{slug}/accept")]
     [AllowAnonymous]
     public async Task<IActionResult> Accept(string slug, [FromQuery] string token)
     {
         if (!ValidateInput(slug, token))
-            return BadRequest(InvalidTokenError);
+        {
+            return this.BadRequest(InvalidTokenError);
+        }
 
-        var ws = await _workspaces.FindBySlugAsync(slug);
-        if (ws == null) return NotFound();
+        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
+        if (ws == null)
+        {
+            return this.NotFound();
+        }
 
-        var tok = await _tokens.FindByValueAsync(token);
-        if (tok == null) return BadRequest(InvalidTokenError);
+        var tok = await this.tokenRepository.FindByValueAsync(token);
+        if (tok == null)
+        {
+            return this.BadRequest(InvalidTokenError);
+        }
 
-        var user = await _users.FindByIdAsync(tok.UserId);
-        if (user == null) return NotFound();
+        var user = await this.userRepository.FindByIdAsync(tok.UserId);
+        if (user == null)
+        {
+            return this.NotFound();
+        }
 
-        var uw = await _userWorkspaces.FindAsync(user.Id, ws.Id);
-        if (uw == null) return NotFound();
+        var uw = await this.userWorkspaceRepository.FindAsync(user.Id, ws.Id);
+        if (uw == null)
+        {
+            return this.NotFound();
+        }
 
-        await AcceptWorkspaceInviteAsync(uw, user);
-        await ConfirmUserEmailIfNeededAsync(user);
+        await this.AcceptWorkspaceInviteAsync(uw, user);
+        await this.ConfirmUserEmailIfNeededAsync(user);
 
-        var reset = await _tokens.CreatePasswordResetForUserIdAsync(user.Id);
-        return Redirect($"/account/set-password?token={Uri.EscapeDataString(reset.Value)}");
+        var reset = await this.tokenRepository.CreatePasswordResetForUserIdAsync(user.Id);
+        return this.Redirect($"/account/set-password?token={Uri.EscapeDataString(reset.Value)}");
     }
 
-    private bool ValidateInput(string slug, string token)
-    {
-        return !string.IsNullOrWhiteSpace(slug) && !string.IsNullOrWhiteSpace(token);
-    }
+    private static bool ValidateInput(string slug, string token) => !string.IsNullOrWhiteSpace(slug) && !string.IsNullOrWhiteSpace(token);
 
     private async Task AcceptWorkspaceInviteAsync(UserWorkspace userWorkspace, User user)
     {
@@ -63,7 +66,7 @@ public class WorkspaceInviteController : ControllerBase
             userWorkspace.Accepted = true;
             userWorkspace.UpdatedAt = DateTime.UtcNow;
             userWorkspace.UpdatedBy = user.Id;
-            await _userWorkspaces.UpdateAsync(userWorkspace);
+            await this.userWorkspaceRepository.UpdateAsync(userWorkspace);
         }
     }
 
@@ -73,7 +76,7 @@ public class WorkspaceInviteController : ControllerBase
         {
             user.EmailConfirmed = true;
             user.EmailConfirmationCode = null;
-            await _users.UpdateAsync(user);
+            await this.userRepository.UpdateAsync(user);
         }
     }
 }

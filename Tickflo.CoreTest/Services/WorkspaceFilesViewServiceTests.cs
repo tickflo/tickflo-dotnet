@@ -1,13 +1,12 @@
-﻿using Moq;
-using Xunit;
-using Tickflo.Core.Data;
-
 namespace Tickflo.CoreTest.Services;
+
+using Moq;
+using Xunit;
 
 public class WorkspaceFilesViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_AllowsViewingWhenUserHasAccess()
+    public async Task BuildAsyncAllowsViewingWhenUserHasAccess()
     {
         var access = new Mock<IWorkspaceAccessService>();
         access.Setup(a => a.UserHasAccessAsync(1, 10)).ReturnsAsync(true);
@@ -19,7 +18,7 @@ public class WorkspaceFilesViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_DeniesWhenUserHasNoAccess()
+    public async Task BuildAsyncDeniesWhenUserHasNoAccess()
     {
         var access = new Mock<IWorkspaceAccessService>();
         access.Setup(a => a.UserHasAccessAsync(1, 10)).ReturnsAsync(false);

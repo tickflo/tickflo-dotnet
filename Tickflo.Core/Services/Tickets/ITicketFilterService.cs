@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Tickets;
+
+using Tickflo.Core.Entities;
 
 /// <summary>
 /// Service for filtering and searching tickets based on multiple criteria.
@@ -13,7 +13,7 @@ public interface ITicketFilterService
     /// <param name="tickets">Source tickets</param>
     /// <param name="filter">Filter criteria</param>
     /// <returns>Filtered tickets</returns>
-    List<Ticket> ApplyFilters(IEnumerable<Ticket> tickets, TicketFilterCriteria filter);
+    public List<Ticket> ApplyFilters(IEnumerable<Ticket> tickets, TicketFilterCriteria filter);
 
     /// <summary>
     /// Applies role-based scope filtering (all/mine/team).
@@ -23,7 +23,7 @@ public interface ITicketFilterService
     /// <param name="scope">Scope: "all", "mine", or "team"</param>
     /// <param name="userTeamIds">Team IDs user belongs to</param>
     /// <returns>Filtered tickets</returns>
-    List<Ticket> ApplyScopeFilter(
+    public List<Ticket> ApplyScopeFilter(
         IEnumerable<Ticket> tickets,
         int userId,
         string scope,
@@ -35,7 +35,7 @@ public interface ITicketFilterService
     /// <param name="tickets">Source tickets</param>
     /// <param name="userId">Current user</param>
     /// <returns>Count of tickets assigned to user</returns>
-    int CountMyTickets(IEnumerable<Ticket> tickets, int userId);
+    public int CountMyTickets(IEnumerable<Ticket> tickets, int userId);
 }
 
 /// <summary>

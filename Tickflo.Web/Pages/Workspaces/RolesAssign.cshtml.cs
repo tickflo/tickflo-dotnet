@@ -1,140 +1,163 @@
+namespace Tickflo.Web.Pages.Workspaces;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services;
-
-using Tickflo.Core.Services.Views;
 using Tickflo.Core.Services.Roles;
-namespace Tickflo.Web.Pages.Workspaces;
+using Tickflo.Core.Services.Views;
 
 [Authorize]
-public class RolesAssignModel : WorkspacePageModel
+public class RolesAssignModel(
+    IWorkspaceRepository workspaceRepository,
+    IRoleManagementService roleManagementService,
+    IWorkspaceRolesAssignViewService workspaceRolesAssignViewService) : WorkspacePageModel
 {
     #region Constants
     private const string SelectUserAndRoleError = "Please select both a user and a role.";
     private const string InvalidRoleSelectionError = "Invalid role selection.";
     #endregion
 
-    private readonly IWorkspaceRepository _workspaces;
-    private readonly IRoleManagementService _roleManagementService;
-    private readonly IWorkspaceRolesAssignViewService _rolesAssignViewService;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly IRoleManagementService roleManagementService = roleManagementService;
+    private readonly IWorkspaceRolesAssignViewService workspaceRolesAssignViewService = workspaceRolesAssignViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
-    public List<User> Members { get; private set; } = new();
-    public List<Role> Roles { get; private set; } = new();
-    public Dictionary<int, List<Role>> UserRoles { get; private set; } = new();
+    public List<User> Members { get; private set; } = [];
+    public List<Role> Roles { get; private set; } = [];
+    public Dictionary<int, List<Role>> UserRoles { get; private set; } = [];
 
     [BindProperty]
     public int SelectedUserId { get; set; }
     [BindProperty]
     public int SelectedRoleId { get; set; }
 
-    public RolesAssignModel(
-        IWorkspaceRepository workspaces,
-        IRoleManagementService roleManagementService,
-        IWorkspaceRolesAssignViewService rolesAssignViewService)
-    {
-        _workspaces = workspaces;
-        _roleManagementService = roleManagementService;
-        _rolesAssignViewService = rolesAssignViewService;
-    }
-
     public async Task<IActionResult> OnGetAsync(string slug)
     {
-        WorkspaceSlug = slug;
-        
-        if (await AuthorizeAndLoadWorkspaceAsync(slug) is IActionResult authResult)
+        this.WorkspaceSlug = slug;
+
+        if (await this.AuthorizeAndLoadWorkspaceAsync(slug) is IActionResult authResult)
+        {
             return authResult;
-        
-        return Page();
+        }
+
+        return this.Page();
     }
 
     public async Task<IActionResult> OnPostAssignAsync(string slug)
     {
-        WorkspaceSlug = slug;
-        var ws = await _workspaces.FindBySlugAsync(slug);
-        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
-        var uid = GetUserIdOrZero();
-        if (uid == 0) return Forbid();
-        var data = await _rolesAssignViewService.BuildAsync(ws!.Id, uid);
-        if (!data.IsAdmin) return Forbid();
-
-        if (!ValidateRoleAssignmentInput())
-            return await OnGetAsync(slug);
-
-        if (!await _roleManagementService.RoleBelongsToWorkspaceAsync(SelectedRoleId, ws!.Id))
+        this.WorkspaceSlug = slug;
+        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
+        if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
         {
-            ModelState.AddModelError(string.Empty, InvalidRoleSelectionError);
-            return await OnGetAsync(slug);
+            return result;
+        }
+
+        var uid = this.GetUserIdOrZero();
+        if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        var data = await this.workspaceRolesAssignViewService.BuildAsync(ws!.Id, uid);
+        if (!data.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        if (!this.ValidateRoleAssignmentInput())
+        {
+            return await this.OnGetAsync(slug);
+        }
+
+        if (!await this.roleManagementService.RoleBelongsToWorkspaceAsync(this.SelectedRoleId, ws!.Id))
+        {
+            this.ModelState.AddModelError(string.Empty, InvalidRoleSelectionError);
+            return await this.OnGetAsync(slug);
         }
 
         try
         {
-            await _roleManagementService.AssignRoleToUserAsync(SelectedUserId, ws!.Id, SelectedRoleId, uid);
+            await this.roleManagementService.AssignRoleToUserAsync(this.SelectedUserId, ws!.Id, this.SelectedRoleId, uid);
         }
         catch (InvalidOperationException ex)
         {
-            ModelState.AddModelError(string.Empty, ex.Message);
-            return await OnGetAsync(slug);
+            this.ModelState.AddModelError(string.Empty, ex.Message);
+            return await this.OnGetAsync(slug);
         }
 
-        return RedirectToRolesAssignPage(slug);
+        return this.RedirectToRolesAssignPage(slug);
     }
 
     public async Task<IActionResult> OnPostRemoveAsync(string slug, int userId, int roleId)
     {
-        WorkspaceSlug = slug;
-        var ws = await _workspaces.FindBySlugAsync(slug);
-        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
-        var uid = GetUserIdOrZero();
-        if (uid == 0) return Forbid();
-        var data = await _rolesAssignViewService.BuildAsync(ws!.Id, uid);
-        if (!data.IsAdmin) return Forbid();
+        this.WorkspaceSlug = slug;
+        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
+        if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
+        {
+            return result;
+        }
 
-        await _roleManagementService.RemoveRoleFromUserAsync(userId, ws!.Id, roleId);
-        return RedirectToRolesAssignPage(slug);
+        var uid = this.GetUserIdOrZero();
+        if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        var data = await this.workspaceRolesAssignViewService.BuildAsync(ws!.Id, uid);
+        if (!data.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        await this.roleManagementService.RemoveRoleFromUserAsync(userId, ws!.Id, roleId);
+        return this.RedirectToRolesAssignPage(slug);
     }
 
     private async Task<IActionResult?> AuthorizeAndLoadWorkspaceAsync(string slug)
     {
-        var ws = await _workspaces.FindBySlugAsync(slug);
-        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
+        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
+        if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
+        {
             return result;
-        
-        var uid = GetUserIdOrZero();
-        if (uid == 0) return Forbid();
-        
-        var data = await _rolesAssignViewService.BuildAsync(ws!.Id, uid);
-        if (!data.IsAdmin) return Forbid();
-        
-        Members = data.Members ?? new();
-        Roles = data.Roles ?? new();
-        UserRoles = data.UserRoles ?? new();
-        
+        }
+
+        var uid = this.GetUserIdOrZero();
+        if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        var data = await this.workspaceRolesAssignViewService.BuildAsync(ws!.Id, uid);
+        if (!data.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        this.Members = data.Members ?? [];
+        this.Roles = data.Roles ?? [];
+        this.UserRoles = data.UserRoles ?? [];
+
         return null;
     }
 
-    private int GetUserIdOrZero()
-    {
-        return TryGetUserId(out var idVal) ? idVal : 0;
-    }
+    private int GetUserIdOrZero() => this.TryGetUserId(out var idVal) ? idVal : 0;
 
     private bool ValidateRoleAssignmentInput()
     {
-        if (SelectedUserId <= 0 || SelectedRoleId <= 0)
+        if (this.SelectedUserId <= 0 || this.SelectedRoleId <= 0)
         {
-            ModelState.AddModelError(string.Empty, SelectUserAndRoleError);
+            this.ModelState.AddModelError(string.Empty, SelectUserAndRoleError);
             return false;
         }
         return true;
     }
 
-    private IActionResult RedirectToRolesAssignPage(string slug)
+    private RedirectResult RedirectToRolesAssignPage(string slug)
     {
-        var queryQ = Request.Query["Query"].ToString();
-        return Redirect($"/workspaces/{slug}/users/roles/assign?Query={Uri.EscapeDataString(queryQ ?? string.Empty)}");
+        var queryQ = this.Request.Query["Query"].ToString();
+        return this.Redirect($"/workspaces/{slug}/users/roles/assign?Query={Uri.EscapeDataString(queryQ ?? string.Empty)}");
     }
 }
 

@@ -1,32 +1,28 @@
+namespace Tickflo.Core.Services.Contacts;
+
+using System.Text;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
-namespace Tickflo.Core.Services.Contacts;
-
-public class ContactRegistrationService : IContactRegistrationService
+public class ContactRegistrationService(IContactRepository contactRepository) : IContactRegistrationService
 {
     #region Constants
     private const string ContactNameRequiredError = "Contact name is required";
-    private const string ContactAlreadyExistsError = "Contact '{0}' already exists in this workspace";
+    private static readonly CompositeFormat ContactAlreadyExistsError = CompositeFormat.Parse("Contact '{0}' already exists in this workspace");
     private const string InvalidEmailFormatError = "Invalid email format";
     private const string ContactNotFoundError = "Contact not found";
     #endregion
 
-    private readonly IContactRepository _contactRepo;
-
-    public ContactRegistrationService(IContactRepository contactRepo)
-    {
-        _contactRepo = contactRepo;
-    }
+    private readonly IContactRepository contactRepository = contactRepository;
 
     public async Task<Contact> RegisterContactAsync(int workspaceId, ContactRegistrationRequest request, int createdByUserId)
     {
         var name = ValidateAndGetContactName(request.Name);
-        await EnsureContactNameIsUniqueAsync(workspaceId, name);
+        await this.EnsureContactNameIsUniqueAsync(workspaceId, name);
         ValidateEmailIfProvided(request.Email);
 
         var contact = CreateContactEntity(workspaceId, request, name);
-        await _contactRepo.CreateAsync(contact);
+        await this.contactRepository.CreateAsync(contact);
         return contact;
     }
 
@@ -36,12 +32,12 @@ public class ContactRegistrationService : IContactRegistrationService
         ContactUpdateRequest request,
         int updatedByUserId)
     {
-        var contact = await GetContactOrThrowAsync(workspaceId, contactId);
+        var contact = await this.GetContactOrThrowAsync(workspaceId, contactId);
 
         if (!string.IsNullOrWhiteSpace(request.Name))
         {
             var name = request.Name.Trim();
-            await UpdateContactNameIfChangedAsync(workspaceId, contactId, contact, name);
+            await this.UpdateContactNameIfChangedAsync(workspaceId, contactId, contact, name);
         }
 
         UpdateContactEmail(contact, request.Email);
@@ -49,59 +45,59 @@ public class ContactRegistrationService : IContactRegistrationService
         UpdateContactCompany(contact, request.Company);
         UpdateContactNotes(contact, request.Notes);
 
-        await _contactRepo.UpdateAsync(contact);
+        await this.contactRepository.UpdateAsync(contact);
         return contact;
     }
 
-    public async Task RemoveContactAsync(int workspaceId, int contactId)
-    {
-        await _contactRepo.DeleteAsync(workspaceId, contactId);
-    }
+    public async Task RemoveContactAsync(int workspaceId, int contactId) => await this.contactRepository.DeleteAsync(workspaceId, contactId);
 
-    private string ValidateAndGetContactName(string? name)
+    private static string ValidateAndGetContactName(string? name)
     {
         if (string.IsNullOrWhiteSpace(name))
+        {
             throw new InvalidOperationException(ContactNameRequiredError);
+        }
+
         return name.Trim();
     }
 
     private async Task EnsureContactNameIsUniqueAsync(int workspaceId, string name, int? excludeContactId = null)
     {
-        var existingContacts = await _contactRepo.ListAsync(workspaceId);
-        var isDuplicate = existingContacts.Any(c => 
+        var existingContacts = await this.contactRepository.ListAsync(workspaceId);
+        var isDuplicate = existingContacts.Any(c =>
             (excludeContactId == null || c.Id != excludeContactId) &&
             string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
-        
+
         if (isDuplicate)
-            throw new InvalidOperationException(string.Format(ContactAlreadyExistsError, name));
+        {
+            throw new InvalidOperationException(string.Format(null, ContactAlreadyExistsError, name));
+        }
     }
 
-    private void ValidateEmailIfProvided(string? email)
+    private static void ValidateEmailIfProvided(string? email)
     {
         var trimmedEmail = email?.Trim();
         if (!string.IsNullOrWhiteSpace(trimmedEmail) && !IsValidEmail(trimmedEmail))
+        {
             throw new InvalidOperationException(InvalidEmailFormatError);
+        }
     }
 
-    private Contact CreateContactEntity(int workspaceId, ContactRegistrationRequest request, string name)
+    private static Contact CreateContactEntity(int workspaceId, ContactRegistrationRequest request, string name) => new()
     {
-        return new Contact
-        {
-            WorkspaceId = workspaceId,
-            Name = name,
-            Email = TrimOrDefault(request.Email, string.Empty),
-            Phone = TrimOrNull(request.Phone),
-            Company = TrimOrNull(request.Company),
-            Notes = TrimOrNull(request.Notes),
-            CreatedAt = DateTime.UtcNow
-        };
-    }
+        WorkspaceId = workspaceId,
+        Name = name,
+        Email = TrimOrDefault(request.Email, string.Empty),
+        Phone = TrimOrNull(request.Phone),
+        Company = TrimOrNull(request.Company),
+        Notes = TrimOrNull(request.Notes),
+        CreatedAt = DateTime.UtcNow
+    };
 
     private async Task<Contact> GetContactOrThrowAsync(int workspaceId, int contactId)
     {
-        var contact = await _contactRepo.FindAsync(workspaceId, contactId);
-        if (contact == null)
-            throw new InvalidOperationException(ContactNotFoundError);
+        var contact = await this.contactRepository.FindAsync(workspaceId, contactId) ?? throw new InvalidOperationException(ContactNotFoundError);
+
         return contact;
     }
 
@@ -109,7 +105,7 @@ public class ContactRegistrationService : IContactRegistrationService
     {
         if (!string.Equals(contact.Name, newName, StringComparison.OrdinalIgnoreCase))
         {
-            await EnsureContactNameIsUniqueAsync(workspaceId, newName, contactId);
+            await this.EnsureContactNameIsUniqueAsync(workspaceId, newName, contactId);
             contact.Name = newName;
         }
         else
@@ -118,7 +114,7 @@ public class ContactRegistrationService : IContactRegistrationService
         }
     }
 
-    private void UpdateContactEmail(Contact contact, string? email)
+    private static void UpdateContactEmail(Contact contact, string? email)
     {
         if (email != null)
         {
@@ -127,22 +123,28 @@ public class ContactRegistrationService : IContactRegistrationService
         }
     }
 
-    private void UpdateContactPhone(Contact contact, string? phone)
+    private static void UpdateContactPhone(Contact contact, string? phone)
     {
         if (phone != null)
+        {
             contact.Phone = TrimOrNull(phone);
+        }
     }
 
-    private void UpdateContactCompany(Contact contact, string? company)
+    private static void UpdateContactCompany(Contact contact, string? company)
     {
         if (company != null)
+        {
             contact.Company = TrimOrNull(company);
+        }
     }
 
-    private void UpdateContactNotes(Contact contact, string? notes)
+    private static void UpdateContactNotes(Contact contact, string? notes)
     {
         if (notes != null)
+        {
             contact.Notes = TrimOrNull(notes);
+        }
     }
 
     private static bool IsValidEmail(string email)

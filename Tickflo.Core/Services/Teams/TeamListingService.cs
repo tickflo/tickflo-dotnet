@@ -1,32 +1,26 @@
+namespace Tickflo.Core.Services.Teams;
+
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
-namespace Tickflo.Core.Services.Teams;
-
-public class TeamListingService : ITeamListingService
+public class TeamListingService(
+    ITeamRepository teamRepository,
+    ITeamMemberRepository teamMemberRepository) : ITeamListingService
 {
-    private readonly ITeamRepository _teamRepo;
-    private readonly ITeamMemberRepository _memberRepo;
-
-    public TeamListingService(
-        ITeamRepository teamRepo,
-        ITeamMemberRepository memberRepo)
-    {
-        _teamRepo = teamRepo;
-        _memberRepo = memberRepo;
-    }
+    private readonly ITeamRepository teamRepository = teamRepository;
+    private readonly ITeamMemberRepository teamMemberRepository = teamMemberRepository;
 
     public async Task<(IReadOnlyList<Team> Teams, IReadOnlyDictionary<int, int> MemberCounts)> GetListAsync(int workspaceId)
     {
-        var teams = await _teamRepo.ListForWorkspaceAsync(workspaceId);
+        var teams = await this.teamRepository.ListForWorkspaceAsync(workspaceId);
         var memberCounts = new Dictionary<int, int>();
-        
+
         foreach (var team in teams)
         {
-            var members = await _memberRepo.ListMembersAsync(team.Id);
+            var members = await this.teamMemberRepository.ListMembersAsync(team.Id);
             memberCounts[team.Id] = members.Count;
         }
-        
+
         return (teams.AsReadOnly(), memberCounts.AsReadOnly());
     }
 }

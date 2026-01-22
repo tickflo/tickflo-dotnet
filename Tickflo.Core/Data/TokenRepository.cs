@@ -1,19 +1,19 @@
+namespace Tickflo.Core.Data;
+
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Config;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Utils;
 
-namespace Tickflo.Core.Data;
-
-public class TokenRepository(TickfloDbContext db, TickfloConfig config) : ITokenRepository
+public class TokenRepository(TickfloDbContext dbContext, TickfloConfig config) : ITokenRepository
 {
-    private readonly TickfloDbContext _db = db;
-    private readonly TickfloConfig _config = config;
+    private readonly TickfloDbContext dbContext = dbContext;
+    private readonly TickfloConfig config = config;
 
     public Task<Token?> FindByUserIdAsync(int userId)
     {
         var now = DateTime.UtcNow;
-        return _db.Tokens
+        return this.dbContext.Tokens
             .Where(t => t.UserId == userId && now < t.CreatedAt.AddSeconds(t.MaxAge))
             .OrderByDescending(t => t.CreatedAt)
             .FirstOrDefaultAsync();
@@ -22,7 +22,7 @@ public class TokenRepository(TickfloDbContext db, TickfloConfig config) : IToken
     public Task<Token?> FindByValueAsync(string value)
     {
         var now = DateTime.UtcNow;
-        return _db.Tokens
+        return this.dbContext.Tokens
             .Where(t => t.Value == value && now < t.CreatedAt.AddSeconds(t.MaxAge))
             .OrderByDescending(t => t.CreatedAt)
             .FirstOrDefaultAsync();
@@ -34,12 +34,12 @@ public class TokenRepository(TickfloDbContext db, TickfloConfig config) : IToken
         {
             UserId = userId,
             Value = TokenGenerator.GenerateToken(),
-            MaxAge = _config.SESSION_TIMEOUT_MINUTES * 60,
+            MaxAge = this.config.SessionTimeoutMinutes * 60,
             CreatedAt = DateTime.UtcNow
         };
 
-        _db.Tokens.Add(token);
-        await _db.SaveChangesAsync();
+        this.dbContext.Tokens.Add(token);
+        await this.dbContext.SaveChangesAsync();
 
         return token;
     }
@@ -54,8 +54,8 @@ public class TokenRepository(TickfloDbContext db, TickfloConfig config) : IToken
             CreatedAt = DateTime.UtcNow
         };
 
-        _db.Tokens.Add(token);
-        await _db.SaveChangesAsync();
+        this.dbContext.Tokens.Add(token);
+        await this.dbContext.SaveChangesAsync();
 
         return token;
     }

@@ -1,4 +1,6 @@
+#pragma warning disable CA1716
 namespace Tickflo.Web.Pages.Shared;
+#pragma warning restore CA1716
 
 public class FilterBarView
 {
@@ -6,13 +8,13 @@ public class FilterBarView
     public string? QueryValue { get; set; }
     public string Placeholder { get; set; } = "Search";
     public string SubmitLabel { get; set; } = "Filter";
-    public List<FilterSelect> Selects { get; set; } = new();
+    public List<FilterSelect> Selects { get; set; } = [];
 }
 
 public class FilterSelect
 {
     public string Name { get; set; } = string.Empty;
-    public List<FilterOption> Options { get; set; } = new();
+    public List<FilterOption> Options { get; set; } = [];
     public string? CssClass { get; set; }
 }
 

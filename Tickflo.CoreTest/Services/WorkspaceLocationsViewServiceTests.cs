@@ -1,17 +1,17 @@
-﻿using Moq;
-using Xunit;
-using Tickflo.Core.Data;
-
 namespace Tickflo.CoreTest.Services;
+
+using Moq;
+using Tickflo.Core.Data;
+using Xunit;
 
 public class WorkspaceLocationsViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_LoadsLocationsWithPermissions()
+    public async Task BuildAsyncLoadsLocationsWithPermissions()
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
-        var listingService = new Mock<ILocationListingService>();
+        var contactListingService = new Mock<ILocationListingService>();
 
         var permissions = new Dictionary<string, EffectiveSectionPermission>
         {
@@ -20,17 +20,17 @@ public class WorkspaceLocationsViewServiceTests
 
         var locationItems = new List<ILocationListingService.LocationItem>
         {
-            new ILocationListingService.LocationItem { Id = 1, Name = "New York" },
-            new ILocationListingService.LocationItem { Id = 2, Name = "San Francisco" }
+            new() { Id = 1, Name = "New York" },
+            new() { Id = 2, Name = "San Francisco" }
         };
 
         accessService.Setup(x => x.GetUserPermissionsAsync(1, 100))
             .ReturnsAsync(permissions);
 
-        listingService.Setup(x => x.GetListAsync(1))
+        contactListingService.Setup(x => x.GetListAsync(1))
             .ReturnsAsync(locationItems);
 
-        var service = new WorkspaceLocationsViewService(accessService.Object, listingService.Object);
+        var service = new WorkspaceLocationsViewService(accessService.Object, contactListingService.Object);
 
         // Act
         var result = await service.BuildAsync(1, 100);
@@ -43,21 +43,21 @@ public class WorkspaceLocationsViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_DefaultsPermissionsWhenNotFound()
+    public async Task BuildAsyncDefaultsPermissionsWhenNotFound()
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
-        var listingService = new Mock<ILocationListingService>();
+        var contactListingService = new Mock<ILocationListingService>();
 
         var permissions = new Dictionary<string, EffectiveSectionPermission>();
 
         accessService.Setup(x => x.GetUserPermissionsAsync(1, 100))
             .ReturnsAsync(permissions);
 
-        listingService.Setup(x => x.GetListAsync(1))
-            .ReturnsAsync(new List<ILocationListingService.LocationItem>());
+        contactListingService.Setup(x => x.GetListAsync(1))
+            .ReturnsAsync([]);
 
-        var service = new WorkspaceLocationsViewService(accessService.Object, listingService.Object);
+        var service = new WorkspaceLocationsViewService(accessService.Object, contactListingService.Object);
 
         // Act
         var result = await service.BuildAsync(1, 100);

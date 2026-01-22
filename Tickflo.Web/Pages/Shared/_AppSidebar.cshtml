@@ -1,5 +1,5 @@
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
-@inject Tickflo.Core.Data.IUserRepository UserRepo
+@inject Tickflo.Core.Data.IUserRepository userRepository
 @{
     var path = ViewContext?.HttpContext?.Request?.Path.Value ?? string.Empty;
     const string lastWorkspaceCookieName = "last_workspace_slug";
@@ -9,12 +9,12 @@
     bool isAdmin = false;
     if (int.TryParse(uidStr, out var uid))
     {
-        var meTask = UserRepo.FindByIdAsync(uid);
+        var meTask = userRepository.FindByIdAsync(uid);
         meTask.Wait();
         var me = meTask.Result;
         isAdmin = me?.SystemAdmin == true;
     }
-    
+
     // Intelligent home navigation logic
     var isAuthenticated = ViewContext?.HttpContext?.User?.Identity?.IsAuthenticated == true;
     string? currentWorkspaceSlug = null;
@@ -37,8 +37,8 @@
         }
 
         var targetSlug = !string.IsNullOrEmpty(currentWorkspaceSlug)
-            ? currentWorkspaceSlug
-            : (!string.IsNullOrEmpty(lastWorkspaceSlug) ? lastWorkspaceSlug : null);
+        ? currentWorkspaceSlug
+        : (!string.IsNullOrEmpty(lastWorkspaceSlug) ? lastWorkspaceSlug : null);
 
         homeHref = !string.IsNullOrEmpty(targetSlug) ? $"/workspaces/{targetSlug}" : "/workspaces";
     }
@@ -51,26 +51,30 @@
         <nav id="app-nav" aria-label="App navigation" class="p-1">
             <ul class="menu menu-sm w-full gap-1 text-sm font-medium">
                 <li>
-                    <a href="@homeHref" class="@(path.Equals("/", StringComparison.OrdinalIgnoreCase) ? "active menu-active" : null) rounded-2xl flex items-center gap-2">
+                    <a href="@homeHref"
+                        class="@(path.Equals("/", StringComparison.OrdinalIgnoreCase) ? "active menu-active" : null) rounded-2xl flex items-center gap-2">
                         <i class="fa fa-house"></i>
                         <span>Home</span>
                     </a>
                 </li>
                 <li class="menu-title px-2 text-[11px]">General</li>
                 <li>
-                    <a class="@(IsActive("/workspaces/") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" href="/workspaces">
+                    <a class="@(IsActive("/workspaces/") ? "active menu-active" : null) rounded-2xl flex items-center gap-2"
+                        href="/workspaces">
                         <i class="fa fa-layer-group"></i>
                         <span>Workspaces</span>
                     </a>
                 </li>
                 <li>
-                    <a class="@(IsActive("/login") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" href="/login">
+                    <a class="@(IsActive("/login") ? "active menu-active" : null) rounded-2xl flex items-center gap-2"
+                        href="/login">
                         <i class="fa fa-right-to-bracket"></i>
                         <span>Login</span>
                     </a>
                 </li>
                 <li>
-                    <a class="@(IsActive("/signup") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" href="/signup">
+                    <a class="@(IsActive("/signup") ? "active menu-active" : null) rounded-2xl flex items-center gap-2"
+                        href="/signup">
                         <i class="fa fa-user-plus"></i>
                         <span>Sign Up</span>
                     </a>
@@ -79,7 +83,8 @@
                 {
                     <li class="menu-title px-2 text-[11px]">Admin</li>
                     <li>
-                        <a class="@(IsActive("/Users/") ? "active menu-active" : null) rounded-2xl flex items-center gap-2" asp-page="/Users/Index">
+                        <a class="@(IsActive("/Users/") ? "active menu-active" : null) rounded-2xl flex items-center gap-2"
+                            asp-page="/Users/Index">
                             <i class="fa fa-users"></i>
                             <span>Users</span>
                         </a>

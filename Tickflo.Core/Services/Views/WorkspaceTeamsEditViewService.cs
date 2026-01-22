@@ -1,39 +1,28 @@
-using Tickflo.Core.Data;
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Views;
 
-public class WorkspaceTeamsEditViewService : IWorkspaceTeamsEditViewService
-{
-    private readonly IUserWorkspaceRoleRepository _userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePerms;
-    private readonly ITeamRepository _teamRepo;
-    private readonly IUserWorkspaceRepository _userWorkspaces;
-    private readonly IUserRepository _userRepo;
-    private readonly ITeamMemberRepository _teamMembers;
+using Tickflo.Core.Data;
 
-    public WorkspaceTeamsEditViewService(
-        IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
-        IRolePermissionRepository rolePerms,
-        ITeamRepository teamRepo,
-        IUserWorkspaceRepository userWorkspaces,
-        IUserRepository userRepo,
-        ITeamMemberRepository teamMembers)
-    {
-        _userWorkspaceRoleRepo = userWorkspaceRoleRepo;
-        _rolePerms = rolePerms;
-        _teamRepo = teamRepo;
-        _userWorkspaces = userWorkspaces;
-        _userRepo = userRepo;
-        _teamMembers = teamMembers;
-    }
+public class WorkspaceTeamsEditViewService(
+    IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
+    IRolePermissionRepository rolePermissionRepository,
+    ITeamRepository teamRepository,
+    IUserWorkspaceRepository userWorkspaceRepository,
+    IUserRepository userRepository,
+    ITeamMemberRepository teamMembers) : IWorkspaceTeamsEditViewService
+{
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
+    private readonly ITeamRepository teamRepository = teamRepository;
+    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IUserRepository userRepository = userRepository;
+    private readonly ITeamMemberRepository teamMemberRepository = teamMembers;
 
     public async Task<WorkspaceTeamsEditViewData> BuildAsync(int workspaceId, int userId, int teamId = 0)
     {
         var data = new WorkspaceTeamsEditViewData();
 
-        var isAdmin = await _userWorkspaceRoleRepo.IsAdminAsync(userId, workspaceId);
-        var eff = await _rolePerms.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+        var isAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(userId, workspaceId);
+        var eff = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
 
         if (isAdmin)
         {
@@ -47,23 +36,26 @@ public class WorkspaceTeamsEditViewService : IWorkspaceTeamsEditViewService
         }
 
         // Load workspace users
-        var memberships = await _userWorkspaces.FindForWorkspaceAsync(workspaceId);
+        var memberships = await this.userWorkspaceRepository.FindForWorkspaceAsync(workspaceId);
         if (memberships != null)
         {
             foreach (var m in memberships.Select(m => m.UserId).Distinct())
             {
-                var u = await _userRepo.FindByIdAsync(m);
-                if (u != null) data.WorkspaceUsers.Add(u);
+                var u = await this.userRepository.FindByIdAsync(m);
+                if (u != null)
+                {
+                    data.WorkspaceUsers.Add(u);
+                }
             }
         }
 
         if (teamId > 0)
         {
-            data.ExistingTeam = await _teamRepo.FindByIdAsync(teamId);
+            data.ExistingTeam = await this.teamRepository.FindByIdAsync(teamId);
             if (data.ExistingTeam != null)
             {
-                var members = await _teamMembers.ListMembersAsync(teamId);
-                data.ExistingMemberIds = members.Select(m => m.Id).ToList();
+                var members = await this.teamMemberRepository.ListMembersAsync(teamId);
+                data.ExistingMemberIds = [.. members.Select(m => m.Id)];
             }
         }
 

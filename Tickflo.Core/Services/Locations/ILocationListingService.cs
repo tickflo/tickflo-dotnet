@@ -1,5 +1,3 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Locations;
 
 public interface ILocationListingService
@@ -17,7 +15,7 @@ public interface ILocationListingService
     /// <summary>
     /// Gets enriched location items for a workspace with contact preview info.
     /// </summary>
-    Task<IReadOnlyList<LocationItem>> GetListAsync(int workspaceId);
+    public Task<IReadOnlyList<LocationItem>> GetListAsync(int workspaceId);
 }
 
 

@@ -18,8 +18,8 @@ public class Ticket : IWorkspaceEntity
     public DateTime? UpdatedAt { get; set; }
 
     // Multi-inventory support
-    public ICollection<TicketInventory> TicketInventories { get; set; } = new List<TicketInventory>();
-    
+    public ICollection<TicketInventory> TicketInventories { get; set; } = [];
+
     // Comments
-    public ICollection<TicketComment> Comments { get; set; } = new List<TicketComment>();
+    public ICollection<TicketComment> Comments { get; set; } = [];
 }

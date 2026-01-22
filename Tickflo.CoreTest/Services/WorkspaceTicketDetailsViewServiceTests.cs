@@ -1,37 +1,36 @@
-﻿using Moq;
-using System.Threading;
+namespace Tickflo.CoreTest.Services;
+
+using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Xunit;
 
-namespace Tickflo.CoreTest.Services;
-
 public class WorkspaceTicketDetailsViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_ForNewTicket_ReturnsViewDataWithDefaults()
+    public async Task BuildAsyncForNewTicketReturnsViewDataWithDefaults()
     {
         var workspaceId = 1;
         var ticketId = 0;
         var userId = 10;
 
-        var ticketRepo = new Mock<ITicketRepository>();
-        var contactRepo = new Mock<IContactRepository>();
-        var statusRepo = new Mock<ITicketStatusRepository>();
-        var priorityRepo = new Mock<ITicketPriorityRepository>();
-        var typeRepo = new Mock<ITicketTypeRepository>();
-        var historyRepo = new Mock<ITicketHistoryRepository>();
-        var userRepo = new Mock<IUserRepository>();
-        var userWorkspaceRepo = new Mock<IUserWorkspaceRepository>();
+        var ticketRepository = new Mock<ITicketRepository>();
+        var contactRepository = new Mock<IContactRepository>();
+        var statusRepository = new Mock<ITicketStatusRepository>();
+        var priorityRepository = new Mock<ITicketPriorityRepository>();
+        var ticketTypeRepository = new Mock<ITicketTypeRepository>();
+        var historyRepository = new Mock<ITicketHistoryRepository>();
+        var userRepository = new Mock<IUserRepository>();
+        var userWorkspaceRepository = new Mock<IUserWorkspaceRepository>();
         var userWorkspaceRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
         var teamRepo = new Mock<ITeamRepository>();
         var teamMemberRepo = new Mock<ITeamMemberRepository>();
-        var inventoryRepo = new Mock<IInventoryRepository>();
-        var locationRepo = new Mock<ILocationRepository>();
-        var rolePermissionRepo = new Mock<IRolePermissionRepository>();
+        var inventoryRepository = new Mock<IInventoryRepository>();
+        var locationRepository = new Mock<ILocationRepository>();
+        var rolePermissionRepository = new Mock<IRolePermissionRepository>();
 
         // Setup permissions
-        rolePermissionRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
+        rolePermissionRepository.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
             .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>
             {
                 { "tickets", new EffectiveSectionPermission { Section = "tickets", CanCreate = true, CanEdit = true, CanView = true, TicketViewScope = "all" } }
@@ -41,45 +40,45 @@ public class WorkspaceTicketDetailsViewServiceTests
             .ReturnsAsync(false);
 
         // Setup repositories
-        statusRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketStatus>());
-        statusRepo.Setup(r => r.FindByNameAsync(workspaceId, "New"))
+        statusRepository.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        statusRepository.Setup(r => r.FindByNameAsync(workspaceId, "New"))
             .ReturnsAsync(new TicketStatus { Id = 1, Name = "New" });
-        priorityRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketPriority>());
-        priorityRepo.Setup(r => r.FindAsync(workspaceId, "Normal"))
+        priorityRepository.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        priorityRepository.Setup(r => r.FindAsync(workspaceId, "Normal"))
             .ReturnsAsync(new TicketPriority { Id = 1, Name = "Normal" });
-        typeRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketType>());
-        typeRepo.Setup(r => r.FindByNameAsync(workspaceId, "Standard"))
+        ticketTypeRepository.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        ticketTypeRepository.Setup(r => r.FindByNameAsync(workspaceId, "Standard"))
             .ReturnsAsync(new TicketType { Id = 1, Name = "Standard" });
 
-        contactRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Contact>());
-        inventoryRepo.Setup(r => r.ListAsync(workspaceId, null, "active"))
-            .ReturnsAsync(new List<Inventory>());
-        userWorkspaceRepo.Setup(r => r.FindForWorkspaceAsync(workspaceId))
-            .ReturnsAsync(new List<UserWorkspace>());
+        contactRepository.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        inventoryRepository.Setup(r => r.ListAsync(workspaceId, null, "active"))
+            .ReturnsAsync([]);
+        userWorkspaceRepository.Setup(r => r.FindForWorkspaceAsync(workspaceId))
+            .ReturnsAsync([]);
         teamRepo.Setup(r => r.ListForWorkspaceAsync(workspaceId))
-            .ReturnsAsync(new List<Team>());
-        locationRepo.Setup(r => r.ListAsync(workspaceId))
-            .ReturnsAsync(new List<Location>());
+            .ReturnsAsync([]);
+        locationRepository.Setup(r => r.ListAsync(workspaceId))
+            .ReturnsAsync([]);
 
         var service = new WorkspaceTicketDetailsViewService(
-            ticketRepo.Object,
-            contactRepo.Object,
-            statusRepo.Object,
-            priorityRepo.Object,
-            typeRepo.Object,
-            historyRepo.Object,
-            userRepo.Object,
-            userWorkspaceRepo.Object,
+            ticketRepository.Object,
+            contactRepository.Object,
+            statusRepository.Object,
+            priorityRepository.Object,
+            ticketTypeRepository.Object,
+            historyRepository.Object,
+            userRepository.Object,
+            userWorkspaceRepository.Object,
             userWorkspaceRoleRepo.Object,
             teamRepo.Object,
             teamMemberRepo.Object,
-            inventoryRepo.Object,
-            locationRepo.Object,
-            rolePermissionRepo.Object);
+            inventoryRepository.Object,
+            locationRepository.Object,
+            rolePermissionRepository.Object);
 
         var view = await service.BuildAsync(workspaceId, ticketId, userId, null);
 
@@ -96,28 +95,28 @@ public class WorkspaceTicketDetailsViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_ForExistingTicket_ReturnsTicketAndHistory()
+    public async Task BuildAsyncForExistingTicketReturnsTicketAndHistory()
     {
         var workspaceId = 1;
         var ticketId = 5;
         var userId = 10;
 
-        var ticketRepo = new Mock<ITicketRepository>();
-        var contactRepo = new Mock<IContactRepository>();
-        var statusRepo = new Mock<ITicketStatusRepository>();
-        var priorityRepo = new Mock<ITicketPriorityRepository>();
-        var typeRepo = new Mock<ITicketTypeRepository>();
-        var historyRepo = new Mock<ITicketHistoryRepository>();
-        var userRepo = new Mock<IUserRepository>();
-        var userWorkspaceRepo = new Mock<IUserWorkspaceRepository>();
+        var ticketRepository = new Mock<ITicketRepository>();
+        var contactRepository = new Mock<IContactRepository>();
+        var statusRepository = new Mock<ITicketStatusRepository>();
+        var priorityRepository = new Mock<ITicketPriorityRepository>();
+        var ticketTypeRepository = new Mock<ITicketTypeRepository>();
+        var historyRepository = new Mock<ITicketHistoryRepository>();
+        var userRepository = new Mock<IUserRepository>();
+        var userWorkspaceRepository = new Mock<IUserWorkspaceRepository>();
         var userWorkspaceRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
         var teamRepo = new Mock<ITeamRepository>();
         var teamMemberRepo = new Mock<ITeamMemberRepository>();
-        var inventoryRepo = new Mock<IInventoryRepository>();
-        var locationRepo = new Mock<ILocationRepository>();
-        var rolePermissionRepo = new Mock<IRolePermissionRepository>();
+        var inventoryRepository = new Mock<IInventoryRepository>();
+        var locationRepository = new Mock<ILocationRepository>();
+        var rolePermissionRepository = new Mock<IRolePermissionRepository>();
 
-        rolePermissionRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
+        rolePermissionRepository.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
             .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>
             {
                 { "tickets", new EffectiveSectionPermission { Section = "tickets", CanCreate = true, CanEdit = true, CanView = true, TicketViewScope = "all" } }
@@ -127,46 +126,46 @@ public class WorkspaceTicketDetailsViewServiceTests
             .ReturnsAsync(false);
 
         var ticket = new Ticket { Id = ticketId, WorkspaceId = workspaceId, Subject = "Test", TicketTypeId = 1, StatusId = 1 };
-        ticketRepo.Setup(r => r.FindAsync(workspaceId, ticketId, It.IsAny<CancellationToken>()))
+        ticketRepository.Setup(r => r.FindAsync(workspaceId, ticketId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ticket);
 
-        var history = new List<TicketHistory> { new TicketHistory { Id = 1, TicketId = ticketId, Field = "Status", OldValue = "New", NewValue = "Open" } };
-        historyRepo.Setup(r => r.ListForTicketAsync(workspaceId, ticketId))
+        var history = new List<TicketHistory> { new() { Id = 1, TicketId = ticketId, Field = "Status", OldValue = "New", NewValue = "Open" } };
+        historyRepository.Setup(r => r.ListForTicketAsync(workspaceId, ticketId))
             .ReturnsAsync(history);
 
-        statusRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketStatus>());
-        priorityRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketPriority>());
-        typeRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketType>());
+        statusRepository.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        priorityRepository.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        ticketTypeRepository.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
 
-        contactRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Contact>());
-        inventoryRepo.Setup(r => r.ListAsync(workspaceId, null, "active"))
-            .ReturnsAsync(new List<Inventory>());
-        userWorkspaceRepo.Setup(r => r.FindForWorkspaceAsync(workspaceId))
-            .ReturnsAsync(new List<UserWorkspace>());
+        contactRepository.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        inventoryRepository.Setup(r => r.ListAsync(workspaceId, null, "active"))
+            .ReturnsAsync([]);
+        userWorkspaceRepository.Setup(r => r.FindForWorkspaceAsync(workspaceId))
+            .ReturnsAsync([]);
         teamRepo.Setup(r => r.ListForWorkspaceAsync(workspaceId))
-            .ReturnsAsync(new List<Team>());
-        locationRepo.Setup(r => r.ListAsync(workspaceId))
-            .ReturnsAsync(new List<Location>());
+            .ReturnsAsync([]);
+        locationRepository.Setup(r => r.ListAsync(workspaceId))
+            .ReturnsAsync([]);
 
         var service = new WorkspaceTicketDetailsViewService(
-            ticketRepo.Object,
-            contactRepo.Object,
-            statusRepo.Object,
-            priorityRepo.Object,
-            typeRepo.Object,
-            historyRepo.Object,
-            userRepo.Object,
-            userWorkspaceRepo.Object,
+            ticketRepository.Object,
+            contactRepository.Object,
+            statusRepository.Object,
+            priorityRepository.Object,
+            ticketTypeRepository.Object,
+            historyRepository.Object,
+            userRepository.Object,
+            userWorkspaceRepository.Object,
             userWorkspaceRoleRepo.Object,
             teamRepo.Object,
             teamMemberRepo.Object,
-            inventoryRepo.Object,
-            locationRepo.Object,
-            rolePermissionRepo.Object);
+            inventoryRepository.Object,
+            locationRepository.Object,
+            rolePermissionRepository.Object);
 
         var view = await service.BuildAsync(workspaceId, ticketId, userId, null);
 
@@ -176,29 +175,29 @@ public class WorkspaceTicketDetailsViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_WithMineScope_ReturnsNullIfNotAssignedToUser()
+    public async Task BuildAsyncWithMineScopeReturnsNullIfNotAssignedToUser()
     {
         var workspaceId = 1;
         var ticketId = 5;
         var userId = 10;
         var assignedUserId = 20;
 
-        var ticketRepo = new Mock<ITicketRepository>();
-        var contactRepo = new Mock<IContactRepository>();
-        var statusRepo = new Mock<ITicketStatusRepository>();
-        var priorityRepo = new Mock<ITicketPriorityRepository>();
-        var typeRepo = new Mock<ITicketTypeRepository>();
-        var historyRepo = new Mock<ITicketHistoryRepository>();
-        var userRepo = new Mock<IUserRepository>();
-        var userWorkspaceRepo = new Mock<IUserWorkspaceRepository>();
+        var ticketRepository = new Mock<ITicketRepository>();
+        var contactRepository = new Mock<IContactRepository>();
+        var statusRepository = new Mock<ITicketStatusRepository>();
+        var priorityRepository = new Mock<ITicketPriorityRepository>();
+        var ticketTypeRepository = new Mock<ITicketTypeRepository>();
+        var historyRepository = new Mock<ITicketHistoryRepository>();
+        var userRepository = new Mock<IUserRepository>();
+        var userWorkspaceRepository = new Mock<IUserWorkspaceRepository>();
         var userWorkspaceRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
         var teamRepo = new Mock<ITeamRepository>();
         var teamMemberRepo = new Mock<ITeamMemberRepository>();
-        var inventoryRepo = new Mock<IInventoryRepository>();
-        var locationRepo = new Mock<ILocationRepository>();
-        var rolePermissionRepo = new Mock<IRolePermissionRepository>();
+        var inventoryRepository = new Mock<IInventoryRepository>();
+        var locationRepository = new Mock<ILocationRepository>();
+        var rolePermissionRepository = new Mock<IRolePermissionRepository>();
 
-        rolePermissionRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
+        rolePermissionRepository.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
             .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>
             {
                 { "tickets", new EffectiveSectionPermission { Section = "tickets", CanCreate = true, CanEdit = true, CanView = true, TicketViewScope = "mine" } }
@@ -208,24 +207,24 @@ public class WorkspaceTicketDetailsViewServiceTests
             .ReturnsAsync(false);
 
         var ticket = new Ticket { Id = ticketId, WorkspaceId = workspaceId, Subject = "Test", AssignedUserId = assignedUserId };
-        ticketRepo.Setup(r => r.FindAsync(workspaceId, ticketId, It.IsAny<CancellationToken>()))
+        ticketRepository.Setup(r => r.FindAsync(workspaceId, ticketId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ticket);
 
         var service = new WorkspaceTicketDetailsViewService(
-            ticketRepo.Object,
-            contactRepo.Object,
-            statusRepo.Object,
-            priorityRepo.Object,
-            typeRepo.Object,
-            historyRepo.Object,
-            userRepo.Object,
-            userWorkspaceRepo.Object,
+            ticketRepository.Object,
+            contactRepository.Object,
+            statusRepository.Object,
+            priorityRepository.Object,
+            ticketTypeRepository.Object,
+            historyRepository.Object,
+            userRepository.Object,
+            userWorkspaceRepository.Object,
             userWorkspaceRoleRepo.Object,
             teamRepo.Object,
             teamMemberRepo.Object,
-            inventoryRepo.Object,
-            locationRepo.Object,
-            rolePermissionRepo.Object);
+            inventoryRepository.Object,
+            locationRepository.Object,
+            rolePermissionRepository.Object);
 
         var view = await service.BuildAsync(workspaceId, ticketId, userId, null);
 
@@ -233,74 +232,74 @@ public class WorkspaceTicketDetailsViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_AsAdmin_IgnoresScopeRestrictions()
+    public async Task BuildAsyncAsAdminIgnoresScopeRestrictions()
     {
         var workspaceId = 1;
         var ticketId = 5;
         var userId = 10;
 
-        var ticketRepo = new Mock<ITicketRepository>();
-        var contactRepo = new Mock<IContactRepository>();
-        var statusRepo = new Mock<ITicketStatusRepository>();
-        var priorityRepo = new Mock<ITicketPriorityRepository>();
-        var typeRepo = new Mock<ITicketTypeRepository>();
-        var historyRepo = new Mock<ITicketHistoryRepository>();
-        var userRepo = new Mock<IUserRepository>();
-        var userWorkspaceRepo = new Mock<IUserWorkspaceRepository>();
+        var ticketRepository = new Mock<ITicketRepository>();
+        var contactRepository = new Mock<IContactRepository>();
+        var statusRepository = new Mock<ITicketStatusRepository>();
+        var priorityRepository = new Mock<ITicketPriorityRepository>();
+        var ticketTypeRepository = new Mock<ITicketTypeRepository>();
+        var historyRepository = new Mock<ITicketHistoryRepository>();
+        var userRepository = new Mock<IUserRepository>();
+        var userWorkspaceRepository = new Mock<IUserWorkspaceRepository>();
         var userWorkspaceRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
         var teamRepo = new Mock<ITeamRepository>();
         var teamMemberRepo = new Mock<ITeamMemberRepository>();
-        var inventoryRepo = new Mock<IInventoryRepository>();
-        var locationRepo = new Mock<ILocationRepository>();
-        var rolePermissionRepo = new Mock<IRolePermissionRepository>();
+        var inventoryRepository = new Mock<IInventoryRepository>();
+        var locationRepository = new Mock<ILocationRepository>();
+        var rolePermissionRepository = new Mock<IRolePermissionRepository>();
 
         // Empty permissions
-        rolePermissionRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
-            .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>());
+        rolePermissionRepository.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
+            .ReturnsAsync([]);
 
         // Admin
         userWorkspaceRoleRepo.Setup(r => r.IsAdminAsync(userId, workspaceId))
             .ReturnsAsync(true);
 
         var ticket = new Ticket { Id = ticketId, WorkspaceId = workspaceId, Subject = "Test", AssignedUserId = 999 };
-        ticketRepo.Setup(r => r.FindAsync(workspaceId, ticketId, It.IsAny<CancellationToken>()))
+        ticketRepository.Setup(r => r.FindAsync(workspaceId, ticketId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ticket);
 
-        statusRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketStatus>());
-        priorityRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketPriority>());
-        typeRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketType>());
+        statusRepository.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        priorityRepository.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        ticketTypeRepository.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
 
-        contactRepo.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Contact>());
-        inventoryRepo.Setup(r => r.ListAsync(workspaceId, null, "active"))
-            .ReturnsAsync(new List<Inventory>());
-        userWorkspaceRepo.Setup(r => r.FindForWorkspaceAsync(workspaceId))
-            .ReturnsAsync(new List<UserWorkspace>());
+        contactRepository.Setup(r => r.ListAsync(workspaceId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        inventoryRepository.Setup(r => r.ListAsync(workspaceId, null, "active"))
+            .ReturnsAsync([]);
+        userWorkspaceRepository.Setup(r => r.FindForWorkspaceAsync(workspaceId))
+            .ReturnsAsync([]);
         teamRepo.Setup(r => r.ListForWorkspaceAsync(workspaceId))
-            .ReturnsAsync(new List<Team>());
-        locationRepo.Setup(r => r.ListAsync(workspaceId))
-            .ReturnsAsync(new List<Location>());
-        historyRepo.Setup(r => r.ListForTicketAsync(workspaceId, ticketId))
-            .ReturnsAsync(new List<TicketHistory>());
+            .ReturnsAsync([]);
+        locationRepository.Setup(r => r.ListAsync(workspaceId))
+            .ReturnsAsync([]);
+        historyRepository.Setup(r => r.ListForTicketAsync(workspaceId, ticketId))
+            .ReturnsAsync([]);
 
         var service = new WorkspaceTicketDetailsViewService(
-            ticketRepo.Object,
-            contactRepo.Object,
-            statusRepo.Object,
-            priorityRepo.Object,
-            typeRepo.Object,
-            historyRepo.Object,
-            userRepo.Object,
-            userWorkspaceRepo.Object,
+            ticketRepository.Object,
+            contactRepository.Object,
+            statusRepository.Object,
+            priorityRepository.Object,
+            ticketTypeRepository.Object,
+            historyRepository.Object,
+            userRepository.Object,
+            userWorkspaceRepository.Object,
             userWorkspaceRoleRepo.Object,
             teamRepo.Object,
             teamMemberRepo.Object,
-            inventoryRepo.Object,
-            locationRepo.Object,
-            rolePermissionRepo.Object);
+            inventoryRepository.Object,
+            locationRepository.Object,
+            rolePermissionRepository.Object);
 
         var view = await service.BuildAsync(workspaceId, ticketId, userId, null);
 

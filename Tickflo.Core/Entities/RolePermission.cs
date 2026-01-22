@@ -1,6 +1,8 @@
 namespace Tickflo.Core.Entities;
 
+#pragma warning disable CA1711
 public class RolePermission
+#pragma warning restore CA1711
 {
     public int RoleId { get; set; }
     public string Section { get; set; } = string.Empty; // e.g., "tickets", "contacts", etc.

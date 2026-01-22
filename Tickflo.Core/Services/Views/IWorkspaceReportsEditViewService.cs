@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Views;
+
+using Tickflo.Core.Entities;
 
 public class WorkspaceReportsEditViewData
 {
@@ -13,7 +13,7 @@ public class WorkspaceReportsEditViewData
 
 public interface IWorkspaceReportsEditViewService
 {
-    Task<WorkspaceReportsEditViewData> BuildAsync(int workspaceId, int userId, int reportId = 0);
+    public Task<WorkspaceReportsEditViewData> BuildAsync(int workspaceId, int userId, int reportId = 0);
 }
 
 

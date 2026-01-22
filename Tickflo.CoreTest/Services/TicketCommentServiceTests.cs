@@ -1,32 +1,30 @@
+namespace Tickflo.CoreTest.Services;
+
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Xunit;
 
-namespace Tickflo.CoreTest.Services;
-
 public class TicketCommentServiceTests
 {
     [Fact]
-    public async Task GetCommentsAsync_Returns_All_Comments_For_Internal_View()
+    public async Task GetCommentsAsyncReturnsAllCommentsForInternalView()
     {
         // Arrange
         var mockRepo = new Mock<ITicketCommentRepository>();
         var comments = new List<TicketComment>
         {
-            new TicketComment 
-            { 
-                Id = 1, 
-                TicketId = 10, 
-                Content = "Public comment", 
+            new() {
+                Id = 1,
+                TicketId = 10,
+                Content = "Public comment",
                 IsVisibleToClient = true,
                 CreatedAt = DateTime.UtcNow
             },
-            new TicketComment 
-            { 
-                Id = 2, 
-                TicketId = 10, 
-                Content = "Internal comment", 
+            new() {
+                Id = 2,
+                TicketId = 10,
+                Content = "Internal comment",
                 IsVisibleToClient = false,
                 CreatedAt = DateTime.UtcNow
             }
@@ -46,25 +44,23 @@ public class TicketCommentServiceTests
     }
 
     [Fact]
-    public async Task GetCommentsAsync_Filters_Internal_Comments_For_Client_View()
+    public async Task GetCommentsAsyncFiltersInternalCommentsForClientView()
     {
         // Arrange
         var mockRepo = new Mock<ITicketCommentRepository>();
         var comments = new List<TicketComment>
         {
-            new TicketComment 
-            { 
-                Id = 1, 
-                TicketId = 10, 
-                Content = "Public comment", 
+            new() {
+                Id = 1,
+                TicketId = 10,
+                Content = "Public comment",
                 IsVisibleToClient = true,
                 CreatedAt = DateTime.UtcNow
             },
-            new TicketComment 
-            { 
-                Id = 2, 
-                TicketId = 10, 
-                Content = "Internal comment", 
+            new() {
+                Id = 2,
+                TicketId = 10,
+                Content = "Internal comment",
                 IsVisibleToClient = false,
                 CreatedAt = DateTime.UtcNow
             }
@@ -84,14 +80,14 @@ public class TicketCommentServiceTests
     }
 
     [Fact]
-    public async Task AddCommentAsync_Creates_Comment_With_Correct_Properties()
+    public async Task AddCommentAsyncCreatesCommentWithCorrectProperties()
     {
         // Arrange
         var mockRepo = new Mock<ITicketCommentRepository>();
         TicketComment? capturedComment = null;
         mockRepo.Setup(r => r.CreateAsync(It.IsAny<TicketComment>(), It.IsAny<CancellationToken>()))
             .Callback<TicketComment, CancellationToken>((c, _) => capturedComment = c)
-            .ReturnsAsync((TicketComment c, CancellationToken _) => 
+            .ReturnsAsync((TicketComment c, CancellationToken _) =>
             {
                 c.Id = 1;
                 return c;
@@ -120,14 +116,14 @@ public class TicketCommentServiceTests
     }
 
     [Fact]
-    public async Task AddCommentAsync_Creates_Internal_Comment_When_Not_Visible_To_Client()
+    public async Task AddCommentAsyncCreatesInternalCommentWhenNotVisibleToClient()
     {
         // Arrange
         var mockRepo = new Mock<ITicketCommentRepository>();
         TicketComment? capturedComment = null;
         mockRepo.Setup(r => r.CreateAsync(It.IsAny<TicketComment>(), It.IsAny<CancellationToken>()))
             .Callback<TicketComment, CancellationToken>((c, _) => capturedComment = c)
-            .ReturnsAsync((TicketComment c, CancellationToken _) => 
+            .ReturnsAsync((TicketComment c, CancellationToken _) =>
             {
                 c.Id = 2;
                 return c;
@@ -145,12 +141,12 @@ public class TicketCommentServiceTests
     }
 
     [Fact]
-    public async Task UpdateCommentAsync_Updates_Comment_Content()
+    public async Task UpdateCommentAsyncUpdatesCommentContent()
     {
         // Arrange
-        var existingComment = new TicketComment 
-        { 
-            Id = 1, 
+        var existingComment = new TicketComment
+        {
+            Id = 1,
             TicketId = 10,
             WorkspaceId = 1,
             Content = "Old content",
@@ -181,7 +177,7 @@ public class TicketCommentServiceTests
     }
 
     [Fact]
-    public async Task UpdateCommentAsync_Throws_When_Comment_Not_Found()
+    public async Task UpdateCommentAsyncThrowsWhenCommentNotFound()
     {
         // Arrange
         var mockRepo = new Mock<ITicketCommentRepository>();
@@ -191,12 +187,12 @@ public class TicketCommentServiceTests
         var service = new TicketCommentService(mockRepo.Object);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.UpdateCommentAsync(1, 999, "New content", 6));
     }
 
     [Fact]
-    public async Task DeleteCommentAsync_Calls_Repository_Delete()
+    public async Task DeleteCommentAsyncCallsRepositoryDelete()
     {
         // Arrange
         var mockRepo = new Mock<ITicketCommentRepository>();
@@ -210,12 +206,12 @@ public class TicketCommentServiceTests
     }
 
     [Fact]
-    public async Task GetCommentsAsync_Returns_Empty_List_When_No_Comments()
+    public async Task GetCommentsAsyncReturnsEmptyListWhenNoComments()
     {
         // Arrange
         var mockRepo = new Mock<ITicketCommentRepository>();
         mockRepo.Setup(r => r.ListByTicketAsync(1, 10, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<TicketComment>());
+            .ReturnsAsync([]);
 
         var service = new TicketCommentService(mockRepo.Object);
 

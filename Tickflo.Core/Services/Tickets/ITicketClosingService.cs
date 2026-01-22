@@ -1,6 +1,6 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Tickets;
+
+using Tickflo.Core.Entities;
 
 /// <summary>
 /// Handles ticket closing and resolution workflows.
@@ -15,7 +15,7 @@ public interface ITicketClosingService
     /// <param name="resolutionNote">Resolution details</param>
     /// <param name="closedByUserId">User closing the ticket</param>
     /// <returns>The closed ticket</returns>
-    Task<Ticket> CloseTicketAsync(int workspaceId, int ticketId, string resolutionNote, int closedByUserId);
+    public Task<Ticket> CloseTicketAsync(int workspaceId, int ticketId, string resolutionNote, int closedByUserId);
 
     /// <summary>
     /// Reopens a previously closed ticket.
@@ -25,7 +25,7 @@ public interface ITicketClosingService
     /// <param name="reason">Reason for reopening</param>
     /// <param name="reopenedByUserId">User reopening the ticket</param>
     /// <returns>The reopened ticket</returns>
-    Task<Ticket> ReopenTicketAsync(int workspaceId, int ticketId, string reason, int reopenedByUserId);
+    public Task<Ticket> ReopenTicketAsync(int workspaceId, int ticketId, string reason, int reopenedByUserId);
 
     /// <summary>
     /// Marks a ticket as resolved (awaiting confirmation).
@@ -35,7 +35,7 @@ public interface ITicketClosingService
     /// <param name="resolutionNote">Resolution details</param>
     /// <param name="resolvedByUserId">User resolving the ticket</param>
     /// <returns>The resolved ticket</returns>
-    Task<Ticket> ResolveTicketAsync(int workspaceId, int ticketId, string resolutionNote, int resolvedByUserId);
+    public Task<Ticket> ResolveTicketAsync(int workspaceId, int ticketId, string resolutionNote, int resolvedByUserId);
 
     /// <summary>
     /// Cancels a ticket without resolution.
@@ -45,5 +45,5 @@ public interface ITicketClosingService
     /// <param name="cancellationReason">Reason for cancellation</param>
     /// <param name="cancelledByUserId">User cancelling the ticket</param>
     /// <returns>The cancelled ticket</returns>
-    Task<Ticket> CancelTicketAsync(int workspaceId, int ticketId, string cancellationReason, int cancelledByUserId);
+    public Task<Ticket> CancelTicketAsync(int workspaceId, int ticketId, string cancellationReason, int cancelledByUserId);
 }

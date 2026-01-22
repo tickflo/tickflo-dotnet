@@ -1,60 +1,53 @@
+namespace Tickflo.Core.Services.Tickets;
+
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
-namespace Tickflo.Core.Services.Tickets;
 
 /// <summary>
 /// Handles the business workflow of closing and resolving tickets.
 /// </summary>
-public class TicketClosingService : ITicketClosingService
+public class TicketClosingService(
+    ITicketRepository ticketRepository,
+    ITicketHistoryRepository historyRepository,
+    ITicketStatusRepository statusRepository) : ITicketClosingService
 {
-    private readonly ITicketRepository _ticketRepo;
-    private readonly ITicketHistoryRepository _historyRepo;
-    private readonly ITicketStatusRepository _statusRepo;
-
-    public TicketClosingService(
-        ITicketRepository ticketRepo,
-        ITicketHistoryRepository historyRepo,
-        ITicketStatusRepository statusRepo)
-    {
-        _ticketRepo = ticketRepo;
-        _historyRepo = historyRepo;
-        _statusRepo = statusRepo;
-    }
+    private readonly ITicketRepository ticketRepository = ticketRepository;
+    private readonly ITicketHistoryRepository historyRepository = historyRepository;
+    private readonly ITicketStatusRepository statusRepository = statusRepository;
 
     /// <summary>
     /// Closes a ticket with a resolution note.
     /// </summary>
     public async Task<Ticket> CloseTicketAsync(
-        int workspaceId, 
-        int ticketId, 
-        string resolutionNote, 
+        int workspaceId,
+        int ticketId,
+        string resolutionNote,
         int closedByUserId)
     {
-        var ticket = await _ticketRepo.FindAsync(workspaceId, ticketId);
-        if (ticket == null)
-            throw new InvalidOperationException("Ticket not found");
+        var ticket = await this.ticketRepository.FindAsync(workspaceId, ticketId) ?? throw new InvalidOperationException("Ticket not found");
 
         // Resolve closed status ID
-        var closedStatus = await _statusRepo.FindByIsClosedStateAsync(workspaceId, true);
-        if (closedStatus == null)
-            throw new InvalidOperationException("Closed status not found in workspace");
+        var closedStatus = await this.statusRepository.FindByIsClosedStateAsync(workspaceId, true) ?? throw new InvalidOperationException("Closed status not found in workspace");
 
         // Business rule: Cannot close an already closed ticket
         if (ticket.StatusId == closedStatus.Id)
+        {
             throw new InvalidOperationException("Ticket is already closed");
+        }
 
         // Business rule: Resolution note is required when closing
         if (string.IsNullOrWhiteSpace(resolutionNote))
+        {
             throw new InvalidOperationException("Resolution note is required when closing a ticket");
+        }
 
         ticket.StatusId = closedStatus.Id;
         ticket.UpdatedAt = DateTime.UtcNow;
 
-        await _ticketRepo.UpdateAsync(ticket);
+        await this.ticketRepository.UpdateAsync(ticket);
 
         // Log the closure
-        await _historyRepo.CreateAsync(new TicketHistory
+        await this.historyRepository.CreateAsync(new TicketHistory
         {
             WorkspaceId = workspaceId,
             TicketId = ticketId,
@@ -72,38 +65,36 @@ public class TicketClosingService : ITicketClosingService
     /// Reopens a previously closed ticket.
     /// </summary>
     public async Task<Ticket> ReopenTicketAsync(
-        int workspaceId, 
-        int ticketId, 
-        string reason, 
+        int workspaceId,
+        int ticketId,
+        string reason,
         int reopenedByUserId)
     {
-        var ticket = await _ticketRepo.FindAsync(workspaceId, ticketId);
-        if (ticket == null)
-            throw new InvalidOperationException("Ticket not found");
+        var ticket = await this.ticketRepository.FindAsync(workspaceId, ticketId) ?? throw new InvalidOperationException("Ticket not found");
 
-        var closedStatus = await _statusRepo.FindByIsClosedStateAsync(workspaceId, true);
-        if (closedStatus == null)
-            throw new InvalidOperationException("Closed status not found in workspace");
+        var closedStatus = await this.statusRepository.FindByIsClosedStateAsync(workspaceId, true) ?? throw new InvalidOperationException("Closed status not found in workspace");
 
         // Business rule: Can only reopen closed tickets
         if (ticket.StatusId != closedStatus.Id)
+        {
             throw new InvalidOperationException("Can only reopen closed tickets");
+        }
 
         // Business rule: Reason is required for reopening
         if (string.IsNullOrWhiteSpace(reason))
+        {
             throw new InvalidOperationException("Reason is required when reopening a ticket");
+        }
 
-        var openStatus = await _statusRepo.FindByNameAsync(workspaceId, "Open");
-        if (openStatus == null)
-            throw new InvalidOperationException("'Open' status not found in workspace");
+        var openStatus = await this.statusRepository.FindByNameAsync(workspaceId, "Open") ?? throw new InvalidOperationException("'Open' status not found in workspace");
 
         ticket.StatusId = openStatus.Id;
         ticket.UpdatedAt = DateTime.UtcNow;
 
-        await _ticketRepo.UpdateAsync(ticket);
+        await this.ticketRepository.UpdateAsync(ticket);
 
         // Log the reopening
-        await _historyRepo.CreateAsync(new TicketHistory
+        await this.historyRepository.CreateAsync(new TicketHistory
         {
             WorkspaceId = workspaceId,
             TicketId = ticketId,
@@ -121,32 +112,32 @@ public class TicketClosingService : ITicketClosingService
     /// Marks a ticket as resolved (awaiting closure confirmation).
     /// </summary>
     public async Task<Ticket> ResolveTicketAsync(
-        int workspaceId, 
-        int ticketId, 
-        string resolutionNote, 
+        int workspaceId,
+        int ticketId,
+        string resolutionNote,
         int resolvedByUserId)
     {
-        var ticket = await _ticketRepo.FindAsync(workspaceId, ticketId);
-        if (ticket == null)
-            throw new InvalidOperationException("Ticket not found");
+        var ticket = await this.ticketRepository.FindAsync(workspaceId, ticketId) ?? throw new InvalidOperationException("Ticket not found");
 
-        var closedStatus = await _statusRepo.FindByIsClosedStateAsync(workspaceId, true);
-        var resolvedStatus = await _statusRepo.FindByNameAsync(workspaceId, "Resolved");
-        if (resolvedStatus == null)
-            throw new InvalidOperationException("'Resolved' status not found in workspace");
+        var closedStatus = await this.statusRepository.FindByIsClosedStateAsync(workspaceId, true);
+        var resolvedStatus = await this.statusRepository.FindByNameAsync(workspaceId, "Resolved") ?? throw new InvalidOperationException("'Resolved' status not found in workspace");
 
         if (closedStatus != null && ticket.StatusId == closedStatus.Id)
+        {
             throw new InvalidOperationException("Cannot resolve a closed ticket");
+        }
 
         if (string.IsNullOrWhiteSpace(resolutionNote))
+        {
             throw new InvalidOperationException("Resolution note is required");
+        }
 
         ticket.StatusId = resolvedStatus.Id;
         ticket.UpdatedAt = DateTime.UtcNow;
 
-        await _ticketRepo.UpdateAsync(ticket);
+        await this.ticketRepository.UpdateAsync(ticket);
 
-        await _historyRepo.CreateAsync(new TicketHistory
+        await this.historyRepository.CreateAsync(new TicketHistory
         {
             WorkspaceId = workspaceId,
             TicketId = ticketId,
@@ -164,32 +155,32 @@ public class TicketClosingService : ITicketClosingService
     /// Cancels a ticket without resolution.
     /// </summary>
     public async Task<Ticket> CancelTicketAsync(
-        int workspaceId, 
-        int ticketId, 
-        string cancellationReason, 
+        int workspaceId,
+        int ticketId,
+        string cancellationReason,
         int cancelledByUserId)
     {
-        var ticket = await _ticketRepo.FindAsync(workspaceId, ticketId);
-        if (ticket == null)
-            throw new InvalidOperationException("Ticket not found");
+        var ticket = await this.ticketRepository.FindAsync(workspaceId, ticketId) ?? throw new InvalidOperationException("Ticket not found");
 
-        var closedStatus = await _statusRepo.FindByIsClosedStateAsync(workspaceId, true);
-        var cancelledStatus = await _statusRepo.FindByNameAsync(workspaceId, "Cancelled");
-        if (cancelledStatus == null)
-            throw new InvalidOperationException("'Cancelled' status not found in workspace");
+        var closedStatus = await this.statusRepository.FindByIsClosedStateAsync(workspaceId, true);
+        var cancelledStatus = await this.statusRepository.FindByNameAsync(workspaceId, "Cancelled") ?? throw new InvalidOperationException("'Cancelled' status not found in workspace");
 
         if (closedStatus != null && ticket.StatusId == closedStatus.Id)
+        {
             throw new InvalidOperationException("Ticket is already closed");
+        }
 
         if (string.IsNullOrWhiteSpace(cancellationReason))
+        {
             throw new InvalidOperationException("Cancellation reason is required");
+        }
 
         ticket.StatusId = cancelledStatus.Id;
         ticket.UpdatedAt = DateTime.UtcNow;
 
-        await _ticketRepo.UpdateAsync(ticket);
+        await this.ticketRepository.UpdateAsync(ticket);
 
-        await _historyRepo.CreateAsync(new TicketHistory
+        await this.historyRepository.CreateAsync(new TicketHistory
         {
             WorkspaceId = workspaceId,
             TicketId = ticketId,
@@ -199,11 +190,5 @@ public class TicketClosingService : ITicketClosingService
         });
 
         return ticket;
-    }
-
-    private static bool IsTicketClosed(int? statusId)
-    {
-        // StatusId is now the authority; string checks are no longer needed
-        return false; // Caller should use status repo to check if closed
     }
 }

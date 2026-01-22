@@ -1,15 +1,13 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Views;
 
 public interface IWorkspaceReportsViewService
 {
-    Task<WorkspaceReportsViewData> BuildAsync(int workspaceId, int userId);
+    public Task<WorkspaceReportsViewData> BuildAsync(int workspaceId, int userId);
 }
 
 public class WorkspaceReportsViewData
 {
-    public List<ReportSummary> Reports { get; set; } = new();
+    public List<ReportSummary> Reports { get; set; } = [];
     public bool CanCreateReports { get; set; }
     public bool CanEditReports { get; set; }
 }

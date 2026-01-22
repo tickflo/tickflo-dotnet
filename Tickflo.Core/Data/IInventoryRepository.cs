@@ -1,16 +1,13 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
+namespace Tickflo.Core.Data;
+
 using Tickflo.Core.Entities;
 
-namespace Tickflo.Core.Data
+public interface IInventoryRepository
 {
-    public interface IInventoryRepository
-    {
-        Task<IEnumerable<Inventory>> ListAsync(int workspaceId, string? query = null, string? status = null);
-        Task<Inventory?> FindAsync(int workspaceId, int id);
-        Task<Inventory?> FindBySkuAsync(int workspaceId, string sku);
-        Task<Inventory> CreateAsync(Inventory item);
-        Task UpdateAsync(Inventory item);
-        Task DeleteAsync(int workspaceId, int id);
-    }
+    public Task<IEnumerable<Inventory>> ListAsync(int workspaceId, string? query = null, string? status = null);
+    public Task<Inventory?> FindAsync(int workspaceId, int id);
+    public Task<Inventory?> FindBySkuAsync(int workspaceId, string sku);
+    public Task<Inventory> CreateAsync(Inventory item);
+    public Task UpdateAsync(Inventory item);
+    public Task DeleteAsync(int workspaceId, int id);
 }

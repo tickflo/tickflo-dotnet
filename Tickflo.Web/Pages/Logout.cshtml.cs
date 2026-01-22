@@ -1,36 +1,29 @@
+namespace Tickflo.Web.Pages;
+
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-
-namespace Tickflo.Web.Pages;
 
 [AllowAnonymous]
 public class LogoutModel : PageModel
 {
-    public IActionResult OnGet()
-    {
-        return SignOutAndRedirect();
-    }
+    public IActionResult OnGet() => this.SignOutAndRedirect();
 
-    public IActionResult OnPost()
-    {
-        return SignOutAndRedirect();
-    }
+    public IActionResult OnPost() => this.SignOutAndRedirect();
 
-    private IActionResult SignOutAndRedirect()
+    private RedirectResult SignOutAndRedirect()
     {
         // Delete the auth cookie and clear session to fully sign out.
-        Response.Cookies.Delete("user_token", new CookieOptions
+        this.Response.Cookies.Delete("user_token", new CookieOptions
         {
             Path = "/",
             HttpOnly = true,
-            Secure = Request.IsHttps,
+            Secure = this.Request.IsHttps,
             SameSite = SameSiteMode.Lax
         });
 
-        HttpContext.Session.Clear();
+        this.HttpContext.Session.Clear();
 
-        return Redirect("/login");
+        return this.Redirect("/login");
     }
 }

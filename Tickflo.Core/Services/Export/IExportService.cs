@@ -1,5 +1,3 @@
-using Tickflo.Core.Entities;
-
 namespace Tickflo.Core.Services.Export;
 
 /// <summary>
@@ -19,7 +17,7 @@ public class ExportRequest
 {
     public ExportFormat Format { get; set; } = ExportFormat.CSV;
     public string EntityType { get; set; } = string.Empty; // "Tickets", "Contacts", "Inventory", etc.
-    public List<string> Fields { get; set; } = new(); // Specific fields to include
+    public List<string> Fields { get; set; } = []; // Specific fields to include
     public Dictionary<string, string>? Filters { get; set; } // Filter criteria
     public DateTime? ExportedAt { get; set; } = DateTime.UtcNow;
 }
@@ -34,7 +32,7 @@ public interface IExportService
     /// Export tickets with specified filters and format.
     /// Returns file content and metadata for download.
     /// </summary>
-    Task<ExportResult> ExportTicketsAsync(
+    public Task<ExportResult> ExportTicketsAsync(
         int workspaceId,
         ExportRequest request,
         int exportingUserId);
@@ -42,7 +40,7 @@ public interface IExportService
     /// <summary>
     /// Export contacts with optional filter.
     /// </summary>
-    Task<ExportResult> ExportContactsAsync(
+    public Task<ExportResult> ExportContactsAsync(
         int workspaceId,
         ExportRequest request,
         int exportingUserId);
@@ -50,7 +48,7 @@ public interface IExportService
     /// <summary>
     /// Export inventory items.
     /// </summary>
-    Task<ExportResult> ExportInventoryAsync(
+    public Task<ExportResult> ExportInventoryAsync(
         int workspaceId,
         ExportRequest request,
         int exportingUserId);
@@ -58,7 +56,7 @@ public interface IExportService
     /// <summary>
     /// Export ticket history/audit trail.
     /// </summary>
-    Task<ExportResult> ExportAuditAsync(
+    public Task<ExportResult> ExportAuditAsync(
         int workspaceId,
         DateTime fromDate,
         DateTime toDate,
@@ -67,7 +65,7 @@ public interface IExportService
     /// <summary>
     /// Validate export request before processing.
     /// </summary>
-    Task<(bool IsValid, string ErrorMessage)> ValidateExportAsync(
+    public Task<(bool IsValid, string ErrorMessage)> ValidateExportAsync(
         int workspaceId,
         ExportRequest request,
         int requestingUserId);
@@ -78,7 +76,7 @@ public interface IExportService
 /// </summary>
 public class ExportResult
 {
-    public byte[] Content { get; set; } = Array.Empty<byte>();
+    public byte[] Content { get; set; } = [];
     public string FileName { get; set; } = string.Empty;
     public string ContentType { get; set; } = "text/plain";
     public int RecordCount { get; set; }

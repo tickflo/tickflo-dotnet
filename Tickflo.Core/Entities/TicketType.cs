@@ -6,5 +6,5 @@ public class TicketType
     public int WorkspaceId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Color { get; set; } = "neutral";
-    public int SortOrder { get; set; } = 0;
+    public int SortOrder { get; set; }
 }

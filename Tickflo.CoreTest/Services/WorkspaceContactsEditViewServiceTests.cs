@@ -1,14 +1,13 @@
-﻿using Moq;
-using Xunit;
-using Tickflo.Core.Data;
-using Tickflo.Core.Entities;
-
 namespace Tickflo.CoreTest.Services;
+
+using Moq;
+using Tickflo.Core.Data;
+using Xunit;
 
 public class WorkspaceContactsEditViewServiceTests
 {
     [Fact]
-    public async Task BuildAsync_ForAdmin_GrantsAllPermissions()
+    public async Task BuildAsyncForAdminGrantsAllPermissions()
     {
         // Arrange
         var mockUserWorkspaceRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
@@ -30,7 +29,7 @@ public class WorkspaceContactsEditViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_ForNonAdminWithoutPermission_DeniesAllPermissions()
+    public async Task BuildAsyncForNonAdminWithoutPermissionDeniesAllPermissions()
     {
         // Arrange
         var mockUserWorkspaceRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
@@ -40,7 +39,7 @@ public class WorkspaceContactsEditViewServiceTests
 
         mockUserWorkspaceRoleRepo.Setup(x => x.IsAdminAsync(2, 1)).ReturnsAsync(false);
         mockRolePerms.Setup(x => x.GetEffectivePermissionsForUserAsync(1, 2))
-            .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>());
+            .ReturnsAsync([]);
 
         var service = new WorkspaceContactsEditViewService(mockUserWorkspaceRoleRepo.Object, mockRolePerms.Object, mockContactRepo.Object, mockPriorityRepo.Object);
 
@@ -54,7 +53,7 @@ public class WorkspaceContactsEditViewServiceTests
     }
 
     [Fact]
-    public async Task BuildAsync_LoadsPrioritiesList()
+    public async Task BuildAsyncLoadsPrioritiesList()
     {
         // Arrange
         var mockUserWorkspaceRoleRepo = new Mock<IUserWorkspaceRoleRepository>();

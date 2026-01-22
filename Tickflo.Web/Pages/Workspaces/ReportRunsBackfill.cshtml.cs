@@ -1,23 +1,16 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using Tickflo.Core.Data;
-using Tickflo.Core.Services;
-
-using Tickflo.Core.Services.Views;
 namespace Tickflo.Web.Pages.Workspaces;
 
-[Authorize]
-public class ReportRunsBackfillModel : WorkspacePageModel
-{
-    private readonly IWorkspaceRepository _workspaceRepo;
-    private readonly IWorkspaceReportRunsBackfillViewService _backfillViewService;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Tickflo.Core.Data;
 
-    public ReportRunsBackfillModel(IWorkspaceRepository workspaceRepo, IWorkspaceReportRunsBackfillViewService backfillViewService)
-    {
-        _workspaceRepo = workspaceRepo;
-        _backfillViewService = backfillViewService;
-    }
+using Tickflo.Core.Services.Views;
+
+[Authorize]
+public class ReportRunsBackfillModel(IWorkspaceRepository workspaceRepository, IWorkspaceReportRunsBackfillViewService workspaceReportRunsBackfillViewService) : WorkspacePageModel
+{
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly IWorkspaceReportRunsBackfillViewService workspaceReportRunsBackfillViewService = workspaceReportRunsBackfillViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Core.Entities.Workspace? Workspace { get; private set; }
@@ -30,31 +23,55 @@ public class ReportRunsBackfillModel : WorkspacePageModel
 
     public async Task<IActionResult> OnGetAsync(string slug)
     {
-        WorkspaceSlug = slug;
-        var ws = await _workspaceRepo.FindBySlugAsync(slug);
-        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
-        Workspace = ws;
-        var uid = TryGetUserId(out var idVal) ? idVal : 0;
-        if (uid == 0) return Forbid();
-        var data = await _backfillViewService.BuildAsync(ws!.Id, uid);
-        if (EnsurePermissionOrForbid(data.CanEditReports) is IActionResult permCheck) return permCheck;
-        Message = null;
-        Success = false;
-        Summary = null;
-        return Page();
+        this.WorkspaceSlug = slug;
+        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
+        if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
+        {
+            return result;
+        }
+
+        this.Workspace = ws;
+        var uid = this.TryGetUserId(out var idVal) ? idVal : 0;
+        if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        var data = await this.workspaceReportRunsBackfillViewService.BuildAsync(ws!.Id, uid);
+        if (this.EnsurePermissionOrForbid(data.CanEditReports) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
+
+        this.Message = null;
+        this.Success = false;
+        this.Summary = null;
+        return this.Page();
     }
 
     public async Task<IActionResult> OnPostAsync(string slug)
     {
-        WorkspaceSlug = slug;
-        var ws = await _workspaceRepo.FindBySlugAsync(slug);
-        if (EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result) return result;
-        Workspace = ws;
-        var uid = TryGetUserId(out var idVal) ? idVal : 0;
-        if (uid == 0) return Forbid();
-        var data = await _backfillViewService.BuildAsync(ws!.Id, uid);
-        if (EnsurePermissionOrForbid(data.CanEditReports) is IActionResult permCheck) return permCheck;
-        return NotFound();
+        this.WorkspaceSlug = slug;
+        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
+        if (this.EnsureWorkspaceExistsOrNotFound(ws) is IActionResult result)
+        {
+            return result;
+        }
+
+        this.Workspace = ws;
+        var uid = this.TryGetUserId(out var idVal) ? idVal : 0;
+        if (uid == 0)
+        {
+            return this.Forbid();
+        }
+
+        var data = await this.workspaceReportRunsBackfillViewService.BuildAsync(ws!.Id, uid);
+        if (this.EnsurePermissionOrForbid(data.CanEditReports) is IActionResult permCheck)
+        {
+            return permCheck;
+        }
+
+        return this.NotFound();
     }
 }
 
