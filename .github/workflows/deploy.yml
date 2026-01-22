@@ -101,16 +101,16 @@ jobs:
               --name ${{ env.CONTAINER_NAME }} \
               --restart unless-stopped \
               --network ubuntu \
-              -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST_STAGE }} \
-              -e POSTGRES_USER=${{ secrets.POSTGRES_USER_STAGE }} \
-              -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD_STAGE }} \
-              -e POSTGRES_DB=${{ secrets.POSTGRES_DB_STAGE }} \
-              -e BASE_URL=https://stage.tickflo.co \
-              -e S3_ENDPOINT=https://storage.tickflo.co \
-              -e S3_ACCESS_KEY=${{ secrets.S3_ACCESS_KEY_STAGE }} \
-              -e S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY_STAGE }} \
-              -e S3_BUCKET=tickflo-stage \
-              -e S3_REGION=us-east-1 \
+              -e PostgresHost=${{ secrets.POSTGRES_HOST_STAGE }} \
+              -e PostgresUser=${{ secrets.POSTGRES_USER_STAGE }} \
+              -e PostgresPassword=${{ secrets.POSTGRES_PASSWORD_STAGE }} \
+              -e PostresDatabase=${{ secrets.POSTGRES_DB_STAGE }} \
+              -e BaseUrl=https://stage.tickflo.co \
+              -e S3EndPoint=https://storage.tickflo.co \
+              -e S3AccessKey=${{ secrets.S3_ACCESS_KEY_STAGE }} \
+              -e S3SecretKey=${{ secrets.S3_SECRET_KEY_STAGE }} \
+              -e S3Bucket=tickflo-stage \
+              -e S3Region=us-east-1 \
               ${{ env.IMAGE_NAME }}:stage
 
             docker image prune -f
@@ -182,16 +182,16 @@ jobs:
               --name ${{ env.CONTAINER_NAME }} \
               --restart unless-stopped \
               --network ubuntu \
-              -e POSTGRES_HOST=${{ secrets.POSTGRES_HOST_PROD }} \
-              -e POSTGRES_USER=${{ secrets.POSTGRES_USER_PROD }} \
-              -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD_PROD }} \
-              -e POSTGRES_DB=${{ secrets.POSTGRES_DB_PROD }} \
-              -e BASE_URL=https://app.tickflo.co \
-              -e S3_ENDPOINT=https://storage.tickflo.co \
-              -e S3_ACCESS_KEY=${{ secrets.S3_ACCESS_KEY_PROD }} \
-              -e S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY_PROD }} \
-              -e S3_BUCKET=tickflo \
-              -e S3_REGION=us-east-1 \
+              -e PostgresHost=${{ secrets.POSTGRES_HOST_PROD }} \
+              -e PostgresUser=${{ secrets.POSTGRES_USER_PROD }} \
+              -e PostgresPassword=${{ secrets.POSTGRES_PASSWORD_PROD }} \
+              -e PostresDatabase=${{ secrets.POSTGRES_DB_PROD }} \
+              -e BaseUrl=https://app.tickflo.co \
+              -e S3EndPoint=https://storage.tickflo.co \
+              -e S3AccessKey=${{ secrets.S3_ACCESS_KEY_PROD }} \
+              -e S3SecretKey=${{ secrets.S3_SECRET_KEY_PROD }} \
+              -e S3Bucket=tickflo \
+              -e S3Region=us-east-1 \
               ${{ env.IMAGE_NAME }}:latest
 
             docker image prune -f
