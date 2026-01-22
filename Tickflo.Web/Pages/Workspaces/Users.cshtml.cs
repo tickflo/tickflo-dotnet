@@ -85,14 +85,14 @@ public class UsersModel(IWorkspaceService workspaceService, IUserRepository user
             return authResult;
         }
 
-        var uw = await this.userWorkspaceRepository.FindAsync(userId, this.Workspace!.Id);
-        if (uw == null)
+        var userWorkspace = await this.userWorkspaceRepository.FindAsync(userId, this.Workspace!.Id);
+        if (userWorkspace == null)
         {
             return this.NotFound();
         }
 
-        AcceptUserInvite(uw);
-        await this.userWorkspaceRepository.UpdateAsync(uw);
+        AcceptUserInvite(userWorkspace);
+        await this.userWorkspaceRepository.UpdateAsync(userWorkspace);
 
         this.SetSuccessMessage(InviteAcceptedMessage);
         return this.RedirectToUsersPage(slug);
@@ -118,8 +118,8 @@ public class UsersModel(IWorkspaceService workspaceService, IUserRepository user
             return permCheck;
         }
 
-        var uw = await this.userWorkspaceRepository.FindAsync(userId, this.Workspace.Id);
-        if (uw == null || uw.Accepted)
+        var userWorkspace = await this.userWorkspaceRepository.FindAsync(userId, this.Workspace.Id);
+        if (userWorkspace == null || userWorkspace.Accepted)
         {
             return this.NotFound();
         }

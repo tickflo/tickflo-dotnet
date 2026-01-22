@@ -157,9 +157,9 @@ public class PasswordSetupServiceTests
         var tokenRepo = new Mock<ITokenRepository>();
         tokenRepo.Setup(r => r.CreateForUserIdAsync(4)).ReturnsAsync(new Token { Value = "login-token" });
 
-        var uw = new UserWorkspace { WorkspaceId = 10 };
-        var uwRepo = new Mock<IUserWorkspaceRepository>();
-        uwRepo.Setup(r => r.FindAcceptedForUserAsync(4)).ReturnsAsync(uw);
+        var userWorkspace = new UserWorkspace { WorkspaceId = 10 };
+        var userWorkspaceRepository = new Mock<IUserWorkspaceRepository>();
+        userWorkspaceRepository.Setup(r => r.FindAcceptedForUserAsync(4)).ReturnsAsync(userWorkspace);
 
         var workspace = new Workspace { Id = 10, Slug = "ws-slug" };
         var wsRepo = new Mock<IWorkspaceRepository>();
@@ -169,7 +169,7 @@ public class PasswordSetupServiceTests
             userRepository: userRepository.Object,
             tokenRepository: tokenRepo.Object,
             passwordHasher: hasher.Object,
-            userWorkspaceRepository: uwRepo.Object,
+            userWorkspaceRepository: userWorkspaceRepository.Object,
             workspaceRepository: wsRepo.Object);
 
         var result = await service.SetInitialPasswordAsync(4, "newpass123");

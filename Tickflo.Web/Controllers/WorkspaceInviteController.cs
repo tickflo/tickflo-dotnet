@@ -44,13 +44,13 @@ public class WorkspaceInviteController(IWorkspaceRepository workspaceRepository,
             return this.NotFound();
         }
 
-        var uw = await this.userWorkspaceRepository.FindAsync(user.Id, workspace.Id);
-        if (uw == null)
+        var userWorkspace = await this.userWorkspaceRepository.FindAsync(user.Id, workspace.Id);
+        if (userWorkspace == null)
         {
             return this.NotFound();
         }
 
-        await this.AcceptWorkspaceInviteAsync(uw, user);
+        await this.AcceptWorkspaceInviteAsync(userWorkspace, user);
         await this.ConfirmUserEmailIfNeededAsync(user);
 
         var reset = await this.tokenRepository.CreatePasswordResetForUserIdAsync(user.Id);
