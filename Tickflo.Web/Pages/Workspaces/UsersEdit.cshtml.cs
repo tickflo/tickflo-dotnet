@@ -2,17 +2,18 @@ namespace Tickflo.Web.Pages.Workspaces;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Services.Roles;
+using Tickflo.Core.Services.Users;
 using Tickflo.Core.Services.Views;
+using Tickflo.Core.Services.Workspace;
 
 [Authorize]
 public class UsersEditModel(
-    IWorkspaceRepository workspaceRepository,
-    IUserRepository userRepository,
-    IUserWorkspaceRepository userWorkspaceRepository,
-    IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
-    IRoleRepository roleRepo,
+    IWorkspaceService workspaceService,
+    IUserManagementService userManagementService,
+    IWorkspaceAccessService workspaceAccessService,
+    IRoleManagementService roleManagementService,
     IWorkspaceUsersManageViewService workspaceUsersManageViewService) : WorkspacePageModel
 {
     #region Constants
@@ -29,11 +30,10 @@ public class UsersEditModel(
     private const string RoleRemovedMessage = "Role removed successfully.";
     #endregion
 
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
-    private readonly IUserRepository userRepository = userRepository;
-    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
-    private readonly IRoleRepository roleRepository = roleRepo;
+    private readonly IWorkspaceService workspaceService = workspaceService;
+    private readonly IUserManagementService userManagementService = userManagementService;
+    private readonly IWorkspaceAccessService workspaceAccessService = workspaceAccessService;
+    private readonly IRoleManagementService roleManagementService = roleManagementService;
     private readonly IWorkspaceUsersManageViewService workspaceUsersManageViewService = workspaceUsersManageViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
@@ -58,7 +58,7 @@ public class UsersEditModel(
             return result;
         }
 
-        var user = await this.userRepository.FindByIdAsync(userId);
+        var user = await this.userManagementService.GetUserAsync(userId);
         if (user == null)
         {
             return this.NotFound();
@@ -66,10 +66,10 @@ public class UsersEditModel(
 
         this.UserName = user.Name ?? string.Empty;
         this.UserEmail = user.Email;
-        this.IsAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(userId, this.Workspace!.Id);
+        this.IsAdmin = await this.workspaceAccessService.UserIsWorkspaceAdminAsync(userId, this.Workspace!.Id);
 
-        this.AvailableRoles = await this.roleRepository.ListForWorkspaceAsync(this.Workspace.Id);
-        this.CurrentRoles = await this.userWorkspaceRoleRepository.GetRolesAsync(userId, this.Workspace.Id);
+        this.AvailableRoles = await this.roleManagementService.GetWorkspaceRolesAsync(this.Workspace.Id);
+        this.CurrentRoles = await this.roleManagementService.GetUserRolesAsync(userId, this.Workspace.Id);
 
         return this.Page();
     }
@@ -107,7 +107,7 @@ public class UsersEditModel(
             return this.RedirectToPage("/Workspaces/UsersEdit", new { slug, userId });
         }
 
-        var existingRoles = await this.userWorkspaceRoleRepository.GetRolesAsync(userId, this.Workspace!.Id);
+        var existingRoles = await this.roleManagementService.GetUserRolesAsync(userId, this.Workspace!.Id);
         if (existingRoles.Any(r => r.Id == roleId))
         {
             this.SetErrorMessage(UserAlreadyHasRoleError);
@@ -115,8 +115,15 @@ public class UsersEditModel(
         }
 
         var currentUserId = this.TryGetUserId(out var uid) ? uid : 0;
-        await this.userWorkspaceRoleRepository.AddAsync(userId, this.Workspace.Id, roleId, currentUserId);
-        this.SetSuccessMessage(RoleAssignedMessage);
+        try
+        {
+            await this.roleManagementService.AssignRoleToUserAsync(userId, this.Workspace.Id, roleId, currentUserId);
+            this.SetSuccessMessage(RoleAssignedMessage);
+        }
+        catch (InvalidOperationException ex)
+        {
+            this.SetErrorMessage(ex.Message);
+        }
         return this.RedirectToPage("/Workspaces/UsersEdit", new { slug, userId });
     }
 
@@ -131,21 +138,30 @@ public class UsersEditModel(
             return result;
         }
 
-        await this.userWorkspaceRoleRepository.RemoveAsync(userId, this.Workspace!.Id, roleId);
+        await this.roleManagementService.RemoveRoleFromUserAsync(userId, this.Workspace!.Id, roleId);
         this.SetSuccessMessage(RoleRemovedMessage);
         return this.RedirectToPage("/Workspaces/UsersEdit", new { slug, userId });
     }
 
     private async Task<IActionResult?> AuthorizeAndLoadWorkspaceAsync(string slug)
     {
-        var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
-        if (loadResult is IActionResult actionResult)
+        this.Workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (this.Workspace == null)
         {
-            return actionResult;
+            return this.NotFound();
         }
 
-        var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
-        this.Workspace = workspace;
+        if (!this.TryGetUserId(out var currentUserId))
+        {
+            return this.Forbid();
+        }
+
+        // Validate that the user is a member of this workspace
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(currentUserId, this.Workspace.Id);
+        if (!hasMembership)
+        {
+            return this.Forbid();
+        }
 
         var viewData = await this.workspaceUsersManageViewService.BuildAsync(this.Workspace!.Id, currentUserId);
         if (this.EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck)
@@ -158,25 +174,33 @@ public class UsersEditModel(
 
     private async Task HandleAdminRoleChangeAsync(int userId)
     {
-        var adminRole = await this.roleRepository.FindByNameAsync(this.Workspace!.Id, AdminRoleName);
+        var allRoles = await this.roleManagementService.GetWorkspaceRolesAsync(this.Workspace!.Id);
+        var adminRole = allRoles.FirstOrDefault(r => r.Name == AdminRoleName);
         if (adminRole == null)
         {
             this.SetErrorMessage(AdminRoleNotFound);
             return;
         }
 
-        var currentRoles = await this.userWorkspaceRoleRepository.GetRolesAsync(userId, this.Workspace.Id);
+        var currentRoles = await this.roleManagementService.GetUserRolesAsync(userId, this.Workspace.Id);
         var hasAdminRole = currentRoles.Any(r => r.Id == adminRole.Id);
         var currentUserId = this.TryGetUserId(out var uid) ? uid : 0;
 
         if (this.IsAdmin && !hasAdminRole)
         {
-            await this.userWorkspaceRoleRepository.AddAsync(userId, this.Workspace.Id, adminRole.Id, currentUserId);
-            this.SetSuccessMessage(UserPromotedMessage);
+            try
+            {
+                await this.roleManagementService.AssignRoleToUserAsync(userId, this.Workspace.Id, adminRole.Id, currentUserId);
+                this.SetSuccessMessage(UserPromotedMessage);
+            }
+            catch (InvalidOperationException ex)
+            {
+                this.SetErrorMessage(ex.Message);
+            }
         }
         else if (!this.IsAdmin && hasAdminRole)
         {
-            await this.userWorkspaceRoleRepository.RemoveAsync(userId, this.Workspace.Id, adminRole.Id);
+            await this.roleManagementService.RemoveRoleFromUserAsync(userId, this.Workspace.Id, adminRole.Id);
             this.SetSuccessMessage(AdminPrivilegesRemovedMessage);
         }
         else
@@ -192,8 +216,8 @@ public class UsersEditModel(
             return (true, InvalidRoleError);
         }
 
-        var role = await this.roleRepository.FindByIdAsync(roleId);
-        if (role == null || role.WorkspaceId != this.Workspace!.Id)
+        var belongsToWorkspace = await this.roleManagementService.RoleBelongsToWorkspaceAsync(roleId, this.Workspace!.Id);
+        if (!belongsToWorkspace)
         {
             return (true, InvalidRoleSelectionError);
         }
