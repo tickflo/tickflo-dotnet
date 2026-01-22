@@ -41,10 +41,10 @@ public class WorkspaceTeamsEditViewService(
         {
             foreach (var m in memberships.Select(m => m.UserId).Distinct())
             {
-                var u = await this.userRepository.FindByIdAsync(m);
-                if (u != null)
+                var user = await this.userRepository.FindByIdAsync(m);
+                if (user != null)
                 {
-                    data.WorkspaceUsers.Add(u);
+                    data.WorkspaceUsers.Add(user);
                 }
             }
         }

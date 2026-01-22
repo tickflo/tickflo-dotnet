@@ -158,10 +158,10 @@ public class WorkspaceDashboardViewService(
         var assigneeNames = new Dictionary<int, string>();
         foreach (var uid in assigneeIds)
         {
-            var u = await this.userRepository.FindByIdAsync(uid);
-            if (u != null)
+            var user = await this.userRepository.FindByIdAsync(uid);
+            if (user != null)
             {
-                assigneeNames[uid] = u.Name;
+                assigneeNames[uid] = user.Name;
             }
         }
 

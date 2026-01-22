@@ -9,16 +9,16 @@ public class InventoryRepository(TickfloDbContext dbContext) : IInventoryReposit
 
     public async Task<IEnumerable<Inventory>> ListAsync(int workspaceId, string? query = null, string? status = null)
     {
-        var q = this.dbContext.Inventory.Where(i => i.WorkspaceId == workspaceId);
+        var queryable = this.dbContext.Inventory.Where(i => i.WorkspaceId == workspaceId);
         if (!string.IsNullOrWhiteSpace(query))
         {
-            q = q.Where(i => i.Name.Contains(query) || i.Sku.Contains(query));
+            queryable = queryable.Where(i => i.Name.Contains(query) || i.Sku.Contains(query));
         }
         if (!string.IsNullOrWhiteSpace(status))
         {
-            q = q.Where(i => i.Status == status);
+            queryable = queryable.Where(i => i.Status == status);
         }
-        return await q.OrderBy(i => i.Name).ToListAsync();
+        return await queryable.OrderBy(i => i.Name).ToListAsync();
     }
 
     public Task<Inventory?> FindAsync(int workspaceId, int id) => this.dbContext.Inventory.FirstOrDefaultAsync(i => i.WorkspaceId == workspaceId && i.Id == id);

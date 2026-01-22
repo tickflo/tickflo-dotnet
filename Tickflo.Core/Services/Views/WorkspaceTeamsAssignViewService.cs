@@ -43,10 +43,10 @@ public class WorkspaceTeamsAssignViewService(
         var userIds = memberships.Select(m => m.UserId).Distinct().ToList();
         foreach (var id in userIds)
         {
-            var u = await this.userRepository.FindByIdAsync(id);
-            if (u != null)
+            var user = await this.userRepository.FindByIdAsync(id);
+            if (user != null)
             {
-                data.WorkspaceUsers.Add(u);
+                data.WorkspaceUsers.Add(user);
             }
         }
 

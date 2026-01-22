@@ -155,12 +155,12 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
 
     private async Task<int> QueryTickets(int workspaceId, ReportDef def, CancellationToken ct)
     {
-        var q = this.dbContext.Tickets.AsNoTracking().Where(t => t.WorkspaceId == workspaceId);
+        var query = this.dbContext.Tickets.AsNoTracking().Where(t => t.WorkspaceId == workspaceId);
         var filterLocationIds = ExtractLocationFilterIds(def.Filters);
         var chargeLocationIds = ExtractChargeLocationFilterIds(def.Filters) ?? filterLocationIds;
-        q = this.ApplyTicketFilters(q, def.Filters, workspaceId);
-        q = ApplyTicketOrdering(q, def.OrderBy);
-        var list = await q.ToListAsync(ct);
+        query = this.ApplyTicketFilters(query, def.Filters, workspaceId);
+        query = ApplyTicketOrdering(query, def.OrderBy);
+        var list = await query.ToListAsync(ct);
         this.currentRows.Clear();
         foreach (var t in list)
         {
@@ -229,10 +229,10 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
 
     private async Task<int> QueryContacts(int workspaceId, ReportDef def, CancellationToken ct)
     {
-        var q = this.dbContext.Contacts.AsNoTracking().Where(c => c.WorkspaceId == workspaceId);
-        q = ApplyContactFilters(q, def.Filters);
-        q = ApplyContactOrdering(q, def.OrderBy);
-        var list = await q.ToListAsync(ct);
+        var query = this.dbContext.Contacts.AsNoTracking().Where(c => c.WorkspaceId == workspaceId);
+        query = ApplyContactFilters(query, def.Filters);
+        query = ApplyContactOrdering(query, def.OrderBy);
+        var list = await query.ToListAsync(ct);
         this.currentRows.Clear();
         foreach (var c in list)
         {
@@ -262,9 +262,9 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
 
     private async Task<int> QueryLocations(int workspaceId, ReportDef def, CancellationToken ct)
     {
-        var q = this.dbContext.Locations.AsNoTracking().Where(l => l.WorkspaceId == workspaceId);
-        q = ApplyLocationFilters(q, def.Filters);
-        var list = await q.ToListAsync(ct);
+        var query = this.dbContext.Locations.AsNoTracking().Where(l => l.WorkspaceId == workspaceId);
+        query = ApplyLocationFilters(query, def.Filters);
+        var list = await query.ToListAsync(ct);
         this.currentRows.Clear();
         foreach (var l in list)
         {
@@ -302,9 +302,9 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
 
     private async Task<int> QueryInventory(int workspaceId, ReportDef def, CancellationToken ct)
     {
-        var q = this.dbContext.Inventory.AsNoTracking().Where(i => i.WorkspaceId == workspaceId);
-        q = ApplyInventoryFilters(q, def.Filters);
-        var list = await q.ToListAsync(ct);
+        var query = this.dbContext.Inventory.AsNoTracking().Where(i => i.WorkspaceId == workspaceId);
+        query = ApplyInventoryFilters(query, def.Filters);
+        var list = await query.ToListAsync(ct);
         this.currentRows.Clear();
         foreach (var i in list)
         {

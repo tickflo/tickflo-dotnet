@@ -28,10 +28,10 @@ public class WorkspaceRolesAssignViewService(
         var userIds = memberships.Select(m => m.UserId).Distinct().ToList();
         foreach (var id in userIds)
         {
-            var u = await this.userRepository.FindByIdAsync(id);
-            if (u != null)
+            var user = await this.userRepository.FindByIdAsync(id);
+            if (user != null)
             {
-                data.Members.Add(u);
+                data.Members.Add(user);
             }
         }
 
