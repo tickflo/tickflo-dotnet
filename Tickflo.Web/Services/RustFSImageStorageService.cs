@@ -5,9 +5,9 @@ using Tickflo.Core.Services.Storage;
 /// <summary>
 /// Implementation of IImageStorageService using RustFS storage.
 /// </summary>
-public class RustFSImageStorageService(IFileStorageService storageService, ILogger<RustFSImageStorageService> logger) : IImageStorageService
+public class RustFSImageStorageService(IFileStorageService fileStorageService, ILogger<RustFSImageStorageService> logger) : IImageStorageService
 {
-    private readonly IFileStorageService _storageService = storageService;
+    private readonly IFileStorageService fileStorageService = fileStorageService;
     private readonly ILogger<RustFSImageStorageService> logger = logger;
 
     private const string AvatarDirectory = "user-data";
@@ -20,7 +20,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
         try
         {
             var path = $"{AvatarDirectory}/{userId}/avatar.jpg";
-            return await this._storageService.UploadImageAsync(path, imageStream, 256, 256, 85);
+            return await this.fileStorageService.UploadImageAsync(path, imageStream, 256, 256, 85);
         }
         catch (Exception ex)
         {
@@ -34,7 +34,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
         try
         {
             var path = $"{AvatarDirectory}/{userId}/avatar.jpg";
-            return await this._storageService.DeleteFileAsync(path);
+            return await this.fileStorageService.DeleteFileAsync(path);
         }
         catch (Exception ex)
         {
@@ -46,7 +46,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
     public string GetUserAvatarUrl(int userId)
     {
         var path = $"{AvatarDirectory}/{userId}/avatar.jpg";
-        return this._storageService.GetFileUrl(path);
+        return this.fileStorageService.GetFileUrl(path);
     }
 
     public async Task<string> UploadWorkspaceLogoAsync(int workspaceId, Stream imageStream)
@@ -54,7 +54,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
         try
         {
             var path = $"{LogoDirectory}/{workspaceId}/logo.jpg";
-            return await this._storageService.UploadImageAsync(path, imageStream, 512, 512, 85);
+            return await this.fileStorageService.UploadImageAsync(path, imageStream, 512, 512, 85);
         }
         catch (Exception ex)
         {
@@ -68,7 +68,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
         try
         {
             var path = $"{LogoDirectory}/{workspaceId}/logo.jpg";
-            return await this._storageService.DeleteFileAsync(path);
+            return await this.fileStorageService.DeleteFileAsync(path);
         }
         catch (Exception ex)
         {
@@ -80,7 +80,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
     public string GetWorkspaceLogoUrl(int workspaceId)
     {
         var path = $"{LogoDirectory}/{workspaceId}/logo.jpg";
-        return this._storageService.GetFileUrl(path);
+        return this.fileStorageService.GetFileUrl(path);
     }
 
     public async Task<string> UploadWorkspaceBannerAsync(int workspaceId, Stream imageStream)
@@ -88,7 +88,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
         try
         {
             var path = $"{BannerDirectory}/{workspaceId}/banner.jpg";
-            return await this._storageService.UploadImageAsync(path, imageStream, 1920, 1080, 80);
+            return await this.fileStorageService.UploadImageAsync(path, imageStream, 1920, 1080, 80);
         }
         catch (Exception ex)
         {
@@ -102,7 +102,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
         try
         {
             var path = $"{BannerDirectory}/{workspaceId}/banner.jpg";
-            return await this._storageService.DeleteFileAsync(path);
+            return await this.fileStorageService.DeleteFileAsync(path);
         }
         catch (Exception ex)
         {
@@ -114,7 +114,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
     public string GetWorkspaceBannerUrl(int workspaceId)
     {
         var path = $"{BannerDirectory}/{workspaceId}/banner.jpg";
-        return this._storageService.GetFileUrl(path);
+        return this.fileStorageService.GetFileUrl(path);
     }
 
     public async Task<string> UploadDocumentImageAsync(int workspaceId, string documentPath, Stream imageStream)
@@ -122,7 +122,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
         try
         {
             var path = $"{DocumentDirectory}/{workspaceId}/{documentPath}.jpg";
-            return await this._storageService.UploadImageAsync(path, imageStream, 1200, 900, 80);
+            return await this.fileStorageService.UploadImageAsync(path, imageStream, 1200, 900, 80);
         }
         catch (Exception ex)
         {
@@ -136,7 +136,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
         try
         {
             var path = $"{DocumentDirectory}/{workspaceId}/{documentPath}.jpg";
-            return await this._storageService.DeleteFileAsync(path);
+            return await this.fileStorageService.DeleteFileAsync(path);
         }
         catch (Exception ex)
         {
@@ -148,7 +148,7 @@ public class RustFSImageStorageService(IFileStorageService storageService, ILogg
     public string GetDocumentImageUrl(int workspaceId, string documentPath)
     {
         var path = $"{DocumentDirectory}/{workspaceId}/{documentPath}.jpg";
-        return this._storageService.GetFileUrl(path);
+        return this.fileStorageService.GetFileUrl(path);
     }
 
     public bool IsValidImage(Stream imageStream)

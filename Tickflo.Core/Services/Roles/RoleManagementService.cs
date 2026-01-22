@@ -12,12 +12,12 @@ public class RoleManagementService(
     IRoleRepository roleRepository) : IRoleManagementService
 {
     private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepository;
-    private readonly IRoleRepository _roleRepository = roleRepository;
+    private readonly IRoleRepository roleRepository = roleRepository;
 
     public async Task<UserWorkspaceRole> AssignRoleToUserAsync(int userId, int workspaceId, int roleId, int assignedByUserId)
     {
         // Verify role belongs to workspace
-        var role = await this._roleRepository.FindByIdAsync(roleId);
+        var role = await this.roleRepository.FindByIdAsync(roleId);
         if (role == null || role.WorkspaceId != workspaceId)
         {
             throw new InvalidOperationException($"Role {roleId} does not belong to workspace {workspaceId}.");
@@ -56,11 +56,11 @@ public class RoleManagementService(
 
     public async Task<bool> RoleBelongsToWorkspaceAsync(int roleId, int workspaceId)
     {
-        var role = await this._roleRepository.FindByIdAsync(roleId);
+        var role = await this.roleRepository.FindByIdAsync(roleId);
         return role != null && role.WorkspaceId == workspaceId;
     }
 
-    public async Task<List<Role>> GetWorkspaceRolesAsync(int workspaceId) => await this._roleRepository.ListForWorkspaceAsync(workspaceId);
+    public async Task<List<Role>> GetWorkspaceRolesAsync(int workspaceId) => await this.roleRepository.ListForWorkspaceAsync(workspaceId);
 
     public async Task<List<Role>> GetUserRolesAsync(int userId, int workspaceId) => await this.userWorkspaceRoleRepository.GetRolesAsync(userId, workspaceId);
 

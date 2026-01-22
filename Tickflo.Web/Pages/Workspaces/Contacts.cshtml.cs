@@ -4,20 +4,17 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Common;
 using Tickflo.Core.Services.Views;
 
 [Authorize]
 public class ContactsModel(
-    IWorkspaceRepository workspaceRepo,
+    IWorkspaceRepository workspaceRepository,
     IUserWorkspaceRepository userWorkspaceRepository,
-    ICurrentUserService currentUserService,
-    IWorkspaceContactsViewService viewService) : WorkspacePageModel
+    IWorkspaceContactsViewService workspaceContactsViewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly ICurrentUserService currentUserService = currentUserService;
-    private readonly IWorkspaceContactsViewService _viewService = viewService;
+    private readonly IWorkspaceContactsViewService workspaceContactsViewService = workspaceContactsViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -47,7 +44,7 @@ public class ContactsModel(
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
         this.Workspace = workspace;
 
-        var viewData = await this._viewService.BuildAsync(this.Workspace!.Id, uid, this.Priority, this.Query);
+        var viewData = await this.workspaceContactsViewService.BuildAsync(this.Workspace!.Id, uid, this.Priority, this.Query);
 
         if (this.EnsurePermissionOrForbid(viewData.CanCreateContacts || viewData.CanEditContacts) is IActionResult permCheck)
         {

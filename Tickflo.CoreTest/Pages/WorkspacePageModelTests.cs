@@ -15,15 +15,15 @@ using Xunit;
 /// </summary>
 public class WorkspacePageModelTests
 {
-    private readonly Mock<IWorkspaceRepository> _mockWorkspaceRepo;
-    private readonly Mock<IUserWorkspaceRepository> _mockUserWorkspaceRepo;
-    private readonly TestableWorkspacePageModel _pageModel;
+    private readonly Mock<IWorkspaceRepository> workspaceRepository;
+    private readonly Mock<IUserWorkspaceRepository> userWorkspaceRepository;
+    private readonly TestableWorkspacePageModel workspacePageModel;
 
     public WorkspacePageModelTests()
     {
-        this._mockWorkspaceRepo = new Mock<IWorkspaceRepository>();
-        this._mockUserWorkspaceRepo = new Mock<IUserWorkspaceRepository>();
-        this._pageModel = new TestableWorkspacePageModel();
+        this.workspaceRepository = new Mock<IWorkspaceRepository>();
+        this.userWorkspaceRepository = new Mock<IUserWorkspaceRepository>();
+        this.workspacePageModel = new TestableWorkspacePageModel();
     }
 
     [Fact]
@@ -31,21 +31,21 @@ public class WorkspacePageModelTests
     {
         // Arrange
         const string slug = "nonexistent";
-        this._mockWorkspaceRepo
+        this.workspaceRepository
             .Setup(r => r.FindBySlugAsync(slug))
             .ReturnsAsync((Workspace?)null);
 
         // Act
-        var result = await this._pageModel.PublicLoadWorkspaceAndValidateUserMembershipAsync(
-            this._mockWorkspaceRepo.Object,
-            this._mockUserWorkspaceRepo.Object,
+        var result = await this.workspacePageModel.PublicLoadWorkspaceAndValidateUserMembershipAsync(
+            this.workspaceRepository.Object,
+            this.userWorkspaceRepository.Object,
             slug);
 
         // Assert
         Assert.NotNull(result);
         Assert.IsType<NotFoundResult>(result);
-        this._mockWorkspaceRepo.Verify(r => r.FindBySlugAsync(slug), Times.Once);
-        this._mockUserWorkspaceRepo.VerifyNoOtherCalls();
+        this.workspaceRepository.Verify(r => r.FindBySlugAsync(slug), Times.Once);
+        this.userWorkspaceRepository.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -55,22 +55,22 @@ public class WorkspacePageModelTests
         const string slug = "test-workspace";
         var workspace = new Workspace { Id = 1, Slug = slug, Name = "Test Workspace" };
 
-        this._mockWorkspaceRepo
+        this.workspaceRepository
             .Setup(r => r.FindBySlugAsync(slug))
             .ReturnsAsync(workspace);
 
-        this._pageModel.SetUserAsUnauthenticated();
+        this.workspacePageModel.SetUserAsUnauthenticated();
 
         // Act
-        var result = await this._pageModel.PublicLoadWorkspaceAndValidateUserMembershipAsync(
-            this._mockWorkspaceRepo.Object,
-            this._mockUserWorkspaceRepo.Object,
+        var result = await this.workspacePageModel.PublicLoadWorkspaceAndValidateUserMembershipAsync(
+            this.workspaceRepository.Object,
+            this.userWorkspaceRepository.Object,
             slug);
 
         // Assert
         Assert.NotNull(result);
         Assert.IsType<ForbidResult>(result);
-        this._mockUserWorkspaceRepo.VerifyNoOtherCalls();
+        this.userWorkspaceRepository.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -81,26 +81,26 @@ public class WorkspacePageModelTests
         const int userId = 42;
         var workspace = new Workspace { Id = 1, Slug = slug, Name = "Test Workspace" };
 
-        this._mockWorkspaceRepo
+        this.workspaceRepository
             .Setup(r => r.FindBySlugAsync(slug))
             .ReturnsAsync(workspace);
 
-        this._mockUserWorkspaceRepo
+        this.userWorkspaceRepository
             .Setup(r => r.FindAsync(userId, workspace.Id))
             .ReturnsAsync((UserWorkspace?)null);
 
-        this._pageModel.SetUserWithId(userId);
+        this.workspacePageModel.SetUserWithId(userId);
 
         // Act
-        var result = await this._pageModel.PublicLoadWorkspaceAndValidateUserMembershipAsync(
-            this._mockWorkspaceRepo.Object,
-            this._mockUserWorkspaceRepo.Object,
+        var result = await this.workspacePageModel.PublicLoadWorkspaceAndValidateUserMembershipAsync(
+            this.workspaceRepository.Object,
+            this.userWorkspaceRepository.Object,
             slug);
 
         // Assert
         Assert.NotNull(result);
         Assert.IsType<ForbidResult>(result);
-        this._mockUserWorkspaceRepo.Verify(r => r.FindAsync(userId, workspace.Id), Times.Once);
+        this.userWorkspaceRepository.Verify(r => r.FindAsync(userId, workspace.Id), Times.Once);
     }
 
     [Fact]
@@ -112,20 +112,20 @@ public class WorkspacePageModelTests
         var workspace = new Workspace { Id = 1, Slug = slug, Name = "Test Workspace" };
         var membership = new UserWorkspace { UserId = userId, WorkspaceId = workspace.Id, Accepted = true };
 
-        this._mockWorkspaceRepo
+        this.workspaceRepository
             .Setup(r => r.FindBySlugAsync(slug))
             .ReturnsAsync(workspace);
 
-        this._mockUserWorkspaceRepo
+        this.userWorkspaceRepository
             .Setup(r => r.FindAsync(userId, workspace.Id))
             .ReturnsAsync(membership);
 
-        this._pageModel.SetUserWithId(userId);
+        this.workspacePageModel.SetUserWithId(userId);
 
         // Act
-        var result = await this._pageModel.PublicLoadWorkspaceAndValidateUserMembershipAsync(
-            this._mockWorkspaceRepo.Object,
-            this._mockUserWorkspaceRepo.Object,
+        var result = await this.workspacePageModel.PublicLoadWorkspaceAndValidateUserMembershipAsync(
+            this.workspaceRepository.Object,
+            this.userWorkspaceRepository.Object,
             slug);
 
         // Assert
@@ -135,7 +135,7 @@ public class WorkspacePageModelTests
         Assert.NotNull(loadResult.Workspace);
         Assert.Equal(workspace.Id, loadResult.Workspace.Id);
         Assert.Equal(userId, loadResult.UserId);
-        this._mockUserWorkspaceRepo.Verify(r => r.FindAsync(userId, workspace.Id), Times.Once);
+        this.userWorkspaceRepository.Verify(r => r.FindAsync(userId, workspace.Id), Times.Once);
     }
 
     [Fact]
@@ -147,20 +147,20 @@ public class WorkspacePageModelTests
         var workspace = new Workspace { Id = 1, Slug = slug, Name = "Test Workspace" };
         var membership = new UserWorkspace { UserId = userId, WorkspaceId = workspace.Id, Accepted = false };
 
-        this._mockWorkspaceRepo
+        this.workspaceRepository
             .Setup(r => r.FindBySlugAsync(slug))
             .ReturnsAsync(workspace);
 
-        this._mockUserWorkspaceRepo
+        this.userWorkspaceRepository
             .Setup(r => r.FindAsync(userId, workspace.Id))
             .ReturnsAsync(membership);
 
-        this._pageModel.SetUserWithId(userId);
+        this.workspacePageModel.SetUserWithId(userId);
 
         // Act
-        var result = await this._pageModel.PublicLoadWorkspaceAndValidateUserMembershipAsync(
-            this._mockWorkspaceRepo.Object,
-            this._mockUserWorkspaceRepo.Object,
+        var result = await this.workspacePageModel.PublicLoadWorkspaceAndValidateUserMembershipAsync(
+            this.workspaceRepository.Object,
+            this.userWorkspaceRepository.Object,
             slug);
 
         // Assert - Should still succeed because membership exists (acceptance is handled by view services)
@@ -177,22 +177,22 @@ public class WorkspacePageModelTests
         const string slug = "test-workspace";
         var workspace = new Workspace { Id = 1, Slug = slug, Name = "Test Workspace" };
 
-        this._mockWorkspaceRepo
+        this.workspaceRepository
             .Setup(r => r.FindBySlugAsync(slug))
             .ReturnsAsync(workspace);
 
-        this._pageModel.SetUserWithInvalidId("invalid-user-id");
+        this.workspacePageModel.SetUserWithInvalidId("invalid-user-id");
 
         // Act
-        var result = await this._pageModel.PublicLoadWorkspaceAndValidateUserMembershipAsync(
-            this._mockWorkspaceRepo.Object,
-            this._mockUserWorkspaceRepo.Object,
+        var result = await this.workspacePageModel.PublicLoadWorkspaceAndValidateUserMembershipAsync(
+            this.workspaceRepository.Object,
+            this.userWorkspaceRepository.Object,
             slug);
 
         // Assert
         Assert.NotNull(result);
         Assert.IsType<ForbidResult>(result);
-        this._mockUserWorkspaceRepo.VerifyNoOtherCalls();
+        this.userWorkspaceRepository.VerifyNoOtherCalls();
     }
 
     /// <summary>
@@ -245,8 +245,8 @@ public class WorkspacePageModelTests
         }
 
         public async Task<object> PublicLoadWorkspaceAndValidateUserMembershipAsync(
-            IWorkspaceRepository workspaceRepo,
+            IWorkspaceRepository workspaceRepository,
             IUserWorkspaceRepository userWorkspaceRepository,
-            string slug) => await this.LoadWorkspaceAndValidateUserMembershipAsync(workspaceRepo, userWorkspaceRepository, slug);
+            string slug) => await this.LoadWorkspaceAndValidateUserMembershipAsync(workspaceRepository, userWorkspaceRepository, slug);
     }
 }

@@ -3,19 +3,19 @@ namespace Tickflo.Core.Services.Views;
 using Tickflo.Core.Data;
 
 public class WorkspaceTeamsAssignViewService(
-    IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
+    IUserWorkspaceRoleRepository userWorkspaceRoleRepository,
     IRolePermissionRepository rolePermissionRepository,
-    ITeamRepository teams,
-    ITeamMemberRepository members,
+    ITeamRepository teamRepository,
+    ITeamMemberRepository teamMemberRepository,
     IUserWorkspaceRepository userWorkspaceRepository,
-    IUserRepository users) : IWorkspaceTeamsAssignViewService
+    IUserRepository userRepository) : IWorkspaceTeamsAssignViewService
 {
-    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepository;
     private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
-    private readonly ITeamRepository teamRepository = teams;
-    private readonly ITeamMemberRepository _members = members;
+    private readonly ITeamRepository teamRepository = teamRepository;
+    private readonly ITeamMemberRepository teamMemberRepository = teamMemberRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly IUserRepository userRepository = users;
+    private readonly IUserRepository userRepository = userRepository;
 
     public async Task<WorkspaceTeamsAssignViewData> BuildAsync(int workspaceId, int userId, int teamId)
     {
@@ -36,7 +36,7 @@ public class WorkspaceTeamsAssignViewService(
             return data;
         }
 
-        var members = await this._members.ListMembersAsync(teamId);
+        var members = await this.teamMemberRepository.ListMembersAsync(teamId);
         data.Members = [.. members];
 
         var memberships = await this.userWorkspaceRepository.FindForWorkspaceAsync(workspaceId);

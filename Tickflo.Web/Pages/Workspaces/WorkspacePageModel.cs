@@ -124,12 +124,12 @@ public abstract class WorkspacePageModel : PageModel
     /// Loads a workspace by slug and validates the current user.
     /// Returns NotFound if workspace doesn't exist, or Forbid if user ID cannot be extracted.
     /// </summary>
-    /// <param name="workspaceRepo">The workspace repository</param>
+    /// <param name="workspaceRepository">The workspace repository</param>
     /// <param name="slug">The workspace slug</param>
     /// <returns>WorkspaceUserLoadResult on success, or IActionResult (NotFound/Forbid) on failure</returns>
-    protected async Task<object> LoadWorkspaceAndUserOrExitAsync(IWorkspaceRepository workspaceRepo, string slug)
+    protected async Task<object> LoadWorkspaceAndUserOrExitAsync(IWorkspaceRepository workspaceRepository, string slug)
     {
-        var workspace = await workspaceRepo.FindBySlugAsync(slug);
+        var workspace = await workspaceRepository.FindBySlugAsync(slug);
         if (workspace == null)
         {
             return this.NotFound();
@@ -143,20 +143,21 @@ public abstract class WorkspacePageModel : PageModel
         return new WorkspaceUserLoadResult(workspace, userId);
     }
 
+    // TODO: This should probably just throw an exception or return a different wrapped type.. Returning object is gross.
     /// <summary>
     /// Loads a workspace by slug and validates both that it exists and that the current user is a member.
     /// Returns NotFound if workspace doesn't exist, Forbid if user is not a member or cannot be identified.
     /// </summary>
-    /// <param name="workspaceRepo">The workspace repository</param>
+    /// <param name="workspaceRepository">The workspace repository</param>
     /// <param name="userWorkspaceRepository">The user workspace repository for membership validation</param>
     /// <param name="slug">The workspace slug</param>
     /// <returns>WorkspaceUserLoadResult on success, or IActionResult (NotFound/Forbid) on failure</returns>
     protected async Task<object> LoadWorkspaceAndValidateUserMembershipAsync(
-        IWorkspaceRepository workspaceRepo,
+        IWorkspaceRepository workspaceRepository,
         IUserWorkspaceRepository userWorkspaceRepository,
         string slug)
     {
-        var workspace = await workspaceRepo.FindBySlugAsync(slug);
+        var workspace = await workspaceRepository.FindBySlugAsync(slug);
         if (workspace == null)
         {
             return this.NotFound();

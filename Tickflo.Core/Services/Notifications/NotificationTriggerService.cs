@@ -8,20 +8,16 @@ using Tickflo.Core.Entities;
 /// Coordinates notification dispatch for all business events.
 /// </summary>
 public class NotificationTriggerService(
-    INotificationRepository notificationRepo,
+    INotificationRepository notificationRepository,
     IUserRepository userRepository,
     ITeamRepository teamRepository,
-    ILocationRepository locationRepository,
-    IUserWorkspaceRepository userWorkspaceRepository,
-    IWorkspaceRepository workspaceRepo,
+    IWorkspaceRepository workspaceRepository,
     IContactRepository contactRepository) : INotificationTriggerService
 {
-    private readonly INotificationRepository _notificationRepo = notificationRepo;
+    private readonly INotificationRepository notificationRepository = notificationRepository;
     private readonly IUserRepository userRepository = userRepository;
     private readonly ITeamRepository teamRepository = teamRepository;
-    private readonly ILocationRepository locationRepository = locationRepository;
-    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly IContactRepository contactRepository = contactRepository;
 
     public async Task NotifyTicketCreatedAsync(
@@ -81,7 +77,7 @@ public class NotificationTriggerService(
         // Add all notifications to queue
         foreach (var notif in notifications)
         {
-            await this._notificationRepo.AddAsync(notif);
+            await this.notificationRepository.AddAsync(notif);
         }
     }
 
@@ -139,7 +135,7 @@ public class NotificationTriggerService(
 
         foreach (var notif in notifications)
         {
-            await this._notificationRepo.AddAsync(notif);
+            await this.notificationRepository.AddAsync(notif);
         }
     }
 
@@ -199,7 +195,7 @@ public class NotificationTriggerService(
 
         foreach (var notif in notifications)
         {
-            await this._notificationRepo.AddAsync(notif);
+            await this.notificationRepository.AddAsync(notif);
         }
     }
 
@@ -286,7 +282,7 @@ public class NotificationTriggerService(
 
         foreach (var notif in notifications)
         {
-            await this._notificationRepo.AddAsync(notif);
+            await this.notificationRepository.AddAsync(notif);
         }
     }
 
@@ -313,7 +309,7 @@ public class NotificationTriggerService(
             CreatedBy = addedByUserId
         };
 
-        await this._notificationRepo.AddAsync(notification);
+        await this.notificationRepository.AddAsync(notification);
     }
 
     public async Task NotifyAdminsAsync(
@@ -332,7 +328,7 @@ public class NotificationTriggerService(
             CreatedAt = DateTime.UtcNow
         };
 
-        await this._notificationRepo.AddAsync(notification);
+        await this.notificationRepository.AddAsync(notification);
     }
 
     public async Task NotifyUsersAsync(
@@ -358,7 +354,7 @@ public class NotificationTriggerService(
 
         foreach (var notif in notifications)
         {
-            await this._notificationRepo.AddAsync(notif);
+            await this.notificationRepository.AddAsync(notif);
         }
     }
 
@@ -387,6 +383,6 @@ public class NotificationTriggerService(
             CreatedAt = DateTime.UtcNow
         };
 
-        await this._notificationRepo.AddAsync(notification);
+        await this.notificationRepository.AddAsync(notification);
     }
 }

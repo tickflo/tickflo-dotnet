@@ -52,7 +52,7 @@ public class WorkspaceReportsEditViewServiceTests
         Assert.False(result.CanCreateReports);
     }
 
-    private static readonly string[] value = ["id", "name"];
+    private static readonly string[] Value = ["id", "name"];
 
     [Fact]
     public async Task BuildAsyncLoadsAvailableSources()
@@ -63,7 +63,7 @@ public class WorkspaceReportsEditViewServiceTests
         var mockReportRepo = new Mock<IReportRepository>();
         var mockReportingService = new Mock<IReportingService>();
 
-        var sources = new Dictionary<string, string[]> { { "tickets", value } };
+        var sources = new Dictionary<string, string[]> { { "tickets", Value } };
         mockUserWorkspaceRoleRepo.Setup(x => x.IsAdminAsync(1, 1)).ReturnsAsync(true);
         mockReportingService.Setup(x => x.GetAvailableSources()).Returns(sources);
 

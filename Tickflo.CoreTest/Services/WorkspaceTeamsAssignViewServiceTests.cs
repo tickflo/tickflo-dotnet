@@ -96,7 +96,7 @@ public class WorkspaceTeamsAssignViewServiceTests
         Assert.True(result.CanViewTeams);
         Assert.False(result.CanEditTeams);
         Assert.NotNull(result.Team);
-        Assert.NotEqual(10, result.Team!.WorkspaceId);
+        Assert.NotEqual(10, result.Team.WorkspaceId);
         Assert.Empty(result.WorkspaceUsers);
         Assert.Empty(result.Members);
     }

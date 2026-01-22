@@ -22,7 +22,7 @@ public class WorkspaceTicketsViewServiceTests
         var userWorkspaceRepository = new Mock<IUserWorkspaceRepository>();
         var userRepository = new Mock<IUserRepository>();
         var locationRepository = new Mock<ILocationRepository>();
-        var rolePermissionRepo = new Mock<IRolePermissionRepository>();
+        var rolePermissionRepository = new Mock<IRolePermissionRepository>();
         var teamMemberRepo = new Mock<ITeamMemberRepository>();
         var uwrRepo = new Mock<IUserWorkspaceRoleRepository>();
 
@@ -84,13 +84,13 @@ public class WorkspaceTicketsViewServiceTests
         uwrRepo.Setup(r => r.IsAdminAsync(userId, workspaceId))
             .ReturnsAsync(false);
 
-        rolePermissionRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
+        rolePermissionRepository.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
             .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>
             {
                 { "tickets", new EffectiveSectionPermission { Section = "tickets", CanCreate = true, CanEdit = true, CanView = true } }
             });
 
-        rolePermissionRepo.Setup(r => r.GetTicketViewScopeForUserAsync(workspaceId, userId, false))
+        rolePermissionRepository.Setup(r => r.GetTicketViewScopeForUserAsync(workspaceId, userId, false))
             .ReturnsAsync("all");
 
         // Setup team members (empty for scope "all")
@@ -106,7 +106,7 @@ public class WorkspaceTicketsViewServiceTests
             userWorkspaceRepository.Object,
             userRepository.Object,
             locationRepository.Object,
-            rolePermissionRepo.Object,
+            rolePermissionRepository.Object,
             teamMemberRepo.Object,
             uwrRepo.Object);
 
@@ -140,7 +140,7 @@ public class WorkspaceTicketsViewServiceTests
         var userWorkspaceRepository = new Mock<IUserWorkspaceRepository>();
         var userRepository = new Mock<IUserRepository>();
         var locationRepository = new Mock<ILocationRepository>();
-        var rolePermissionRepo = new Mock<IRolePermissionRepository>();
+        var rolePermissionRepository = new Mock<IRolePermissionRepository>();
         var teamMemberRepo = new Mock<ITeamMemberRepository>();
         var uwrRepo = new Mock<IUserWorkspaceRoleRepository>();
 
@@ -170,10 +170,10 @@ public class WorkspaceTicketsViewServiceTests
         uwrRepo.Setup(r => r.IsAdminAsync(userId, workspaceId))
             .ReturnsAsync(false);
 
-        rolePermissionRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
+        rolePermissionRepository.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
             .ReturnsAsync([]);
 
-        rolePermissionRepo.Setup(r => r.GetTicketViewScopeForUserAsync(workspaceId, userId, false))
+        rolePermissionRepository.Setup(r => r.GetTicketViewScopeForUserAsync(workspaceId, userId, false))
             .ReturnsAsync("all");
 
         teamMemberRepo.Setup(r => r.ListTeamsForUserAsync(workspaceId, userId))
@@ -188,7 +188,7 @@ public class WorkspaceTicketsViewServiceTests
             userWorkspaceRepository.Object,
             userRepository.Object,
             locationRepository.Object,
-            rolePermissionRepo.Object,
+            rolePermissionRepository.Object,
             teamMemberRepo.Object,
             uwrRepo.Object);
 
@@ -209,7 +209,7 @@ public class WorkspaceTicketsViewServiceTests
         Assert.Contains(view.Types, t => t.Name == "Standard");
     }
 
-    private static readonly int[] expected = [1, 2];
+    private static readonly int[] Expected = [1, 2];
 
     [Fact]
     public async Task BuildAsyncWithTeamScopeIncludesUserTeamIds()
@@ -225,7 +225,7 @@ public class WorkspaceTicketsViewServiceTests
         var userWorkspaceRepository = new Mock<IUserWorkspaceRepository>();
         var userRepository = new Mock<IUserRepository>();
         var locationRepository = new Mock<ILocationRepository>();
-        var rolePermissionRepo = new Mock<IRolePermissionRepository>();
+        var rolePermissionRepository = new Mock<IRolePermissionRepository>();
         var teamMemberRepo = new Mock<ITeamMemberRepository>();
         var uwrRepo = new Mock<IUserWorkspaceRoleRepository>();
 
@@ -248,11 +248,11 @@ public class WorkspaceTicketsViewServiceTests
         uwrRepo.Setup(r => r.IsAdminAsync(userId, workspaceId))
             .ReturnsAsync(false);
 
-        rolePermissionRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
+        rolePermissionRepository.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
             .ReturnsAsync([]);
 
         // Scope is "team", not "all"
-        rolePermissionRepo.Setup(r => r.GetTicketViewScopeForUserAsync(workspaceId, userId, false))
+        rolePermissionRepository.Setup(r => r.GetTicketViewScopeForUserAsync(workspaceId, userId, false))
             .ReturnsAsync("team");
 
         // User belongs to teams 1 and 2
@@ -272,14 +272,14 @@ public class WorkspaceTicketsViewServiceTests
             userWorkspaceRepository.Object,
             userRepository.Object,
             locationRepository.Object,
-            rolePermissionRepo.Object,
+            rolePermissionRepository.Object,
             teamMemberRepo.Object,
             uwrRepo.Object);
 
         var view = await service.BuildAsync(workspaceId, userId);
 
         Assert.Equal("team", view.TicketViewScope);
-        Assert.Equal(expected, view.UserTeamIds);
+        Assert.Equal(Expected, view.UserTeamIds);
     }
 }
 

@@ -5,13 +5,13 @@ using Tickflo.Core.Entities;
 
 public class ReportExecutionService(
     IReportRepository reporyRepository,
-    IReportRunRepository reportRunRepo,
-    IUserWorkspaceRepository workspaceRepo,
+    IReportRunRepository reportRunRepository,
+    IUserWorkspaceRepository workspaceRepository,
     IReportingService reportingService) : IReportExecutionService
 {
     private readonly IReportRepository reporyRepository = reporyRepository;
-    private readonly IReportRunRepository _reportRunRepo = reportRunRepo;
-    private readonly IUserWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IReportRunRepository reportRunRepository = reportRunRepository;
+    private readonly IUserWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly IReportingService reportingService = reportingService;
 
     public async Task<ReportExecutionResult> ExecuteReportAsync(int userId, int workspaceId, int reportId, CancellationToken ct = default)
@@ -43,14 +43,14 @@ public class ReportExecutionService(
 
         // This is a simplified version - actual scheduling would need a background job
         var run = new ReportRun { ReportId = reportId };
-        return await this._reportRunRepo.CreateAsync(run);
+        return await this.reportRunRepository.CreateAsync(run);
     }
 
     public async Task CancelReportRunAsync(int userId, int workspaceId, int reportRunId, CancellationToken ct = default)
     {
         var workspace = await this.workspaceRepository.FindAsync(userId, workspaceId) ?? throw new UnauthorizedAccessException();
 
-        var run = await this._reportRunRepo.FindAsync(workspaceId, reportRunId) ?? throw new KeyNotFoundException();
+        var run = await this.reportRunRepository.FindAsync(workspaceId, reportRunId) ?? throw new KeyNotFoundException();
     }
 
     public async Task<IReadOnlyList<ReportRun>> GetReportHistoryAsync(int userId, int workspaceId, int reportId, int take = 20, CancellationToken ct = default)
@@ -59,6 +59,6 @@ public class ReportExecutionService(
 
         var report = await this.reporyRepository.FindAsync(workspaceId, reportId) ?? throw new KeyNotFoundException();
 
-        return await this._reportRunRepo.ListForReportAsync(workspaceId, reportId, take);
+        return await this.reportRunRepository.ListForReportAsync(workspaceId, reportId, take);
     }
 }

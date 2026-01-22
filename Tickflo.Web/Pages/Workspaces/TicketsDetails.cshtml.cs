@@ -11,7 +11,7 @@ using Tickflo.Core.Services.Tickets;
 using Tickflo.Core.Services.Views;
 
 [Authorize]
-public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepository, ITicketRepository ticketRepository, ITicketManagementService ticketManagementService, IWorkspaceTicketDetailsViewService workspaceTicketDetailsViewService, ITeamRepository teamRepository, IWorkspaceTicketsSaveViewService workspaceTicketsSaveViewService, ITicketCommentService ticketCommentService, INotificationTriggerService notificationTriggerService) : WorkspacePageModel
+public class TicketsDetailsModel(IWorkspaceRepository workspaceRepository, IUserWorkspaceRepository userWorkspaceRepository, ITicketRepository ticketRepository, ITicketManagementService ticketManagementService, IWorkspaceTicketDetailsViewService workspaceTicketDetailsViewService, ITeamRepository teamRepository, IWorkspaceTicketsSaveViewService workspaceTicketsSaveViewService, ITicketCommentService ticketCommentService, INotificationTriggerService notificationTriggerService) : WorkspacePageModel
 {
     #region Constants
     private const string DefaultTicketType = "Standard";
@@ -39,7 +39,7 @@ public class TicketsDetailsModel(IWorkspaceRepository workspaceRepo, IUserWorksp
         [JsonPropertyName("unitPrice")]
         public decimal UnitPrice { get; set; }
     }
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly ITicketRepository ticketRepository = ticketRepository;
     private readonly ITicketManagementService ticketManagementService = ticketManagementService;

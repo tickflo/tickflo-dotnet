@@ -5,10 +5,10 @@ using Tickflo.Core.Services.Workspace;
 
 public class WorkspaceTeamsViewService(
     IWorkspaceAccessService workspaceAccessService,
-    ITeamListingService listingService) : IWorkspaceTeamsViewService
+    ITeamListingService contactListingService) : IWorkspaceTeamsViewService
 {
     private readonly IWorkspaceAccessService workspaceAccessService = workspaceAccessService;
-    private readonly ITeamListingService _listingService = listingService;
+    private readonly ITeamListingService contactListingService = contactListingService;
 
     public async Task<WorkspaceTeamsViewData> BuildAsync(int workspaceId, int userId)
     {
@@ -37,7 +37,7 @@ public class WorkspaceTeamsViewService(
         // Load teams and member counts if user can view
         if (data.CanViewTeams)
         {
-            var (teams, memberCounts) = await this._listingService.GetListAsync(workspaceId);
+            var (teams, memberCounts) = await this.contactListingService.GetListAsync(workspaceId);
             data.Teams = [.. teams];
             data.MemberCounts = memberCounts.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }

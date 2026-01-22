@@ -11,7 +11,7 @@ public class WorkspaceReportRunsViewService(
 {
     private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
     private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
-    private readonly IReportRunService _reportRunService = reportRunService;
+    private readonly IReportRunService reportRunService = reportRunService;
 
     public async Task<WorkspaceReportRunsViewData> BuildAsync(int workspaceId, int userId, int reportId)
     {
@@ -26,11 +26,11 @@ public class WorkspaceReportRunsViewService(
             return data;
         }
 
-        var (Report, Runs) = await this._reportRunService.GetReportRunsAsync(workspaceId, reportId, 100);
-        if (Report != null)
+        var (report, runs) = await this.reportRunService.GetReportRunsAsync(workspaceId, reportId, 100);
+        if (report != null)
         {
-            data.Report = Report;
-            data.Runs = [.. Runs];
+            data.Report = report;
+            data.Runs = [.. runs];
         }
 
         return data;

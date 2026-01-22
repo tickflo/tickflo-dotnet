@@ -10,7 +10,7 @@ using Tickflo.Core.Services.Views;
 
 [Authorize]
 public class LocationsEditModel(
-    IWorkspaceRepository workspaceRepo,
+    IWorkspaceRepository workspaceRepository,
     IUserWorkspaceRepository userWorkspaceRepository,
     ILocationRepository locationRepository,
     IWorkspaceLocationsEditViewService workspaceLocationsEditViewService,
@@ -22,7 +22,7 @@ public class LocationsEditModel(
     private static readonly CompositeFormat LocationUpdatedSuccessfully = CompositeFormat.Parse("Location '{0}' updated successfully.");
     #endregion
 
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly ILocationRepository locationRepository = locationRepository;
     private readonly IWorkspaceLocationsEditViewService workspaceLocationsEditViewService = workspaceLocationsEditViewService;

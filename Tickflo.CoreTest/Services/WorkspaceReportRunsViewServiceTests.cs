@@ -36,7 +36,7 @@ public class WorkspaceReportRunsViewServiceTests
 
         Assert.True(result.CanViewReports);
         Assert.NotNull(result.Report);
-        Assert.Equal(5, result.Report!.Id);
+        Assert.Equal(5, result.Report.Id);
         Assert.Equal(2, result.Runs.Count);
     }
 

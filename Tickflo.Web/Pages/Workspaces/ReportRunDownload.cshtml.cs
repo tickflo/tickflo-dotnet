@@ -7,10 +7,10 @@ using Tickflo.Core.Data;
 using Tickflo.Core.Services.Views;
 
 [Authorize]
-public class ReportRunDownloadModel(IWorkspaceRepository workspaceRepo, IWorkspaceReportRunDownloadViewService downloadViewService) : WorkspacePageModel
+public class ReportRunDownloadModel(IWorkspaceRepository workspaceRepository, IWorkspaceReportRunDownloadViewService workspaceReportRunDownloadViewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
-    private readonly IWorkspaceReportRunDownloadViewService _downloadViewService = downloadViewService;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly IWorkspaceReportRunDownloadViewService workspaceReportRunDownloadViewService = workspaceReportRunDownloadViewService;
 
     public async Task<IActionResult> OnGetAsync(string slug, int reportId, int runId)
     {
@@ -26,7 +26,7 @@ public class ReportRunDownloadModel(IWorkspaceRepository workspaceRepo, IWorkspa
             return this.Forbid();
         }
 
-        var data = await this._downloadViewService.BuildAsync(ws.Id, uid, reportId, runId);
+        var data = await this.workspaceReportRunDownloadViewService.BuildAsync(ws.Id, uid, reportId, runId);
         if (this.EnsurePermissionOrForbid(data.CanViewReports) is IActionResult permCheck)
         {
             return permCheck;
@@ -38,8 +38,8 @@ public class ReportRunDownloadModel(IWorkspaceRepository workspaceRepo, IWorkspa
             return this.NotFound();
         }
 
-        var ct = string.IsNullOrWhiteSpace(run.ContentType) ? "text/csv" : run.ContentType!;
-        var name = string.IsNullOrWhiteSpace(run.FileName) ? $"report_{run.Id}.csv" : run.FileName!;
+        var ct = string.IsNullOrWhiteSpace(run.ContentType) ? "text/csv" : run.ContentType;
+        var name = string.IsNullOrWhiteSpace(run.FileName) ? $"report_{run.Id}.csv" : run.FileName;
         return this.File(run.FileBytes, ct, name);
     }
 

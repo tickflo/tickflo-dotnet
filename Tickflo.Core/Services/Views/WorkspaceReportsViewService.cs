@@ -3,23 +3,20 @@ namespace Tickflo.Core.Services.Views;
 using Tickflo.Core.Data;
 
 using Tickflo.Core.Services.Reporting;
-using Tickflo.Core.Services.Workspace;
 
 public class WorkspaceReportsViewService(
-    IRolePermissionRepository rolePermissions,
-    IReportQueryService reportQueryService,
-    IWorkspaceAccessService workspaceAccessService) : IWorkspaceReportsViewService
+    IRolePermissionRepository rolePermissionRepository,
+    IReportQueryService reportQueryService) : IWorkspaceReportsViewService
 {
-    private readonly IRolePermissionRepository _rolePermissions = rolePermissions;
-    private readonly IReportQueryService _reportQueryService = reportQueryService;
-    private readonly IWorkspaceAccessService workspaceAccessService = workspaceAccessService;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
+    private readonly IReportQueryService reportQueryService = reportQueryService;
 
     public async Task<WorkspaceReportsViewData> BuildAsync(int workspaceId, int userId)
     {
         var data = new WorkspaceReportsViewData();
 
         // Get user's effective permissions for reports
-        var permissions = await this._rolePermissions.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+        var permissions = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
 
         if (permissions.TryGetValue("reports", out var reportPermissions))
         {
@@ -28,7 +25,7 @@ public class WorkspaceReportsViewService(
         }
 
         // Load reports list
-        var reports = await this._reportQueryService.ListReportsAsync(workspaceId);
+        var reports = await this.reportQueryService.ListReportsAsync(workspaceId);
         data.Reports = [.. reports
             .Select(r => new ReportSummary
             {

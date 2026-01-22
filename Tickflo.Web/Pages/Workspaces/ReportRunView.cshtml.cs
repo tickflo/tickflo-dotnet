@@ -8,10 +8,10 @@ using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Views;
 
 [Authorize]
-public class ReportRunViewModel(IWorkspaceRepository workspaceRepo, IWorkspaceReportRunViewService runViewService) : WorkspacePageModel
+public class ReportRunViewModel(IWorkspaceRepository workspaceRepository, IWorkspaceReportRunViewService workspaceReportRunViewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
-    private readonly IWorkspaceReportRunViewService _runViewService = runViewService;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly IWorkspaceReportRunViewService workspaceReportRunViewService = workspaceReportRunViewService;
 
     [BindProperty(SupportsGet = true)]
     public string WorkspaceSlug { get; set; } = string.Empty;
@@ -71,7 +71,7 @@ public class ReportRunViewModel(IWorkspaceRepository workspaceRepo, IWorkspaceRe
             return this.Forbid();
         }
 
-        var data = await this._runViewService.BuildAsync(ws.Id, uid, reportId, runId, this.Page, this.Take);
+        var data = await this.workspaceReportRunViewService.BuildAsync(ws.Id, uid, reportId, runId, this.Page, this.Take);
         if (this.EnsurePermissionOrForbid(data.CanViewReports) is IActionResult permCheck)
         {
             return permCheck;

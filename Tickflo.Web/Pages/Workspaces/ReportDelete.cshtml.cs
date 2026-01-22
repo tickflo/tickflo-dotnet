@@ -8,17 +8,17 @@ using Tickflo.Core.Services.Views;
 
 [Authorize]
 public class ReportDeleteModel(
-    IWorkspaceRepository workspaceRepo,
+    IWorkspaceRepository workspaceRepository,
     IReportRepository reporyRepository,
-    IReportRunRepository reportRunRepo,
-    IWorkspaceReportDeleteViewService deleteViewService,
-    IWebHostEnvironment env) : WorkspacePageModel
+    IReportRunRepository reportRunRepository,
+    IWorkspaceReportDeleteViewService workspaceReportDeleteViewService,
+    IWebHostEnvironment webHostEnvironment) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly IReportRepository reporyRepository = reporyRepository;
-    private readonly IReportRunRepository _reportRunRepo = reportRunRepo;
-    private readonly IWorkspaceReportDeleteViewService _deleteViewService = deleteViewService;
-    private readonly IWebHostEnvironment _env = env;
+    private readonly IReportRunRepository reportRunRepository = reportRunRepository;
+    private readonly IWorkspaceReportDeleteViewService workspaceReportDeleteViewService = workspaceReportDeleteViewService;
+    private readonly IWebHostEnvironment webHostEnvironment = webHostEnvironment;
 
     public async Task<IActionResult> OnPostAsync(string slug, int reportId)
     {
@@ -34,7 +34,7 @@ public class ReportDeleteModel(
             return this.Forbid();
         }
 
-        var data = await this._deleteViewService.BuildAsync(ws.Id, uid);
+        var data = await this.workspaceReportDeleteViewService.BuildAsync(ws.Id, uid);
         if (this.EnsurePermissionOrForbid(data.CanEditReports) is IActionResult permCheck)
         {
             return permCheck;
@@ -42,12 +42,12 @@ public class ReportDeleteModel(
 
         try
         {
-            var runs = await this._reportRunRepo.ListForReportAsync(ws.Id, reportId, take: 500000);
+            var runs = await this.reportRunRepository.ListForReportAsync(ws.Id, reportId, take: 500000);
             foreach (var rr in runs)
             {
                 if (!string.IsNullOrWhiteSpace(rr.FilePath))
                 {
-                    var full = Path.Combine(this._env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot"), rr.FilePath);
+                    var full = Path.Combine(this.webHostEnvironment.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot"), rr.FilePath);
                     if (System.IO.File.Exists(full))
                     {
                         System.IO.File.Delete(full);
@@ -57,7 +57,7 @@ public class ReportDeleteModel(
         }
         catch { /* ignore cleanup errors */ }
 
-        await this._reportRunRepo.DeleteForReportAsync(ws.Id, reportId);
+        await this.reportRunRepository.DeleteForReportAsync(ws.Id, reportId);
         var ok = await this.reporyRepository.DeleteAsync(ws.Id, reportId);
         if (ok)
         {

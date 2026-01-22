@@ -14,12 +14,12 @@ public class WorkspaceUsersViewServiceTests
         var userId = 10;
 
         var uwRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
-        var rolePermRepo = new Mock<IRolePermissionRepository>();
+        var rolePermissionRepository = new Mock<IRolePermissionRepository>();
         var uwRepo = new Mock<IUserWorkspaceRepository>();
         var userRepository = new Mock<IUserRepository>();
 
         uwRoleRepo.Setup(r => r.IsAdminAsync(userId, workspaceId)).ReturnsAsync(false);
-        rolePermRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
+        rolePermissionRepository.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
             .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>
             {
                 { "users", new EffectiveSectionPermission { Section = "users", CanCreate = true, CanEdit = true, CanView = true } }
@@ -35,7 +35,7 @@ public class WorkspaceUsersViewServiceTests
 
         var service = new WorkspaceUsersViewService(
             uwRoleRepo.Object,
-            rolePermRepo.Object,
+            rolePermissionRepository.Object,
             uwRepo.Object,
             userRepository.Object);
 
@@ -57,19 +57,19 @@ public class WorkspaceUsersViewServiceTests
         var userId = 10;
 
         var uwRoleRepo = new Mock<IUserWorkspaceRoleRepository>();
-        var rolePermRepo = new Mock<IRolePermissionRepository>();
+        var rolePermissionRepository = new Mock<IRolePermissionRepository>();
         var uwRepo = new Mock<IUserWorkspaceRepository>();
         var userRepository = new Mock<IUserRepository>();
 
         uwRoleRepo.Setup(r => r.IsAdminAsync(userId, workspaceId)).ReturnsAsync(true);
-        rolePermRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
+        rolePermissionRepository.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
             .ReturnsAsync([]);
 
         uwRepo.Setup(r => r.FindForWorkspaceAsync(workspaceId)).ReturnsAsync([]);
 
         var service = new WorkspaceUsersViewService(
             uwRoleRepo.Object,
-            rolePermRepo.Object,
+            rolePermissionRepository.Object,
             uwRepo.Object,
             userRepository.Object);
 

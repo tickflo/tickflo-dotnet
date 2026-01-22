@@ -12,7 +12,7 @@ public class WorkspaceService(
     IWorkspaceRepository workspaceRepository,
     IUserWorkspaceRepository userWorkspaceRepository) : IWorkspaceService
 {
-    private readonly IWorkspaceRepository _workspaceRepository = workspaceRepository;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
 
     public async Task<List<UserWorkspace>> GetUserWorkspacesAsync(int userId) => await this.userWorkspaceRepository.FindForUserAsync(userId);
@@ -23,9 +23,9 @@ public class WorkspaceService(
         return [.. all.Where(uw => uw.Accepted)];
     }
 
-    public async Task<WorkspaceEntity?> GetWorkspaceBySlugAsync(string slug) => await this._workspaceRepository.FindBySlugAsync(slug);
+    public async Task<WorkspaceEntity?> GetWorkspaceBySlugAsync(string slug) => await this.workspaceRepository.FindBySlugAsync(slug);
 
-    public async Task<WorkspaceEntity?> GetWorkspaceAsync(int workspaceId) => await this._workspaceRepository.FindByIdAsync(workspaceId);
+    public async Task<WorkspaceEntity?> GetWorkspaceAsync(int workspaceId) => await this.workspaceRepository.FindByIdAsync(workspaceId);
 
     public async Task<bool> UserHasMembershipAsync(int userId, int workspaceId)
     {

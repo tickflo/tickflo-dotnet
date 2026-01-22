@@ -10,12 +10,12 @@ public class WorkspaceCreationServiceTests
     [Fact]
     public async Task CreateWorkspaceAsyncThrowsWhenSlugExists()
     {
-        var workspaceRepo = new Mock<IWorkspaceRepository>();
-        workspaceRepo.Setup(r => r.FindBySlugAsync(It.IsAny<string>())).ReturnsAsync(new Workspace { Id = 9, Slug = "existing" });
+        var workspaceRepository = new Mock<IWorkspaceRepository>();
+        workspaceRepository.Setup(r => r.FindBySlugAsync(It.IsAny<string>())).ReturnsAsync(new Workspace { Id = 9, Slug = "existing" });
         var roleRepo = new Mock<IRoleRepository>();
         var uw = Mock.Of<IUserWorkspaceRepository>();
         var userWorkspaceRoleRepository = Mock.Of<IUserWorkspaceRoleRepository>();
-        var svc = new WorkspaceCreationService(workspaceRepo.Object, roleRepo.Object, uw, userWorkspaceRoleRepository);
+        var svc = new WorkspaceCreationService(workspaceRepository.Object, roleRepo.Object, uw, userWorkspaceRoleRepository);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateWorkspaceAsync(new WorkspaceCreationRequest { Name = "Existing" }, 1));
     }
@@ -23,9 +23,9 @@ public class WorkspaceCreationServiceTests
     [Fact]
     public async Task CreateWorkspaceAsyncAddsDefaultRolesAndAdminMembership()
     {
-        var workspaceRepo = new Mock<IWorkspaceRepository>();
-        workspaceRepo.Setup(r => r.FindBySlugAsync(It.IsAny<string>())).ReturnsAsync((Workspace?)null);
-        workspaceRepo.Setup(r => r.AddAsync(It.IsAny<Workspace>())).Callback<Workspace>(w => w.Id = 1).Returns(Task.CompletedTask);
+        var workspaceRepository = new Mock<IWorkspaceRepository>();
+        workspaceRepository.Setup(r => r.FindBySlugAsync(It.IsAny<string>())).ReturnsAsync((Workspace?)null);
+        workspaceRepository.Setup(r => r.AddAsync(It.IsAny<Workspace>())).Callback<Workspace>(w => w.Id = 1).Returns(Task.CompletedTask);
         var roleRepo = new Mock<IRoleRepository>();
         var findCalls = 0;
         roleRepo.Setup(r => r.FindByNameAsync(It.IsAny<int>(), It.IsAny<string>())).ReturnsAsync((int wsId, string name) =>
@@ -44,7 +44,7 @@ public class WorkspaceCreationServiceTests
         uw.Setup(r => r.AddAsync(It.IsAny<UserWorkspace>())).Returns(Task.CompletedTask);
         var userWorkspaceRoleRepository = new Mock<IUserWorkspaceRoleRepository>();
         userWorkspaceRoleRepository.Setup(r => r.AddAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>())).Returns(Task.CompletedTask);
-        var svc = new WorkspaceCreationService(workspaceRepo.Object, roleRepo.Object, uw.Object, userWorkspaceRoleRepository.Object);
+        var svc = new WorkspaceCreationService(workspaceRepository.Object, roleRepo.Object, uw.Object, userWorkspaceRoleRepository.Object);
 
         var workspace = await svc.CreateWorkspaceAsync(new WorkspaceCreationRequest { Name = "New Space" }, 7);
 

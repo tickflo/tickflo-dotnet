@@ -12,13 +12,11 @@ public class ExportService(
     ITicketRepository ticketRepository,
     IContactRepository contactRepository,
     IInventoryRepository inventoryRepository,
-    ITicketHistoryRepository historyRepository,
     IUserWorkspaceRepository userWorkspaceRepository) : IExportService
 {
     private readonly ITicketRepository ticketRepository = ticketRepository;
     private readonly IContactRepository contactRepository = contactRepository;
     private readonly IInventoryRepository inventoryRepository = inventoryRepository;
-    private readonly ITicketHistoryRepository historyRepository = historyRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
 
     public async Task<ExportResult> ExportTicketsAsync(
@@ -38,7 +36,7 @@ public class ExportService(
         return request.Format switch
         {
             ExportFormat.CSV => ExportToCSV(tickets, request),
-            ExportFormat.JSON => ExportToJSON(tickets, request),
+            ExportFormat.JSON => ExportToJSON(tickets),
             ExportFormat.Excel => ExportToExcel(tickets, request),
             _ => throw new InvalidOperationException("Unsupported format.")
         };
@@ -59,8 +57,8 @@ public class ExportService(
 
         return request.Format switch
         {
-            ExportFormat.CSV => ExportContactsToCSV(contacts, request),
-            ExportFormat.JSON => ExportContactsToJSON(contacts, request),
+            ExportFormat.CSV => ExportContactsToCSV(contacts),
+            ExportFormat.JSON => ExportContactsToJSON(contacts),
             ExportFormat.Excel => throw new NotImplementedException(),
             _ => throw new InvalidOperationException("Unsupported format.")
         };
@@ -81,8 +79,8 @@ public class ExportService(
 
         return request.Format switch
         {
-            ExportFormat.CSV => ExportInventoryItemsToCSV(inventory, request),
-            ExportFormat.JSON => ExportInventoryItemsToJSON(inventory, request),
+            ExportFormat.CSV => ExportInventoryItemsToCSV(inventory),
+            ExportFormat.JSON => ExportInventoryItemsToJSON(inventory),
             ExportFormat.Excel => throw new NotImplementedException(),
             _ => throw new InvalidOperationException("Unsupported format.")
         };
@@ -169,7 +167,7 @@ public class ExportService(
         };
     }
 
-    private static ExportResult ExportToJSON(List<Ticket> tickets, ExportRequest request)
+    private static ExportResult ExportToJSON(List<Ticket> tickets)
     {
         var content = Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(tickets));
         return new ExportResult
@@ -186,7 +184,7 @@ public class ExportService(
         // For now, return a CSV as placeholder
         ExportToCSV(tickets, request);
 
-    private static ExportResult ExportContactsToCSV(List<Contact> contacts, ExportRequest request)
+    private static ExportResult ExportContactsToCSV(List<Contact> contacts)
     {
         var sb = new StringBuilder();
         sb.AppendLine("Id,Name,Email,Phone,Company,CreatedAt");
@@ -206,7 +204,7 @@ public class ExportService(
         };
     }
 
-    private static ExportResult ExportContactsToJSON(List<Contact> contacts, ExportRequest request)
+    private static ExportResult ExportContactsToJSON(List<Contact> contacts)
     {
         var content = Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(contacts));
         return new ExportResult
@@ -218,7 +216,7 @@ public class ExportService(
         };
     }
 
-    private static ExportResult ExportInventoryItemsToCSV(List<Inventory> inventory, ExportRequest request)
+    private static ExportResult ExportInventoryItemsToCSV(List<Inventory> inventory)
     {
         var sb = new StringBuilder();
         sb.AppendLine("Id,SKU,Name,Quantity,Cost,LocationId,CreatedAt");
@@ -238,7 +236,7 @@ public class ExportService(
         };
     }
 
-    private static ExportResult ExportInventoryItemsToJSON(List<Inventory> inventory, ExportRequest request)
+    private static ExportResult ExportInventoryItemsToJSON(List<Inventory> inventory)
     {
         var content = Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(inventory));
         return new ExportResult

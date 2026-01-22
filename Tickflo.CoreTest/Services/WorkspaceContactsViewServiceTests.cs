@@ -12,7 +12,7 @@ public class WorkspaceContactsViewServiceTests
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
-        var listingService = new Mock<IContactListingService>();
+        var contactListingService = new Mock<IContactListingService>();
 
         var permissions = new Dictionary<string, EffectiveSectionPermission>
         {
@@ -34,10 +34,10 @@ public class WorkspaceContactsViewServiceTests
         accessService.Setup(x => x.GetUserPermissionsAsync(1, 100))
             .ReturnsAsync(permissions);
 
-        listingService.Setup(x => x.GetListAsync(1, "High", "John"))
+        contactListingService.Setup(x => x.GetListAsync(1, "High", "John"))
             .ReturnsAsync((contacts, priorities));
 
-        var service = new WorkspaceContactsViewService(accessService.Object, listingService.Object);
+        var service = new WorkspaceContactsViewService(accessService.Object, contactListingService.Object);
 
         // Act
         var result = await service.BuildAsync(1, 100, "High", "John");
@@ -57,17 +57,17 @@ public class WorkspaceContactsViewServiceTests
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
-        var listingService = new Mock<IContactListingService>();
+        var contactListingService = new Mock<IContactListingService>();
 
         var permissions = new Dictionary<string, EffectiveSectionPermission>();
 
         accessService.Setup(x => x.GetUserPermissionsAsync(1, 100))
             .ReturnsAsync(permissions);
 
-        listingService.Setup(x => x.GetListAsync(1, null, null))
+        contactListingService.Setup(x => x.GetListAsync(1, null, null))
             .ReturnsAsync((new List<Contact>(), new List<TicketPriority>()));
 
-        var service = new WorkspaceContactsViewService(accessService.Object, listingService.Object);
+        var service = new WorkspaceContactsViewService(accessService.Object, contactListingService.Object);
 
         // Act
         var result = await service.BuildAsync(1, 100);
@@ -84,7 +84,7 @@ public class WorkspaceContactsViewServiceTests
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
-        var listingService = new Mock<IContactListingService>();
+        var contactListingService = new Mock<IContactListingService>();
 
         var permissions = new Dictionary<string, EffectiveSectionPermission>
         {
@@ -101,10 +101,10 @@ public class WorkspaceContactsViewServiceTests
         accessService.Setup(x => x.GetUserPermissionsAsync(1, 100))
             .ReturnsAsync(permissions);
 
-        listingService.Setup(x => x.GetListAsync(1, null, null))
+        contactListingService.Setup(x => x.GetListAsync(1, null, null))
             .ReturnsAsync((new List<Contact>(), priorities));
 
-        var service = new WorkspaceContactsViewService(accessService.Object, listingService.Object);
+        var service = new WorkspaceContactsViewService(accessService.Object, contactListingService.Object);
 
         // Act
         var result = await service.BuildAsync(1, 100);

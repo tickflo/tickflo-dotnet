@@ -11,7 +11,7 @@ public class WorkspaceReportRunDownloadViewService(
 {
     private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
     private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
-    private readonly IReportRunService _reportRunService = reportRunService;
+    private readonly IReportRunService reportRunService = reportRunService;
 
     public async Task<WorkspaceReportRunDownloadViewData> BuildAsync(int workspaceId, int userId, int reportId, int runId)
     {
@@ -24,7 +24,7 @@ public class WorkspaceReportRunDownloadViewService(
             return data;
         }
 
-        var run = await this._reportRunService.GetRunAsync(workspaceId, runId);
+        var run = await this.reportRunService.GetRunAsync(workspaceId, runId);
         if (run == null || run.ReportId != reportId)
         {
             return data;

@@ -11,14 +11,14 @@ using Tickflo.Core.Services.Authentication;
 public class UserInvitationService(
     IUserRepository userRepository,
     IUserWorkspaceRepository userWorkspaceRepository,
-    IUserWorkspaceRoleRepository roleRepo,
-    IRoleRepository rolesRepo,
+    IUserWorkspaceRoleRepository userWorkspaceRoleRepository,
+    IRoleRepository roleRepository,
     IPasswordHasher passwordHasher) : IUserInvitationService
 {
     private readonly IUserRepository userRepository = userRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly IUserWorkspaceRoleRepository roleRepository = roleRepo;
-    private readonly IRoleRepository _rolesRepo = rolesRepo;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepository;
+    private readonly IRoleRepository roleRepository = roleRepository;
     private readonly IPasswordHasher passwordHasher = passwordHasher;
 
     public async Task<UserInvitationResult> InviteUserAsync(
@@ -87,11 +87,11 @@ public class UserInvitationService(
             foreach (var roleId in roleIds)
             {
                 // Verify role exists and belongs to workspace
-                var role = await this._rolesRepo.FindByIdAsync(roleId);
+                var role = await this.roleRepository.FindByIdAsync(roleId);
                 if (role != null && role.WorkspaceId == workspaceId)
                 {
                     // Add role using repository method
-                    await this.roleRepository.AddAsync(user.Id, workspaceId, roleId, invitedByUserId);
+                    await this.userWorkspaceRoleRepository.AddAsync(user.Id, workspaceId, roleId, invitedByUserId);
                 }
             }
         }

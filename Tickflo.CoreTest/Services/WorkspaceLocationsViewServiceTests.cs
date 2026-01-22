@@ -11,7 +11,7 @@ public class WorkspaceLocationsViewServiceTests
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
-        var listingService = new Mock<ILocationListingService>();
+        var contactListingService = new Mock<ILocationListingService>();
 
         var permissions = new Dictionary<string, EffectiveSectionPermission>
         {
@@ -27,10 +27,10 @@ public class WorkspaceLocationsViewServiceTests
         accessService.Setup(x => x.GetUserPermissionsAsync(1, 100))
             .ReturnsAsync(permissions);
 
-        listingService.Setup(x => x.GetListAsync(1))
+        contactListingService.Setup(x => x.GetListAsync(1))
             .ReturnsAsync(locationItems);
 
-        var service = new WorkspaceLocationsViewService(accessService.Object, listingService.Object);
+        var service = new WorkspaceLocationsViewService(accessService.Object, contactListingService.Object);
 
         // Act
         var result = await service.BuildAsync(1, 100);
@@ -47,17 +47,17 @@ public class WorkspaceLocationsViewServiceTests
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
-        var listingService = new Mock<ILocationListingService>();
+        var contactListingService = new Mock<ILocationListingService>();
 
         var permissions = new Dictionary<string, EffectiveSectionPermission>();
 
         accessService.Setup(x => x.GetUserPermissionsAsync(1, 100))
             .ReturnsAsync(permissions);
 
-        listingService.Setup(x => x.GetListAsync(1))
+        contactListingService.Setup(x => x.GetListAsync(1))
             .ReturnsAsync([]);
 
-        var service = new WorkspaceLocationsViewService(accessService.Object, listingService.Object);
+        var service = new WorkspaceLocationsViewService(accessService.Object, contactListingService.Object);
 
         // Act
         var result = await service.BuildAsync(1, 100);

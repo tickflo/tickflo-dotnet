@@ -56,7 +56,7 @@ public class TokenRepositoryTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("abc123", result!.Value);
+        Assert.Equal("abc123", result.Value);
     }
 
     [Fact]
@@ -112,6 +112,6 @@ public class TokenRepositoryTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("new_token", result!.Value);
+        Assert.Equal("new_token", result.Value);
     }
 }

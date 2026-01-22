@@ -7,10 +7,10 @@ using Tickflo.Core.Config;
 
 [Authorize]
 [Route("users/{id}/avatar")]
-public class UserAvatarController(TickfloConfig config, IAmazonS3 s3Client) : Controller
+public class UserAvatarController(TickfloConfig config, IAmazonS3 amazonS3) : Controller
 {
-    private readonly TickfloConfig _config = config;
-    private readonly IAmazonS3 _s3Client = s3Client;
+    private readonly TickfloConfig config = config;
+    private readonly IAmazonS3 amazonS3 = amazonS3;
 
     [HttpGet]
     public async Task<IActionResult> GetAvatar(string id)
@@ -20,7 +20,7 @@ public class UserAvatarController(TickfloConfig config, IAmazonS3 s3Client) : Co
             return this.NotFound();
         }
 
-        var bucket = this._config.S3Bucket;
+        var bucket = this.config.S3Bucket;
         if (string.IsNullOrWhiteSpace(bucket))
         {
             return this.NotFound();
@@ -29,7 +29,7 @@ public class UserAvatarController(TickfloConfig config, IAmazonS3 s3Client) : Co
         var key = $"user-data/{id}/avatar.jpg";
         try
         {
-            using var response = await this._s3Client.GetObjectAsync(bucket, key);
+            using var response = await this.amazonS3.GetObjectAsync(bucket, key);
             await using var stream = new MemoryStream();
             await response.ResponseStream.CopyToAsync(stream);
             stream.Position = 0;

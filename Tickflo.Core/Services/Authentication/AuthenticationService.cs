@@ -5,6 +5,8 @@ using Tickflo.Core.Entities;
 
 using WorkspaceEntity = Entities.Workspace;
 
+// TODO: This service should _NOT_ have optional dependencies. Refactor tests to provide mocks for all dependencies.
+
 public partial class AuthenticationService(
     IUserRepository userRepository,
     IPasswordHasher passwordHasher,
@@ -26,10 +28,10 @@ public partial class AuthenticationService(
 
     private readonly IUserRepository userRepository = userRepository;
     private readonly IPasswordHasher passwordHasher = passwordHasher;
-    private readonly ITokenRepository _tokenRepository = tokenRepository;
-    private readonly IWorkspaceRepository? _workspaceRepository = workspaceRepository;
+    private readonly ITokenRepository tokenRepository = tokenRepository;
+    private readonly IWorkspaceRepository? workspaceRepository = workspaceRepository;
     private readonly IUserWorkspaceRepository? userWorkspaceRepository = userWorkspaceRepository;
-    private readonly IWorkspaceRoleBootstrapper? _workspaceRoleBootstrapper = workspaceRoleBootstrapper;
+    private readonly IWorkspaceRoleBootstrapper? workspaceRoleBootstrapper = workspaceRoleBootstrapper;
 
     public async Task<AuthenticationResult> AuthenticateAsync(string email, string password)
     {
@@ -55,7 +57,7 @@ public partial class AuthenticationService(
             return result;
         }
 
-        var token = await this._tokenRepository.CreateForUserIdAsync(user.Id);
+        var token = await this.tokenRepository.CreateForUserIdAsync(user.Id);
         result.Success = true;
         result.UserId = user.Id;
         result.Token = token.Value;
@@ -77,12 +79,12 @@ public partial class AuthenticationService(
         var user = await this.CreateUserAsync(name, email, recoveryEmail, password);
         var workspace = await this.CreateWorkspaceWithUserAsync(workspaceName, user.Id);
 
-        if (this._workspaceRoleBootstrapper != null)
+        if (this.workspaceRoleBootstrapper != null)
         {
-            await this._workspaceRoleBootstrapper.BootstrapAdminAsync(workspace.Id, user.Id);
+            await this.workspaceRoleBootstrapper.BootstrapAdminAsync(workspace.Id, user.Id);
         }
 
-        var token = await this._tokenRepository.CreateForUserIdAsync(user.Id);
+        var token = await this.tokenRepository.CreateForUserIdAsync(user.Id);
         result.Success = true;
         result.UserId = user.Id;
         result.Token = token.Value;
@@ -95,12 +97,12 @@ public partial class AuthenticationService(
 
     private async Task<string?> GetUserWorkspaceSlugAsync(int userId)
     {
-        if (this.userWorkspaceRepository != null && this._workspaceRepository != null)
+        if (this.userWorkspaceRepository != null && this.workspaceRepository != null)
         {
             var uw = await this.userWorkspaceRepository.FindAcceptedForUserAsync(userId);
             if (uw != null)
             {
-                var ws = await this._workspaceRepository.FindByIdAsync(uw.WorkspaceId);
+                var ws = await this.workspaceRepository.FindByIdAsync(uw.WorkspaceId);
                 return ws?.Slug;
             }
         }
@@ -125,7 +127,7 @@ public partial class AuthenticationService(
 
     private async Task<WorkspaceEntity> CreateWorkspaceWithUserAsync(string workspaceName, int userId)
     {
-        if (this._workspaceRepository == null || this.userWorkspaceRepository == null)
+        if (this.workspaceRepository == null || this.userWorkspaceRepository == null)
         {
             throw new InvalidOperationException(WorkspaceRepositoriesNotConfiguredError);
         }
@@ -139,7 +141,7 @@ public partial class AuthenticationService(
             CreatedBy = userId
         };
 
-        await this._workspaceRepository.AddAsync(workspace);
+        await this.workspaceRepository.AddAsync(workspace);
 
         var userWorkspace = new UserWorkspace
         {
@@ -160,7 +162,7 @@ public partial class AuthenticationService(
         var slug = baseSlug;
         var counter = 1;
 
-        while (!string.IsNullOrEmpty(slug) && await this._workspaceRepository!.FindBySlugAsync(slug) != null)
+        while (!string.IsNullOrEmpty(slug) && await this.workspaceRepository!.FindBySlugAsync(slug) != null)
         {
             slug = $"{baseSlug}-{counter}";
             counter++;

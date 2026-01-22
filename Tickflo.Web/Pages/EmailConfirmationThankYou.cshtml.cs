@@ -5,15 +5,15 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
-public class EmailConfirmationThankYouModel(IEmailTemplateRepository emailTemplateRepo) : PageModel
+public class EmailConfirmationThankYouModel(IEmailTemplateRepository emailTemplateRepository) : PageModel
 {
-    private readonly IEmailTemplateRepository _emailTemplateRepo = emailTemplateRepo;
+    private readonly IEmailTemplateRepository emailTemplateRepository = emailTemplateRepository;
 
     public string TemplateContent { get; set; } = string.Empty;
 
     public async Task<IActionResult> OnGetAsync()
     {
-        var template = await this._emailTemplateRepo.FindByTypeAsync(EmailTemplateType.EmailConfirmationThankYou);
+        var template = await this.emailTemplateRepository.FindByTypeAsync(EmailTemplateType.EmailConfirmationThankYou);
 
         if (template == null)
         {

@@ -12,7 +12,7 @@ public class WorkspaceInventoryViewServiceTests
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
-        var listingService = new Mock<IInventoryListingService>();
+        var contactListingService = new Mock<IInventoryListingService>();
 
         var permissions = new Dictionary<string, EffectiveSectionPermission>
         {
@@ -31,10 +31,10 @@ public class WorkspaceInventoryViewServiceTests
         accessService.Setup(x => x.GetUserPermissionsAsync(1, 100))
             .ReturnsAsync(permissions);
 
-        listingService.Setup(x => x.GetListAsync(1, null, null))
+        contactListingService.Setup(x => x.GetListAsync(1, null, null))
             .ReturnsAsync(inventoryItems);
 
-        var service = new WorkspaceInventoryViewService(accessService.Object, listingService.Object);
+        var service = new WorkspaceInventoryViewService(accessService.Object, contactListingService.Object);
 
         // Act
         var result = await service.BuildAsync(1, 100);
@@ -52,7 +52,7 @@ public class WorkspaceInventoryViewServiceTests
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
-        var listingService = new Mock<IInventoryListingService>();
+        var contactListingService = new Mock<IInventoryListingService>();
 
         var permissions = new Dictionary<string, EffectiveSectionPermission>();
 
@@ -62,10 +62,10 @@ public class WorkspaceInventoryViewServiceTests
         accessService.Setup(x => x.GetUserPermissionsAsync(1, 100))
             .ReturnsAsync(permissions);
 
-        listingService.Setup(x => x.GetListAsync(1, null, null))
+        contactListingService.Setup(x => x.GetListAsync(1, null, null))
             .ReturnsAsync([]);
 
-        var service = new WorkspaceInventoryViewService(accessService.Object, listingService.Object);
+        var service = new WorkspaceInventoryViewService(accessService.Object, contactListingService.Object);
 
         // Act
         var result = await service.BuildAsync(1, 100);
@@ -81,7 +81,7 @@ public class WorkspaceInventoryViewServiceTests
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
-        var listingService = new Mock<IInventoryListingService>();
+        var contactListingService = new Mock<IInventoryListingService>();
 
         var permissions = new Dictionary<string, EffectiveSectionPermission>();
 
@@ -91,10 +91,10 @@ public class WorkspaceInventoryViewServiceTests
         accessService.Setup(x => x.GetUserPermissionsAsync(1, 100))
             .ReturnsAsync(permissions);
 
-        listingService.Setup(x => x.GetListAsync(1, null, null))
+        contactListingService.Setup(x => x.GetListAsync(1, null, null))
             .ReturnsAsync([]);
 
-        var service = new WorkspaceInventoryViewService(accessService.Object, listingService.Object);
+        var service = new WorkspaceInventoryViewService(accessService.Object, contactListingService.Object);
 
         // Act
         var result = await service.BuildAsync(1, 100);

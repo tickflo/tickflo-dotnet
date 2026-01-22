@@ -3,15 +3,13 @@ namespace Tickflo.Web.Pages.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Tickflo.Core.Data;
 using Tickflo.Core.Services.Common;
 using Tickflo.Core.Services.Storage;
 
 [Authorize]
-public class ProfileAvatarUploadModel(IUserRepository userRepository, IImageStorageService imageStorageService, ICurrentUserService currentUserService) : PageModel
+public class ProfileAvatarUploadModel(IImageStorageService imageStorageService, ICurrentUserService currentUserService) : PageModel
 {
-    private readonly IUserRepository userRepository = userRepository;
-    private readonly IImageStorageService _imageStorageService = imageStorageService;
+    private readonly IImageStorageService imageStorageService = imageStorageService;
     private readonly ICurrentUserService currentUserService = currentUserService;
     public string UserId { get; set; } = "";
     public string Message { get; set; } = "";
@@ -44,7 +42,7 @@ public class ProfileAvatarUploadModel(IUserRepository userRepository, IImageStor
                 stream.Position = 0;
 
                 // Use the image storage service to upload avatar
-                await this._imageStorageService.UploadUserAvatarAsync(uid, stream);
+                await this.imageStorageService.UploadUserAvatarAsync(uid, stream);
 
                 this.Message = "Avatar updated successfully.";
             }

@@ -5,10 +5,10 @@ using Tickflo.Core.Services.Workspace;
 
 public class WorkspaceLocationsViewService(
     IWorkspaceAccessService workspaceAccessService,
-    ILocationListingService listingService) : IWorkspaceLocationsViewService
+    ILocationListingService contactListingService) : IWorkspaceLocationsViewService
 {
     private readonly IWorkspaceAccessService workspaceAccessService = workspaceAccessService;
-    private readonly ILocationListingService _listingService = listingService;
+    private readonly ILocationListingService contactListingService = contactListingService;
 
     public async Task<WorkspaceLocationsViewData> BuildAsync(int workspaceId, int userId)
     {
@@ -23,7 +23,7 @@ public class WorkspaceLocationsViewService(
         }
 
         // Load locations
-        var locations = await this._listingService.GetListAsync(workspaceId);
+        var locations = await this.contactListingService.GetListAsync(workspaceId);
         data.Locations = [.. locations];
 
         return data;

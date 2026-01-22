@@ -6,18 +6,18 @@ using Tickflo.Core.Services.Workspace;
 
 public class WorkspaceSettingsViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
-    IRolePermissionRepository rolePermRepo,
+    IRolePermissionRepository rolePermissionRepository,
     ITicketStatusRepository statusRepository,
     ITicketPriorityRepository priorityRepository,
     ITicketTypeRepository ticketTypeRepository,
-    IWorkspaceSettingsService settingsService) : IWorkspaceSettingsViewService
+    IWorkspaceSettingsService workspaceSettingsService) : IWorkspaceSettingsViewService
 {
     private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
-    private readonly IRolePermissionRepository _rolePermRepo = rolePermRepo;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
     private readonly ITicketStatusRepository statusRepository = statusRepository;
     private readonly ITicketPriorityRepository priorityRepository = priorityRepository;
     private readonly ITicketTypeRepository ticketTypeRepository = ticketTypeRepository;
-    private readonly IWorkspaceSettingsService _settingsService = settingsService;
+    private readonly IWorkspaceSettingsService workspaceSettingsService = workspaceSettingsService;
 
     public async Task<WorkspaceSettingsViewData> BuildAsync(int workspaceId, int userId)
     {
@@ -30,7 +30,7 @@ public class WorkspaceSettingsViewService(
         }
         else
         {
-            var perms = await this._rolePermRepo.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+            var perms = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
             if (perms.TryGetValue("settings", out var eff))
             {
                 data.CanViewSettings = eff.CanView;
@@ -40,7 +40,7 @@ public class WorkspaceSettingsViewService(
         }
 
         // Ensure defaults and load lists
-        await this._settingsService.EnsureDefaultsExistAsync(workspaceId);
+        await this.workspaceSettingsService.EnsureDefaultsExistAsync(workspaceId);
         data.Statuses = await this.statusRepository.ListAsync(workspaceId);
         data.Priorities = await this.priorityRepository.ListAsync(workspaceId);
         data.Types = await this.ticketTypeRepository.ListAsync(workspaceId);

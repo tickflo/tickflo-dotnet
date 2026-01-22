@@ -8,11 +8,9 @@ using Tickflo.Core.Services.Authentication;
 
 [AllowAnonymous]
 public class SetPasswordModel(
-    ILogger<SetPasswordModel> logger,
     IPasswordSetupService passwordSetupService) : PageModel
 {
-    private readonly ILogger<SetPasswordModel> logger = logger;
-    private readonly IPasswordSetupService _passwordSetupService = passwordSetupService;
+    private readonly IPasswordSetupService passwordSetupService = passwordSetupService;
 
     [BindProperty]
     public SetPasswordInput Input { get; set; } = new();
@@ -25,7 +23,7 @@ public class SetPasswordModel(
 
     public async Task<IActionResult> OnGetAsync()
     {
-        var validation = await this._passwordSetupService.ValidateInitialUserAsync(this.UserId);
+        var validation = await this.passwordSetupService.ValidateInitialUserAsync(this.UserId);
         if (!validation.IsValid)
         {
             return this.Redirect("/login");
@@ -37,7 +35,7 @@ public class SetPasswordModel(
 
     public async Task<IActionResult> OnPostAsync()
     {
-        var validation = await this._passwordSetupService.ValidateInitialUserAsync(this.UserId);
+        var validation = await this.passwordSetupService.ValidateInitialUserAsync(this.UserId);
         if (!validation.IsValid || validation.UserId == null)
         {
             return this.Redirect("/login");
@@ -49,7 +47,7 @@ public class SetPasswordModel(
             return this.Page();
         }
 
-        var result = await this._passwordSetupService.SetInitialPasswordAsync(validation.UserId.Value, this.Input.Password);
+        var result = await this.passwordSetupService.SetInitialPasswordAsync(validation.UserId.Value, this.Input.Password);
         if (!result.Success || string.IsNullOrWhiteSpace(result.LoginToken))
         {
             this.ErrorMessage = result.ErrorMessage ?? "Could not set password.";

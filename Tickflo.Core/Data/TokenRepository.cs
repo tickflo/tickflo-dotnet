@@ -8,7 +8,7 @@ using Tickflo.Core.Utils;
 public class TokenRepository(TickfloDbContext dbContext, TickfloConfig config) : ITokenRepository
 {
     private readonly TickfloDbContext dbContext = dbContext;
-    private readonly TickfloConfig _config = config;
+    private readonly TickfloConfig config = config;
 
     public Task<Token?> FindByUserIdAsync(int userId)
     {
@@ -34,7 +34,7 @@ public class TokenRepository(TickfloDbContext dbContext, TickfloConfig config) :
         {
             UserId = userId,
             Value = TokenGenerator.GenerateToken(),
-            MaxAge = this._config.SessionTimeoutMinutes * 60,
+            MaxAge = this.config.SessionTimeoutMinutes * 60,
             CreatedAt = DateTime.UtcNow
         };
 

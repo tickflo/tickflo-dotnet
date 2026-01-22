@@ -16,7 +16,7 @@ public class WorkspaceTicketsViewService(
     IUserWorkspaceRepository userWorkspaceRepository,
     IUserRepository userRepository,
     ILocationRepository locationRepository,
-    IRolePermissionRepository rolePermissionRepo,
+    IRolePermissionRepository rolePermissionRepository,
     ITeamMemberRepository teamMemberRepo,
     IUserWorkspaceRoleRepository userWorkspaceRoleRepository) : IWorkspaceTicketsViewService
 {
@@ -28,7 +28,7 @@ public class WorkspaceTicketsViewService(
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly IUserRepository userRepository = userRepository;
     private readonly ILocationRepository locationRepository = locationRepository;
-    private readonly IRolePermissionRepository _rolePermissionRepo = rolePermissionRepo;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
     private readonly ITeamMemberRepository teamMemberRepository = teamMemberRepo;
     private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepository;
 
@@ -116,7 +116,7 @@ public class WorkspaceTicketsViewService(
         // Determine permissions
         if (userId > 0)
         {
-            var permissions = await this._rolePermissionRepo.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+            var permissions = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
             if (permissions.TryGetValue("tickets", out var ticketPerms))
             {
                 data.CanCreateTickets = ticketPerms.CanCreate;
@@ -130,7 +130,7 @@ public class WorkspaceTicketsViewService(
         }
 
         // Determine scope and team IDs
-        var scope = await this._rolePermissionRepo.GetTicketViewScopeForUserAsync(workspaceId, userId, isAdmin);
+        var scope = await this.rolePermissionRepository.GetTicketViewScopeForUserAsync(workspaceId, userId, isAdmin);
         data.TicketViewScope = scope;
         if (scope == "team" && userId > 0)
         {

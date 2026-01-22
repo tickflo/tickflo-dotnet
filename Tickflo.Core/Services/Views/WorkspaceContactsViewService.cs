@@ -5,10 +5,10 @@ using Tickflo.Core.Services.Workspace;
 
 public class WorkspaceContactsViewService(
     IWorkspaceAccessService workspaceAccessService,
-    IContactListingService listingService) : IWorkspaceContactsViewService
+    IContactListingService contactListingService) : IWorkspaceContactsViewService
 {
     private readonly IWorkspaceAccessService workspaceAccessService = workspaceAccessService;
-    private readonly IContactListingService _listingService = listingService;
+    private readonly IContactListingService contactListingService = contactListingService;
 
     public async Task<WorkspaceContactsViewData> BuildAsync(int workspaceId, int userId, string? priorityFilter = null, string? searchQuery = null)
     {
@@ -23,7 +23,7 @@ public class WorkspaceContactsViewService(
         }
 
         // Load contacts with filtering
-        var (contacts, priorities) = await this._listingService.GetListAsync(workspaceId, priorityFilter, searchQuery);
+        var (contacts, priorities) = await this.contactListingService.GetListAsync(workspaceId, priorityFilter, searchQuery);
         data.Contacts = [.. contacts];
         data.Priorities = [.. priorities];
         data.PriorityColorByName = priorities.ToDictionary(

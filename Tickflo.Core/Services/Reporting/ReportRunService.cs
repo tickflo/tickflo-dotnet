@@ -11,7 +11,7 @@ public class ReportRunService(IReportRepository reporyRepository, IReportRunRepo
     private readonly IReportingService reportingService = reportingService;
     private readonly ILogger<ReportRunService> logger = logger;
 
-    public async Task<(Report? Report, IReadOnlyList<ReportRun> Runs)> GetReportRunsAsync(int workspaceId, int reportId, int take = 100, CancellationToken ct = default)
+    public async Task<(Report? report, IReadOnlyList<ReportRun> runs)> GetReportRunsAsync(int workspaceId, int reportId, int take = 100, CancellationToken ct = default)
     {
         var report = await this.reporyRepository.FindAsync(workspaceId, reportId);
         if (report == null)

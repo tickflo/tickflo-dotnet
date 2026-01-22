@@ -7,9 +7,9 @@ using Tickflo.Core.Entities;
 /// Implementation of INotificationPreferenceService.
 /// Manages user notification preferences and default initialization.
 /// </summary>
-public class NotificationPreferenceService(IUserNotificationPreferenceRepository preferenceRepository) : INotificationPreferenceService
+public class NotificationPreferenceService(IUserNotificationPreferenceRepository userNotificationPreferenceRepository) : INotificationPreferenceService
 {
-    private readonly IUserNotificationPreferenceRepository _preferenceRepository = preferenceRepository;
+    private readonly IUserNotificationPreferenceRepository userNotificationPreferenceRepository = userNotificationPreferenceRepository;
 
     // Define all notification types as a constant to be reused
     private static readonly NotificationTypeDefinition[] DefaultNotificationTypes =
@@ -28,7 +28,7 @@ public class NotificationPreferenceService(IUserNotificationPreferenceRepository
 
     public async Task<List<UserNotificationPreference>> GetUserPreferencesAsync(int userId)
     {
-        var existing = await this._preferenceRepository.GetPreferencesForUserAsync(userId);
+        var existing = await this.userNotificationPreferenceRepository.GetPreferencesForUserAsync(userId);
 
         if (existing.Count == 0)
         {
@@ -81,7 +81,7 @@ public class NotificationPreferenceService(IUserNotificationPreferenceRepository
             }
         }
 
-        await this._preferenceRepository.SavePreferencesAsync(preferences);
+        await this.userNotificationPreferenceRepository.SavePreferencesAsync(preferences);
         return preferences;
     }
 
@@ -101,7 +101,7 @@ public class NotificationPreferenceService(IUserNotificationPreferenceRepository
             })
             .ToList();
 
-        await this._preferenceRepository.SavePreferencesAsync(preferences);
+        await this.userNotificationPreferenceRepository.SavePreferencesAsync(preferences);
         return preferences;
     }
 }

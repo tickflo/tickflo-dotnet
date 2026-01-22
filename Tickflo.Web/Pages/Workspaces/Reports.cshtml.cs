@@ -5,20 +5,17 @@ using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
-using Tickflo.Core.Services.Common;
 using Tickflo.Core.Services.Views;
 
 [Authorize]
 public class ReportsModel(
-    IWorkspaceRepository workspaceRepo,
+    IWorkspaceRepository workspaceRepository,
     IUserWorkspaceRepository userWorkspaceRepository,
-    ICurrentUserService currentUserService,
-    IWorkspaceReportsViewService viewService) : WorkspacePageModel
+    IWorkspaceReportsViewService workspaceReportsViewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly ICurrentUserService currentUserService = currentUserService;
-    private readonly IWorkspaceReportsViewService _viewService = viewService;
+    private readonly IWorkspaceReportsViewService workspaceReportsViewService = workspaceReportsViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -39,7 +36,7 @@ public class ReportsModel(
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
         this.Workspace = workspace;
 
-        var viewData = await this._viewService.BuildAsync(this.Workspace!.Id, uid);
+        var viewData = await this.workspaceReportsViewService.BuildAsync(this.Workspace!.Id, uid);
         this.Reports = viewData.Reports;
         this.CanCreateReports = viewData.CanCreateReports;
         this.CanEditReports = viewData.CanEditReports;

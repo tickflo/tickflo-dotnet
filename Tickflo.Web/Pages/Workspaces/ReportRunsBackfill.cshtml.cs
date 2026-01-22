@@ -7,10 +7,10 @@ using Tickflo.Core.Data;
 using Tickflo.Core.Services.Views;
 
 [Authorize]
-public class ReportRunsBackfillModel(IWorkspaceRepository workspaceRepo, IWorkspaceReportRunsBackfillViewService backfillViewService) : WorkspacePageModel
+public class ReportRunsBackfillModel(IWorkspaceRepository workspaceRepository, IWorkspaceReportRunsBackfillViewService workspaceReportRunsBackfillViewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
-    private readonly IWorkspaceReportRunsBackfillViewService _backfillViewService = backfillViewService;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly IWorkspaceReportRunsBackfillViewService workspaceReportRunsBackfillViewService = workspaceReportRunsBackfillViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Core.Entities.Workspace? Workspace { get; private set; }
@@ -37,7 +37,7 @@ public class ReportRunsBackfillModel(IWorkspaceRepository workspaceRepo, IWorksp
             return this.Forbid();
         }
 
-        var data = await this._backfillViewService.BuildAsync(ws!.Id, uid);
+        var data = await this.workspaceReportRunsBackfillViewService.BuildAsync(ws!.Id, uid);
         if (this.EnsurePermissionOrForbid(data.CanEditReports) is IActionResult permCheck)
         {
             return permCheck;
@@ -65,7 +65,7 @@ public class ReportRunsBackfillModel(IWorkspaceRepository workspaceRepo, IWorksp
             return this.Forbid();
         }
 
-        var data = await this._backfillViewService.BuildAsync(ws!.Id, uid);
+        var data = await this.workspaceReportRunsBackfillViewService.BuildAsync(ws!.Id, uid);
         if (this.EnsurePermissionOrForbid(data.CanEditReports) is IActionResult permCheck)
         {
             return permCheck;

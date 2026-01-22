@@ -12,7 +12,7 @@ public class WorkspaceTeamsViewServiceTests
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
-        var listingService = new Mock<ITeamListingService>();
+        var contactListingService = new Mock<ITeamListingService>();
 
         var permissions = new Dictionary<string, EffectiveSectionPermission>
         {
@@ -33,10 +33,10 @@ public class WorkspaceTeamsViewServiceTests
         accessService.Setup(x => x.GetUserPermissionsAsync(1, 100))
             .ReturnsAsync(permissions);
 
-        listingService.Setup(x => x.GetListAsync(1))
+        contactListingService.Setup(x => x.GetListAsync(1))
             .ReturnsAsync((teams, memberCounts));
 
-        var service = new WorkspaceTeamsViewService(accessService.Object, listingService.Object);
+        var service = new WorkspaceTeamsViewService(accessService.Object, contactListingService.Object);
 
         // Act
         var result = await service.BuildAsync(1, 100);
@@ -55,7 +55,7 @@ public class WorkspaceTeamsViewServiceTests
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
-        var listingService = new Mock<ITeamListingService>();
+        var contactListingService = new Mock<ITeamListingService>();
 
         var permissions = new Dictionary<string, EffectiveSectionPermission>();
 
@@ -68,10 +68,10 @@ public class WorkspaceTeamsViewServiceTests
         accessService.Setup(x => x.GetUserPermissionsAsync(1, 100))
             .ReturnsAsync(permissions);
 
-        listingService.Setup(x => x.GetListAsync(1))
+        contactListingService.Setup(x => x.GetListAsync(1))
             .ReturnsAsync((teams, memberCounts));
 
-        var service = new WorkspaceTeamsViewService(accessService.Object, listingService.Object);
+        var service = new WorkspaceTeamsViewService(accessService.Object, contactListingService.Object);
 
         // Act
         var result = await service.BuildAsync(1, 100);
@@ -87,7 +87,7 @@ public class WorkspaceTeamsViewServiceTests
     {
         // Arrange
         var accessService = new Mock<IWorkspaceAccessService>();
-        var listingService = new Mock<ITeamListingService>();
+        var contactListingService = new Mock<ITeamListingService>();
 
         var permissions = new Dictionary<string, EffectiveSectionPermission>();
 
@@ -97,7 +97,7 @@ public class WorkspaceTeamsViewServiceTests
         accessService.Setup(x => x.GetUserPermissionsAsync(1, 100))
             .ReturnsAsync(permissions);
 
-        var service = new WorkspaceTeamsViewService(accessService.Object, listingService.Object);
+        var service = new WorkspaceTeamsViewService(accessService.Object, contactListingService.Object);
 
         // Act
         var result = await service.BuildAsync(1, 100);
@@ -108,7 +108,7 @@ public class WorkspaceTeamsViewServiceTests
         Assert.False(result.CanEditTeams);
         Assert.Empty(result.Teams);
         Assert.Empty(result.MemberCounts);
-        listingService.Verify(x => x.GetListAsync(It.IsAny<int>()), Times.Never);
+        contactListingService.Verify(x => x.GetListAsync(It.IsAny<int>()), Times.Never);
     }
 }
 

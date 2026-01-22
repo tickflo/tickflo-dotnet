@@ -9,7 +9,7 @@ using Tickflo.Core.Services.Views;
 using Tickflo.Core.Utils;
 
 [Authorize]
-public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository userRepository, IUserWorkspaceRepository userWorkspaceRepository, IEmailSenderService emailSenderService, IEmailTemplateService emailTemplateService, INotificationRepository notificationRepository, IWorkspaceUsersViewService workspaceUsersViewService, IWorkspaceUsersManageViewService workspaceUsersManageViewService) : WorkspacePageModel
+public class UsersModel(IWorkspaceRepository workspaceRepository, IUserRepository userRepository, IUserWorkspaceRepository userWorkspaceRepository, IEmailSenderService emailSenderService, IEmailTemplateService emailTemplateService, INotificationRepository notificationRepository, IWorkspaceUsersViewService workspaceUsersViewService, IWorkspaceUsersManageViewService workspaceUsersManageViewService) : WorkspacePageModel
 {
     #region Constants
     private const string InviteAcceptedMessage = "Invite accepted.";
@@ -20,7 +20,7 @@ public class UsersModel(IWorkspaceRepository workspaceRepo, IUserRepository user
     private const string SentStatus = "sent";
     #endregion
 
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly IUserRepository userRepository = userRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly IEmailSenderService emailSenderService = emailSenderService;

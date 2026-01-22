@@ -10,10 +10,10 @@ public class PasswordSetupService(
     IWorkspaceRepository workspaceRepository) : IPasswordSetupService
 {
     private readonly IUserRepository userRepository = userRepository;
-    private readonly ITokenRepository _tokenRepository = tokenRepository;
+    private readonly ITokenRepository tokenRepository = tokenRepository;
     private readonly IPasswordHasher passwordHasher = passwordHasher;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly IWorkspaceRepository _workspaceRepository = workspaceRepository;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
 
     public async Task<TokenValidationResult> ValidateResetTokenAsync(string tokenValue)
     {
@@ -22,7 +22,7 @@ public class PasswordSetupService(
             return new TokenValidationResult(false, "Missing token.", null, null);
         }
 
-        var token = await this._tokenRepository.FindByValueAsync(tokenValue);
+        var token = await this.tokenRepository.FindByValueAsync(tokenValue);
         if (token == null)
         {
             return new TokenValidationResult(false, "Invalid or expired token.", null, null);
@@ -108,13 +108,13 @@ public class PasswordSetupService(
         user.UpdatedAt = DateTime.UtcNow;
         await this.userRepository.UpdateAsync(user);
 
-        var loginToken = await this._tokenRepository.CreateForUserIdAsync(user.Id);
+        var loginToken = await this.tokenRepository.CreateForUserIdAsync(user.Id);
 
         string? workspaceSlug = null;
         var uw = await this.userWorkspaceRepository.FindAcceptedForUserAsync(user.Id);
         if (uw != null)
         {
-            var ws = await this._workspaceRepository.FindByIdAsync(uw.WorkspaceId);
+            var ws = await this.workspaceRepository.FindByIdAsync(uw.WorkspaceId);
             workspaceSlug = ws?.Slug;
         }
 

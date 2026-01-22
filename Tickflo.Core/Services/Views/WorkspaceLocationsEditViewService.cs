@@ -8,15 +8,15 @@ public class WorkspaceLocationsEditViewService(
     IRolePermissionRepository rolePermissionRepository,
     ILocationRepository locationRepository,
     IUserWorkspaceRepository userWorkspaceRepository,
-    IUserRepository users,
-    IContactRepository contacts) : IWorkspaceLocationsEditViewService
+    IUserRepository userRepository,
+    IContactRepository contactRepository) : IWorkspaceLocationsEditViewService
 {
     private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
     private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
     private readonly ILocationRepository locationRepository = locationRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly IUserRepository userRepository = users;
-    private readonly IContactRepository _contacts = contacts;
+    private readonly IUserRepository userRepository = userRepository;
+    private readonly IContactRepository contactRepository = contactRepository;
 
     public async Task<WorkspaceLocationsEditViewData> BuildAsync(int workspaceId, int userId, int locationId = 0)
     {
@@ -51,7 +51,7 @@ public class WorkspaceLocationsEditViewService(
         }
 
         // Load all contacts
-        var contacts = await this._contacts.ListAsync(workspaceId);
+        var contacts = await this.contactRepository.ListAsync(workspaceId);
         data.ContactOptions = contacts != null ? [.. contacts] : [];
 
         if (locationId > 0)

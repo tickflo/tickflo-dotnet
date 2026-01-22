@@ -7,7 +7,7 @@ using Xunit;
 
 public class ReportingServiceTests
 {
-    private static readonly string[] expected = ["3", "C"];
+    private static readonly string[] Expected = ["3", "C"];
 
     [Fact]
     public async Task GetRunPageAsyncPaginatesCsv()
@@ -30,7 +30,7 @@ public class ReportingServiceTests
             h => Assert.Equal("Id", h),
             h => Assert.Equal("Name", h));
         Assert.Single(page.Rows);
-        Assert.Equal(expected, page.Rows[0]);
+        Assert.Equal(Expected, page.Rows[0]);
     }
 
     [Fact]

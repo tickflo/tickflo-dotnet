@@ -32,7 +32,7 @@ public class ReportRunServiceTests
         var run = await svc.RunReportAsync(report.WorkspaceId, report.Id);
 
         Assert.NotNull(run);
-        Assert.Equal("Succeeded", run!.Status);
+        Assert.Equal("Succeeded", run.Status);
         Assert.Equal(5, run.RowCount);
         Assert.NotNull(run.FileBytes);
         reportRunRepository.Verify(r => r.CompleteAsync(createdRunId, "Succeeded", 5, null, It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
@@ -76,9 +76,9 @@ public class ReportRunServiceTests
 
         var result = await svc.GetReportRunsAsync(3, 5, 100);
 
-        Assert.NotNull(result.Report);
-        Assert.Single(result.Runs);
-        Assert.Equal(11, result.Runs[0].Id);
+        Assert.NotNull(result.report);
+        Assert.Single(result.runs);
+        Assert.Equal(11, result.runs[0].Id);
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public class ReportRunServiceTests
         var run = await svc.GetRunAsync(3, 12);
 
         Assert.NotNull(run);
-        Assert.Equal(12, run!.Id);
+        Assert.Equal(12, run.Id);
         Assert.Equal(3, run.WorkspaceId);
     }
 }

@@ -12,7 +12,7 @@ using Tickflo.Core.Services.Workspace;
 
 [Authorize]
 public class LocationsModel(
-    IWorkspaceRepository workspaceRepo,
+    IWorkspaceRepository workspaceRepository,
     IUserWorkspaceRepository userWorkspaceRepository,
     ILocationRepository locationRepository,
     ICurrentUserService currentUserService,
@@ -26,7 +26,7 @@ public class LocationsModel(
     private const string EditAction = "edit";
     #endregion
 
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly ILocationRepository locationRepository = locationRepository;
     private readonly ICurrentUserService currentUserService = currentUserService;

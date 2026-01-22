@@ -5,10 +5,10 @@ using Tickflo.Core.Services.Workspace;
 
 public class WorkspaceInventoryViewService(
     IWorkspaceAccessService workspaceAccessService,
-    IInventoryListingService listingService) : IWorkspaceInventoryViewService
+    IInventoryListingService contactListingService) : IWorkspaceInventoryViewService
 {
     private readonly IWorkspaceAccessService workspaceAccessService = workspaceAccessService;
-    private readonly IInventoryListingService _listingService = listingService;
+    private readonly IInventoryListingService contactListingService = contactListingService;
 
     public async Task<WorkspaceInventoryViewData> BuildAsync(int workspaceId, int userId)
     {
@@ -33,7 +33,7 @@ public class WorkspaceInventoryViewService(
         }
 
         // Load inventory items (all items, filtering is applied in the page)
-        data.Items = await this._listingService.GetListAsync(workspaceId, null, null);
+        data.Items = await this.contactListingService.GetListAsync(workspaceId, null, null);
 
         return data;
     }

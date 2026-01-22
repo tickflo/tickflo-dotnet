@@ -27,10 +27,10 @@ public class WorkspaceTicketDetailsViewServiceTests
         var teamMemberRepo = new Mock<ITeamMemberRepository>();
         var inventoryRepository = new Mock<IInventoryRepository>();
         var locationRepository = new Mock<ILocationRepository>();
-        var rolePermissionRepo = new Mock<IRolePermissionRepository>();
+        var rolePermissionRepository = new Mock<IRolePermissionRepository>();
 
         // Setup permissions
-        rolePermissionRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
+        rolePermissionRepository.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
             .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>
             {
                 { "tickets", new EffectiveSectionPermission { Section = "tickets", CanCreate = true, CanEdit = true, CanView = true, TicketViewScope = "all" } }
@@ -78,7 +78,7 @@ public class WorkspaceTicketDetailsViewServiceTests
             teamMemberRepo.Object,
             inventoryRepository.Object,
             locationRepository.Object,
-            rolePermissionRepo.Object);
+            rolePermissionRepository.Object);
 
         var view = await service.BuildAsync(workspaceId, ticketId, userId, null);
 
@@ -114,9 +114,9 @@ public class WorkspaceTicketDetailsViewServiceTests
         var teamMemberRepo = new Mock<ITeamMemberRepository>();
         var inventoryRepository = new Mock<IInventoryRepository>();
         var locationRepository = new Mock<ILocationRepository>();
-        var rolePermissionRepo = new Mock<IRolePermissionRepository>();
+        var rolePermissionRepository = new Mock<IRolePermissionRepository>();
 
-        rolePermissionRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
+        rolePermissionRepository.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
             .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>
             {
                 { "tickets", new EffectiveSectionPermission { Section = "tickets", CanCreate = true, CanEdit = true, CanView = true, TicketViewScope = "all" } }
@@ -165,7 +165,7 @@ public class WorkspaceTicketDetailsViewServiceTests
             teamMemberRepo.Object,
             inventoryRepository.Object,
             locationRepository.Object,
-            rolePermissionRepo.Object);
+            rolePermissionRepository.Object);
 
         var view = await service.BuildAsync(workspaceId, ticketId, userId, null);
 
@@ -195,9 +195,9 @@ public class WorkspaceTicketDetailsViewServiceTests
         var teamMemberRepo = new Mock<ITeamMemberRepository>();
         var inventoryRepository = new Mock<IInventoryRepository>();
         var locationRepository = new Mock<ILocationRepository>();
-        var rolePermissionRepo = new Mock<IRolePermissionRepository>();
+        var rolePermissionRepository = new Mock<IRolePermissionRepository>();
 
-        rolePermissionRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
+        rolePermissionRepository.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
             .ReturnsAsync(new Dictionary<string, EffectiveSectionPermission>
             {
                 { "tickets", new EffectiveSectionPermission { Section = "tickets", CanCreate = true, CanEdit = true, CanView = true, TicketViewScope = "mine" } }
@@ -224,7 +224,7 @@ public class WorkspaceTicketDetailsViewServiceTests
             teamMemberRepo.Object,
             inventoryRepository.Object,
             locationRepository.Object,
-            rolePermissionRepo.Object);
+            rolePermissionRepository.Object);
 
         var view = await service.BuildAsync(workspaceId, ticketId, userId, null);
 
@@ -251,10 +251,10 @@ public class WorkspaceTicketDetailsViewServiceTests
         var teamMemberRepo = new Mock<ITeamMemberRepository>();
         var inventoryRepository = new Mock<IInventoryRepository>();
         var locationRepository = new Mock<ILocationRepository>();
-        var rolePermissionRepo = new Mock<IRolePermissionRepository>();
+        var rolePermissionRepository = new Mock<IRolePermissionRepository>();
 
         // Empty permissions
-        rolePermissionRepo.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
+        rolePermissionRepository.Setup(r => r.GetEffectivePermissionsForUserAsync(workspaceId, userId))
             .ReturnsAsync([]);
 
         // Admin
@@ -299,7 +299,7 @@ public class WorkspaceTicketDetailsViewServiceTests
             teamMemberRepo.Object,
             inventoryRepository.Object,
             locationRepository.Object,
-            rolePermissionRepo.Object);
+            rolePermissionRepository.Object);
 
         var view = await service.BuildAsync(workspaceId, ticketId, userId, null);
 

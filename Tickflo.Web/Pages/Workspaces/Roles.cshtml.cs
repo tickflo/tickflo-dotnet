@@ -4,21 +4,17 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
-using Tickflo.Core.Services.Common;
 using Tickflo.Core.Services.Views;
 
 [Authorize]
 public class RolesModel(
-    IWorkspaceRepository workspaceRepo,
+    IWorkspaceRepository workspaceRepository,
     IUserWorkspaceRepository userWorkspaceRepository,
-    ICurrentUserService currentUserService,
-    IWorkspaceRolesViewService viewService) : WorkspacePageModel
+    IWorkspaceRolesViewService workspaceRolesViewService) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly ICurrentUserService currentUserService = currentUserService;
-    private readonly IWorkspaceRolesViewService _viewService = viewService;
+    private readonly IWorkspaceRolesViewService workspaceRolesViewService = workspaceRolesViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -38,7 +34,7 @@ public class RolesModel(
         var (workspace, uid) = (WorkspaceUserLoadResult)result;
         this.Workspace = workspace;
 
-        var viewData = await this._viewService.BuildAsync(this.Workspace!.Id, uid);
+        var viewData = await this.workspaceRolesViewService.BuildAsync(this.Workspace!.Id, uid);
 
         if (!viewData.IsAdmin)
         {

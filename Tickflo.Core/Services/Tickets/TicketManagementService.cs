@@ -15,11 +15,12 @@ public class TicketManagementService(
     ITeamMemberRepository teamMemberRepo,
     ILocationRepository locationRepository,
     IInventoryRepository inventoryRepository,
-    IRolePermissionRepository rolePermRepo,
+    IRolePermissionRepository rolePermissionRepository,
     ITicketTypeRepository ticketTypeRepository,
     ITicketPriorityRepository priorityRepository,
     ITicketStatusRepository statusRepository) : ITicketManagementService
 {
+    // TODO: These should definitely be configured per workspace not hard coded
     private const string DefaultTicketType = "Standard";
     private const string DefaultPriority = "Normal";
     private const string DefaultStatus = "New";
@@ -34,7 +35,7 @@ public class TicketManagementService(
     private readonly ITeamMemberRepository teamMemberRepository = teamMemberRepo;
     private readonly ILocationRepository locationRepository = locationRepository;
     private readonly IInventoryRepository inventoryRepository = inventoryRepository;
-    private readonly IRolePermissionRepository _rolePermRepo = rolePermRepo;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
     private readonly ITicketTypeRepository ticketTypeRepository = ticketTypeRepository;
     private readonly ITicketPriorityRepository priorityRepository = priorityRepository;
     private readonly ITicketStatusRepository statusRepository = statusRepository;
@@ -292,7 +293,7 @@ public class TicketManagementService(
             return true;
         }
 
-        var scope = await this._rolePermRepo.GetTicketViewScopeForUserAsync(workspaceId, userId, isAdmin);
+        var scope = await this.rolePermissionRepository.GetTicketViewScopeForUserAsync(workspaceId, userId, isAdmin);
         if (string.IsNullOrEmpty(scope))
         {
             return false;

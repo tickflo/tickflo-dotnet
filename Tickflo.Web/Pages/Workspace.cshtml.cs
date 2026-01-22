@@ -67,7 +67,7 @@ public class WorkspaceModel : PageModel
     public bool ErrorIsHex { get; set; }
 
     public WorkspaceModel(
-        IWorkspaceRepository workspaceRepo,
+        IWorkspaceRepository workspaceRepository,
         IUserWorkspaceRepository userWorkspaceRepository,
         IUserRepository users,
         IWorkspaceDashboardViewService dashboardViewService,
@@ -76,7 +76,7 @@ public class WorkspaceModel : PageModel
         ICurrentUserService currentUserService,
         IWorkspaceCreationService workspaceCreationService)
     {
-        this.workspaceRepository = workspaceRepo;
+        this.workspaceRepository = workspaceRepository;
         this.userWorkspaceRepository = userWorkspaceRepository;
         this.userRepository = users;
         this.workspaceDashboardViewService = dashboardViewService;

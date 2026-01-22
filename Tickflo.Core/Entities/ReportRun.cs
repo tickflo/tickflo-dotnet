@@ -10,6 +10,7 @@ public class ReportRun
     public DateTime? FinishedAt { get; set; }
     public int RowCount { get; set; }
     public string? FilePath { get; set; }
+    // TODO: Report file content should _not_ be stored in the database. Upload to S3
     public byte[]? FileBytes { get; set; }
     public string? ContentType { get; set; }
     public string? FileName { get; set; }

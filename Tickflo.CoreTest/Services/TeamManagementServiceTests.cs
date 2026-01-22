@@ -22,15 +22,15 @@ public class TeamManagementServiceTests
     {
         var teamRepo = new Mock<ITeamRepository>();
         teamRepo.Setup(r => r.FindByIdAsync(2)).ReturnsAsync(new Team { Id = 2, WorkspaceId = 1 });
-        var memberRepo = new Mock<ITeamMemberRepository>();
-        memberRepo.Setup(r => r.ListMembersAsync(2)).ReturnsAsync([new() { Id = 1 }]);
+        var teamMemberRepository = new Mock<ITeamMemberRepository>();
+        teamMemberRepository.Setup(r => r.ListMembersAsync(2)).ReturnsAsync([new() { Id = 1 }]);
         var uw = new Mock<IUserWorkspaceRepository>();
         uw.Setup(r => r.FindForWorkspaceAsync(1)).ReturnsAsync([new() { UserId = 1, Accepted = true }, new() { UserId = 3, Accepted = true }]);
 
-        var svc = new TeamManagementService(teamRepo.Object, memberRepo.Object, uw.Object);
+        var svc = new TeamManagementService(teamRepo.Object, teamMemberRepository.Object, uw.Object);
         await svc.SyncTeamMembersAsync(2, 1, [3]);
 
-        memberRepo.Verify(r => r.RemoveAsync(2, 1), Times.Once);
-        memberRepo.Verify(r => r.AddAsync(2, 3), Times.Once);
+        teamMemberRepository.Verify(r => r.RemoveAsync(2, 1), Times.Once);
+        teamMemberRepository.Verify(r => r.AddAsync(2, 3), Times.Once);
     }
 }

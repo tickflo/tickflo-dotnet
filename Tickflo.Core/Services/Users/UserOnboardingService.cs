@@ -9,13 +9,13 @@ using Tickflo.Core.Entities;
 public class UserOnboardingService(
     IUserRepository userRepository,
     IUserWorkspaceRepository userWorkspaceRepository,
-    IUserWorkspaceRoleRepository roleAssignmentRepo,
-    IWorkspaceRepository workspaceRepo) : IUserOnboardingService
+    IUserWorkspaceRoleRepository userWorkspaceRoleRepository,
+    IWorkspaceRepository workspaceRepository) : IUserOnboardingService
 {
     private readonly IUserRepository userRepository = userRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly IUserWorkspaceRoleRepository _roleAssignmentRepo = roleAssignmentRepo;
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepository;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
 
     /// <summary>
     /// Invites a user to a workspace with a specific role.
@@ -59,7 +59,7 @@ public class UserOnboardingService(
         // Assign default role if provided
         if (roleId > 0)
         {
-            await this._roleAssignmentRepo.AddAsync(user.Id, workspaceId, roleId, invitedByUserId);
+            await this.userWorkspaceRoleRepository.AddAsync(user.Id, workspaceId, roleId, invitedByUserId);
         }
 
         // Business rule: Could send invitation email here

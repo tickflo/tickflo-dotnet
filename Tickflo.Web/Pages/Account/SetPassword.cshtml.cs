@@ -7,7 +7,7 @@ using Tickflo.Core.Services.Authentication;
 
 public class SetPasswordModel(IPasswordSetupService passwordSetupService) : PageModel
 {
-    private readonly IPasswordSetupService _passwordSetupService = passwordSetupService;
+    private readonly IPasswordSetupService passwordSetupService = passwordSetupService;
 
     [BindProperty(SupportsGet = true)]
     public string Token { get; set; } = string.Empty;
@@ -27,7 +27,7 @@ public class SetPasswordModel(IPasswordSetupService passwordSetupService) : Page
 
     public async Task<IActionResult> OnGetAsync()
     {
-        var validation = await this._passwordSetupService.ValidateResetTokenAsync(this.Token);
+        var validation = await this.passwordSetupService.ValidateResetTokenAsync(this.Token);
         if (!validation.IsValid)
         {
             this.Error = validation.ErrorMessage;
@@ -39,7 +39,7 @@ public class SetPasswordModel(IPasswordSetupService passwordSetupService) : Page
     {
         if (!this.ModelState.IsValid)
         {
-            var validation = await this._passwordSetupService.ValidateResetTokenAsync(this.Token);
+            var validation = await this.passwordSetupService.ValidateResetTokenAsync(this.Token);
             if (!validation.IsValid)
             {
                 this.Error = validation.ErrorMessage;
@@ -47,7 +47,7 @@ public class SetPasswordModel(IPasswordSetupService passwordSetupService) : Page
             return this.Page();
         }
 
-        var result = await this._passwordSetupService.SetPasswordWithTokenAsync(this.Token, this.Password);
+        var result = await this.passwordSetupService.SetPasswordWithTokenAsync(this.Token, this.Password);
         if (!result.Success)
         {
             this.Error = result.ErrorMessage;

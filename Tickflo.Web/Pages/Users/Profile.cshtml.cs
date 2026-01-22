@@ -14,7 +14,7 @@ public class ProfileModel(
 {
     private readonly IUserRepository userRepository = userRepository;
     private readonly ICurrentUserService currentUserService = currentUserService;
-    private readonly INotificationPreferenceService _notificationPreferenceService = notificationPreferenceService;
+    private readonly INotificationPreferenceService notificationPreferenceService = notificationPreferenceService;
 
     [BindProperty]
     public string UserId { get; set; } = "";
@@ -52,8 +52,8 @@ public class ProfileModel(
         this.Email = user.Email;
 
         // Get notification preferences - service handles defaults and initialization
-        var prefs = await this._notificationPreferenceService.GetUserPreferencesAsync(uid);
-        var definitions = this._notificationPreferenceService.GetNotificationTypeDefinitions();
+        var prefs = await this.notificationPreferenceService.GetUserPreferencesAsync(uid);
+        var definitions = this.notificationPreferenceService.GetNotificationTypeDefinitions();
         var prefsByType = prefs.ToDictionary(p => p.NotificationType, p => p);
 
         this.NotificationPreferences = [];
@@ -97,7 +97,7 @@ public class ProfileModel(
         }
 
         // Collect and save preferences
-        var definitions = this._notificationPreferenceService.GetNotificationTypeDefinitions();
+        var definitions = this.notificationPreferenceService.GetNotificationTypeDefinitions();
         var preferences = new List<UserNotificationPreference>();
 
         foreach (var definition in definitions)
@@ -117,7 +117,7 @@ public class ProfileModel(
             preferences.Add(pref);
         }
 
-        await this._notificationPreferenceService.SavePreferencesAsync(uid, preferences);
+        await this.notificationPreferenceService.SavePreferencesAsync(uid, preferences);
         return this.RedirectToPage();
     }
 }

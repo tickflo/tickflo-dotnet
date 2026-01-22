@@ -55,9 +55,9 @@ public class WorkspaceReportRunViewServiceTests
         Assert.NotNull(result.Report);
         Assert.NotNull(result.Run);
         Assert.NotNull(result.PageData);
-        Assert.Equal(2, result.PageData!.TotalRows);
-        Assert.Equal(2, result.PageData!.Rows.Count);
-        Assert.Equal("Subject", result.PageData!.Headers[1]);
+        Assert.Equal(2, result.PageData.TotalRows);
+        Assert.Equal(2, result.PageData.Rows.Count);
+        Assert.Equal("Subject", result.PageData.Headers[1]);
     }
 
     [Fact]

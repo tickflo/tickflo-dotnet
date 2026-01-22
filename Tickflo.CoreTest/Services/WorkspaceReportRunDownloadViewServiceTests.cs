@@ -29,8 +29,8 @@ public class WorkspaceReportRunDownloadViewServiceTests
 
         Assert.True(result.CanViewReports);
         Assert.NotNull(result.Run);
-        Assert.Equal(7, result.Run!.Id);
-        Assert.Equal(5, result.Run!.ReportId);
+        Assert.Equal(7, result.Run.Id);
+        Assert.Equal(5, result.Run.ReportId);
     }
 
     [Fact]

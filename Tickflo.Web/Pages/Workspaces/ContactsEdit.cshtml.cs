@@ -10,7 +10,7 @@ using Tickflo.Core.Services.Views;
 
 [Authorize]
 public class ContactsEditModel(
-    IWorkspaceRepository workspaceRepo,
+    IWorkspaceRepository workspaceRepository,
     IUserWorkspaceRepository userWorkspaceRepository,
     IWorkspaceContactsEditViewService workspaceContactsEditViewService,
     IContactRepository contactRepository,
@@ -22,7 +22,7 @@ public class ContactsEditModel(
     private static readonly CompositeFormat ContactUpdatedMessage = CompositeFormat.Parse("Contact '{0}' updated.");
     #endregion
 
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly IWorkspaceContactsEditViewService workspaceContactsEditViewService = workspaceContactsEditViewService;
     private readonly IContactRepository contactRepository = contactRepository;

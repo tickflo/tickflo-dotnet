@@ -5,9 +5,10 @@ using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Reporting;
 
-public class ScheduledReportsHostedService(IServiceProvider sp, ILogger<ScheduledReportsHostedService> logger) : BackgroundService
+// TODO: Idk about all this.. Maybe just make a cron job that calls an endpoint?
+public class ScheduledReportsHostedService(IServiceProvider serviceProvider, ILogger<ScheduledReportsHostedService> logger) : BackgroundService
 {
-    private readonly IServiceProvider _sp = sp;
+    private readonly IServiceProvider serviceProvider = serviceProvider;
     private readonly ILogger<ScheduledReportsHostedService> logger = logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -17,7 +18,7 @@ public class ScheduledReportsHostedService(IServiceProvider sp, ILogger<Schedule
         {
             try
             {
-                using var scope = this._sp.CreateScope();
+                using var scope = this.serviceProvider.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<TickfloDbContext>();
                 var runSvc = scope.ServiceProvider.GetRequiredService<IReportRunService>();
 

@@ -9,15 +9,14 @@ using Tickflo.Core.Services.Views;
 using Tickflo.Core.Services.Workspace;
 
 [Authorize]
-public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepository, ITicketStatusRepository statusRepository, ITicketPriorityRepository priorityRepository, ITicketTypeRepository ticketTypeRepository, IWorkspaceSettingsService settingsService, IWorkspaceSettingsViewService settingsViewService, IUserRepository userRepository) : WorkspacePageModel
+public partial class SettingsModel(IWorkspaceRepository workspaceRepository, ITicketStatusRepository statusRepository, ITicketPriorityRepository priorityRepository, ITicketTypeRepository ticketTypeRepository, IWorkspaceSettingsService workspaceSettingsService, IWorkspaceSettingsViewService workspaceSettingsViewService, IUserRepository userRepository) : WorkspacePageModel
 {
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
-    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly ITicketStatusRepository statusRepository = statusRepository;
     private readonly ITicketPriorityRepository priorityRepository = priorityRepository;
     private readonly ITicketTypeRepository ticketTypeRepository = ticketTypeRepository;
-    private readonly IWorkspaceSettingsService _settingsService = settingsService;
-    private readonly IWorkspaceSettingsViewService _settingsViewService = settingsViewService;
+    private readonly IWorkspaceSettingsService workspaceSettingsService = workspaceSettingsService;
+    private readonly IWorkspaceSettingsViewService workspaceSettingsViewService = workspaceSettingsViewService;
     private readonly IUserRepository userRepository = userRepository;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -51,7 +50,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
 
         var user = await this.userRepository.FindByIdAsync(userId);
         this.IsSystemAdmin = user?.SystemAdmin == true;
-        var data = await this._settingsViewService.BuildAsync(this.Workspace.Id, userId);
+        var data = await this.workspaceSettingsViewService.BuildAsync(this.Workspace.Id, userId);
         this.CanViewSettings = data.CanViewSettings;
         this.CanEditSettings = data.CanEditSettings;
         this.CanCreateSettings = data.CanCreateSettings;
@@ -117,7 +116,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
 
         try
         {
-            this.Workspace = await this._settingsService.UpdateWorkspaceBasicSettingsAsync(this.Workspace.Id, name, newSlug);
+            this.Workspace = await this.workspaceSettingsService.UpdateWorkspaceBasicSettingsAsync(this.Workspace.Id, name, newSlug);
         }
         catch (InvalidOperationException ex)
         {
@@ -129,7 +128,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
         return this.RedirectToPage("/Workspaces/Settings", new { slug = this.Workspace.Slug });
     }
 
-    private async Task LoadDataAsync(Workspace workspace)
+    private async Task LoadDataAsync()
     {
         if (!this.TryGetUserId(out var uid))
         { this.Statuses = []; this.Priorities = []; this.Types = []; return; }
@@ -190,7 +189,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
         }
         try
         {
-            await this._settingsService.AddStatusAsync(this.Workspace.Id, name, color, false);
+            await this.workspaceSettingsService.AddStatusAsync(this.Workspace.Id, name, color, false);
             this.SetSuccessMessage($"Status '{name}' added successfully!");
         }
         catch (InvalidOperationException ex)
@@ -230,7 +229,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
         }
         try
         {
-            await this._settingsService.AddPriorityAsync(this.Workspace.Id, name, color);
+            await this.workspaceSettingsService.AddPriorityAsync(this.Workspace.Id, name, color);
             this.SetSuccessMessage($"Priority '{name}' added successfully!");
         }
         catch (InvalidOperationException ex)
@@ -270,7 +269,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
         }
         try
         {
-            await this._settingsService.AddTypeAsync(this.Workspace.Id, name, color);
+            await this.workspaceSettingsService.AddTypeAsync(this.Workspace.Id, name, color);
             this.SetSuccessMessage($"Type '{name}' added successfully!");
         }
         catch (InvalidOperationException ex)
@@ -305,7 +304,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
         var isClosedState = !string.IsNullOrEmpty(isClosedStateStr) && (isClosedStateStr == "true" || isClosedStateStr == "on");
         try
         {
-            var s = await this._settingsService.UpdateStatusAsync(this.Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder, isClosedState);
+            var s = await this.workspaceSettingsService.UpdateStatusAsync(this.Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder, isClosedState);
             this.SetSuccessMessage($"Status '{s.Name}' updated successfully!");
         }
         catch (InvalidOperationException ex)
@@ -338,7 +337,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
 
         try
         {
-            var p = await this._settingsService.UpdatePriorityAsync(this.Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
+            var p = await this.workspaceSettingsService.UpdatePriorityAsync(this.Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
             this.SetSuccessMessage($"Priority '{p.Name}' updated successfully!");
         }
         catch (InvalidOperationException ex)
@@ -371,7 +370,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
 
         try
         {
-            var t = await this._settingsService.UpdateTypeAsync(this.Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
+            var t = await this.workspaceSettingsService.UpdateTypeAsync(this.Workspace.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
             this.SetSuccessMessage($"Type '{t.Name}' updated successfully!");
         }
         catch (InvalidOperationException ex)
@@ -402,7 +401,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
             return permCheck;
         }
 
-        await this._settingsService.DeleteStatusAsync(this.Workspace.Id, id);
+        await this.workspaceSettingsService.DeleteStatusAsync(this.Workspace.Id, id);
         this.SetSuccessMessage("Status deleted successfully!");
         return this.RedirectToPage("/Workspaces/Settings", new { slug });
     }
@@ -428,7 +427,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
             return permCheck;
         }
 
-        await this._settingsService.DeletePriorityAsync(this.Workspace.Id, id);
+        await this.workspaceSettingsService.DeletePriorityAsync(this.Workspace.Id, id);
         this.SetSuccessMessage("Priority deleted successfully!");
         return this.RedirectToPage("/Workspaces/Settings", new { slug });
     }
@@ -454,7 +453,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
             return permCheck;
         }
 
-        await this._settingsService.DeleteTypeAsync(this.Workspace.Id, id);
+        await this.workspaceSettingsService.DeleteTypeAsync(this.Workspace.Id, id);
         this.SetSuccessMessage("Type deleted successfully!");
         return this.RedirectToPage("/Workspaces/Settings", new { slug });
     }
@@ -528,7 +527,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
                     if (existing != null)
                     {
                         this.SetErrorMessage("Slug is already in use. Please choose a different one.");
-                        await this.LoadDataAsync(this.Workspace);
+                        await this.LoadDataAsync();
                         return this.Page();
                     }
                     this.Workspace.Slug = newSlug;
@@ -752,7 +751,7 @@ public partial class SettingsModel(IWorkspaceRepository workspaceRepo, IUserWork
         catch (Exception ex)
         {
             this.SetErrorMessage($"Error saving settings: {ex.Message}");
-            await this.LoadDataAsync(this.Workspace);
+            await this.LoadDataAsync();
             return this.Page();
         }
     }

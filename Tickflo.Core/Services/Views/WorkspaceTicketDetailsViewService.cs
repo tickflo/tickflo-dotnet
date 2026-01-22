@@ -21,7 +21,7 @@ public class WorkspaceTicketDetailsViewService(
     ITeamMemberRepository teamMemberRepo,
     IInventoryRepository inventoryRepository,
     ILocationRepository locationRepository,
-    IRolePermissionRepository rolePermissionRepo) : IWorkspaceTicketDetailsViewService
+    IRolePermissionRepository rolePermissionRepository) : IWorkspaceTicketDetailsViewService
 {
     private readonly ITicketRepository ticketRepository = ticketRepository;
     private readonly IContactRepository contactRepository = contactRepository;
@@ -36,7 +36,7 @@ public class WorkspaceTicketDetailsViewService(
     private readonly ITeamMemberRepository teamMemberRepository = teamMemberRepo;
     private readonly IInventoryRepository inventoryRepository = inventoryRepository;
     private readonly ILocationRepository locationRepository = locationRepository;
-    private readonly IRolePermissionRepository _rolePermissionRepo = rolePermissionRepo;
+    private readonly IRolePermissionRepository rolePermissionRepository = rolePermissionRepository;
 
     public async Task<WorkspaceTicketDetailsViewData?> BuildAsync(
         int workspaceId,
@@ -50,7 +50,7 @@ public class WorkspaceTicketDetailsViewService(
         // Load effective permissions
         if (userId > 0)
         {
-            var perms = await this._rolePermissionRepo.GetEffectivePermissionsForUserAsync(workspaceId, userId);
+            var perms = await this.rolePermissionRepository.GetEffectivePermissionsForUserAsync(workspaceId, userId);
             if (perms.TryGetValue("tickets", out var tp))
             {
                 data.CanViewTickets = tp.CanView;

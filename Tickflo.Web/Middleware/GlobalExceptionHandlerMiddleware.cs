@@ -9,14 +9,14 @@ using Tickflo.Core.Services.Common;
 /// </summary>
 public class GlobalExceptionHandlerMiddleware(RequestDelegate next, ILogger<GlobalExceptionHandlerMiddleware> logger)
 {
-    private readonly RequestDelegate _next = next;
+    private readonly RequestDelegate next = next;
     private readonly ILogger<GlobalExceptionHandlerMiddleware> logger = logger;
 
     public async Task InvokeAsync(HttpContext context, ICurrentUserService currentUserService, IUserRepository userRepository)
     {
         try
         {
-            await this._next(context);
+            await this.next(context);
         }
         catch (Exception ex)
         {
@@ -55,7 +55,7 @@ public class GlobalExceptionHandlerMiddleware(RequestDelegate next, ILogger<Glob
             context.Request.Path = "/Error";
             context.Request.QueryString = QueryString.Empty;
 
-            await this._next(context);
+            await this.next(context);
         }
     }
 }

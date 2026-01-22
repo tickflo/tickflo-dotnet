@@ -2,12 +2,10 @@ namespace Tickflo.Web.Pages;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Tickflo.Core.Data;
-using Tickflo.Core.Services.Common;
 
 [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
 [IgnoreAntiforgeryToken]
-public class StatusCodeModel(ILogger<StatusCodeModel> logger, ICurrentUserService currentUserService, IUserRepository userRepository) : PageModel
+public class StatusCodeModel(ILogger<StatusCodeModel> logger) : PageModel
 {
     public int HttpStatusCode { get; set; }
     public string StatusMessage { get; set; } = string.Empty;
@@ -15,8 +13,6 @@ public class StatusCodeModel(ILogger<StatusCodeModel> logger, ICurrentUserServic
     public string? TraceId { get; set; }
 
     private readonly ILogger<StatusCodeModel> logger = logger;
-    private readonly ICurrentUserService currentUserService = currentUserService;
-    private readonly IUserRepository userRepository = userRepository;
 
     public async Task OnGetAsync(int code)
     {

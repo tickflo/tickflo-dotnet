@@ -9,7 +9,7 @@ using WorkspaceEntity = Entities.Workspace;
 /// Service for managing workspace settings including status, priority, and type configurations.
 /// </summary>
 public class WorkspaceSettingsService(
-    IWorkspaceRepository workspaceRepo,
+    IWorkspaceRepository workspaceRepository,
     ITicketStatusRepository statusRepository,
     ITicketPriorityRepository priorityRepository,
     ITicketTypeRepository ticketTypeRepository) : IWorkspaceSettingsService
@@ -23,7 +23,7 @@ public class WorkspaceSettingsService(
     private const string DefaultColor = "neutral";
     #endregion
 
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly ITicketStatusRepository statusRepository = statusRepository;
     private readonly ITicketPriorityRepository priorityRepository = priorityRepository;
     private readonly ITicketTypeRepository ticketTypeRepository = ticketTypeRepository;

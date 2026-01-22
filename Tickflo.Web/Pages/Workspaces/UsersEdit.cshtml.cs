@@ -8,12 +8,12 @@ using Tickflo.Core.Services.Views;
 
 [Authorize]
 public class UsersEditModel(
-    IWorkspaceRepository workspaceRepo,
+    IWorkspaceRepository workspaceRepository,
     IUserRepository userRepository,
     IUserWorkspaceRepository userWorkspaceRepository,
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,
     IRoleRepository roleRepo,
-    IWorkspaceUsersManageViewService manageViewService) : WorkspacePageModel
+    IWorkspaceUsersManageViewService workspaceUsersManageViewService) : WorkspacePageModel
 {
     #region Constants
     private const int InvalidRoleId = 0;
@@ -29,12 +29,12 @@ public class UsersEditModel(
     private const string RoleRemovedMessage = "Role removed successfully.";
     #endregion
 
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly IUserRepository userRepository = userRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepo;
     private readonly IRoleRepository roleRepository = roleRepo;
-    private readonly IWorkspaceUsersManageViewService _manageViewService = manageViewService;
+    private readonly IWorkspaceUsersManageViewService workspaceUsersManageViewService = workspaceUsersManageViewService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
@@ -52,7 +52,7 @@ public class UsersEditModel(
         this.WorkspaceSlug = slug;
         this.EditUserId = userId;
 
-        var authCheck = await this.AuthorizeAndLoadWorkspaceAsync(slug, userId, isEditingRoles: false);
+        var authCheck = await this.AuthorizeAndLoadWorkspaceAsync(slug);
         if (authCheck is IActionResult result)
         {
             return result;
@@ -79,7 +79,7 @@ public class UsersEditModel(
         this.WorkspaceSlug = slug;
         this.EditUserId = userId;
 
-        var authCheck = await this.AuthorizeAndLoadWorkspaceAsync(slug, userId, isEditingRoles: true);
+        var authCheck = await this.AuthorizeAndLoadWorkspaceAsync(slug);
         if (authCheck is IActionResult result)
         {
             return result;
@@ -94,16 +94,16 @@ public class UsersEditModel(
         this.WorkspaceSlug = slug;
         this.EditUserId = userId;
 
-        var authCheck = await this.AuthorizeAndLoadWorkspaceAsync(slug, userId, isEditingRoles: true);
+        var authCheck = await this.AuthorizeAndLoadWorkspaceAsync(slug);
         if (authCheck is IActionResult result)
         {
             return result;
         }
 
-        var (IsError, ErrorMessage) = await this.ValidateAndGetRoleAsync(roleId);
-        if (IsError)
+        var (isError, errorMessage) = await this.ValidateAndGetRoleAsync(roleId);
+        if (isError)
         {
-            this.SetErrorMessage(ErrorMessage!);
+            this.SetErrorMessage(errorMessage!);
             return this.RedirectToPage("/Workspaces/UsersEdit", new { slug, userId });
         }
 
@@ -125,7 +125,7 @@ public class UsersEditModel(
         this.WorkspaceSlug = slug;
         this.EditUserId = userId;
 
-        var authCheck = await this.AuthorizeAndLoadWorkspaceAsync(slug, userId, isEditingRoles: true);
+        var authCheck = await this.AuthorizeAndLoadWorkspaceAsync(slug);
         if (authCheck is IActionResult result)
         {
             return result;
@@ -136,7 +136,7 @@ public class UsersEditModel(
         return this.RedirectToPage("/Workspaces/UsersEdit", new { slug, userId });
     }
 
-    private async Task<IActionResult?> AuthorizeAndLoadWorkspaceAsync(string slug, int userId, bool isEditingRoles)
+    private async Task<IActionResult?> AuthorizeAndLoadWorkspaceAsync(string slug)
     {
         var loadResult = await this.LoadWorkspaceAndValidateUserMembershipAsync(this.workspaceRepository, this.userWorkspaceRepository, slug);
         if (loadResult is IActionResult actionResult)
@@ -147,7 +147,7 @@ public class UsersEditModel(
         var (workspace, currentUserId) = (WorkspaceUserLoadResult)loadResult;
         this.Workspace = workspace;
 
-        var viewData = await this._manageViewService.BuildAsync(this.Workspace!.Id, currentUserId);
+        var viewData = await this.workspaceUsersManageViewService.BuildAsync(this.Workspace!.Id, currentUserId);
         if (this.EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck)
         {
             return permCheck;
@@ -185,7 +185,7 @@ public class UsersEditModel(
         }
     }
 
-    private async Task<(bool IsError, string? ErrorMessage)> ValidateAndGetRoleAsync(int roleId)
+    private async Task<(bool isError, string? errorMessage)> ValidateAndGetRoleAsync(int roleId)
     {
         if (roleId <= InvalidRoleId)
         {

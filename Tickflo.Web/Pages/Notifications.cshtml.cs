@@ -1,5 +1,6 @@
 namespace Tickflo.Web.Pages;
 
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -9,16 +10,18 @@ using Tickflo.Core.Services.Common;
 
 public class NotificationTicketData
 {
-    public int ticketId { get; set; }
-    public string? workspaceSlug { get; set; }
+    [JsonPropertyName("ticketId")]
+    public int TicketId { get; set; }
+    [JsonPropertyName("workspaceSlug")]
+    public string? WorkspaceSlug { get; set; }
 }
 
 [Authorize]
 public class NotificationsModel(
-    INotificationRepository notificationRepo,
+    INotificationRepository notificationRepository,
     ICurrentUserService currentUserService) : PageModel
 {
-    private readonly INotificationRepository _notificationRepo = notificationRepo;
+    private readonly INotificationRepository notificationRepository = notificationRepository;
     private readonly ICurrentUserService currentUserService = currentUserService;
 
     public List<Notification> Notifications { get; set; } = [];
@@ -47,7 +50,7 @@ public class NotificationsModel(
             return this.Forbid();
         }
 
-        this.Notifications = await this._notificationRepo.ListForUserAsync(userId);
+        this.Notifications = await this.notificationRepository.ListForUserAsync(userId);
         return this.Page();
     }
 
@@ -58,13 +61,13 @@ public class NotificationsModel(
             return this.Forbid();
         }
 
-        var notification = await this._notificationRepo.FindByIdAsync(id);
+        var notification = await this.notificationRepository.FindByIdAsync(id);
         if (notification == null || notification.UserId != userId)
         {
             return this.NotFound();
         }
 
-        await this._notificationRepo.MarkAsReadAsync(id);
+        await this.notificationRepository.MarkAsReadAsync(id);
         return this.RedirectToPage();
     }
 
@@ -75,10 +78,10 @@ public class NotificationsModel(
             return this.Forbid();
         }
 
-        var notifications = await this._notificationRepo.ListForUserAsync(userId, unreadOnly: true);
+        var notifications = await this.notificationRepository.ListForUserAsync(userId, unreadOnly: true);
         foreach (var notification in notifications)
         {
-            await this._notificationRepo.MarkAsReadAsync(notification.Id);
+            await this.notificationRepository.MarkAsReadAsync(notification.Id);
         }
 
         return this.RedirectToPage();

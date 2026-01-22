@@ -9,18 +9,18 @@ using Tickflo.Core.Services.Tickets;
 using Tickflo.Core.Services.Views;
 
 [Authorize]
-public class TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepository userWorkspaceRepository, ITicketRepository ticketRepository, ITicketFilterService filterService, IWorkspaceTicketsViewService viewService, INotificationTriggerService notificationTriggerService) : WorkspacePageModel
+public class TicketsModel(IWorkspaceRepository workspaceRepository, IUserWorkspaceRepository userWorkspaceRepository, ITicketRepository ticketRepository, ITicketFilterService ticketFilterService, IWorkspaceTicketsViewService workspaceTicketsViewService, INotificationTriggerService notificationTriggerService) : WorkspacePageModel
 {
     private const int DefaultPageSize = 25;
     private const int MaxPageSize = 200;
     private const int MinPageNumber = 1;
     private const string OpenStatusFilter = "Open";
 
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepo;
+    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly ITicketRepository ticketRepository = ticketRepository;
-    private readonly ITicketFilterService _filterService = filterService;
-    private readonly IWorkspaceTicketsViewService _viewService = viewService;
+    private readonly ITicketFilterService ticketFilterService = ticketFilterService;
+    private readonly IWorkspaceTicketsViewService workspaceTicketsViewService = workspaceTicketsViewService;
     private readonly INotificationTriggerService notificationTriggerService = notificationTriggerService;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
@@ -29,8 +29,8 @@ public class TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepo
     public Dictionary<int, Contact> ContactsById { get; private set; } = [];
     public Dictionary<int, User> UsersById { get; private set; } = [];
 
-    private string? _ticketViewScope;
-    private List<int> _userTeamIds = [];
+    private string? ticketViewScope;
+    private List<int> userTeamIds = [];
 
     [BindProperty(SupportsGet = true)]
     public string? Status { get; set; }
@@ -89,11 +89,11 @@ public class TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepo
         await this.LoadViewDataAsync(this.Workspace.Id, currentUserId);
 
         var allTickets = await this.ticketRepository.ListAsync(this.Workspace.Id);
-        var scopedTickets = this._filterService.ApplyScopeFilter(allTickets, currentUserId,
-            this._ticketViewScope ?? string.Empty,
-            this._userTeamIds);
+        var scopedTickets = this.ticketFilterService.ApplyScopeFilter(allTickets, currentUserId,
+            this.ticketViewScope ?? string.Empty,
+            this.userTeamIds);
 
-        var filteredTickets = await this.ApplyAllFiltersAsync(scopedTickets, allTickets);
+        var filteredTickets = await this.ApplyAllFiltersAsync(scopedTickets);
         await this.PaginateResultsAsync(filteredTickets, currentUserId, allTickets);
 
         return this.Page();
@@ -101,7 +101,7 @@ public class TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepo
 
     private async Task LoadViewDataAsync(int workspaceId, int currentUserId)
     {
-        var viewData = await this._viewService.BuildAsync(workspaceId, currentUserId);
+        var viewData = await this.workspaceTicketsViewService.BuildAsync(workspaceId, currentUserId);
 
         this.Statuses = viewData.Statuses;
         this.StatusColorByName = viewData.StatusColorByName;
@@ -117,14 +117,14 @@ public class TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepo
         this.CanCreateTickets = viewData.CanCreateTickets;
         this.CanEditTickets = viewData.CanEditTickets;
 
-        this._ticketViewScope = viewData.TicketViewScope;
-        this._userTeamIds = viewData.UserTeamIds;
+        this.ticketViewScope = viewData.TicketViewScope;
+        this.userTeamIds = viewData.UserTeamIds;
     }
 
-    private async Task<List<Ticket>> ApplyAllFiltersAsync(IEnumerable<Ticket> tickets, IEnumerable<Ticket> allTickets)
+    private async Task<List<Ticket>> ApplyAllFiltersAsync(IEnumerable<Ticket> tickets)
     {
         var criteria = this.BuildFilterCriteria();
-        var filtered = this._filterService.ApplyFilters(tickets, criteria).ToList();
+        var filtered = this.ticketFilterService.ApplyFilters(tickets, criteria).ToList();
 
         filtered = this.ApplyStatusOpenFilter(filtered);
         filtered = this.ApplyContactFilter(filtered);
@@ -231,7 +231,7 @@ public class TicketsModel(IWorkspaceRepository workspaceRepo, IUserWorkspaceRepo
 
     private async Task PaginateResultsAsync(List<Ticket> filteredTickets, int currentUserId, IEnumerable<Ticket> allTickets)
     {
-        this.MyCount = currentUserId > 0 ? this._filterService.CountMyTickets(allTickets, currentUserId) : 0;
+        this.MyCount = currentUserId > 0 ? this.ticketFilterService.CountMyTickets(allTickets, currentUserId) : 0;
         this.Total = filteredTickets.Count;
 
         var pageSize = NormalizePageSize(this.PageSize);
