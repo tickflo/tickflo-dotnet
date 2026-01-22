@@ -226,6 +226,206 @@ public class WorkspaceSettingsService(
 
     public async Task DeleteTypeAsync(int workspaceId, int typeId) => await this.ticketTypeRepository.DeleteAsync(workspaceId, typeId);
 
+    public async Task<BulkSettingsUpdateResult> BulkUpdateSettingsAsync(int workspaceId, BulkSettingsUpdateRequest request)
+    {
+        var changedCount = 0;
+        var errors = new List<string>();
+        WorkspaceEntity? updatedWorkspace = null;
+
+        // Update workspace basic settings if provided
+        if (!string.IsNullOrWhiteSpace(request.WorkspaceName) || !string.IsNullOrWhiteSpace(request.WorkspaceSlug))
+        {
+            var workspace = await this.GetWorkspaceOrThrowAsync(workspaceId);
+            var name = !string.IsNullOrWhiteSpace(request.WorkspaceName) ? request.WorkspaceName.Trim() : workspace.Name;
+            var slug = !string.IsNullOrWhiteSpace(request.WorkspaceSlug) ? request.WorkspaceSlug.Trim() : workspace.Slug;
+
+            try
+            {
+                updatedWorkspace = await this.UpdateWorkspaceBasicSettingsAsync(workspaceId, name, slug);
+                changedCount++;
+            }
+            catch (InvalidOperationException ex)
+            {
+                errors.Add(ex.Message);
+                return new BulkSettingsUpdateResult
+                {
+                    UpdatedWorkspace = updatedWorkspace,
+                    ChangesApplied = changedCount,
+                    Errors = errors
+                };
+            }
+        }
+
+        // Get current lists for validation
+        var statusList = await this.statusRepository.ListAsync(workspaceId);
+        var priorityList = await this.priorityRepository.ListAsync(workspaceId);
+        var typeList = await this.ticketTypeRepository.ListAsync(workspaceId);
+
+        // Process status updates
+        foreach (var statusUpdate in request.StatusUpdates)
+        {
+            var status = statusList.FirstOrDefault(s => s.Id == statusUpdate.Id);
+            if (status == null)
+            {
+                continue;
+            }
+
+            if (statusUpdate.Delete)
+            {
+                try
+                {
+                    await this.DeleteStatusAsync(workspaceId, statusUpdate.Id);
+                    changedCount++;
+                }
+                catch (InvalidOperationException)
+                {
+                    // Ignore deletion errors
+                }
+                continue;
+            }
+
+            var name = !string.IsNullOrWhiteSpace(statusUpdate.Name) ? statusUpdate.Name.Trim() : status.Name;
+            var color = !string.IsNullOrWhiteSpace(statusUpdate.Color) ? statusUpdate.Color.Trim() : (string.IsNullOrWhiteSpace(status.Color) ? "neutral" : status.Color);
+            var sortOrder = statusUpdate.SortOrder ?? status.SortOrder;
+            var isClosedState = statusUpdate.IsClosedState ?? status.IsClosedState;
+
+            try
+            {
+                await this.UpdateStatusAsync(workspaceId, statusUpdate.Id, name, color, sortOrder, isClosedState);
+                changedCount++;
+            }
+            catch (InvalidOperationException)
+            {
+                // Ignore update errors
+            }
+        }
+
+        // Create new status if provided
+        if (request.NewStatus != null && !string.IsNullOrWhiteSpace(request.NewStatus.Name))
+        {
+            try
+            {
+                await this.AddStatusAsync(workspaceId, request.NewStatus.Name, request.NewStatus.Color, request.NewStatus.IsClosedState);
+                changedCount++;
+            }
+            catch (InvalidOperationException ex)
+            {
+                errors.Add(ex.Message);
+            }
+        }
+
+        // Process priority updates
+        foreach (var priorityUpdate in request.PriorityUpdates)
+        {
+            var priority = priorityList.FirstOrDefault(p => p.Id == priorityUpdate.Id);
+            if (priority == null)
+            {
+                continue;
+            }
+
+            if (priorityUpdate.Delete)
+            {
+                try
+                {
+                    await this.DeletePriorityAsync(workspaceId, priorityUpdate.Id);
+                    changedCount++;
+                }
+                catch (InvalidOperationException)
+                {
+                    // Ignore deletion errors
+                }
+                continue;
+            }
+
+            var name = !string.IsNullOrWhiteSpace(priorityUpdate.Name) ? priorityUpdate.Name.Trim() : priority.Name;
+            var color = !string.IsNullOrWhiteSpace(priorityUpdate.Color) ? priorityUpdate.Color.Trim() : (string.IsNullOrWhiteSpace(priority.Color) ? "neutral" : priority.Color);
+            var sortOrder = priorityUpdate.SortOrder ?? priority.SortOrder;
+
+            try
+            {
+                await this.UpdatePriorityAsync(workspaceId, priorityUpdate.Id, name, color, sortOrder);
+                changedCount++;
+            }
+            catch (InvalidOperationException)
+            {
+                // Ignore update errors
+            }
+        }
+
+        // Create new priority if provided
+        if (request.NewPriority != null && !string.IsNullOrWhiteSpace(request.NewPriority.Name))
+        {
+            try
+            {
+                await this.AddPriorityAsync(workspaceId, request.NewPriority.Name, request.NewPriority.Color);
+                changedCount++;
+            }
+            catch (InvalidOperationException ex)
+            {
+                errors.Add(ex.Message);
+            }
+        }
+
+        // Process type updates
+        foreach (var typeUpdate in request.TypeUpdates)
+        {
+            var type = typeList.FirstOrDefault(t => t.Id == typeUpdate.Id);
+            if (type == null)
+            {
+                continue;
+            }
+
+            if (typeUpdate.Delete)
+            {
+                try
+                {
+                    await this.DeleteTypeAsync(workspaceId, typeUpdate.Id);
+                    changedCount++;
+                }
+                catch (InvalidOperationException)
+                {
+                    // Ignore deletion errors
+                }
+                continue;
+            }
+
+            var name = !string.IsNullOrWhiteSpace(typeUpdate.Name) ? typeUpdate.Name.Trim() : type.Name;
+            var color = !string.IsNullOrWhiteSpace(typeUpdate.Color) ? typeUpdate.Color.Trim() : (string.IsNullOrWhiteSpace(type.Color) ? "neutral" : type.Color);
+            var sortOrder = typeUpdate.SortOrder ?? type.SortOrder;
+
+            try
+            {
+                await this.UpdateTypeAsync(workspaceId, typeUpdate.Id, name, color, sortOrder);
+                changedCount++;
+            }
+            catch (InvalidOperationException)
+            {
+                // Ignore update errors
+            }
+        }
+
+        // Create new type if provided
+        if (request.NewType != null && !string.IsNullOrWhiteSpace(request.NewType.Name))
+        {
+            try
+            {
+                await this.AddTypeAsync(workspaceId, request.NewType.Name, request.NewType.Color);
+                changedCount++;
+            }
+            catch (InvalidOperationException ex)
+            {
+                errors.Add(ex.Message);
+            }
+        }
+
+        return new BulkSettingsUpdateResult
+        {
+            UpdatedWorkspace = updatedWorkspace,
+            ChangesApplied = changedCount,
+            Errors = errors
+        };
+    }
+
     private async Task<WorkspaceEntity> GetWorkspaceOrThrowAsync(int workspaceId)
     {
         var workspace = await this.workspaceRepository.FindByIdAsync(workspaceId) ?? throw new InvalidOperationException(WorkspaceNotFoundError);
