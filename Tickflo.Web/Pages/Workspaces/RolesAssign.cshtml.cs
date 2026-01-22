@@ -48,8 +48,8 @@ public class RolesAssignModel(
     public async Task<IActionResult> OnPostAssignAsync(string slug)
     {
         this.WorkspaceSlug = slug;
-        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (ws == null)
+        var workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (workspace == null)
         {
             return this.NotFound();
         }
@@ -60,13 +60,13 @@ public class RolesAssignModel(
             return this.Forbid();
         }
 
-        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, ws.Id);
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, workspace.Id);
         if (!hasMembership)
         {
             return this.Forbid();
         }
 
-        var data = await this.workspaceRolesAssignViewService.BuildAsync(ws.Id, uid);
+        var data = await this.workspaceRolesAssignViewService.BuildAsync(workspace.Id, uid);
         if (!data.IsAdmin)
         {
             return this.Forbid();
@@ -77,7 +77,7 @@ public class RolesAssignModel(
             return await this.OnGetAsync(slug);
         }
 
-        if (!await this.roleManagementService.RoleBelongsToWorkspaceAsync(this.SelectedRoleId, ws.Id))
+        if (!await this.roleManagementService.RoleBelongsToWorkspaceAsync(this.SelectedRoleId, workspace.Id))
         {
             this.ModelState.AddModelError(string.Empty, InvalidRoleSelectionError);
             return await this.OnGetAsync(slug);
@@ -85,7 +85,7 @@ public class RolesAssignModel(
 
         try
         {
-            await this.roleManagementService.AssignRoleToUserAsync(this.SelectedUserId, ws.Id, this.SelectedRoleId, uid);
+            await this.roleManagementService.AssignRoleToUserAsync(this.SelectedUserId, workspace.Id, this.SelectedRoleId, uid);
         }
         catch (InvalidOperationException ex)
         {
@@ -99,8 +99,8 @@ public class RolesAssignModel(
     public async Task<IActionResult> OnPostRemoveAsync(string slug, int userId, int roleId)
     {
         this.WorkspaceSlug = slug;
-        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (ws == null)
+        var workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (workspace == null)
         {
             return this.NotFound();
         }
@@ -111,26 +111,26 @@ public class RolesAssignModel(
             return this.Forbid();
         }
 
-        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, ws.Id);
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, workspace.Id);
         if (!hasMembership)
         {
             return this.Forbid();
         }
 
-        var data = await this.workspaceRolesAssignViewService.BuildAsync(ws.Id, uid);
+        var data = await this.workspaceRolesAssignViewService.BuildAsync(workspace.Id, uid);
         if (!data.IsAdmin)
         {
             return this.Forbid();
         }
 
-        await this.roleManagementService.RemoveRoleFromUserAsync(userId, ws.Id, roleId);
+        await this.roleManagementService.RemoveRoleFromUserAsync(userId, workspace.Id, roleId);
         return this.RedirectToRolesAssignPage(slug);
     }
 
     private async Task<IActionResult?> AuthorizeAndLoadWorkspaceAsync(string slug)
     {
-        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (ws == null)
+        var workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (workspace == null)
         {
             return this.NotFound();
         }
@@ -141,13 +141,13 @@ public class RolesAssignModel(
             return this.Forbid();
         }
 
-        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, ws.Id);
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(uid, workspace.Id);
         if (!hasMembership)
         {
             return this.Forbid();
         }
 
-        var data = await this.workspaceRolesAssignViewService.BuildAsync(ws.Id, uid);
+        var data = await this.workspaceRolesAssignViewService.BuildAsync(workspace.Id, uid);
         if (!data.IsAdmin)
         {
             return this.Forbid();

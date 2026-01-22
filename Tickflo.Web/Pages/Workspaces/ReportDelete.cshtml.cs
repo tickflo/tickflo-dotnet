@@ -22,8 +22,8 @@ public class ReportDeleteModel(
 
     public async Task<IActionResult> OnPostAsync(string slug, int reportId)
     {
-        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (ws == null)
+        var workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (workspace == null)
         {
             return this.NotFound();
         }
@@ -34,7 +34,7 @@ public class ReportDeleteModel(
             return this.Forbid();
         }
 
-        var data = await this.workspaceReportDeleteViewService.BuildAsync(ws.Id, uid);
+        var data = await this.workspaceReportDeleteViewService.BuildAsync(workspace.Id, uid);
         if (this.EnsurePermissionOrForbid(data.CanEditReports) is IActionResult permCheck)
         {
             return permCheck;
@@ -42,7 +42,7 @@ public class ReportDeleteModel(
 
         try
         {
-            var runs = await this.reportRunRepository.ListForReportAsync(ws.Id, reportId, take: 500000);
+            var runs = await this.reportRunRepository.ListForReportAsync(workspace.Id, reportId, take: 500000);
             foreach (var rr in runs)
             {
                 if (!string.IsNullOrWhiteSpace(rr.FilePath))
@@ -57,8 +57,8 @@ public class ReportDeleteModel(
         }
         catch { /* ignore cleanup errors */ }
 
-        await this.reportRunRepository.DeleteForReportAsync(ws.Id, reportId);
-        var ok = await this.reporyRepository.DeleteAsync(ws.Id, reportId);
+        await this.reportRunRepository.DeleteForReportAsync(workspace.Id, reportId);
+        var ok = await this.reporyRepository.DeleteAsync(workspace.Id, reportId);
         if (ok)
         {
             this.TempData["Success"] = "Report deleted.";

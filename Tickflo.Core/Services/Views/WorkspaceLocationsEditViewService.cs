@@ -42,10 +42,10 @@ public class WorkspaceLocationsEditViewService(
         {
             foreach (var m in memberships.Select(m => m.UserId).Distinct())
             {
-                var u = await this.userRepository.FindByIdAsync(m);
-                if (u != null)
+                var user = await this.userRepository.FindByIdAsync(m);
+                if (user != null)
                 {
-                    data.MemberOptions.Add(u);
+                    data.MemberOptions.Add(user);
                 }
             }
         }

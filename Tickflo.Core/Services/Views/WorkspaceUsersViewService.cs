@@ -44,17 +44,17 @@ public class WorkspaceUsersViewService(
         var memberships = await this.userWorkspaceRepository.FindForWorkspaceAsync(workspaceId);
         foreach (var m in memberships.Where(m => !m.Accepted))
         {
-            var u = await this.userRepository.FindByIdAsync(m.UserId);
-            if (u == null)
+            var user = await this.userRepository.FindByIdAsync(m.UserId);
+            if (user == null)
             {
                 continue;
             }
 
-            var roles = await this.userWorkspaceRoleRepository.GetRoleNamesAsync(u.Id, workspaceId);
+            var roles = await this.userWorkspaceRoleRepository.GetRoleNamesAsync(user.Id, workspaceId);
             data.PendingInvites.Add(new InviteView
             {
-                UserId = u.Id,
-                Email = u.Email,
+                UserId = user.Id,
+                Email = user.Email,
                 CreatedAt = m.CreatedAt,
                 Roles = roles
             });
@@ -63,19 +63,19 @@ public class WorkspaceUsersViewService(
         // Build accepted users
         foreach (var m in memberships.Where(m => m.Accepted))
         {
-            var u = await this.userRepository.FindByIdAsync(m.UserId);
-            if (u == null)
+            var user = await this.userRepository.FindByIdAsync(m.UserId);
+            if (user == null)
             {
                 continue;
             }
 
-            var roles = await this.userWorkspaceRoleRepository.GetRoleNamesAsync(u.Id, workspaceId);
-            var isAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(u.Id, workspaceId);
+            var roles = await this.userWorkspaceRoleRepository.GetRoleNamesAsync(user.Id, workspaceId);
+            var isAdmin = await this.userWorkspaceRoleRepository.IsAdminAsync(user.Id, workspaceId);
             data.AcceptedUsers.Add(new AcceptedUserView
             {
-                UserId = u.Id,
-                Email = u.Email,
-                Name = u.Name ?? string.Empty,
+                UserId = user.Id,
+                Email = user.Email,
+                Name = user.Name ?? string.Empty,
                 JoinedAt = m.UpdatedAt ?? m.CreatedAt,
                 Roles = roles,
                 IsAdmin = isAdmin

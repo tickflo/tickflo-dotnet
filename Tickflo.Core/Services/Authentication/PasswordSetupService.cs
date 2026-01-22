@@ -111,11 +111,11 @@ public class PasswordSetupService(
         var loginToken = await this.tokenRepository.CreateForUserIdAsync(user.Id);
 
         string? workspaceSlug = null;
-        var uw = await this.userWorkspaceRepository.FindAcceptedForUserAsync(user.Id);
-        if (uw != null)
+        var userWorkspace = await this.userWorkspaceRepository.FindAcceptedForUserAsync(user.Id);
+        if (userWorkspace != null)
         {
-            var ws = await this.workspaceRepository.FindByIdAsync(uw.WorkspaceId);
-            workspaceSlug = ws?.Slug;
+            var workspace = await this.workspaceRepository.FindByIdAsync(userWorkspace.WorkspaceId);
+            workspaceSlug = workspace?.Slug;
         }
 
         return new SetPasswordResult(true, null, loginToken.Value, workspaceSlug, user.Id, user.Email);

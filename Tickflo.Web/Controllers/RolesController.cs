@@ -25,8 +25,8 @@ public class RolesController(
     [HttpPost("delete")]
     public async Task<IActionResult> Delete(string slug, int id)
     {
-        var ws = await this.workspaceRepository.FindBySlugAsync(slug);
-        if (ws == null)
+        var workspace = await this.workspaceRepository.FindBySlugAsync(slug);
+        if (workspace == null)
         {
             return this.NotFound();
         }
@@ -36,14 +36,14 @@ public class RolesController(
             return this.Unauthorized();
         }
 
-        var isAdmin = await this.workspaceAccessService.UserIsWorkspaceAdminAsync(uid, ws.Id);
+        var isAdmin = await this.workspaceAccessService.UserIsWorkspaceAdminAsync(uid, workspace.Id);
         if (!isAdmin)
         {
             return this.Forbid();
         }
 
         var role = await this.roleRepository.FindByIdAsync(id);
-        if (role == null || role.WorkspaceId != ws.Id)
+        if (role == null || role.WorkspaceId != workspace.Id)
         {
             return this.NotFound();
         }
@@ -51,7 +51,7 @@ public class RolesController(
         // Use service to check if role can be deleted (guard against assignments)
         try
         {
-            await this.roleManagementService.EnsureRoleCanBeDeletedAsync(ws.Id, id, role.Name);
+            await this.roleManagementService.EnsureRoleCanBeDeletedAsync(workspace.Id, id, role.Name);
         }
         catch (InvalidOperationException ex)
         {

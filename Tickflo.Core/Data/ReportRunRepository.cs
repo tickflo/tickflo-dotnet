@@ -82,12 +82,12 @@ public class ReportRunRepository(TickfloDbContext dbContext) : IReportRunReposit
 
     public async Task<IReadOnlyList<ReportRun>> ListMissingContentAsync(int workspaceId, int? reportId = null, int take = 10000)
     {
-        var q = this.dbContext.ReportRuns.AsNoTracking().Where(r => r.WorkspaceId == workspaceId && r.FileBytes == null && r.FilePath != null && r.Status == "Succeeded");
+        var query = this.dbContext.ReportRuns.AsNoTracking().Where(r => r.WorkspaceId == workspaceId && r.FileBytes == null && r.FilePath != null && r.Status == "Succeeded");
         if (reportId.HasValue)
         {
-            q = q.Where(r => r.ReportId == reportId.Value);
+            query = query.Where(r => r.ReportId == reportId.Value);
         }
 
-        return await q.OrderByDescending(r => r.StartedAt).Take(take).ToListAsync();
+        return await query.OrderByDescending(r => r.StartedAt).Take(take).ToListAsync();
     }
 }

@@ -209,17 +209,17 @@ public class WorkspaceModel : PageModel
 
         foreach (var m in membershipList)
         {
-            var ws = await this.workspaceRepository.FindByIdAsync(m.WorkspaceId);
-            if (ws == null)
+            var workspace = await this.workspaceRepository.FindByIdAsync(m.WorkspaceId);
+            if (workspace == null)
             {
                 continue;
             }
 
             this.Workspaces.Add(new WorkspaceView
             {
-                Id = ws.Id,
-                Name = ws.Name,
-                Slug = ws.Slug,
+                Id = workspace.Id,
+                Name = workspace.Name,
+                Slug = workspace.Slug,
                 Accepted = m.Accepted
             });
         }

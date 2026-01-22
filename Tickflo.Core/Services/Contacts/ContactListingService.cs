@@ -37,11 +37,11 @@ public class ContactListingService(
 
         if (!string.IsNullOrWhiteSpace(searchQuery))
         {
-            var q = searchQuery.Trim();
+            var trimmedQuery = searchQuery.Trim();
             result = result.Where(c =>
-                (!string.IsNullOrWhiteSpace(c.Name) && c.Name.Contains(q, StringComparison.OrdinalIgnoreCase)) ||
-                (!string.IsNullOrWhiteSpace(c.Email) && c.Email.Contains(q, StringComparison.OrdinalIgnoreCase)) ||
-                (!string.IsNullOrWhiteSpace(c.Company) && c.Company.Contains(q, StringComparison.OrdinalIgnoreCase))
+                (!string.IsNullOrWhiteSpace(c.Name) && c.Name.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(c.Email) && c.Email.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(c.Company) && c.Company.Contains(trimmedQuery, StringComparison.OrdinalIgnoreCase))
             );
         }
 

@@ -15,8 +15,8 @@ public class ReportRunModel(IWorkspaceService workspaceService, IReportRunServic
 
     public async Task<IActionResult> OnPostAsync(string slug, int reportId)
     {
-        var ws = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
-        if (ws == null)
+        var workspace = await this.workspaceService.GetWorkspaceBySlugAsync(slug);
+        if (workspace == null)
         {
             return this.NotFound();
         }
@@ -26,19 +26,19 @@ public class ReportRunModel(IWorkspaceService workspaceService, IReportRunServic
             return this.Forbid();
         }
 
-        var hasMembership = await this.workspaceService.UserHasMembershipAsync(userId, ws.Id);
+        var hasMembership = await this.workspaceService.UserHasMembershipAsync(userId, workspace.Id);
         if (!hasMembership)
         {
             return this.Forbid();
         }
 
-        var viewData = await this.workspaceReportRunExecuteViewService.BuildAsync(ws.Id, userId);
+        var viewData = await this.workspaceReportRunExecuteViewService.BuildAsync(workspace.Id, userId);
         if (this.EnsurePermissionOrForbid(viewData.CanEditReports) is IActionResult permCheck)
         {
             return permCheck;
         }
 
-        var run = await this.reportRunService.RunReportAsync(ws.Id, reportId);
+        var run = await this.reportRunService.RunReportAsync(workspace.Id, reportId);
         this.SetSuccessMessage(run?.Status == "Succeeded" ? "Report run completed." : "Report run failed.");
         return this.RedirectToPage("/Workspaces/ReportRuns", new { slug, reportId });
     }
