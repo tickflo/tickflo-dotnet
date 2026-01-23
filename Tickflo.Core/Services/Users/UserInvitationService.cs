@@ -2,7 +2,6 @@ namespace Tickflo.Core.Services.Users;
 
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Authentication;
 using Tickflo.Core.Services.Email;
 using Tickflo.Core.Utils;
 
@@ -14,7 +13,6 @@ public class UserInvitationService(
     IUserWorkspaceRepository userWorkspaceRepository,
     IUserWorkspaceRoleRepository userWorkspaceRoleRepository,
     IRoleRepository roleRepository,
-    IPasswordHasher passwordHasher,
     IEmailSendService emailSendService,
     IWorkspaceRepository workspaceRepository) : IUserInvitationService
 {
@@ -22,7 +20,6 @@ public class UserInvitationService(
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepository;
     private readonly IRoleRepository roleRepository = roleRepository;
-    private readonly IPasswordHasher passwordHasher = passwordHasher;
     private readonly IEmailSendService emailSendService = emailSendService;
     private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
 
