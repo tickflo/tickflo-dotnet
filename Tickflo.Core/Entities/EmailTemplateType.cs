@@ -49,5 +49,10 @@ public enum EmailTemplateType
     /// <summary>
     /// Workspace Member Removal (sent when user is removed from workspace)
     /// </summary>
-    WorkspaceMemberRemoval = 9
+    WorkspaceMemberRemoval = 9,
+
+    /// <summary>
+    /// Workspace Invite - Existing User (sent when inviting an existing user to workspace)
+    /// </summary>
+    WorkspaceInviteExistingUser = 10
 }

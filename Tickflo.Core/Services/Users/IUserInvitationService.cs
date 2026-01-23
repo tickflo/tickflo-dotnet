@@ -13,13 +13,13 @@ public interface IUserInvitationService
     /// <param name="workspaceId">Target workspace</param>
     /// <param name="email">User's email address</param>
     /// <param name="invitedByUserId">User sending the invitation</param>
-    /// <param name="roleIds">Optional role IDs to assign upon acceptance</param>
+    /// <param name="roleIds">Role IDs to assign upon acceptance</param>
     /// <returns>Invitation details including user, confirmation code, and temp password</returns>
     public Task<UserInvitationResult> InviteUserAsync(
         int workspaceId,
         string email,
         int invitedByUserId,
-        List<int>? roleIds = null);
+        List<int> roleIds);
 
     /// <summary>
     /// Resends an invitation email with a new confirmation code.
@@ -56,6 +56,7 @@ public class UserInvitationResult
     public string ConfirmationLink { get; set; } = string.Empty;
     public string AcceptLink { get; set; } = string.Empty;
     public string ResetPasswordLink { get; set; } = string.Empty;
+    public bool IsNewUser { get; set; }
 }
 
 

@@ -3,6 +3,7 @@ namespace Tickflo.CoreTest.Services;
 using Moq;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Services.Email;
 using Xunit;
 
 public class UserInvitationServiceTests
@@ -22,11 +23,31 @@ public class UserInvitationServiceTests
         roles.Setup(r => r.FindByIdAsync(1)).ReturnsAsync(new Role { Id = 1, WorkspaceId = 2 });
         var hasher = new Mock<IPasswordHasher>();
         hasher.Setup(h => h.Hash(It.IsAny<string>())).Returns("hash");
-        var svc = new UserInvitationService(users.Object, uw.Object, userWorkspaceRoleRepository.Object, roles.Object, hasher.Object);
+        var emailSendService = new Mock<IEmailSendService>();
+        emailSendService.Setup(e => e.SendAsync(
+            It.IsAny<string>(),
+            It.IsAny<EmailTemplateType>(),
+            It.IsAny<Dictionary<string, string>>(),
+            It.IsAny<int?>())).ReturnsAsync(new Email());
+        var workspaceRepository = new Mock<IWorkspaceRepository>();
+        workspaceRepository.Setup(r => r.FindByIdAsync(2)).ReturnsAsync(new Workspace { Id = 2, Name = "Test Workspace" });
+        var svc = new UserInvitationService(
+            users.Object,
+            uw.Object,
+            userWorkspaceRoleRepository.Object,
+            roles.Object,
+            hasher.Object,
+            emailSendService.Object,
+            workspaceRepository.Object);
 
         var result = await svc.InviteUserAsync(2, "new@test.com", 9, [1]);
 
         Assert.NotNull(result.User);
         userWorkspaceRoleRepository.Verify(r => r.AddAsync(It.IsAny<int>(), 2, 1, 9), Times.Once);
+        emailSendService.Verify(e => e.SendAsync(
+            It.IsAny<string>(),
+            EmailTemplateType.WorkspaceInviteNewUser,
+            It.IsAny<Dictionary<string, string>>(),
+            It.IsAny<int?>()), Times.Once);
     }
 }
