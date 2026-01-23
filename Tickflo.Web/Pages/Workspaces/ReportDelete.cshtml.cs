@@ -43,11 +43,11 @@ public class ReportDeleteModel(
         try
         {
             var runs = await this.reportRunRepository.ListForReportAsync(workspace.Id, reportId, take: 500000);
-            foreach (var rr in runs)
+            foreach (var reportRun in runs)
             {
-                if (!string.IsNullOrWhiteSpace(rr.FilePath))
+                if (!string.IsNullOrWhiteSpace(reportRun.FilePath))
                 {
-                    var full = Path.Combine(this.webHostEnvironment.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot"), rr.FilePath);
+                    var full = Path.Combine(this.webHostEnvironment.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot"), reportRun.FilePath);
                     if (System.IO.File.Exists(full))
                     {
                         System.IO.File.Delete(full);
@@ -71,4 +71,3 @@ public class ReportDeleteModel(
     }
 
 }
-

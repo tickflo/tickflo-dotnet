@@ -207,9 +207,9 @@ public class WorkspaceModel : PageModel
         this.Workspaces.Clear();
         var membershipList = memberships ?? await this.userWorkspaceRepository.FindForUserAsync(userId);
 
-        foreach (var m in membershipList)
+        foreach (var membership in membershipList)
         {
-            var workspace = await this.workspaceRepository.FindByIdAsync(m.WorkspaceId);
+            var workspace = await this.workspaceRepository.FindByIdAsync(membership.WorkspaceId);
             if (workspace == null)
             {
                 continue;
@@ -220,7 +220,7 @@ public class WorkspaceModel : PageModel
                 Id = workspace.Id,
                 Name = workspace.Name,
                 Slug = workspace.Slug,
-                Accepted = m.Accepted
+                Accepted = membership.Accepted
             });
         }
     }
@@ -269,21 +269,21 @@ public class WorkspaceModel : PageModel
         this.WorkspaceTeams = [.. view.WorkspaceTeams];
 
         this.ActivitySeries = [.. view.ActivitySeries.Select(a => new ActivityPoint { Label = a.Label, Created = a.Created, Closed = a.Closed })];
-        this.TopMembers = [.. view.TopMembers.Select(m => new MemberStat { UserId = m.UserId, Name = m.Name, ResolvedCount = m.ResolvedCount })];
+        this.TopMembers = [.. view.TopMembers.Select(member => new MemberStat { UserId = member.UserId, Name = member.Name, ResolvedCount = member.ResolvedCount })];
 
         this.AvgResolutionLabel = view.AvgResolutionLabel;
 
-        this.RecentTickets = [.. view.RecentTickets.Select(t => new TicketListItem
+        this.RecentTickets = [.. view.RecentTickets.Select(ticket => new TicketListItem
         {
-            Id = t.Id,
-            Subject = t.Subject,
-            Type = t.Type,
-            Status = t.Status,
-            StatusColor = t.StatusColor,
-            TypeColor = t.TypeColor,
-            AssignedUserId = t.AssignedUserId,
-            AssigneeName = t.AssigneeName,
-            UpdatedAt = t.UpdatedAt
+            Id = ticket.Id,
+            Subject = ticket.Subject,
+            Type = ticket.Type,
+            Status = ticket.Status,
+            StatusColor = ticket.StatusColor,
+            TypeColor = ticket.TypeColor,
+            AssignedUserId = ticket.AssignedUserId,
+            AssigneeName = ticket.AssigneeName,
+            UpdatedAt = ticket.UpdatedAt
         })];
     }
 
@@ -307,10 +307,10 @@ public class WorkspaceModel : PageModel
 
         try
         {
-            var r = Convert.ToInt32(hex[..2], 16);
-            var g = Convert.ToInt32(hex.Substring(2, 2), 16);
-            var b = Convert.ToInt32(hex.Substring(4, 2), 16);
-            return $"rgba({r}, {g}, {b}, {opacity})";
+            var red = Convert.ToInt32(hex[..2], 16);
+            var green = Convert.ToInt32(hex.Substring(2, 2), 16);
+            var blue = Convert.ToInt32(hex.Substring(4, 2), 16);
+            return $"rgba({red}, {green}, {blue}, {opacity})";
         }
         catch
         {
@@ -355,5 +355,4 @@ public class ActivityPoint
     public int Created { get; set; }
     public int Closed { get; set; }
 }
-
 
