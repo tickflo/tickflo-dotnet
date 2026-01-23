@@ -19,22 +19,22 @@ public class ScheduledReportsHostedService(IServiceProvider serviceProvider, ILo
             try
             {
                 using var scope = this.serviceProvider.CreateScope();
-                var db = scope.ServiceProvider.GetRequiredService<TickfloDbContext>();
-                var runSvc = scope.ServiceProvider.GetRequiredService<IReportRunService>();
+                var tickfloDbContext = scope.ServiceProvider.GetRequiredService<TickfloDbContext>();
+                var reportRunService = scope.ServiceProvider.GetRequiredService<IReportRunService>();
 
                 var now = DateTime.UtcNow;
-                var due = await db.Reports.AsNoTracking()
+                var due = await tickfloDbContext.Reports.AsNoTracking()
                     .Where(r => r.ScheduleEnabled && r.Ready)
                     .ToListAsync(stoppingToken);
 
-                foreach (var r in due)
+                foreach (var report in due)
                 {
-                    if (!IsDue(r, now))
+                    if (!IsDue(report, now))
                     {
                         continue;
                     }
 
-                    await runSvc.RunReportAsync(r.WorkspaceId, r.Id, stoppingToken);
+                    await reportRunService.RunReportAsync(report.WorkspaceId, report.Id, stoppingToken);
                 }
             }
             catch (Exception ex)
@@ -46,26 +46,26 @@ public class ScheduledReportsHostedService(IServiceProvider serviceProvider, ILo
         }
     }
 
-    private static bool IsDue(Report r, DateTime utcNow)
+    private static bool IsDue(Report report, DateTime utcNow)
     {
-        if (!r.ScheduleEnabled)
+        if (!report.ScheduleEnabled)
         {
             return false;
         }
 
-        var type = r.ScheduleType?.ToLowerInvariant() ?? "none";
-        var last = r.LastRun;
+        var type = report.ScheduleType?.ToLowerInvariant() ?? "none";
+        var last = report.LastRun;
         // Convert schedule time to today's UTC time; treat time as UTC for simplicity
-        var t = r.ScheduleTime;
+        var scheduleTime = report.ScheduleTime;
         switch (type)
         {
             case "daily":
-                if (t == null)
+                if (scheduleTime == null)
                 {
                     return false;
                 }
 
-                var todayRun = new DateTime(utcNow.Year, utcNow.Month, utcNow.Day) + t.Value;
+                var todayRun = new DateTime(utcNow.Year, utcNow.Month, utcNow.Day) + scheduleTime.Value;
                 if (utcNow >= todayRun && (last == null || last.Value < todayRun))
                 {
                     return true;
@@ -73,13 +73,13 @@ public class ScheduledReportsHostedService(IServiceProvider serviceProvider, ILo
 
                 break;
             case "weekly":
-                if (t == null || r.ScheduleDayOfWeek is null)
+                if (scheduleTime == null || report.ScheduleDayOfWeek is null)
                 {
                     return false;
                 }
 
                 var startOfWeek = utcNow.Date.AddDays(-(int)utcNow.DayOfWeek);
-                var weekRun = startOfWeek.AddDays(r.ScheduleDayOfWeek.Value) + t.Value;
+                var weekRun = startOfWeek.AddDays(report.ScheduleDayOfWeek.Value) + scheduleTime.Value;
                 if (utcNow >= weekRun && (last == null || last.Value < weekRun))
                 {
                     return true;
@@ -87,13 +87,13 @@ public class ScheduledReportsHostedService(IServiceProvider serviceProvider, ILo
 
                 break;
             case "monthly":
-                if (t == null || r.ScheduleDayOfMonth is null)
+                if (scheduleTime == null || report.ScheduleDayOfMonth is null)
                 {
                     return false;
                 }
 
-                var day = Math.Clamp(r.ScheduleDayOfMonth.Value, 1, DateTime.DaysInMonth(utcNow.Year, utcNow.Month));
-                var monthRun = new DateTime(utcNow.Year, utcNow.Month, day) + t.Value;
+                var day = Math.Clamp(report.ScheduleDayOfMonth.Value, 1, DateTime.DaysInMonth(utcNow.Year, utcNow.Month));
+                var monthRun = new DateTime(utcNow.Year, utcNow.Month, day) + scheduleTime.Value;
                 if (utcNow >= monthRun && (last == null || last.Value < monthRun))
                 {
                     return true;
@@ -106,4 +106,3 @@ public class ScheduledReportsHostedService(IServiceProvider serviceProvider, ILo
         return false;
     }
 }
-
