@@ -55,11 +55,13 @@ public class UserInvitationService(
         // Check if user already exists
         var existingUser = await this.userRepository.FindByEmailAsync(email);
         User user;
-        bool isNewUser = existingUser == null;
+        bool isNewUser;
         string? temporaryPassword = null;
 
-        if (isNewUser)
+        if (existingUser == null)
         {
+            isNewUser = true;
+            
             // Generate temporary password for new users
             temporaryPassword = this.GenerateTemporaryPassword(12);
 
@@ -82,8 +84,8 @@ public class UserInvitationService(
         }
         else
         {
-            // existingUser is guaranteed to be non-null here
-            user = existingUser!;
+            isNewUser = false;
+            user = existingUser;
         }
 
         // Generate confirmation code for invitation acceptance
