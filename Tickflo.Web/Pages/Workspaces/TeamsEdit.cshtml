@@ -27,22 +27,22 @@
                             <button type="button" id="member-add-btn" class="btn btn-soft join-item">Add</button>
                         </div>
                         <datalist id="members-list">
-                            @foreach (var u in Model.WorkspaceUsers)
+                            @foreach (var user in Model.WorkspaceUsers)
                             {
-                                <option value="@u.Name (@u.Email)" data-id="@u.Id"></option>
+                                <option value="@user.Name (@user.Email)" data-id="@user.Id"></option>
                             }
                         </datalist>
                         <div id="selected-members" class="flex flex-wrap gap-2 mt-2">
                             @foreach (var mid in Model.SelectedMemberIds)
                             {
-                                var u = Model.WorkspaceUsers.FirstOrDefault(x => x.Id == mid);
-                                if (u != null)
+                                var user = Model.WorkspaceUsers.FirstOrDefault(x => x.Id == mid);
+                                if (user != null)
                                 {
-                                    <span class="badge badge-soft rounded-full" data-id="@u.Id">
-                                        @u.Name (@u.Email)
+                                    <span class="badge badge-soft rounded-full" data-id="@user.Id">
+                                        @user.Name (@user.Email)
                                         <button type="button" class="btn btn-ghost btn-sm ml-2 remove-member" aria-label="Remove" title="Remove">✕</button>
                                     </span>
-                                    <input type="hidden" name="SelectedMemberIds" value="@u.Id" />
+                                    <input type="hidden" name="SelectedMemberIds" value="@user.Id" />
                                 }
                             }
                         </div>

@@ -57,41 +57,41 @@
                             }
                             else
                             {
-                                foreach (var c in Model.Contacts)
+                                foreach (var contact in Model.Contacts)
                                 {
                                     <tr>
                                         <td>
-                                            <div class="font-medium">@c.Name</div>
-                                            <div class="text-xs text-base-content/70">@c.Company</div>
+                                            <div class="font-medium">@contact.Name</div>
+                                            <div class="text-xs text-base-content/70">@contact.Company</div>
                                         </td>
                                         <td>
-                                            <div class="break-all">@c.Email</div>
-                                            @if (!string.IsNullOrWhiteSpace(c.Phone))
+                                            <div class="break-all">@contact.Email</div>
+                                            @if (!string.IsNullOrWhiteSpace(contact.Phone))
                                             {
-                                                <div class="text-xs text-base-content/70 break-all">@c.Phone</div>
+                                                <div class="text-xs text-base-content/70 break-all">@contact.Phone</div>
                                             }
                                         </td>
                                         <td class="hidden sm:table-cell">
                                             <div class="flex flex-wrap gap-1">
-                                                @if (!string.IsNullOrWhiteSpace(c.Priority)) {
-                                                    var pcolor = Model.PriorityColorByName.TryGetValue(c.Priority, out var pc) ? pc : "neutral";
+                                                @if (!string.IsNullOrWhiteSpace(contact.Priority)) {
+                                                    var pcolor = Model.PriorityColorByName.TryGetValue(contact.Priority, out var pc) ? pc : "neutral";
                                                     var pIsHex = pcolor.StartsWith("#");
                                                     var pCls = pIsHex ? "badge" : $"badge badge-soft badge-{pcolor}";
                                                     var pStyle = pIsHex ? $"background-color: {pcolor}; color: #fff;" : null;
-                                                    <span class="@pCls" style="@pStyle">@c.Priority</span>
+                                                    <span class="@pCls" style="@pStyle">@contact.Priority</span>
                                                 }
-                                                @if (!string.IsNullOrWhiteSpace(c.PreferredChannel)) { <span class="badge badge-soft rounded-full">@c.PreferredChannel</span> }
-                                                @if (!string.IsNullOrWhiteSpace(c.Status)) { <span class="badge badge-soft rounded-full">@c.Status</span> }
+                                                @if (!string.IsNullOrWhiteSpace(contact.PreferredChannel)) { <span class="badge badge-soft rounded-full">@contact.PreferredChannel</span> }
+                                                @if (!string.IsNullOrWhiteSpace(contact.Status)) { <span class="badge badge-soft rounded-full">@contact.Status</span> }
                                             </div>
                                         </td>
                                         <td>
                                             <div class="flex flex-wrap gap-2 md:join">
                                                 @if (Model.CanEditContacts) {
-                                                    <a class="btn btn-ghost btn-sm md:join-item" asp-page="/Workspaces/ContactsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@c.Id">Edit</a>
+                                                    <a class="btn btn-ghost btn-sm md:join-item" asp-page="/Workspaces/ContactsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@contact.Id">Edit</a>
                                                 } else {
                                                     <button class="btn btn-ghost btn-sm md:join-item" disabled>Edit</button>
                                                 }
-                                                <a class="btn btn-primary btn-sm md:join-item" href="/workspaces/@Model.WorkspaceSlug/tickets/0?contactId=@c.Id">New Ticket</a>
+                                                <a class="btn btn-primary btn-sm md:join-item" href="/workspaces/@Model.WorkspaceSlug/tickets/0?contactId=@contact.Id">New Ticket</a>
                                             </div>
                                         </td>
                                     </tr>

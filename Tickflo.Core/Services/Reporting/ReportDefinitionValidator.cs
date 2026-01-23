@@ -23,24 +23,24 @@ public class ReportDefinitionValidator : IReportDefinitionValidator
 
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
-            var src = root.TryGetProperty("source", out var s) ? s.GetString() ?? "tickets" : "tickets";
+            var source = root.TryGetProperty("source", out var sourceElement) ? sourceElement.GetString() ?? "tickets" : "tickets";
 
             var fields = Array.Empty<string>();
-            if (root.TryGetProperty("fields", out var f) && f.ValueKind == JsonValueKind.Array)
+            if (root.TryGetProperty("fields", out var fieldsElement) && fieldsElement.ValueKind == JsonValueKind.Array)
             {
-                fields = [.. f.EnumerateArray()
+                fields = [.. fieldsElement.EnumerateArray()
                     .Where(e => e.ValueKind == JsonValueKind.String)
                     .Select(e => e.GetString() ?? "")
                     .Where(x => !string.IsNullOrWhiteSpace(x))];
             }
 
             string? filtersJson = null;
-            if (root.TryGetProperty("filters", out var fl))
+            if (root.TryGetProperty("filters", out var filtersElement))
             {
-                filtersJson = fl.GetRawText();
+                filtersJson = filtersElement.GetRawText();
             }
 
-            return new ReportDefinition(src, fields, filtersJson);
+            return new ReportDefinition(source, fields, filtersJson);
         }
         catch
         {
@@ -60,5 +60,4 @@ public class ReportDefinitionValidator : IReportDefinitionValidator
 
     public IReadOnlyDictionary<string, string[]> GetAvailableSources() => AvailableSources;
 }
-
 

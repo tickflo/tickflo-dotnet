@@ -105,9 +105,9 @@
                                 </tr>
                             </thead>
                             <tbody>
-                            @foreach (var s in Model.Statuses)
+                            @foreach (var status in Model.Statuses)
                             {
-                                var displayColor = string.IsNullOrWhiteSpace(s.Color) ? "neutral" : s.Color;
+                                var displayColor = string.IsNullOrWhiteSpace(status.Color) ? "neutral" : status.Color;
                                 var isHex = displayColor.StartsWith("#");
                                 var badgeCls = isHex ? "badge badge-soft badge-nowrap" : $"badge badge-soft badge-{displayColor} badge-nowrap";
                                 var badgeStyle = isHex ? $"background-color: {displayColor}; color: #fff;" : null;
@@ -125,19 +125,19 @@
                                 var pickerColor = isHex ? displayColor : (colorMap.ContainsKey(displayColor) ? colorMap[displayColor] : "#737373");
                                 <tr class="hover">
                                     <td class="flex flex-wrap items-center gap-2">
-                                        <input type="hidden" name="statuses[@s.Id].id" value="@s.Id" />
-                                        <input name="statuses[@s.Id].name" value="@s.Name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanEditSettings ? "" : "disabled") required />
-                                        <input type="color" name="statuses[@s.Id].color" value="@pickerColor" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70 cursor-pointer" @(Model.CanEditSettings ? "" : "disabled") />
-                                        <input type="number" name="statuses[@s.Id].sortOrder" value="@s.SortOrder" class="input join-item input-sm w-20 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanEditSettings ? "" : "disabled") />
+                                        <input type="hidden" name="statuses[@status.Id].id" value="@status.Id" />
+                                        <input name="statuses[@status.Id].name" value="@status.Name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanEditSettings ? "" : "disabled") required />
+                                        <input type="color" name="statuses[@status.Id].color" value="@pickerColor" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70 cursor-pointer" @(Model.CanEditSettings ? "" : "disabled") />
+                                        <input type="number" name="statuses[@status.Id].sortOrder" value="@status.SortOrder" class="input join-item input-sm w-20 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanEditSettings ? "" : "disabled") />
                                         <label class="label cursor-pointer join-item ml-2 gap-2">
-                                            <input type="checkbox" name="statuses[@s.Id].isClosedState" value="true" @(s.IsClosedState ? "checked" : null) class="toggle toggle-xs toggle-primary" @(Model.CanEditSettings ? "" : "disabled") />
+                                            <input type="checkbox" name="statuses[@status.Id].isClosedState" value="true" @(status.IsClosedState ? "checked" : null) class="toggle toggle-xs toggle-primary" @(Model.CanEditSettings ? "" : "disabled") />
                                             <span class="label-text text-xs">Closed state</span>
                                         </label>
                                     </td>
-                                    <td><span class="@badgeCls" style="@badgeStyle" title="@s.Name">@(isHex ? "Custom" : s.Color)</span></td>
-                                    <td class="font-semibold">@s.SortOrder</td>
+                                    <td><span class="@badgeCls" style="@badgeStyle" title="@status.Name">@(isHex ? "Custom" : status.Color)</span></td>
+                                    <td class="font-semibold">@status.SortOrder</td>
                                     <td class="text-right">
-                                        <button type="button" class="btn btn-error btn-xs remove-btn" data-type="status" data-id="@s.Id" data-name="@s.Name">
+                                        <button type="button" class="btn btn-error btn-xs remove-btn" data-type="status" data-id="@status.Id" data-name="@status.Name">
                                             <i class="fa fa-trash"></i>
                                         </button>
                                     </td>
@@ -179,9 +179,9 @@
                                 </tr>
                             </thead>
                             <tbody>
-                            @foreach (var p in Model.Priorities)
+                            @foreach (var priority in Model.Priorities)
                             {
-                                var displayColor = string.IsNullOrWhiteSpace(p.Color) ? "neutral" : p.Color;
+                                var displayColor = string.IsNullOrWhiteSpace(priority.Color) ? "neutral" : priority.Color;
                                 var isHex = displayColor.StartsWith("#");
                                 var badgeCls = isHex ? "badge badge-soft badge-nowrap" : $"badge badge-soft badge-{displayColor} badge-nowrap";
                                 var badgeStyle = isHex ? $"background-color: {displayColor}; color: #fff;" : null;
@@ -199,15 +199,15 @@
                                 var pickerColor = isHex ? displayColor : (colorMap.ContainsKey(displayColor) ? colorMap[displayColor] : "#737373");
                                 <tr class="hover">
                                     <td class="flex flex-wrap items-center gap-2">
-                                        <input type="hidden" name="priorities[@p.Id].id" value="@p.Id" />
-                                        <input name="priorities[@p.Id].name" value="@p.Name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanEditSettings ? "" : "disabled") required />
-                                        <input type="color" name="priorities[@p.Id].color" value="@pickerColor" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70 cursor-pointer" @(Model.CanEditSettings ? "" : "disabled") />
-                                        <input type="number" name="priorities[@p.Id].sortOrder" value="@p.SortOrder" class="input join-item input-sm w-20 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanEditSettings ? "" : "disabled") />
+                                        <input type="hidden" name="priorities[@priority.Id].id" value="@priority.Id" />
+                                        <input name="priorities[@priority.Id].name" value="@priority.Name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanEditSettings ? "" : "disabled") required />
+                                        <input type="color" name="priorities[@priority.Id].color" value="@pickerColor" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70 cursor-pointer" @(Model.CanEditSettings ? "" : "disabled") />
+                                        <input type="number" name="priorities[@priority.Id].sortOrder" value="@priority.SortOrder" class="input join-item input-sm w-20 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanEditSettings ? "" : "disabled") />
                                     </td>
-                                    <td><span class="@badgeCls" style="@badgeStyle" title="@p.Name">@(isHex ? "Custom" : p.Color)</span></td>
-                                    <td class="font-semibold">@p.SortOrder</td>
+                                    <td><span class="@badgeCls" style="@badgeStyle" title="@priority.Name">@(isHex ? "Custom" : priority.Color)</span></td>
+                                    <td class="font-semibold">@priority.SortOrder</td>
                                     <td class="text-right">
-                                        <button type="button" class="btn btn-error btn-xs remove-btn" data-type="priority" data-id="@p.Id" data-name="@p.Name">
+                                        <button type="button" class="btn btn-error btn-xs remove-btn" data-type="priority" data-id="@priority.Id" data-name="@priority.Name">
                                             <i class="fa fa-trash"></i>
                                         </button>
                                     </td>
@@ -249,9 +249,9 @@
                                 </tr>
                             </thead>
                             <tbody>
-                            @foreach (var t in Model.Types)
+                            @foreach (var ticketType in Model.Types)
                             {
-                                var displayColor = string.IsNullOrWhiteSpace(t.Color) ? "neutral" : t.Color;
+                                var displayColor = string.IsNullOrWhiteSpace(ticketType.Color) ? "neutral" : ticketType.Color;
                                 var isHex = displayColor.StartsWith("#");
                                 var badgeCls = isHex ? "badge badge-soft badge-nowrap" : $"badge badge-soft badge-{displayColor} badge-nowrap";
                                 var badgeStyle = isHex ? $"background-color: {displayColor}; color: #fff;" : null;
@@ -269,15 +269,15 @@
                                 var pickerColor = isHex ? displayColor : (colorMap.ContainsKey(displayColor) ? colorMap[displayColor] : "#737373");
                                 <tr class="hover">
                                     <td class="flex flex-wrap items-center gap-2">
-                                        <input type="hidden" name="types[@t.Id].id" value="@t.Id" />
-                                        <input name="types[@t.Id].name" value="@t.Name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanEditSettings ? "" : "disabled") required />
-                                        <input type="color" name="types[@t.Id].color" value="@pickerColor" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70 cursor-pointer" @(Model.CanEditSettings ? "" : "disabled") />
-                                        <input type="number" name="types[@t.Id].sortOrder" value="@t.SortOrder" class="input join-item input-sm w-20 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanEditSettings ? "" : "disabled") />
+                                        <input type="hidden" name="types[@ticketType.Id].id" value="@ticketType.Id" />
+                                        <input name="types[@ticketType.Id].name" value="@ticketType.Name" class="input join-item input-sm w-48 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanEditSettings ? "" : "disabled") required />
+                                        <input type="color" name="types[@ticketType.Id].color" value="@pickerColor" class="join-item w-12 h-9 p-0 border border-white/20 rounded bg-neutral-900/70 cursor-pointer" @(Model.CanEditSettings ? "" : "disabled") />
+                                        <input type="number" name="types[@ticketType.Id].sortOrder" value="@ticketType.SortOrder" class="input join-item input-sm w-20 bg-neutral-900/80 border border-white/10 text-slate-100" @(Model.CanEditSettings ? "" : "disabled") />
                                     </td>
-                                    <td><span class="@badgeCls" style="@badgeStyle" title="@t.Name">@(isHex ? "Custom" : t.Color)</span></td>
-                                    <td class="font-semibold">@t.SortOrder</td>
+                                    <td><span class="@badgeCls" style="@badgeStyle" title="@ticketType.Name">@(isHex ? "Custom" : ticketType.Color)</span></td>
+                                    <td class="font-semibold">@ticketType.SortOrder</td>
                                     <td class="text-right">
-                                        <button type="button" class="btn btn-error btn-xs remove-btn" data-type="type" data-id="@t.Id" data-name="@t.Name">
+                                        <button type="button" class="btn btn-error btn-xs remove-btn" data-type="type" data-id="@ticketType.Id" data-name="@ticketType.Name">
                                             <i class="fa fa-trash"></i>
                                         </button>
                                     </td>

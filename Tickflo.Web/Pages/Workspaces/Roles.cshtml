@@ -54,13 +54,13 @@
                             }
                             else
                             {
-                                foreach (var r in Model.Roles)
+                                foreach (var role in Model.Roles)
                                 {
                                     <tr>
-                                        @{ var assignedCount = 0; if (Model.RoleAssignmentCounts != null && Model.RoleAssignmentCounts.TryGetValue(r.Id, out var tmp)) { assignedCount = tmp; } }
-                                        <td>@r.Name</td>
+                                        @{ var assignedCount = 0; if (Model.RoleAssignmentCounts != null && Model.RoleAssignmentCounts.TryGetValue(role.Id, out var tmp)) { assignedCount = tmp; } }
+                                        <td>@role.Name</td>
                                         <td>
-                                            @if (r.Admin)
+                                            @if (role.Admin)
                                             {
                                                 <span class="badge badge-soft badge-primary rounded-full">Admin</span>
                                             }
@@ -76,10 +76,10 @@
                                             <div class="flex flex-wrap gap-2">
                                                 @await Html.PartialAsync("_ActionRow", new Tickflo.Web.Pages.Shared.ActionRowView {
                                                     Actions = new List<Tickflo.Web.Pages.Shared.ActionItem> {
-                                                        new Tickflo.Web.Pages.Shared.ActionItem { Label = "Edit", Href = $"/workspaces/{Model.WorkspaceSlug}/users/roles/{r.Id}/edit", Disabled = false, ButtonClass = "btn btn-ghost btn-sm" }
+                                                        new Tickflo.Web.Pages.Shared.ActionItem { Label = "Edit", Href = $"/workspaces/{Model.WorkspaceSlug}/users/roles/{role.Id}/edit", Disabled = false, ButtonClass = "btn btn-ghost btn-sm" }
                                                     }
                                                 })
-                                                <form method="post" action="/workspaces/@Model.WorkspaceSlug/users/roles/@r.Id/delete" onsubmit="return confirm('Delete role @r.Name?');">
+                                                <form method="post" action="/workspaces/@Model.WorkspaceSlug/users/roles/@role.Id/delete" onsubmit="return confirm('Delete role @role.Name?');">
                                                     <button class="btn btn-error btn-sm" type="submit" @(assignedCount > 0 ? "disabled" : null)>Delete</button>
                                                 </form>
                                                 @if (assignedCount > 0)

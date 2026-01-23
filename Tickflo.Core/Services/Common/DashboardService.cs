@@ -145,11 +145,11 @@ public class DashboardService(
 
         // Count by PriorityId when available, otherwise by name
         var byId = priorities.ToDictionary(p => p.Id, p => 0);
-        foreach (var t in visibleTickets)
+        foreach (var ticket in visibleTickets)
         {
-            if (t.PriorityId.HasValue && byId.TryGetValue(t.PriorityId.Value, out var value))
+            if (ticket.PriorityId.HasValue && byId.TryGetValue(ticket.PriorityId.Value, out var value))
             {
-                byId[t.PriorityId.Value] = ++value;
+                byId[ticket.PriorityId.Value] = ++value;
             }
         }
 
@@ -161,7 +161,7 @@ public class DashboardService(
 
         // Include any tickets without PriorityId by skipping them
         // (All tickets should have PriorityId now, but handle null case for safety)
-        foreach (var t in visibleTickets.Where(x => !x.PriorityId.HasValue))
+        foreach (var ticket in visibleTickets.Where(x => !x.PriorityId.HasValue))
         {
             // Skip tickets without PriorityId - they should not exist in ID-only model
         }
@@ -281,5 +281,4 @@ public class DashboardService(
         return $"{Math.Round(duration.TotalSeconds, 1)} seconds";
     }
 }
-
 

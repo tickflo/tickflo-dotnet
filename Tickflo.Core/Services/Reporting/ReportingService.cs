@@ -87,7 +87,7 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
         }
 
         var skip = (clampedPage - 1) * clampedTake;
-        for (var i = 0; i < skip; i++)
+        for (var index = 0; index < skip; index++)
         {
             var skipped = ReadCsvRecord(streamReader);
             if (skipped == null)
@@ -479,9 +479,9 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
         var list = new List<int>();
         foreach (var el in value.EnumerateArray())
         {
-            if (el.ValueKind == JsonValueKind.Number && el.TryGetInt32(out var v))
+            if (el.ValueKind == JsonValueKind.Number && el.TryGetInt32(out var intValue))
             {
-                list.Add(v);
+                list.Add(intValue);
             }
         }
         return list;
@@ -531,15 +531,15 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
                 case "Name":
                     if (filter.Op == "contains" && filter.Value.ValueKind == JsonValueKind.String)
                     {
-                        var v = filter.Value.GetString() ?? string.Empty;
-                        q = q.Where(l => l.Name.Contains(v));
+                        var filterValue = filter.Value.GetString() ?? string.Empty;
+                        q = q.Where(l => l.Name.Contains(filterValue));
                     }
                     break;
                 case "Active":
                     if ((filter.Op == "eq" && filter.Value.ValueKind == JsonValueKind.True) || filter.Value.ValueKind == JsonValueKind.False)
                     {
-                        var v = filter.Value.ValueKind == JsonValueKind.True;
-                        q = q.Where(l => l.Active == v);
+                        var isActive = filter.Value.ValueKind == JsonValueKind.True;
+                        q = q.Where(l => l.Active == isActive);
                     }
                     break;
                 default:
@@ -566,8 +566,8 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
                 case "Sku":
                     if (filter.Op == "contains" && filter.Value.ValueKind == JsonValueKind.String)
                     {
-                        var v = filter.Value.GetString() ?? string.Empty;
-                        q = q.Where(i => i.Sku.Contains(v));
+                        var filterValue = filter.Value.GetString() ?? string.Empty;
+                        q = q.Where(i => i.Sku.Contains(filterValue));
                     }
                     break;
                 case "LocationId":
@@ -606,30 +606,30 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
 
     private static IQueryable<Ticket> ApplyTicketOrdering(IQueryable<Ticket> q, List<OrderDef> orders)
     {
-        foreach (var o in orders)
+        foreach (var order in orders)
         {
-            if (o.Field == "CreatedAt")
+            if (order.Field == "CreatedAt")
             {
-                q = o.Dir == "desc" ? q.OrderByDescending(t => t.CreatedAt) : q.OrderBy(t => t.CreatedAt);
+                q = order.Dir == "desc" ? q.OrderByDescending(t => t.CreatedAt) : q.OrderBy(t => t.CreatedAt);
             }
-            else if (o.Field == "UpdatedAt")
+            else if (order.Field == "UpdatedAt")
             {
-                q = o.Dir == "desc" ? q.OrderByDescending(t => t.UpdatedAt) : q.OrderBy(t => t.UpdatedAt);
+                q = order.Dir == "desc" ? q.OrderByDescending(t => t.UpdatedAt) : q.OrderBy(t => t.UpdatedAt);
             }
         }
         return q;
     }
     private static IQueryable<Contact> ApplyContactOrdering(IQueryable<Contact> q, List<OrderDef> orders)
     {
-        foreach (var o in orders)
+        foreach (var order in orders)
         {
-            if (o.Field == "CreatedAt")
+            if (order.Field == "CreatedAt")
             {
-                q = o.Dir == "desc" ? q.OrderByDescending(t => t.CreatedAt) : q.OrderBy(t => t.CreatedAt);
+                q = order.Dir == "desc" ? q.OrderByDescending(t => t.CreatedAt) : q.OrderBy(t => t.CreatedAt);
             }
-            else if (o.Field == "LastInteraction")
+            else if (order.Field == "LastInteraction")
             {
-                q = o.Dir == "desc" ? q.OrderByDescending(t => t.LastInteraction) : q.OrderBy(t => t.LastInteraction);
+                q = order.Dir == "desc" ? q.OrderByDescending(t => t.LastInteraction) : q.OrderBy(t => t.LastInteraction);
             }
         }
         return q;
@@ -657,13 +657,13 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
                 result.Add(sb.ToString());
                 return result;
             }
-            var c = (char)ci;
+            var character = (char)ci;
 
-            if (c == '\r')
+            if (character == '\r')
             {
                 continue;
             }
-            if (c == '\n')
+            if (character == '\n')
             {
                 if (inQuotes)
                 {
@@ -675,7 +675,7 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
                 return result;
             }
 
-            if (c == '"')
+            if (character == '"')
             {
                 if (!inQuotes)
                 {
@@ -706,7 +706,7 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
                 continue;
             }
 
-            if (c == ',' && !inQuotes)
+            if (character == ',' && !inQuotes)
             {
                 result.Add(sb.ToString());
                 sb.Clear();
@@ -714,7 +714,7 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
                 continue;
             }
 
-            sb.Append(c);
+            sb.Append(character);
             started = true;
         }
     }
@@ -725,8 +725,8 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
         csvBuilder.AppendLine(string.Join(',', headers.Select(this.EscapeCsv)));
         foreach (var row in this.currentRows)
         {
-            var vals = headers.Select(h => this.EscapeCsv(FormatCsv(row.TryGetValue(h, out var v) ? v : null)));
-            csvBuilder.AppendLine(string.Join(',', vals));
+            var values = headers.Select(h => this.EscapeCsv(FormatCsv(row.TryGetValue(h, out var value) ? value : null)));
+            csvBuilder.AppendLine(string.Join(',', values));
         }
         // UTF-8 with BOM
         var utf8bom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
@@ -752,6 +752,4 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
         _ => v.ToString() ?? string.Empty
     };
 }
-
-
 

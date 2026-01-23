@@ -86,19 +86,19 @@
               </tr>
             </thead>
             <tbody>
-              @foreach (var i in Model.Items)
+              @foreach (var item in Model.Items)
               {
-                var low = i.MinStock.HasValue && i.Quantity < i.MinStock.Value;
+                var low = item.MinStock.HasValue && item.Quantity < item.MinStock.Value;
                 <tr class="@(low ? "bg-warning/10 hover:bg-warning/20" : "hover:bg-neutral-900/30")">
-                  <td class="break-all">@i.Sku</td>
-                  <td class="font-medium">@i.Name</td>
-                  <td class="@(low ? "text-warning font-bold" : "")">@i.Quantity</td>
-                  <td class="hidden sm:table-cell text-slate-400">@(i.MinStock ?? 0)</td>
-                  <td class="hidden md:table-cell">$@i.Cost.ToString("0.00")</td>
-                  <td class="hidden md:table-cell">@(i.Price.HasValue ? "$" + i.Price.Value.ToString("0.00") : "-")</td>
+                  <td class="break-all">@item.Sku</td>
+                  <td class="font-medium">@item.Name</td>
+                  <td class="@(low ? "text-warning font-bold" : "")">@item.Quantity</td>
+                  <td class="hidden sm:table-cell text-slate-400">@(item.MinStock ?? 0)</td>
+                  <td class="hidden md:table-cell">$@item.Cost.ToString("0.00")</td>
+                  <td class="hidden md:table-cell">@(item.Price.HasValue ? "$" + item.Price.Value.ToString("0.00") : "-")</td>
                   <td>
                     <div class="flex gap-2 items-center">
-                      <span class="badge badge-soft rounded-full">@i.Status</span>
+                      <span class="badge badge-soft rounded-full">@item.Status</span>
                       @if (low)
                       {
                         <span class="badge badge-warning badge-soft rounded-full">Low Stock</span>
@@ -108,21 +108,21 @@
                   <td>
                     <div class="flex flex-wrap gap-2 md:join">
                       @if (Model.CanEditInventory) {
-                        <a class="btn btn-ghost btn-sm md:join-item" href="/workspaces/@Model.Workspace?.Slug/inventory/@i.Id/edit">Edit</a>
+                        <a class="btn btn-ghost btn-sm md:join-item" href="/workspaces/@Model.Workspace?.Slug/inventory/@item.Id/edit">Edit</a>
                       } else {
                         <button class="btn btn-ghost btn-sm md:join-item" disabled>Edit</button>
                       }
                       @if(Model.CanEditInventory)
                       {
-                        if (i.Status != "archived")
+                        if (item.Status != "archived")
                         {
-                          <form method="post" asp-page-handler="Archive" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@i.Id" class="md:join-item">
+                          <form method="post" asp-page-handler="Archive" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@item.Id" class="md:join-item">
                             <button type="submit" class="btn btn-ghost btn-sm">Archive</button>
                           </form>
                         }
                         else
                         {
-                          <form method="post" asp-page-handler="Restore" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@i.Id" class="md:join-item">
+                          <form method="post" asp-page-handler="Restore" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@item.Id" class="md:join-item">
                             <button type="submit" class="btn btn-ghost btn-sm">Restore</button>
                           </form>
                         }
