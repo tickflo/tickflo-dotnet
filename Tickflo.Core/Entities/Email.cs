@@ -1,25 +1,13 @@
 namespace Tickflo.Core.Entities;
 
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json;
 
 public class Email
 {
     public int Id { get; set; }
     public int TemplateId { get; set; }
-
-    [Column("vars")]
-    public string VarsJson { get; set; } = "{}";
-
-    [NotMapped]
-    public Dictionary<string, string> Vars
-    {
-        get => string.IsNullOrWhiteSpace(this.VarsJson)
-            ? []
-            : JsonSerializer.Deserialize<Dictionary<string, string>>(this.VarsJson) ?? [];
-        set => this.VarsJson = JsonSerializer.Serialize(value);
-    }
-
+    [Column(TypeName = "json")]
+    public Dictionary<string, string> Vars { get; set; } = [];
     public string From { get; set; } = string.Empty;
     public string To { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }

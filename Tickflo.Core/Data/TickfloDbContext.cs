@@ -1,5 +1,6 @@
 namespace Tickflo.Core.Data;
 
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
 
@@ -172,6 +173,11 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
             .HasIndex(fs => new { fs.RelatedEntityType, fs.RelatedEntityId });
         modelBuilder.Entity<FileStorage>()
             .HasIndex(fs => fs.Path);
+
+        modelBuilder.Entity<Email>().Property(e => e.Vars)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v),
+                v => JsonSerializer.Deserialize<Dictionary<string, string>>(v) ?? new Dictionary<string, string>());
 
         base.OnModelCreating(modelBuilder);
     }
