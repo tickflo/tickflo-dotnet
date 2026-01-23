@@ -1,6 +1,5 @@
 namespace Tickflo.Core.Services.Users;
 
-using System.Security.Cryptography;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Authentication;
@@ -46,34 +45,26 @@ public class UserInvitationService(
         email = email.Trim().ToLowerInvariant();
 
         // Get workspace for email template
-        var workspace = await this.workspaceRepository.FindByIdAsync(workspaceId);
-        if (workspace == null)
-        {
-            throw new InvalidOperationException("Workspace not found");
-        }
+        var workspace = await this.workspaceRepository.FindByIdAsync(workspaceId) ?? throw new InvalidOperationException("Workspace not found");
 
         // Check if user already exists
         var existingUser = await this.userRepository.FindByEmailAsync(email);
         User user;
         bool isNewUser;
-        string? temporaryPassword = null;
 
         if (existingUser == null)
         {
             isNewUser = true;
-            
-            // Generate temporary password for new users
-            temporaryPassword = this.GenerateTemporaryPassword(12);
 
             // Generate email confirmation code
             var emailConfirmationCode = TokenGenerator.GenerateToken(16);
 
-            // Create new user
+            // Create new user without password - they will set it after confirming email
             user = new User
             {
                 Name = email.Split('@')[0], // Default name from email
                 Email = email,
-                PasswordHash = this.passwordHasher.Hash(temporaryPassword),
+                PasswordHash = null, // No password yet - user will set it after email confirmation
                 EmailConfirmed = false,
                 EmailConfirmationCode = emailConfirmationCode,
                 SystemAdmin = false,
@@ -125,10 +116,11 @@ public class UserInvitationService(
         {
             User = user,
             ConfirmationCode = confirmationCode,
-            TemporaryPassword = temporaryPassword ?? string.Empty,
-            ConfirmationLink = $"/confirm-email?code={user.EmailConfirmationCode}",
+            TemporaryPassword = string.Empty, // No longer using temporary passwords
+            ConfirmationLink = $"/email-confirmation/confirm?email={Uri.EscapeDataString(email)}&code={Uri.EscapeDataString(user.EmailConfirmationCode ?? string.Empty)}",
             AcceptLink = $"/accept-invite?code={confirmationCode}",
             ResetPasswordLink = $"/reset-password?email={Uri.EscapeDataString(email)}",
+            SetPasswordLink = $"/set-password?userId={user.Id}",
             IsNewUser = isNewUser
         };
 
@@ -160,26 +152,6 @@ public class UserInvitationService(
         await this.userWorkspaceRepository.UpdateAsync(membership);
     }
 
-    public string GenerateTemporaryPassword(int length = 12)
-    {
-        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
-        var password = new char[length];
-
-        using (var randomNumberGenerator = RandomNumberGenerator.Create())
-        {
-            var buffer = new byte[length * 4];
-            randomNumberGenerator.GetBytes(buffer);
-
-            for (var index = 0; index < length; index++)
-            {
-                var randomValue = BitConverter.ToUInt32(buffer, index * 4);
-                password[index] = chars[(int)(randomValue % (uint)chars.Length)];
-            }
-        }
-
-        return new string(password);
-    }
-
     private async Task SendInvitationEmailAsync(
         Workspace workspace,
         User user,
@@ -197,11 +169,10 @@ public class UserInvitationService(
 
         if (isNewUser)
         {
-            // For new users, include temporary password and confirmation link
+            // For new users, include confirmation link and set password link
             templateType = EmailTemplateType.WorkspaceInviteNewUser;
-            variables["TEMPORARY_PASSWORD"] = invitationResult.TemporaryPassword;
             variables["CONFIRMATION_LINK"] = invitationResult.ConfirmationLink;
-            variables["SET_PASSWORD_LINK"] = invitationResult.ResetPasswordLink;
+            variables["SET_PASSWORD_LINK"] = invitationResult.SetPasswordLink;
         }
         else
         {

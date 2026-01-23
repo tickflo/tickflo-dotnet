@@ -16,7 +16,7 @@ public interface IEmailSendService
     /// <param name="variables">Variables to substitute in the template</param>
     /// <param name="workspaceId">Optional workspace ID for workspace-specific templates</param>
     /// <returns>The created email record</returns>
-    Task<Email> SendAsync(
+    public Task<Email> SendAsync(
         string toEmail,
         EmailTemplateType templateType,
         Dictionary<string, string> variables,

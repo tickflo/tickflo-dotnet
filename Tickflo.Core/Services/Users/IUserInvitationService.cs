@@ -36,13 +36,6 @@ public interface IUserInvitationService
     /// <param name="workspaceId">Workspace to accept</param>
     /// <param name="userId">User accepting the invitation</param>
     public Task AcceptInvitationAsync(int workspaceId, int userId);
-
-    /// <summary>
-    /// Generates a secure temporary password.
-    /// </summary>
-    /// <param name="length">Password length</param>
-    /// <returns>Temporary password string</returns>
-    public string GenerateTemporaryPassword(int length = 12);
 }
 
 /// <summary>
@@ -56,6 +49,7 @@ public class UserInvitationResult
     public string ConfirmationLink { get; set; } = string.Empty;
     public string AcceptLink { get; set; } = string.Empty;
     public string ResetPasswordLink { get; set; } = string.Empty;
+    public string SetPasswordLink { get; set; } = string.Empty;
     public bool IsNewUser { get; set; }
 }
 

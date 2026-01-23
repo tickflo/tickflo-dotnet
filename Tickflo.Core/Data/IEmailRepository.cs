@@ -12,12 +12,12 @@ public interface IEmailRepository
     /// </summary>
     /// <param name="email">Email entity to add</param>
     /// <returns>The added email with its generated ID</returns>
-    Task<Email> AddAsync(Email email);
+    public Task<Email> AddAsync(Email email);
 
     /// <summary>
     /// Finds an email by its ID.
     /// </summary>
     /// <param name="id">Email ID</param>
     /// <returns>Email entity or null if not found</returns>
-    Task<Email?> FindByIdAsync(int id);
+    public Task<Email?> FindByIdAsync(int id);
 }

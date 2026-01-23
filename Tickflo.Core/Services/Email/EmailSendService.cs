@@ -26,11 +26,7 @@ public class EmailSendService(
         }
 
         // Get the template ID from the template type
-        var template = await this.emailTemplateRepository.FindByTypeAsync(templateType, workspaceId);
-        if (template == null)
-        {
-            throw new InvalidOperationException($"Email template not found for type {templateType}");
-        }
+        var template = await this.emailTemplateRepository.FindByTypeAsync(templateType, workspaceId) ?? throw new InvalidOperationException($"Email template not found for type {templateType}");
 
         // Create email record
         var email = new Email

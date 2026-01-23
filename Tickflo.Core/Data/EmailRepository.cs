@@ -1,6 +1,5 @@
 namespace Tickflo.Core.Data;
 
-using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
 
 /// <summary>
@@ -17,8 +16,5 @@ public class EmailRepository(TickfloDbContext dbContext) : IEmailRepository
         return email;
     }
 
-    public async Task<Email?> FindByIdAsync(int id)
-    {
-        return await this.dbContext.Emails.FindAsync(id);
-    }
+    public async Task<Email?> FindByIdAsync(int id) => await this.dbContext.Emails.FindAsync(id);
 }

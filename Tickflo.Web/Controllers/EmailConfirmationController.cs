@@ -40,6 +40,11 @@ public class EmailConfirmationController(
 
         if (user.EmailConfirmed)
         {
+            // If user doesn't have a password yet, redirect to set password
+            if (string.IsNullOrWhiteSpace(user.PasswordHash))
+            {
+                return this.Redirect($"/set-password?userId={user.Id}");
+            }
             return this.Redirect("/email-confirmation/thank-you");
         }
 
@@ -51,6 +56,13 @@ public class EmailConfirmationController(
         user.EmailConfirmed = true;
         user.EmailConfirmationCode = null;
         await this.userRepository.UpdateAsync(user);
+
+        // After confirming email, redirect to set password if user doesn't have one
+        if (string.IsNullOrWhiteSpace(user.PasswordHash))
+        {
+            return this.Redirect($"/set-password?userId={user.Id}");
+        }
+
         return this.Redirect("/email-confirmation/thank-you");
     }
 
