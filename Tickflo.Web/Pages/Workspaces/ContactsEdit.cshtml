@@ -50,15 +50,15 @@
           <select class="select select-bordered w-full" asp-for="Priority">
             @if (ViewData["Priorities"] is IReadOnlyList<Tickflo.Core.Entities.TicketPriority> plist)
             {
-              foreach (var p in plist)
+              foreach (var priority in plist)
               {
-                if (string.Equals(Model.Priority, p.Name, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(Model.Priority, priority.Name, StringComparison.OrdinalIgnoreCase))
                 {
-                  <option selected>@p.Name</option>
+                  <option selected>@priority.Name</option>
                 }
                 else
                 {
-                  <option>@p.Name</option>
+                  <option>@priority.Name</option>
                 }
               }
             }

@@ -40,9 +40,9 @@ public class WorkspaceLocationsEditViewService(
         var memberships = await this.userWorkspaceRepository.FindForWorkspaceAsync(workspaceId);
         if (memberships != null)
         {
-            foreach (var m in memberships.Select(m => m.UserId).Distinct())
+            foreach (var memberUserId in memberships.Select(m => m.UserId).Distinct())
             {
-                var user = await this.userRepository.FindByIdAsync(m);
+                var user = await this.userRepository.FindByIdAsync(memberUserId);
                 if (user != null)
                 {
                     data.MemberOptions.Add(user);
@@ -72,5 +72,3 @@ public class WorkspaceLocationsEditViewService(
         return data;
     }
 }
-
-

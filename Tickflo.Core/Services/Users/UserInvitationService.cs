@@ -137,15 +137,15 @@ public class UserInvitationService(
         const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
         var password = new char[length];
 
-        using (var rng = RandomNumberGenerator.Create())
+        using (var randomNumberGenerator = RandomNumberGenerator.Create())
         {
             var buffer = new byte[length * 4];
-            rng.GetBytes(buffer);
+            randomNumberGenerator.GetBytes(buffer);
 
-            for (var i = 0; i < length; i++)
+            for (var index = 0; index < length; index++)
             {
-                var randomValue = BitConverter.ToUInt32(buffer, i * 4);
-                password[i] = chars[(int)(randomValue % (uint)chars.Length)];
+                var randomValue = BitConverter.ToUInt32(buffer, index * 4);
+                password[index] = chars[(int)(randomValue % (uint)chars.Length)];
             }
         }
 
@@ -154,6 +154,5 @@ public class UserInvitationService(
 
     private static string GenerateConfirmationCode() => Guid.NewGuid().ToString("N");
 }
-
 
 

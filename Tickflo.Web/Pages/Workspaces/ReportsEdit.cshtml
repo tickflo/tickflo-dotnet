@@ -19,9 +19,9 @@
                     <div class="fieldset">
                         <label class="label"><span class="label-text">Source</span></label>
                         <select class="select w-full" asp-for="Source">
-                            @foreach (var s in Model.Sources.Keys)
+                            @foreach (var source in Model.Sources.Keys)
                             {
-                                <option value="@s" selected="@(Model.Source==s)">@s</option>
+                                <option value="@source" selected="@(Model.Source==source)">@source</option>
                             }
                         </select>
                     </div>

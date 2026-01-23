@@ -276,8 +276,8 @@ public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspac
         var isClosedState = !string.IsNullOrEmpty(isClosedStateStr) && (isClosedStateStr == "true" || isClosedStateStr == "on");
         try
         {
-            var s = await this.workspaceSettingsService.UpdateStatusAsync(this.Workspace!.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder, isClosedState);
-            this.SetSuccessMessage($"Status '{s.Name}' updated successfully!");
+            var status = await this.workspaceSettingsService.UpdateStatusAsync(this.Workspace!.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder, isClosedState);
+            this.SetSuccessMessage($"Status '{status.Name}' updated successfully!");
         }
         catch (InvalidOperationException ex)
         {
@@ -295,8 +295,8 @@ public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspac
 
         try
         {
-            var p = await this.workspaceSettingsService.UpdatePriorityAsync(this.Workspace!.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
-            this.SetSuccessMessage($"Priority '{p.Name}' updated successfully!");
+            var priority = await this.workspaceSettingsService.UpdatePriorityAsync(this.Workspace!.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
+            this.SetSuccessMessage($"Priority '{priority.Name}' updated successfully!");
         }
         catch (InvalidOperationException ex)
         {
@@ -314,8 +314,8 @@ public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspac
 
         try
         {
-            var t = await this.workspaceSettingsService.UpdateTypeAsync(this.Workspace!.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
-            this.SetSuccessMessage($"Type '{t.Name}' updated successfully!");
+            var ticketType = await this.workspaceSettingsService.UpdateTypeAsync(this.Workspace!.Id, id, name?.Trim() ?? string.Empty, string.IsNullOrWhiteSpace(color) ? "neutral" : color.Trim(), sortOrder);
+            this.SetSuccessMessage($"Type '{ticketType.Name}' updated successfully!");
         }
         catch (InvalidOperationException ex)
         {
@@ -409,7 +409,6 @@ public partial class SettingsModel(IWorkspaceService workspaceService, IWorkspac
         }
     }
 }
-
 
 
 

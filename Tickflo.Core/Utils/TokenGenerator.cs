@@ -8,11 +8,11 @@ public static class TokenGenerator
     public static string GenerateToken(int byteLength = 32)
     {
         var bytes = RandomNumberGenerator.GetBytes(byteLength);
-        var sb = new StringBuilder(byteLength * 2);
-        foreach (var b in bytes)
+        var tokenBuilder = new StringBuilder(byteLength * 2);
+        foreach (var value in bytes)
         {
-            sb.AppendFormat("{0:x2}", b);
+            tokenBuilder.AppendFormat("{0:x2}", value);
         }
-        return sb.ToString();
+        return tokenBuilder.ToString();
     }
 }

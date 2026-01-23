@@ -18,9 +18,9 @@
                         <label class="label"><span class="label-text">User</span></label>
                         <select asp-for="SelectedUserId" class="select select-bordered w-full bg-neutral-900/80 border border-white/10 text-slate-100">
                             <option value="">Select a user</option>
-                            @foreach (var u in Model.WorkspaceUsers)
+                            @foreach (var user in Model.WorkspaceUsers)
                             {
-                                <option value="@u.Id">@u.Name (@u.Email)</option>
+                                <option value="@user.Id">@user.Name (@user.Email)</option>
                             }
                         </select>
                     </div>
@@ -43,14 +43,14 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var m in Model.Members)
+                            @foreach (var member in Model.Members)
                             {
                                 <tr>
-                                    <td>@m.Name (@m.Email)</td>
+                                    <td>@member.Name (@member.Email)</td>
                                     <td>
                                         <form method="post" asp-page-handler="Remove" class="inline">
                                             <input type="hidden" name="teamId" value="@Model.TeamId" />
-                                            <input type="hidden" name="userId" value="@m.Id" />
+                                            <input type="hidden" name="userId" value="@member.Id" />
                                             <button type="submit" class="btn btn-error btn-sm" @(Model.CanEditTeams ? "" : "disabled")>Remove</button>
                                         </form>
                                     </td>

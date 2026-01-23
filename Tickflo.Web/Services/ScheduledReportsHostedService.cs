@@ -24,7 +24,7 @@ public class ScheduledReportsHostedService(IServiceProvider serviceProvider, ILo
 
                 var now = DateTime.UtcNow;
                 var due = await tickfloDbContext.Reports.AsNoTracking()
-                    .Where(r => r.ScheduleEnabled && r.Ready)
+                    .Where(report => report.ScheduleEnabled && report.Ready)
                     .ToListAsync(stoppingToken);
 
                 foreach (var report in due)

@@ -23,10 +23,10 @@
                     <div class="form-control">
                         <label class="label" for="SelectedContactIds"><span class="label-text">Contacts at this Location</span></label>
                         <select asp-for="SelectedContactIds" class="select select-bordered w-full" multiple size="8">
-                            @foreach (var c in Model.ContactOptions)
+                            @foreach (var contact in Model.ContactOptions)
                             {
-                                var isSelected = Model.SelectedContactIds != null && Model.SelectedContactIds.Contains(c.Id);
-                                <option value="@c.Id" selected="@(isSelected ? "selected" : null)">@((c.Name ?? string.Empty).Trim()) @((string.IsNullOrWhiteSpace(c.Email) ? string.Empty : $"({c.Email})"))</option>
+                                var isSelected = Model.SelectedContactIds != null && Model.SelectedContactIds.Contains(contact.Id);
+                                <option value="@contact.Id" selected="@(isSelected ? "selected" : null)">@((contact.Name ?? string.Empty).Trim()) @((string.IsNullOrWhiteSpace(contact.Email) ? string.Empty : $"({contact.Email})"))</option>
                             }
                         </select>
                         <div class="text-xs opacity-70 mt-1">Hold Ctrl/Command to select multiple.</div>
@@ -35,9 +35,9 @@
                         <label class="label" for="DefaultAssigneeUserId"><span class="label-text">Default Assignee (auto-assign new tickets)</span></label>
                         <select class="select select-bordered w-full" asp-for="DefaultAssigneeUserId">
                             <option value="">-- None --</option>
-                            @foreach (var u in Model.MemberOptions)
+                            @foreach (var user in Model.MemberOptions)
                             {
-                                <option value="@u.Id" selected="@(Model.DefaultAssigneeUserId == u.Id ? "selected" : null)">@((u.Name ?? "").Trim()) @((string.IsNullOrWhiteSpace(u.Email) ? string.Empty : $"({u.Email})"))</option>
+                                <option value="@user.Id" selected="@(Model.DefaultAssigneeUserId == user.Id ? "selected" : null)">@((user.Name ?? "").Trim()) @((string.IsNullOrWhiteSpace(user.Email) ? string.Empty : $"({user.Email})"))</option>
                             }
                         </select>
                     </div>

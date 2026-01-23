@@ -42,9 +42,9 @@ public class WorkspaceUsersViewService(
 
         // Build pending invites
         var memberships = await this.userWorkspaceRepository.FindForWorkspaceAsync(workspaceId);
-        foreach (var m in memberships.Where(m => !m.Accepted))
+        foreach (var membership in memberships.Where(m => !m.Accepted))
         {
-            var user = await this.userRepository.FindByIdAsync(m.UserId);
+            var user = await this.userRepository.FindByIdAsync(membership.UserId);
             if (user == null)
             {
                 continue;
@@ -55,15 +55,15 @@ public class WorkspaceUsersViewService(
             {
                 UserId = user.Id,
                 Email = user.Email,
-                CreatedAt = m.CreatedAt,
+                CreatedAt = membership.CreatedAt,
                 Roles = roles
             });
         }
 
         // Build accepted users
-        foreach (var m in memberships.Where(m => m.Accepted))
+        foreach (var membership in memberships.Where(m => m.Accepted))
         {
-            var user = await this.userRepository.FindByIdAsync(m.UserId);
+            var user = await this.userRepository.FindByIdAsync(membership.UserId);
             if (user == null)
             {
                 continue;
@@ -76,7 +76,7 @@ public class WorkspaceUsersViewService(
                 UserId = user.Id,
                 Email = user.Email,
                 Name = user.Name ?? string.Empty,
-                JoinedAt = m.UpdatedAt ?? m.CreatedAt,
+                JoinedAt = membership.UpdatedAt ?? membership.CreatedAt,
                 Roles = roles,
                 IsAdmin = isAdmin
             });
@@ -85,5 +85,4 @@ public class WorkspaceUsersViewService(
         return data;
     }
 }
-
 

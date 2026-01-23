@@ -36,7 +36,7 @@
     }
     bool Can(string section)
     {
-        return perms.TryGetValue(section, out var p) ? p.CanView : true;
+    return perms.TryGetValue(section, out var permission) ? permission.CanView : true;
     }
     var canDashboard = Can("dashboard");
     var canContacts = Can("contacts");

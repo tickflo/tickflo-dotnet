@@ -65,10 +65,10 @@
         </span>
         @{
           var statusName = Model.Ticket?.StatusId.HasValue == true ? Model.Statuses.FirstOrDefault(x => x.Id == Model.Ticket.StatusId.Value)?.Name ?? "Unknown" : "Unknown";
-          var sColor = (Model.Ticket != null && Model.StatusColorByName.TryGetValue(statusName, out var c)) ? c : "neutral";
-          var isHex = sColor.StartsWith("#");
-          var sCls = isHex ? "badge badge-lg" : $"badge badge-lg badge-{sColor}";
-          var sStyle = isHex ? $"background-color: {sColor}; color: #fff;" : null;
+          var statusColor = (Model.Ticket != null && Model.StatusColorByName.TryGetValue(statusName, out var color)) ? color : "neutral";
+          var isHex = statusColor.StartsWith("#");
+          var sCls = isHex ? "badge badge-lg" : $"badge badge-lg badge-{statusColor}";
+          var sStyle = isHex ? $"background-color: {statusColor}; color: #fff;" : null;
         }
         <span class="@sCls rounded-full font-medium" style="@sStyle">
           <i class="fa fa-circle mr-1"></i>@statusName
@@ -221,9 +221,9 @@
                     </span>
                   </label>
                   <select name="EditType" class="select select-bordered w-full bg-neutral-900/70 focus:bg-neutral-900">
-                    @foreach (var t in Model.Types)
+                    @foreach (var ticketType in Model.Types)
                     {
-                      if (Model.Ticket!.TicketTypeId == t.Id) {<option value="@t.Name" selected>@t.Name</option>} else {<option value="@t.Name">@t.Name</option>}
+                      if (Model.Ticket!.TicketTypeId == ticketType.Id) {<option value="@ticketType.Name" selected>@ticketType.Name</option>} else {<option value="@ticketType.Name">@ticketType.Name</option>}
                     }
                   </select>
                 </div>
@@ -234,9 +234,9 @@
                     </span>
                   </label>
                   <select name="EditStatus" class="select select-bordered w-full bg-neutral-900/70 focus:bg-neutral-900">
-                    @foreach (var s in Model.Statuses)
+                    @foreach (var status in Model.Statuses)
                     {
-                      if (Model.Ticket!.StatusId == s.Id) {<option value="@s.Name" selected>@s.Name</option>} else {<option value="@s.Name">@s.Name</option>}
+                      if (Model.Ticket!.StatusId == status.Id) {<option value="@status.Name" selected>@status.Name</option>} else {<option value="@status.Name">@status.Name</option>}
                     }
                   </select>
                 </div>
@@ -247,9 +247,9 @@
                     </span>
                   </label>
                   <select name="EditPriority" class="select select-bordered w-full bg-neutral-900/70 focus:bg-neutral-900">
-                    @foreach (var p in Model.Priorities)
+                    @foreach (var priority in Model.Priorities)
                     {
-                      if (Model.Ticket!.PriorityId == p.Id) {<option value="@p.Name" selected>@p.Name</option>} else {<option value="@p.Name">@p.Name</option>}
+                      if (Model.Ticket!.PriorityId == priority.Id) {<option value="@priority.Name" selected>@priority.Name</option>} else {<option value="@priority.Name">@priority.Name</option>}
                     }
                   </select>
                 </div>
@@ -283,9 +283,9 @@
                   <input id="assignee-search" class="input input-bordered w-full bg-neutral-900/70 focus:bg-neutral-900" list="assignees-list" placeholder="Search by name or email..." />
                   <datalist id="assignees-list">
                     <option value="Unassigned" data-id=""></option>
-                    @foreach (var u in Model.Members)
+                    @foreach (var member in Model.Members)
                     {
-                      <option value="@u.Name (@u.Email)" data-id="@u.Id"></option>
+                      <option value="@member.Name (@member.Email)" data-id="@member.Id"></option>
                     }
                   </datalist>
                 </div>
@@ -299,9 +299,9 @@
                   <input id="team-search" class="input input-bordered w-full bg-neutral-900/70 focus:bg-neutral-900" list="teams-list" placeholder="Search team..." />
                   <datalist id="teams-list">
                     <option value="None" data-id=""></option>
-                    @foreach (var t in Model.Teams)
+                    @foreach (var team in Model.Teams)
                     {
-                      <option value="@t.Name" data-id="@t.Id"></option>
+                      <option value="@team.Name" data-id="@team.Id"></option>
                     }
                   </datalist>
                 </div>
@@ -317,9 +317,9 @@
                   <input type="hidden" name="EditContactId" id="editContactId" value="@Model.Ticket!.ContactId" />
                   <input id="contact-search" class="input input-bordered w-full bg-neutral-900/70 focus:bg-neutral-900" list="contacts-list" placeholder="Search contacts..." />
                   <datalist id="contacts-list">
-                    @foreach (var c in Model.Contacts)
+                    @foreach (var contact in Model.Contacts)
                     {
-                      <option value="@c.Name (@c.Email)" data-id="@c.Id"></option>
+                      <option value="@contact.Name (@contact.Email)" data-id="@contact.Id"></option>
                     }
                   </datalist>
                 </div>
@@ -331,10 +331,10 @@
                   </label>
                   <select name="locationId" class="select select-bordered w-full bg-neutral-900/70 focus:bg-neutral-900">
                     <option value="">None</option>
-                    @foreach (var l in Model.LocationOptions)
+                    @foreach (var location in Model.LocationOptions)
                     {
-                        var selected = Model.LocationId.HasValue && Model.LocationId.Value == l.Id ? "selected" : null;
-                        <option value="@l.Id" selected="@selected">@l.Name</option>
+                        var selected = Model.LocationId.HasValue && Model.LocationId.Value == location.Id ? "selected" : null;
+                        <option value="@location.Id" selected="@selected">@location.Name</option>
                     }
                   </select>
                 </div>
@@ -371,10 +371,10 @@
               </div>
               
               <datalist id="inventory-list">
-                @foreach (var i in Model.InventoryItems)
-                {
-                  <option value="@i.Name (@i.Sku)" data-id="@i.Id" data-sku="@i.Sku" data-name="@i.Name" data-price="@((i.Price ?? i.Cost).ToString(System.Globalization.CultureInfo.InvariantCulture))" />
-                }
+                    @foreach (var inventoryItem in Model.InventoryItems)
+                    {
+                      <option value="@inventoryItem.Name (@inventoryItem.Sku)" data-id="@inventoryItem.Id" data-sku="@inventoryItem.Sku" data-name="@inventoryItem.Name" data-price="@((inventoryItem.Price ?? inventoryItem.Cost).ToString(System.Globalization.CultureInfo.InvariantCulture))" />
+                    }
               </datalist>
 
               <!-- Inventory Table -->
@@ -440,17 +440,17 @@
         <script>
           (function(){
             @{ var statusDict = new System.Collections.Generic.Dictionary<string, string>();
-               foreach (var s in Model.Statuses)
+               foreach (var status in Model.Statuses)
                {
-                 var key = s.Name ?? string.Empty;
-                 var val = string.IsNullOrWhiteSpace(s.Color) ? "neutral" : s.Color!;
+                 var key = status.Name ?? string.Empty;
+                 var val = string.IsNullOrWhiteSpace(status.Color) ? "neutral" : status.Color!;
                  statusDict[key] = val;
                }
                var priorityDict = new System.Collections.Generic.Dictionary<string, string>();
-               foreach (var p in Model.Priorities)
+               foreach (var priority in Model.Priorities)
                {
-                 var key = p.Name ?? string.Empty;
-                 var val = string.IsNullOrWhiteSpace(p.Color) ? "neutral" : p.Color!;
+                 var key = priority.Name ?? string.Empty;
+                 var val = string.IsNullOrWhiteSpace(priority.Color) ? "neutral" : priority.Color!;
                  priorityDict[key] = val;
                }
                var statusJson = System.Text.Json.JsonSerializer.Serialize(statusDict);
@@ -461,12 +461,12 @@
             // Multi-inventory invoice logic
             /* inventoryList server emission disabled
             const inventoryListFromServer = [
-              @foreach (var i in Model.InventoryItems)
-              {
-                @:{ sku: "@((i.Sku ?? string.Empty).Replace("\"","\\\"").Replace("\\","\\\\"))", name: "@((i.Name ?? string.Empty).Replace("\"","\\\"").Replace("\\","\\\\"))", id: @i.Id, price: @((i.Price ?? i.Cost).ToString(System.Globalization.CultureInfo.InvariantCulture)) }
-                  @:{ sku: "@((i.Sku ?? string.Empty).Replace("\"","\\\"").Replace("\\","\\\\").Replace("\r"," ").Replace("\n"," "))", name: "@((i.Name ?? string.Empty).Replace("\"","\\\"").Replace("\\","\\\\").Replace("\r"," ").Replace("\n"," "))", id: @i.Id, price: @((i.Price ?? i.Cost).ToString(System.Globalization.CultureInfo.InvariantCulture)) }
-                @:(Model.InventoryItems.Last() == i ? "" : ",")
-              }
+               @foreach (var inventoryItem in Model.InventoryItems)
+               {
+                @:{ sku: "@((inventoryItem.Sku ?? string.Empty).Replace("\"","\\\"").Replace("\\","\\\\"))", name: "@((inventoryItem.Name ?? string.Empty).Replace("\"","\\\"").Replace("\\","\\\\"))", id: @inventoryItem.Id, price: @((inventoryItem.Price ?? inventoryItem.Cost).ToString(System.Globalization.CultureInfo.InvariantCulture)) }
+                  @:{ sku: "@((inventoryItem.Sku ?? string.Empty).Replace("\"","\\\"").Replace("\\","\\\\").Replace("\r"," ").Replace("\n"," "))", name: "@((inventoryItem.Name ?? string.Empty).Replace("\"","\\\"").Replace("\\","\\\\").Replace("\r"," ").Replace("\n"," "))", id: @inventoryItem.Id, price: @((inventoryItem.Price ?? inventoryItem.Cost).ToString(System.Globalization.CultureInfo.InvariantCulture)) }
+                @:(Model.InventoryItems.Last() == inventoryItem ? "" : ",")
+               }
             ];
             */
             const inventoryList = (function(){
@@ -975,49 +975,49 @@
             <div class="space-y-3">
               @if (Model.History != null && Model.History.Count > 0)
               {
-                foreach (var h in Model.History)
+                foreach (var historyEntry in Model.History)
                 {
-                  var actor = Model.Members.FirstOrDefault(m => m.Id == h.CreatedByUserId);
-                  var actorName = actor != null ? (string.IsNullOrWhiteSpace(actor.Name) ? actor.Email : actor.Name) : $"User #{h.CreatedByUserId}";
-                  var actionDescription = Tickflo.Web.Utils.TicketHistoryFormatter.FormatActionDescription(h.Action, h.Field, h.Note);
-                  var showValueChange = Tickflo.Web.Utils.TicketHistoryFormatter.ShouldShowValueChange(h.Action);
+                  var actor = Model.Members.FirstOrDefault(m => m.Id == historyEntry.CreatedByUserId);
+                  var actorName = actor != null ? (string.IsNullOrWhiteSpace(actor.Name) ? actor.Email : actor.Name) : $"User #{historyEntry.CreatedByUserId}";
+                  var actionDescription = Tickflo.Web.Utils.TicketHistoryFormatter.FormatActionDescription(historyEntry.Action, historyEntry.Field, historyEntry.Note);
+                  var showValueChange = Tickflo.Web.Utils.TicketHistoryFormatter.ShouldShowValueChange(historyEntry.Action);
                   
                   // Resolve user-friendly values
-                  var oldValueDisplay = h.OldValue;
-                  var newValueDisplay = h.NewValue;
+                  var oldValueDisplay = historyEntry.OldValue;
+                  var newValueDisplay = historyEntry.NewValue;
                   
-                  if (h.Field == "AssignedUserId")
+                  if (historyEntry.Field == "AssignedUserId")
                   {
-                    if (int.TryParse(h.OldValue, out var oldUserId))
+                    if (int.TryParse(historyEntry.OldValue, out var oldUserId))
                     {
                       var oldUser = Model.Members.FirstOrDefault(m => m.Id == oldUserId);
-                      oldValueDisplay = oldUser != null ? (string.IsNullOrWhiteSpace(oldUser.Name) ? oldUser.Email : oldUser.Name) : h.OldValue;
+                      oldValueDisplay = oldUser != null ? (string.IsNullOrWhiteSpace(oldUser.Name) ? oldUser.Email : oldUser.Name) : historyEntry.OldValue;
                     }
-                    if (int.TryParse(h.NewValue, out var newUserId))
+                    if (int.TryParse(historyEntry.NewValue, out var newUserId))
                     {
                       var newUser = Model.Members.FirstOrDefault(m => m.Id == newUserId);
-                      newValueDisplay = newUser != null ? (string.IsNullOrWhiteSpace(newUser.Name) ? newUser.Email : newUser.Name) : h.NewValue;
+                      newValueDisplay = newUser != null ? (string.IsNullOrWhiteSpace(newUser.Name) ? newUser.Email : newUser.Name) : historyEntry.NewValue;
                     }
                   }
-                  else if (h.Field == "ContactId")
+                  else if (historyEntry.Field == "ContactId")
                   {
-                    if (int.TryParse(h.OldValue, out var oldContactId))
+                    if (int.TryParse(historyEntry.OldValue, out var oldContactId))
                     {
                       var oldContact = Model.Contacts.FirstOrDefault(c => c.Id == oldContactId);
-                      oldValueDisplay = oldContact?.Name ?? h.OldValue;
+                      oldValueDisplay = oldContact?.Name ?? historyEntry.OldValue;
                     }
-                    if (int.TryParse(h.NewValue, out var newContactId))
+                    if (int.TryParse(historyEntry.NewValue, out var newContactId))
                     {
                       var newContact = Model.Contacts.FirstOrDefault(c => c.Id == newContactId);
-                      newValueDisplay = newContact?.Name ?? h.NewValue;
+                      newValueDisplay = newContact?.Name ?? historyEntry.NewValue;
                     }
                   }
                   
                   <div class="flex items-start gap-3 p-3 rounded-lg bg-neutral-900/30 hover:bg-neutral-900/50 transition-colors">
                     <div class="flex-shrink-0">
-                      <div class="avatar" id="avatar-history-@h.Id" style="display:none;">
+                      <div class="avatar" id="avatar-history-@historyEntry.Id" style="display:none;">
                         <div class="w-10 h-10 rounded-full">
-                          <img src="/users/@h.CreatedByUserId/avatar" alt="@actorName" onload="document.getElementById('avatar-history-@h.Id').style.display='';" onerror="document.getElementById('avatar-history-@h.Id').style.display='none';" />
+                          <img src="/users/@historyEntry.CreatedByUserId/avatar" alt="@actorName" onload="document.getElementById('avatar-history-@historyEntry.Id').style.display='';" onerror="document.getElementById('avatar-history-@historyEntry.Id').style.display='none';" />
                         </div>
                       </div>
                     </div>
@@ -1025,49 +1025,49 @@
                       <div class="flex items-center gap-2 mb-1">
                         <span class="font-semibold text-white">@actorName</span>
                         <span class="text-xs text-white/40">•</span>
-                        <span class="text-xs text-white/50">@h.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy h:mm tt")</span>
+                        <span class="text-xs text-white/50">@historyEntry.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy h:mm tt")</span>
                       </div>
                       <div class="text-sm text-white/80">
-                        @if ((h.Action ?? string.Empty) == "created")
+                        @if ((historyEntry.Action ?? string.Empty) == "created")
                         {
                           <span><i class="fa fa-plus-circle text-success mr-1"></i>@actionDescription</span>
                         }
-                        else if ((h.Action ?? string.Empty) == "assigned")
+                        else if ((historyEntry.Action ?? string.Empty) == "assigned")
                         {
                           <span><i class="fa fa-user-plus text-info mr-1"></i>@actionDescription</span>
                         }
-                        else if ((h.Action ?? string.Empty) == "team_assigned")
+                        else if ((historyEntry.Action ?? string.Empty) == "team_assigned")
                         {
                           <span><i class="fa fa-users text-info mr-1"></i>@actionDescription</span>
                         }
-                        else if ((h.Action ?? string.Empty) == "unassigned")
+                        else if ((historyEntry.Action ?? string.Empty) == "unassigned")
                         {
                           <span><i class="fa fa-user-minus text-warning mr-1"></i>@actionDescription</span>
                         }
-                        else if ((h.Action ?? string.Empty) == "closed")
+                        else if ((historyEntry.Action ?? string.Empty) == "closed")
                         {
                           <span><i class="fa fa-check-circle text-success mr-1"></i>@actionDescription</span>
                         }
-                        else if ((h.Action ?? string.Empty) == "reopened")
+                        else if ((historyEntry.Action ?? string.Empty) == "reopened")
                         {
                           <span><i class="fa fa-undo text-info mr-1"></i>@actionDescription</span>
                         }
-                        else if ((h.Action ?? string.Empty) == "resolved")
+                        else if ((historyEntry.Action ?? string.Empty) == "resolved")
                         {
                           <span><i class="fa fa-check-double text-success mr-1"></i>@actionDescription</span>
                         }
-                        else if ((h.Action ?? string.Empty) == "cancelled")
+                        else if ((historyEntry.Action ?? string.Empty) == "cancelled")
                         {
                           <span><i class="fa fa-times-circle text-error mr-1"></i>@actionDescription</span>
                         }
-                        else if ((h.Action ?? string.Empty) == "reassignment_note")
+                        else if ((historyEntry.Action ?? string.Empty) == "reassignment_note")
                         {
                           <div>
                             <i class="fa fa-comment-dots text-info mr-1"></i>Added a note
-                            @if (!string.IsNullOrWhiteSpace(h.Note))
+                            @if (!string.IsNullOrWhiteSpace(historyEntry.Note))
                             {
                               <div class="mt-1 pl-4 border-l-2 border-white/20 text-xs text-white/70 italic">
-                                "@h.Note"
+                                "@historyEntry.Note"
                               </div>
                             }
                           </div>

@@ -22,18 +22,18 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var t in Model.Teams)
+                            @foreach (var team in Model.Teams)
                             {
-                                var count = Model.MemberCounts.TryGetValue(t.Id, out var c) ? c : 0;
+                                var count = Model.MemberCounts.TryGetValue(team.Id, out var memberCount) ? memberCount : 0;
                                 <tr>
-                                    <td>@t.Name</td>
-                                    <td class="hidden sm:table-cell">@t.Description</td>
+                                    <td>@team.Name</td>
+                                    <td class="hidden sm:table-cell">@team.Description</td>
                                     <td class="hidden sm:table-cell">@count</td>
                                     <td>
                                         <div class="join md:join">
                                             @if (Model.CanEditTeams) {
-                                                <a class="btn btn-soft join-item btn-sm" asp-page="/Workspaces/TeamsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@t.Id">Edit</a>
-                                                <a class="btn btn-soft join-item btn-sm" asp-page="/Workspaces/TeamsAssign" asp-route-slug="@Model.WorkspaceSlug" asp-route-teamId="@t.Id">Members</a>
+                                                <a class="btn btn-soft join-item btn-sm" asp-page="/Workspaces/TeamsEdit" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="@team.Id">Edit</a>
+                                                <a class="btn btn-soft join-item btn-sm" asp-page="/Workspaces/TeamsAssign" asp-route-slug="@Model.WorkspaceSlug" asp-route-teamId="@team.Id">Members</a>
                                             } else {
                                                 <button class="btn btn-soft join-item btn-sm" disabled>Edit</button>
                                                 <button class="btn btn-soft join-item btn-sm" disabled>Members</button>

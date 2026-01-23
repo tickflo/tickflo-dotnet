@@ -44,32 +44,32 @@ public class RolePermissionRepository(TickfloDbContext dbContext, IUserWorkspace
 
         // Build desired permission set for this role
         var desired = new List<int>();
-        foreach (var p in permissions)
+        foreach (var permission in permissions)
         {
-            var section = (p.Section ?? string.Empty).ToLowerInvariant();
+            var section = (permission.Section ?? string.Empty).ToLowerInvariant();
             if (!ManagedSections.Contains(section))
             {
                 continue;
             }
 
-            if (p.CanView)
+            if (permission.CanView)
             {
                 desired.Add(await this.EnsurePermissionIdAsync(catalog, section, "view"));
             }
 
-            if (p.CanEdit)
+            if (permission.CanEdit)
             {
                 desired.Add(await this.EnsurePermissionIdAsync(catalog, section, "edit"));
             }
 
-            if (p.CanCreate)
+            if (permission.CanCreate)
             {
                 desired.Add(await this.EnsurePermissionIdAsync(catalog, section, "create"));
             }
 
             if (section == "tickets")
             {
-                var scope = string.IsNullOrWhiteSpace(p.TicketViewScope) ? "all" : p.TicketViewScope.ToLowerInvariant();
+                var scope = string.IsNullOrWhiteSpace(permission.TicketViewScope) ? "all" : permission.TicketViewScope.ToLowerInvariant();
                 // choose only one scope; store desired scope
                 desired.Add(await this.EnsurePermissionIdAsync(catalog, "tickets_scope", scope));
             }
@@ -119,11 +119,11 @@ public class RolePermissionRepository(TickfloDbContext dbContext, IUserWorkspace
             return found.Id;
         }
 
-        var p = new Permission { Resource = resource, Action = action };
-        this.dbContext.Permissions.Add(p);
+        var permission = new Permission { Resource = resource, Action = action };
+        this.dbContext.Permissions.Add(permission);
         await this.dbContext.SaveChangesAsync();
-        catalog.Add(p);
-        return p.Id;
+        catalog.Add(permission);
+        return permission.Id;
     }
 
     public async Task<Dictionary<string, EffectiveSectionPermission>> GetEffectivePermissionsForUserAsync(int workspaceId, int userId)
@@ -134,30 +134,30 @@ public class RolePermissionRepository(TickfloDbContext dbContext, IUserWorkspace
         var result = new Dictionary<string, EffectiveSectionPermission>(StringComparer.OrdinalIgnoreCase);
         if (isAdmin)
         {
-            foreach (var s in ManagedSections)
+            foreach (var section in ManagedSections)
             {
-                result[s] = new EffectiveSectionPermission { Section = s, CanView = true, CanEdit = true, CanCreate = true, TicketViewScope = s == "tickets" ? "all" : null };
+                result[section] = new EffectiveSectionPermission { Section = section, CanView = true, CanEdit = true, CanCreate = true, TicketViewScope = section == "tickets" ? "all" : null };
             }
             return result;
         }
         var links = await this.dbContext.RolePermissions.Where(rp => roleIds.Contains(rp.RoleId)).ToListAsync();
         var permIds = links.Select(l => l.PermissionId).Distinct().ToList();
         var perms = await this.dbContext.Permissions.Where(p => permIds.Contains(p.Id)).ToListAsync();
-        foreach (var s in ManagedSections)
+        foreach (var section in ManagedSections)
         {
             var eff = new EffectiveSectionPermission
             {
-                Section = s,
-                CanView = perms.Any(p => p.Resource.Equals(s, StringComparison.OrdinalIgnoreCase) && p.Action.Equals("view", StringComparison.OrdinalIgnoreCase)),
-                CanEdit = perms.Any(p => p.Resource.Equals(s, StringComparison.OrdinalIgnoreCase) && p.Action.Equals("edit", StringComparison.OrdinalIgnoreCase)),
-                CanCreate = perms.Any(p => p.Resource.Equals(s, StringComparison.OrdinalIgnoreCase) && p.Action.Equals("create", StringComparison.OrdinalIgnoreCase))
+                Section = section,
+                CanView = perms.Any(p => p.Resource.Equals(section, StringComparison.OrdinalIgnoreCase) && p.Action.Equals("view", StringComparison.OrdinalIgnoreCase)),
+                CanEdit = perms.Any(p => p.Resource.Equals(section, StringComparison.OrdinalIgnoreCase) && p.Action.Equals("edit", StringComparison.OrdinalIgnoreCase)),
+                CanCreate = perms.Any(p => p.Resource.Equals(section, StringComparison.OrdinalIgnoreCase) && p.Action.Equals("create", StringComparison.OrdinalIgnoreCase))
             };
-            if (s == "tickets")
+            if (section == "tickets")
             {
                 var scopes = perms.Where(p => p.Resource.Equals("tickets_scope", StringComparison.OrdinalIgnoreCase)).Select(p => p.Action.ToLowerInvariant()).ToList();
                 eff.TicketViewScope = scopes.Contains("mine") ? "mine" : scopes.Contains("team") ? "team" : "all";
             }
-            result[s] = eff;
+            result[section] = eff;
         }
         return result;
     }

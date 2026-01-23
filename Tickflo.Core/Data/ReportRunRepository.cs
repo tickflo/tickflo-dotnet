@@ -15,32 +15,32 @@ public class ReportRunRepository(TickfloDbContext dbContext) : IReportRunReposit
 
     public async Task<bool> MarkRunningAsync(int id)
     {
-        var rr = await this.dbContext.ReportRuns.FirstOrDefaultAsync(r => r.Id == id);
-        if (rr == null)
+        var reportRun = await this.dbContext.ReportRuns.FirstOrDefaultAsync(r => r.Id == id);
+        if (reportRun == null)
         {
             return false;
         }
 
-        rr.Status = "Running";
+        reportRun.Status = "Running";
         await this.dbContext.SaveChangesAsync();
         return true;
     }
 
     public async Task<bool> CompleteAsync(int id, string status, int rowCount, string? filePath, byte[]? fileBytes = null, string? contentType = null, string? fileName = null)
     {
-        var rr = await this.dbContext.ReportRuns.FirstOrDefaultAsync(r => r.Id == id);
-        if (rr == null)
+        var reportRun = await this.dbContext.ReportRuns.FirstOrDefaultAsync(r => r.Id == id);
+        if (reportRun == null)
         {
             return false;
         }
 
-        rr.Status = status;
-        rr.RowCount = rowCount;
-        rr.FilePath = filePath;
-        rr.FileBytes = fileBytes;
-        rr.ContentType = contentType;
-        rr.FileName = fileName;
-        rr.FinishedAt = DateTime.UtcNow;
+        reportRun.Status = status;
+        reportRun.RowCount = rowCount;
+        reportRun.FilePath = filePath;
+        reportRun.FileBytes = fileBytes;
+        reportRun.ContentType = contentType;
+        reportRun.FileName = fileName;
+        reportRun.FinishedAt = DateTime.UtcNow;
         await this.dbContext.SaveChangesAsync();
         return true;
     }
@@ -67,15 +67,15 @@ public class ReportRunRepository(TickfloDbContext dbContext) : IReportRunReposit
 
     public async Task<bool> UpdateContentAsync(int id, byte[] fileBytes, string contentType, string fileName)
     {
-        var rr = await this.dbContext.ReportRuns.FirstOrDefaultAsync(r => r.Id == id);
-        if (rr == null)
+        var reportRun = await this.dbContext.ReportRuns.FirstOrDefaultAsync(r => r.Id == id);
+        if (reportRun == null)
         {
             return false;
         }
 
-        rr.FileBytes = fileBytes;
-        rr.ContentType = contentType;
-        rr.FileName = fileName;
+        reportRun.FileBytes = fileBytes;
+        reportRun.ContentType = contentType;
+        reportRun.FileName = fileName;
         await this.dbContext.SaveChangesAsync();
         return true;
     }

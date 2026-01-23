@@ -19,8 +19,8 @@ public class PreserveQueryAnchorTagHelper : TagHelper
         // Remove the marker attribute from the rendered tag
         output.Attributes.RemoveAll("asp-preserve-query");
 
-        var qs = this.ViewContext?.HttpContext?.Request?.QueryString.ToString();
-        if (string.IsNullOrEmpty(qs) || qs == "?")
+        var queryString = this.ViewContext?.HttpContext?.Request?.QueryString.ToString();
+        if (string.IsNullOrEmpty(queryString) || queryString == "?")
         {
             return;
         }
@@ -34,12 +34,12 @@ public class PreserveQueryAnchorTagHelper : TagHelper
 
         if (href.Contains('?'))
         {
-            var append = qs.StartsWith('?') ? "&" + qs[1..] : (qs.StartsWith('&') ? qs : "&" + qs);
+            var append = queryString.StartsWith('?') ? "&" + queryString[1..] : (queryString.StartsWith('&') ? queryString : "&" + queryString);
             output.Attributes.SetAttribute("href", href + append);
         }
         else
         {
-            output.Attributes.SetAttribute("href", href + qs);
+            output.Attributes.SetAttribute("href", href + queryString);
         }
     }
 }

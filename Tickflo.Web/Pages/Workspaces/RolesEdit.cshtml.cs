@@ -217,17 +217,17 @@ public class RolesEditModel(IWorkspaceService workspaceService, IRoleRepository 
 
     private void ApplyExistingPermissions(IEnumerable<EffectiveSectionPermission> existingPerms)
     {
-        foreach (var p in existingPerms)
+        foreach (var permission in existingPerms)
         {
-            var dest = this.Permissions.FirstOrDefault(x => string.Equals(x.Section, p.Section, StringComparison.OrdinalIgnoreCase));
+            var dest = this.Permissions.FirstOrDefault(x => string.Equals(x.Section, permission.Section, StringComparison.OrdinalIgnoreCase));
             if (dest != null)
             {
-                dest.CanView = p.CanView;
-                dest.CanEdit = p.CanEdit;
-                dest.CanCreate = p.CanCreate;
-                if (string.Equals(p.Section, TicketSection, StringComparison.OrdinalIgnoreCase))
+                dest.CanView = permission.CanView;
+                dest.CanEdit = permission.CanEdit;
+                dest.CanCreate = permission.CanCreate;
+                if (string.Equals(permission.Section, TicketSection, StringComparison.OrdinalIgnoreCase))
                 {
-                    dest.TicketViewScope = string.IsNullOrWhiteSpace(p.TicketViewScope) ? DefaultTicketViewScope : p.TicketViewScope.ToLowerInvariant();
+                    dest.TicketViewScope = string.IsNullOrWhiteSpace(permission.TicketViewScope) ? DefaultTicketViewScope : permission.TicketViewScope.ToLowerInvariant();
                 }
             }
         }
@@ -242,13 +242,13 @@ public class RolesEditModel(IWorkspaceService workspaceService, IRoleRepository 
 
     private static List<SectionPermissionInput> BuildDefaultPermissions()
     {
-        var list = DefaultSections.Select(s => new SectionPermissionInput
+        var list = DefaultSections.Select(section => new SectionPermissionInput
         {
-            Section = s,
-            CanView = s is DashboardSection or TicketSection,
+            Section = section,
+            CanView = section is DashboardSection or TicketSection,
             CanEdit = false,
             CanCreate = false,
-            TicketViewScope = s == TicketSection ? DefaultTicketViewScope : null
+            TicketViewScope = section == TicketSection ? DefaultTicketViewScope : null
         }).ToList();
         return list;
     }
@@ -266,4 +266,3 @@ public class RolesEditModel(IWorkspaceService workspaceService, IRoleRepository 
 
 
 }
-

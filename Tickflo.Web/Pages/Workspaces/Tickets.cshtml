@@ -73,15 +73,15 @@
                             <label class="label label-text text-xs opacity-70 mb-1">Status</label>
                             <select name="Status" class="select select-sm w-full bg-neutral-900/80 border border-white/10 text-slate-100">
                                 <option value="">All Statuses</option>
-                                @foreach (var s in Model.Statuses)
+                                @foreach (var status in Model.Statuses)
                                 {
-                                    @if (string.Equals(Model.Status, s.Name, StringComparison.OrdinalIgnoreCase))
+                                    @if (string.Equals(Model.Status, status.Name, StringComparison.OrdinalIgnoreCase))
                                     {
-                                        <option value="@s.Name" selected>@s.Name</option>
+                                        <option value="@status.Name" selected>@status.Name</option>
                                     }
                                     else
                                     {
-                                        <option value="@s.Name">@s.Name</option>
+                                        <option value="@status.Name">@status.Name</option>
                                     }
                                 }
                             </select>
@@ -90,15 +90,15 @@
                             <label class="label label-text text-xs opacity-70 mb-1">Priority</label>
                             <select name="Priority" class="select select-sm w-full bg-neutral-900/80 border border-white/10 text-slate-100">
                                 <option value="">All Priorities</option>
-                                @foreach (var p in Model.PrioritiesList)
+                                @foreach (var priority in Model.PrioritiesList)
                                 {
-                                    @if (string.Equals(Model.Priority, p.Name, StringComparison.OrdinalIgnoreCase))
+                                    @if (string.Equals(Model.Priority, priority.Name, StringComparison.OrdinalIgnoreCase))
                                     {
-                                        <option value="@p.Name" selected>@p.Name</option>
+                                        <option value="@priority.Name" selected>@priority.Name</option>
                                     }
                                     else
                                     {
-                                        <option value="@p.Name">@p.Name</option>
+                                        <option value="@priority.Name">@priority.Name</option>
                                     }
                                 }
                             </select>
@@ -111,15 +111,15 @@
                             <label class="label label-text text-xs opacity-70 mb-1">Type</label>
                             <select name="Type" class="select select-sm w-full bg-neutral-900/80 border border-white/10 text-slate-100">
                                 <option value="">All Types</option>
-                                @foreach (var t in Model.TypesList)
+                                @foreach (var ticketType in Model.TypesList)
                                 {
-                                    @if (string.Equals(Model.Type, t.Name, StringComparison.OrdinalIgnoreCase))
+                                    @if (string.Equals(Model.Type, ticketType.Name, StringComparison.OrdinalIgnoreCase))
                                     {
-                                        <option value="@t.Name" selected>@t.Name</option>
+                                        <option value="@ticketType.Name" selected>@ticketType.Name</option>
                                     }
                                     else
                                     {
-                                        <option value="@t.Name">@t.Name</option>
+                                        <option value="@ticketType.Name">@ticketType.Name</option>
                                     }
                                 }
                             </select>
@@ -174,10 +174,10 @@
                             <label class="label label-text text-xs opacity-70 mb-1">Contact</label>
                             <input id="contact-query" name="ContactQuery" value="@Model.ContactQuery" placeholder="Contact name or email..." class="input input-sm w-full bg-neutral-900/80 border border-white/10 text-slate-100" list="contacts-list" />
                             <datalist id="contacts-list">
-                                @foreach (var kv in Model.ContactsById)
+                                @foreach (var contactEntry in Model.ContactsById)
                                 {
-                                    var c = kv.Value;
-                                    var label = (c.Email?.Length ?? 0) > 0 ? $"{c.Name} ({c.Email})" : c.Name;
+                                    var contact = contactEntry.Value;
+                                    var label = (contact.Email?.Length ?? 0) > 0 ? $"{contact.Name} ({contact.Email})" : contact.Name;
                                     <option value="@label"></option>
                                 }
                             </datalist>
@@ -186,15 +186,15 @@
                             <label class="label label-text text-xs opacity-70 mb-1">Location</label>
                             <select name="LocationId" class="select select-sm w-full bg-neutral-900/80 border border-white/10 text-slate-100">
                                 <option value="">Any Location</option>
-                                @foreach (var l in Model.LocationOptions)
+                                @foreach (var location in Model.LocationOptions)
                                 {
-                                    @if (Model.LocationId.HasValue && Model.LocationId.Value == l.Id)
+                                    @if (Model.LocationId.HasValue && Model.LocationId.Value == location.Id)
                                     {
-                                        <option value="@l.Id" selected>@l.Name</option>
+                                        <option value="@location.Id" selected>@location.Name</option>
                                     }
                                     else
                                     {
-                                        <option value="@l.Id">@l.Name</option>
+                                        <option value="@location.Id">@location.Name</option>
                                     }
                                 }
                             </select>
@@ -263,7 +263,7 @@
                                 </td>
                             </tr>
                         }
-                        @foreach (var t in Model.Tickets)
+                        @foreach (var ticket in Model.Tickets)
             {
                 <tr class="hover:bg-white/5 transition-colors border-b border-white/5 text-sm">
                                         @{
@@ -271,15 +271,15 @@
                                         }
                                         <td class="py-3 align-top max-w-[260px]">
                             <div class="flex flex-col gap-1">
-                                <a class="link link-hover font-semibold text-blue-300 hover:text-blue-200 truncate" title="@t.Subject" href="/workspaces/@Model.WorkspaceSlug/tickets/@t.Id?@rowQs">@t.Subject</a>
+                                <a class="link link-hover font-semibold text-blue-300 hover:text-blue-200 truncate" title="@ticket.Subject" href="/workspaces/@Model.WorkspaceSlug/tickets/@ticket.Id?@rowQs">@ticket.Subject</a>
                                 <div class="flex flex-wrap gap-2 text-xs text-white/60">
-                                    <span class="badge badge-ghost badge-xs rounded-full">#@t.Id</span>
-                                    <span>@t.CreatedAt.ToLocalTime().ToString("MMM dd, HH:mm")</span>
+                                    <span class="badge badge-ghost badge-xs rounded-full">#@ticket.Id</span>
+                                    <span>@ticket.CreatedAt.ToLocalTime().ToString("MMM dd, HH:mm")</span>
                                 </div>
                             </div>
                         </td>
                     @{
-                        var typeName = t.TicketTypeId.HasValue ? Model.TypesList.FirstOrDefault(x => x.Id == t.TicketTypeId.Value)?.Name ?? "Unknown" : "Unknown";
+                        var typeName = ticket.TicketTypeId.HasValue ? Model.TypesList.FirstOrDefault(x => x.Id == ticket.TicketTypeId.Value)?.Name ?? "Unknown" : "Unknown";
                         var tcolor = Model.TypeColorByName.TryGetValue(typeName, out var tclr) ? tclr : "neutral";
                         var tIsHex = tcolor.StartsWith("#");
                         var tCls = tIsHex ? "badge badge-soft rounded-full" : $"badge badge-soft badge-{tcolor} rounded-full";
@@ -289,7 +289,7 @@
                                         <div class="flex flex-col gap-1">
                                             <span class="@tCls text-xs" style="@tStyle">@typeName</span>
                                             @{
-                                                var priorityName = t.PriorityId.HasValue ? Model.PrioritiesList.FirstOrDefault(x => x.Id == t.PriorityId.Value)?.Name ?? "Unknown" : "Unknown";
+                                                var priorityName = ticket.PriorityId.HasValue ? Model.PrioritiesList.FirstOrDefault(x => x.Id == ticket.PriorityId.Value)?.Name ?? "Unknown" : "Unknown";
                                                 var pcolor = Model.PriorityColorByName.TryGetValue(priorityName, out var pclr) ? pclr : "neutral";
                                                 var pIsHex = pcolor.StartsWith("#");
                                                 var pCls = pIsHex ? "badge badge-soft rounded-full" : $"badge badge-soft badge-{pcolor} rounded-full";
@@ -299,7 +299,7 @@
                                         </div>
                                     </td>
                     @{
-                        var statusName = t.StatusId.HasValue ? Model.Statuses.FirstOrDefault(x => x.Id == t.StatusId.Value)?.Name ?? "Unknown" : "Unknown";
+                        var statusName = ticket.StatusId.HasValue ? Model.Statuses.FirstOrDefault(x => x.Id == ticket.StatusId.Value)?.Name ?? "Unknown" : "Unknown";
                         var color = Model.StatusColorByName.TryGetValue(statusName, out var col) ? col : "neutral";
                         var isHex = color.StartsWith("#");
                         var statusCls = isHex ? "badge badge-soft rounded-full" : $"badge badge-soft badge-{color} rounded-full";
@@ -307,14 +307,14 @@
                     }
                     <td class="py-3 align-top"><span class="@statusCls text-xs font-semibold" style="@statusStyle">@statusName</span></td>
                                             <td class="py-3 align-top">
-                        @if (t.AssignedTeamId.HasValue && Model.TeamsById.TryGetValue(t.AssignedTeamId.Value, out var team))
+                        @if (ticket.AssignedTeamId.HasValue && Model.TeamsById.TryGetValue(ticket.AssignedTeamId.Value, out var team))
                         {
                             <span class="badge badge-info badge-soft rounded-full text-xs"><i class="fa fa-users mr-1"></i>@team.Name</span>
                         }
-                        else if (t.AssignedUserId.HasValue && Model.UsersById.TryGetValue(t.AssignedUserId.Value, out var au))
+                        else if (ticket.AssignedUserId.HasValue && Model.UsersById.TryGetValue(ticket.AssignedUserId.Value, out var assignedUser))
                         {
                             <div class="flex flex-col">
-                                <span class="badge badge-soft rounded-full text-xs"><i class="fa fa-user mr-1"></i>@au.Name</span>
+                                <span class="badge badge-soft rounded-full text-xs"><i class="fa fa-user mr-1"></i>@assignedUser.Name</span>
                             </div>
                         }
                         else
@@ -327,21 +327,21 @@
                             <div class="flex gap-1 flex-wrap">
                                 @if (Model.CanCreateTickets)
                                 {
-                                    <a class="btn btn-ghost btn-xs" href="/workspaces/@Model.WorkspaceSlug/tickets/0@(t.ContactId.HasValue ? ($"?contactId={t.ContactId}") : string.Empty)" title="Clone ticket">
+                                    <a class="btn btn-ghost btn-xs" href="/workspaces/@Model.WorkspaceSlug/tickets/0@(ticket.ContactId.HasValue ? ($"?contactId={ticket.ContactId}") : string.Empty)" title="Clone ticket">
                                         <i class="fa fa-copy"></i>
                                     </a>
                                 }
-                                <a class="btn btn-primary btn-xs" href="/workspaces/@Model.WorkspaceSlug/tickets/@t.Id?@rowQs" title="View details">
+                                <a class="btn btn-primary btn-xs" href="/workspaces/@Model.WorkspaceSlug/tickets/@ticket.Id?@rowQs" title="View details">
                                     <i class="fa fa-eye"></i>
                                 </a>
                             </div>
-                            <form method="post" action="/workspaces/@Model.WorkspaceSlug/tickets/@t.Id?@rowQs" class="flex gap-1 ajax-assign" data-ticket-id="@t.Id">
+                            <form method="post" action="/workspaces/@Model.WorkspaceSlug/tickets/@ticket.Id?@rowQs" class="flex gap-1 ajax-assign" data-ticket-id="@ticket.Id">
                                 <input type="hidden" name="handler" value="Assign" />
                                 <input type="hidden" name="slug" value="@Model.WorkspaceSlug" />
-                                <input type="hidden" name="id" value="@t.Id" />
-                                <input type="hidden" id="assignedUserId-@t.Id" name="assignedUserId" value="@(t.AssignedUserId?.ToString() ?? "")" />
-                                <input id="assignee-search-@t.Id" class="input input-bordered input-xs w-32" list="assignees-list-@t.Id" placeholder="Assign to..." />
-                                <datalist id="assignees-list-@t.Id">
+                                <input type="hidden" name="id" value="@ticket.Id" />
+                                <input type="hidden" id="assignedUserId-@ticket.Id" name="assignedUserId" value="@(ticket.AssignedUserId?.ToString() ?? "")" />
+                                <input id="assignee-search-@ticket.Id" class="input input-bordered input-xs w-32" list="assignees-list-@ticket.Id" placeholder="Assign to..." />
+                                <datalist id="assignees-list-@ticket.Id">
                                     <option value="Unassigned" data-id=""></option>
                                     @foreach (var kv in Model.UsersById)
                                     {
@@ -354,9 +354,9 @@
                             </form>
                             <script>
                                 (function(){
-                                    const hidden = document.getElementById('assignedUserId-@t.Id');
-                                    const input = document.getElementById('assignee-search-@t.Id');
-                                    const list = document.getElementById('assignees-list-@t.Id');
+                                    const hidden = document.getElementById('assignedUserId-@ticket.Id');
+                                    const input = document.getElementById('assignee-search-@ticket.Id');
+                                    const list = document.getElementById('assignees-list-@ticket.Id');
                                     if (!hidden || !input || !list) return;
                                     function setFromText(){
                                         const val = input.value;
@@ -413,24 +413,24 @@
     <script>
         (function(){
             @{ var statusDict = new System.Collections.Generic.Dictionary<string, string>();
-               foreach (var s in Model.Statuses)
+               foreach (var status in Model.Statuses)
                {
-                 var key = s.Name ?? string.Empty;
-                 var val = string.IsNullOrWhiteSpace(s.Color) ? "neutral" : s.Color!;
+                 var key = status.Name ?? string.Empty;
+                 var val = string.IsNullOrWhiteSpace(status.Color) ? "neutral" : status.Color!;
                  statusDict[key] = val;
                }
                var priorityDict = new System.Collections.Generic.Dictionary<string, string>();
-               foreach (var p in Model.PrioritiesList)
+               foreach (var priority in Model.PrioritiesList)
                {
-                 var key = p.Name ?? string.Empty;
-                 var val = string.IsNullOrWhiteSpace(p.Color) ? "neutral" : p.Color!;
+                 var key = priority.Name ?? string.Empty;
+                 var val = string.IsNullOrWhiteSpace(priority.Color) ? "neutral" : priority.Color!;
                  priorityDict[key] = val;
                }
                var typeDict = new System.Collections.Generic.Dictionary<string, string>();
-               foreach (var tt in Model.TypesList)
+               foreach (var ticketType in Model.TypesList)
                {
-                 var key = tt.Name ?? string.Empty;
-                 var val = string.IsNullOrWhiteSpace(tt.Color) ? "neutral" : tt.Color!;
+                 var key = ticketType.Name ?? string.Empty;
+                 var val = string.IsNullOrWhiteSpace(ticketType.Color) ? "neutral" : ticketType.Color!;
                  typeDict[key] = val;
                }
                var statusJson = System.Text.Json.JsonSerializer.Serialize(statusDict);

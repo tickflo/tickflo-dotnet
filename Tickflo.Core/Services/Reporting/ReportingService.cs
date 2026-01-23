@@ -76,9 +76,9 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
         }
 
         using var fs = new MemoryStream(run.FileBytes);
-        using var sr = new StreamReader(fs, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        using var streamReader = new StreamReader(fs, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
 
-        var header = ReadCsvRecord(sr);
+        var header = ReadCsvRecord(streamReader);
         if (header == null)
         {
             var empty = new ReportRunPage(clampedPage, clampedTake, totalRows, totalPages, 0, 0, false,
@@ -87,9 +87,9 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
         }
 
         var skip = (clampedPage - 1) * clampedTake;
-        for (var i = 0; i < skip; i++)
+        for (var index = 0; index < skip; index++)
         {
-            var skipped = ReadCsvRecord(sr);
+            var skipped = ReadCsvRecord(streamReader);
             if (skipped == null)
             {
                 var empty = new ReportRunPage(clampedPage, clampedTake, totalRows, totalPages, 0, 0, false,
@@ -102,7 +102,7 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
         var count = 0;
         while (count < clampedTake)
         {
-            var row = ReadCsvRecord(sr);
+            var row = ReadCsvRecord(streamReader);
             if (row == null)
             {
                 break;
@@ -162,26 +162,26 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
         query = ApplyTicketOrdering(query, def.OrderBy);
         var list = await query.ToListAsync(ct);
         this.currentRows.Clear();
-        foreach (var t in list)
+        foreach (var ticket in list)
         {
             var row = new Dictionary<string, object?>();
-            foreach (var f in def.Fields)
+            foreach (var field in def.Fields)
             {
-                row[f] = f switch
+                row[field] = field switch
                 {
-                    "Id" => t.Id,
-                    "Subject" => t.Subject,
-                    "Description" => t.Description,
-                    "TypeId" => t.TicketTypeId,
-                    "PriorityId" => t.PriorityId,
-                    "StatusId" => t.StatusId,
-                    "AssignedUserId" => t.AssignedUserId,
-                    "AssignedTeamId" => t.AssignedTeamId,
-                    "CreatedAt" => t.CreatedAt,
-                    "UpdatedAt" => t.UpdatedAt,
-                    "ContactId" => t.ContactId,
-                    "ChargeAmount" => this.ComputeTicketCharge(t.Id, workspaceId),
-                    "ChargeAmountAtLocation" => this.ComputeTicketChargeForLocations(t.Id, chargeLocationIds, workspaceId),
+                    "Id" => ticket.Id,
+                    "Subject" => ticket.Subject,
+                    "Description" => ticket.Description,
+                    "TypeId" => ticket.TicketTypeId,
+                    "PriorityId" => ticket.PriorityId,
+                    "StatusId" => ticket.StatusId,
+                    "AssignedUserId" => ticket.AssignedUserId,
+                    "AssignedTeamId" => ticket.AssignedTeamId,
+                    "CreatedAt" => ticket.CreatedAt,
+                    "UpdatedAt" => ticket.UpdatedAt,
+                    "ContactId" => ticket.ContactId,
+                    "ChargeAmount" => this.ComputeTicketCharge(ticket.Id, workspaceId),
+                    "ChargeAmountAtLocation" => this.ComputeTicketChargeForLocations(ticket.Id, chargeLocationIds, workspaceId),
                     _ => null
                 };
             }
@@ -198,10 +198,10 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
                     select new { ti.Quantity, ti.UnitPrice, inv.Price };
         var lines = query.ToList();
         var sum = 0m;
-        foreach (var l in lines)
+        foreach (var line in lines)
         {
-            var price = l.UnitPrice != 0m ? l.UnitPrice : (l.Price ?? 0m);
-            sum += price * l.Quantity;
+            var price = line.UnitPrice != 0m ? line.UnitPrice : (line.Price ?? 0m);
+            sum += price * line.Quantity;
         }
         return sum;
     }
@@ -219,10 +219,10 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
         }
         var lines = query.ToList();
         var sum = 0m;
-        foreach (var l in lines)
+        foreach (var line in lines)
         {
-            var price = l.UnitPrice != 0m ? l.UnitPrice : (l.Price ?? 0m);
-            sum += price * l.Quantity;
+            var price = line.UnitPrice != 0m ? line.UnitPrice : (line.Price ?? 0m);
+            sum += price * line.Quantity;
         }
         return sum;
     }
@@ -234,24 +234,24 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
         query = ApplyContactOrdering(query, def.OrderBy);
         var list = await query.ToListAsync(ct);
         this.currentRows.Clear();
-        foreach (var c in list)
+        foreach (var contact in list)
         {
             var row = new Dictionary<string, object?>();
-            foreach (var f in def.Fields)
+            foreach (var field in def.Fields)
             {
-                row[f] = f switch
+                row[field] = field switch
                 {
-                    "Id" => c.Id,
-                    "Name" => c.Name,
-                    "Email" => c.Email,
-                    "Phone" => c.Phone,
-                    "Company" => c.Company,
-                    "Title" => c.Title,
-                    "Priority" => c.Priority,
-                    "Status" => c.Status,
-                    "AssignedUserId" => c.AssignedUserId,
-                    "LastInteraction" => c.LastInteraction,
-                    "CreatedAt" => c.CreatedAt,
+                    "Id" => contact.Id,
+                    "Name" => contact.Name,
+                    "Email" => contact.Email,
+                    "Phone" => contact.Phone,
+                    "Company" => contact.Company,
+                    "Title" => contact.Title,
+                    "Priority" => contact.Priority,
+                    "Status" => contact.Status,
+                    "AssignedUserId" => contact.AssignedUserId,
+                    "LastInteraction" => contact.LastInteraction,
+                    "CreatedAt" => contact.CreatedAt,
                     _ => null
                 };
             }
@@ -266,28 +266,28 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
         query = ApplyLocationFilters(query, def.Filters);
         var list = await query.ToListAsync(ct);
         this.currentRows.Clear();
-        foreach (var l in list)
+        foreach (var location in list)
         {
-            var invCount = await this.dbContext.Inventory.AsNoTracking().CountAsync(i => i.WorkspaceId == workspaceId && i.LocationId == l.Id, ct);
+            var invCount = await this.dbContext.Inventory.AsNoTracking().CountAsync(i => i.WorkspaceId == workspaceId && i.LocationId == location.Id, ct);
             // Tickets counted by InventoryEntity present at this location
             var ticketJoin = from ti in this.dbContext.TicketInventories.AsNoTracking()
                              join i in this.dbContext.Inventory.AsNoTracking() on ti.InventoryId equals i.Id
                              join t in this.dbContext.Tickets.AsNoTracking() on ti.TicketId equals t.Id
-                             where i.WorkspaceId == workspaceId && i.LocationId == l.Id && t.WorkspaceId == workspaceId
+                             where i.WorkspaceId == workspaceId && i.LocationId == location.Id && t.WorkspaceId == workspaceId
                              select t;
             var totalTickets = await ticketJoin.Select(t => t.Id).Distinct().CountAsync(ct);
             var openTickets = await ticketJoin.Where(t => !t.StatusId.HasValue).Select(t => t.Id).Distinct().CountAsync(ct);  // Placeholder: actual closed check needs status repo lookup
             var lastTicketAt = await ticketJoin.OrderByDescending(t => t.CreatedAt).Select(t => (DateTime?)t.CreatedAt).FirstOrDefaultAsync(ct);
 
             var row = new Dictionary<string, object?>();
-            foreach (var f in def.Fields)
+            foreach (var field in def.Fields)
             {
-                row[f] = f switch
+                row[field] = field switch
                 {
-                    "Id" => l.Id,
-                    "Name" => l.Name,
-                    "Address" => l.Address,
-                    "Active" => l.Active,
+                    "Id" => location.Id,
+                    "Name" => location.Name,
+                    "Address" => location.Address,
+                    "Active" => location.Active,
                     "InventoryCount" => invCount,
                     "TicketCount" => totalTickets,
                     "OpenTicketCount" => openTickets,
@@ -306,36 +306,36 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
         query = ApplyInventoryFilters(query, def.Filters);
         var list = await query.ToListAsync(ct);
         this.currentRows.Clear();
-        foreach (var i in list)
+        foreach (var inventory in list)
         {
             var ticketJoin = from ti in this.dbContext.TicketInventories.AsNoTracking()
                              join t in this.dbContext.Tickets.AsNoTracking() on ti.TicketId equals t.Id
-                             where ti.InventoryId == i.Id && t.WorkspaceId == workspaceId
+                             where ti.InventoryId == inventory.Id && t.WorkspaceId == workspaceId
                              select t;
             var totalTickets = await ticketJoin.Select(t => t.Id).Distinct().CountAsync(ct);
             var openTickets = await ticketJoin.Where(t => !t.StatusId.HasValue).Select(t => t.Id).Distinct().CountAsync(ct);  // Placeholder: actual closed check needs status repo lookup
             var lastTicketAt = await ticketJoin.OrderByDescending(t => t.CreatedAt).Select(t => (DateTime?)t.CreatedAt).FirstOrDefaultAsync(ct);
 
             var row = new Dictionary<string, object?>();
-            foreach (var f in def.Fields)
+            foreach (var field in def.Fields)
             {
-                row[f] = f switch
+                row[field] = field switch
                 {
-                    "Id" => i.Id,
-                    "Sku" => i.Sku,
-                    "Name" => i.Name,
-                    "Description" => i.Description,
-                    "Quantity" => i.Quantity,
-                    "LocationId" => i.LocationId,
-                    "MinStock" => i.MinStock,
-                    "Cost" => i.Cost,
-                    "Price" => i.Price,
-                    "Category" => i.Category,
-                    "Status" => i.Status,
-                    "Tags" => i.Tags,
-                    "LastRestockAt" => i.LastRestockAt,
-                    "CreatedAt" => i.CreatedAt,
-                    "UpdatedAt" => i.UpdatedAt,
+                    "Id" => inventory.Id,
+                    "Sku" => inventory.Sku,
+                    "Name" => inventory.Name,
+                    "Description" => inventory.Description,
+                    "Quantity" => inventory.Quantity,
+                    "LocationId" => inventory.LocationId,
+                    "MinStock" => inventory.MinStock,
+                    "Cost" => inventory.Cost,
+                    "Price" => inventory.Price,
+                    "Category" => inventory.Category,
+                    "Status" => inventory.Status,
+                    "Tags" => inventory.Tags,
+                    "LastRestockAt" => inventory.LastRestockAt,
+                    "CreatedAt" => inventory.CreatedAt,
+                    "UpdatedAt" => inventory.UpdatedAt,
                     "TicketCount" => totalTickets,
                     "OpenTicketCount" => openTickets,
                     "LastTicketAt" => lastTicketAt,
@@ -349,69 +349,69 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
 
     private IQueryable<Ticket> ApplyTicketFilters(IQueryable<Ticket> q, List<FilterDef> filters, int workspaceId)
     {
-        foreach (var f in filters)
+        foreach (var filter in filters)
         {
-            switch (f.Field)
+            switch (filter.Field)
             {
                 case "StatusId":
-                    if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var sid))
+                    if (filter.Op == "eq" && filter.Value.ValueKind == JsonValueKind.Number && filter.Value.TryGetInt32(out var sid))
                     {
                         q = q.Where(t => t.StatusId == sid);
                     }
 
                     break;
                 case "PriorityId":
-                    if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var pid))
+                    if (filter.Op == "eq" && filter.Value.ValueKind == JsonValueKind.Number && filter.Value.TryGetInt32(out var pid))
                     {
                         q = q.Where(t => t.PriorityId == pid);
                     }
 
                     break;
                 case "TypeId":
-                    if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var tid))
+                    if (filter.Op == "eq" && filter.Value.ValueKind == JsonValueKind.Number && filter.Value.TryGetInt32(out var tid))
                     {
                         q = q.Where(t => t.TicketTypeId == tid);
                     }
 
                     break;
                 case "AssignedUserId":
-                    if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var uid))
+                    if (filter.Op == "eq" && filter.Value.ValueKind == JsonValueKind.Number && filter.Value.TryGetInt32(out var uid))
                     {
                         q = q.Where(t => t.AssignedUserId == uid);
                     }
 
                     break;
                 case "AssignedTeamId":
-                    if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var teamid))
+                    if (filter.Op == "eq" && filter.Value.ValueKind == JsonValueKind.Number && filter.Value.TryGetInt32(out var teamid))
                     {
                         q = q.Where(t => t.AssignedTeamId == teamid);
                     }
 
                     break;
                 case "ContactId":
-                    if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var cid))
+                    if (filter.Op == "eq" && filter.Value.ValueKind == JsonValueKind.Number && filter.Value.TryGetInt32(out var cid))
                     {
                         q = q.Where(t => t.ContactId == cid);
                     }
 
                     break;
                 case "CreatedAt":
-                    if (f.Op == "between" && f.Value.ValueKind == JsonValueKind.Array && f.Value.GetArrayLength() == 2)
+                    if (filter.Op == "between" && filter.Value.ValueKind == JsonValueKind.Array && filter.Value.GetArrayLength() == 2)
                     {
-                        var from = f.Value[0].GetDateTime();
-                        var to = f.Value[1].GetDateTime();
+                        var from = filter.Value[0].GetDateTime();
+                        var to = filter.Value[1].GetDateTime();
                         q = q.Where(t => t.CreatedAt >= from && t.CreatedAt <= to);
                     }
                     break;
                 case "LocationId":
-                    if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var lid))
+                    if (filter.Op == "eq" && filter.Value.ValueKind == JsonValueKind.Number && filter.Value.TryGetInt32(out var lid))
                     {
                         q = q.Where(t => this.dbContext.TicketInventories.Any(ti => ti.TicketId == t.Id &&
-                                                              this.dbContext.Inventory.Any(i => i.Id == ti.InventoryId && i.LocationId == lid && i.WorkspaceId == workspaceId)));
+                                                               this.dbContext.Inventory.Any(i => i.Id == ti.InventoryId && i.LocationId == lid && i.WorkspaceId == workspaceId)));
                     }
-                    else if (f.Op == "in" && f.Value.ValueKind == JsonValueKind.Array)
+                    else if (filter.Op == "in" && filter.Value.ValueKind == JsonValueKind.Array)
                     {
-                        var lids = ExtractIntArray(f.Value);
+                        var lids = ExtractIntArray(filter.Value);
                         if (lids.Count > 0)
                         {
                             q = q.Where(t => this.dbContext.TicketInventories.Any(ti => ti.TicketId == t.Id &&
@@ -428,18 +428,18 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
 
     private static List<int>? ExtractLocationFilterIds(List<FilterDef> filters)
     {
-        foreach (var f in filters)
+        foreach (var filter in filters)
         {
-            if (string.Equals(f.Field, "LocationId", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(filter.Field, "LocationId", StringComparison.OrdinalIgnoreCase))
             {
-                if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var lid))
+                if (filter.Op == "eq" && filter.Value.ValueKind == JsonValueKind.Number && filter.Value.TryGetInt32(out var lid))
                 {
                     return [lid];
                 }
 
-                if (f.Op == "in" && f.Value.ValueKind == JsonValueKind.Array)
+                if (filter.Op == "in" && filter.Value.ValueKind == JsonValueKind.Array)
                 {
-                    var lids = ExtractIntArray(f.Value);
+                    var lids = ExtractIntArray(filter.Value);
                     if (lids.Count > 0)
                     {
                         return lids;
@@ -452,18 +452,18 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
 
     private static List<int>? ExtractChargeLocationFilterIds(List<FilterDef> filters)
     {
-        foreach (var f in filters)
+        foreach (var filter in filters)
         {
-            if (string.Equals(f.Field, "ChargeLocationId", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(filter.Field, "ChargeLocationId", StringComparison.OrdinalIgnoreCase))
             {
-                if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var lid))
+                if (filter.Op == "eq" && filter.Value.ValueKind == JsonValueKind.Number && filter.Value.TryGetInt32(out var lid))
                 {
                     return [lid];
                 }
 
-                if (f.Op == "in" && f.Value.ValueKind == JsonValueKind.Array)
+                if (filter.Op == "in" && filter.Value.ValueKind == JsonValueKind.Array)
                 {
-                    var lids = ExtractIntArray(f.Value);
+                    var lids = ExtractIntArray(filter.Value);
                     if (lids.Count > 0)
                     {
                         return lids;
@@ -479,9 +479,9 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
         var list = new List<int>();
         foreach (var el in value.EnumerateArray())
         {
-            if (el.ValueKind == JsonValueKind.Number && el.TryGetInt32(out var v))
+            if (el.ValueKind == JsonValueKind.Number && el.TryGetInt32(out var intValue))
             {
-                list.Add(v);
+                list.Add(intValue);
             }
         }
         return list;
@@ -489,29 +489,29 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
 
     private static IQueryable<Contact> ApplyContactFilters(IQueryable<Contact> q, List<FilterDef> filters)
     {
-        foreach (var f in filters)
+        foreach (var filter in filters)
         {
-            switch (f.Field)
+            switch (filter.Field)
             {
                 case "Status":
-                    if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.String)
+                    if (filter.Op == "eq" && filter.Value.ValueKind == JsonValueKind.String)
                     {
-                        q = q.Where(c => c.Status == f.Value.GetString());
+                        q = q.Where(c => c.Status == filter.Value.GetString());
                     }
 
                     break;
                 case "Priority":
-                    if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.String)
+                    if (filter.Op == "eq" && filter.Value.ValueKind == JsonValueKind.String)
                     {
-                        q = q.Where(c => c.Priority == f.Value.GetString());
+                        q = q.Where(c => c.Priority == filter.Value.GetString());
                     }
 
                     break;
                 case "CreatedAt":
-                    if (f.Op == "between" && f.Value.ValueKind == JsonValueKind.Array && f.Value.GetArrayLength() == 2)
+                    if (filter.Op == "between" && filter.Value.ValueKind == JsonValueKind.Array && filter.Value.GetArrayLength() == 2)
                     {
-                        var from = f.Value[0].GetDateTime();
-                        var to = f.Value[1].GetDateTime();
+                        var from = filter.Value[0].GetDateTime();
+                        var to = filter.Value[1].GetDateTime();
                         q = q.Where(c => c.CreatedAt >= from && c.CreatedAt <= to);
                     }
                     break;
@@ -524,22 +524,22 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
 
     private static IQueryable<Location> ApplyLocationFilters(IQueryable<Location> q, List<FilterDef> filters)
     {
-        foreach (var f in filters)
+        foreach (var filter in filters)
         {
-            switch (f.Field)
+            switch (filter.Field)
             {
                 case "Name":
-                    if (f.Op == "contains" && f.Value.ValueKind == JsonValueKind.String)
+                    if (filter.Op == "contains" && filter.Value.ValueKind == JsonValueKind.String)
                     {
-                        var v = f.Value.GetString() ?? string.Empty;
-                        q = q.Where(l => l.Name.Contains(v));
+                        var filterValue = filter.Value.GetString() ?? string.Empty;
+                        q = q.Where(l => l.Name.Contains(filterValue));
                     }
                     break;
                 case "Active":
-                    if ((f.Op == "eq" && f.Value.ValueKind == JsonValueKind.True) || f.Value.ValueKind == JsonValueKind.False)
+                    if ((filter.Op == "eq" && filter.Value.ValueKind == JsonValueKind.True) || filter.Value.ValueKind == JsonValueKind.False)
                     {
-                        var v = f.Value.ValueKind == JsonValueKind.True;
-                        q = q.Where(l => l.Active == v);
+                        var isActive = filter.Value.ValueKind == JsonValueKind.True;
+                        q = q.Where(l => l.Active == isActive);
                     }
                     break;
                 default:
@@ -552,48 +552,48 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
 
     private static IQueryable<InventoryEntity> ApplyInventoryFilters(IQueryable<InventoryEntity> q, List<FilterDef> filters)
     {
-        foreach (var f in filters)
+        foreach (var filter in filters)
         {
-            switch (f.Field)
+            switch (filter.Field)
             {
                 case "Status":
-                    if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.String)
+                    if (filter.Op == "eq" && filter.Value.ValueKind == JsonValueKind.String)
                     {
-                        q = q.Where(i => i.Status == f.Value.GetString());
+                        q = q.Where(i => i.Status == filter.Value.GetString());
                     }
 
                     break;
                 case "Sku":
-                    if (f.Op == "contains" && f.Value.ValueKind == JsonValueKind.String)
+                    if (filter.Op == "contains" && filter.Value.ValueKind == JsonValueKind.String)
                     {
-                        var v = f.Value.GetString() ?? string.Empty;
-                        q = q.Where(i => i.Sku.Contains(v));
+                        var filterValue = filter.Value.GetString() ?? string.Empty;
+                        q = q.Where(i => i.Sku.Contains(filterValue));
                     }
                     break;
                 case "LocationId":
-                    if (f.Op == "eq" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var lid))
+                    if (filter.Op == "eq" && filter.Value.ValueKind == JsonValueKind.Number && filter.Value.TryGetInt32(out var lid))
                     {
                         q = q.Where(i => i.LocationId == lid);
                     }
 
                     break;
                 case "Quantity":
-                    if (f.Op == "gte" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var qmin))
+                    if (filter.Op == "gte" && filter.Value.ValueKind == JsonValueKind.Number && filter.Value.TryGetInt32(out var qmin))
                     {
                         q = q.Where(i => i.Quantity >= qmin);
                     }
 
-                    if (f.Op == "lte" && f.Value.ValueKind == JsonValueKind.Number && f.Value.TryGetInt32(out var qmax))
+                    if (filter.Op == "lte" && filter.Value.ValueKind == JsonValueKind.Number && filter.Value.TryGetInt32(out var qmax))
                     {
                         q = q.Where(i => i.Quantity <= qmax);
                     }
 
                     break;
                 case "CreatedAt":
-                    if (f.Op == "between" && f.Value.ValueKind == JsonValueKind.Array && f.Value.GetArrayLength() == 2)
+                    if (filter.Op == "between" && filter.Value.ValueKind == JsonValueKind.Array && filter.Value.GetArrayLength() == 2)
                     {
-                        var from = f.Value[0].GetDateTime();
-                        var to = f.Value[1].GetDateTime();
+                        var from = filter.Value[0].GetDateTime();
+                        var to = filter.Value[1].GetDateTime();
                         q = q.Where(i => i.CreatedAt >= from && i.CreatedAt <= to);
                     }
                     break;
@@ -606,30 +606,30 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
 
     private static IQueryable<Ticket> ApplyTicketOrdering(IQueryable<Ticket> q, List<OrderDef> orders)
     {
-        foreach (var o in orders)
+        foreach (var order in orders)
         {
-            if (o.Field == "CreatedAt")
+            if (order.Field == "CreatedAt")
             {
-                q = o.Dir == "desc" ? q.OrderByDescending(t => t.CreatedAt) : q.OrderBy(t => t.CreatedAt);
+                q = order.Dir == "desc" ? q.OrderByDescending(t => t.CreatedAt) : q.OrderBy(t => t.CreatedAt);
             }
-            else if (o.Field == "UpdatedAt")
+            else if (order.Field == "UpdatedAt")
             {
-                q = o.Dir == "desc" ? q.OrderByDescending(t => t.UpdatedAt) : q.OrderBy(t => t.UpdatedAt);
+                q = order.Dir == "desc" ? q.OrderByDescending(t => t.UpdatedAt) : q.OrderBy(t => t.UpdatedAt);
             }
         }
         return q;
     }
     private static IQueryable<Contact> ApplyContactOrdering(IQueryable<Contact> q, List<OrderDef> orders)
     {
-        foreach (var o in orders)
+        foreach (var order in orders)
         {
-            if (o.Field == "CreatedAt")
+            if (order.Field == "CreatedAt")
             {
-                q = o.Dir == "desc" ? q.OrderByDescending(t => t.CreatedAt) : q.OrderBy(t => t.CreatedAt);
+                q = order.Dir == "desc" ? q.OrderByDescending(t => t.CreatedAt) : q.OrderBy(t => t.CreatedAt);
             }
-            else if (o.Field == "LastInteraction")
+            else if (order.Field == "LastInteraction")
             {
-                q = o.Dir == "desc" ? q.OrderByDescending(t => t.LastInteraction) : q.OrderBy(t => t.LastInteraction);
+                q = order.Dir == "desc" ? q.OrderByDescending(t => t.LastInteraction) : q.OrderBy(t => t.LastInteraction);
             }
         }
         return q;
@@ -657,13 +657,13 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
                 result.Add(sb.ToString());
                 return result;
             }
-            var c = (char)ci;
+            var character = (char)ci;
 
-            if (c == '\r')
+            if (character == '\r')
             {
                 continue;
             }
-            if (c == '\n')
+            if (character == '\n')
             {
                 if (inQuotes)
                 {
@@ -675,7 +675,7 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
                 return result;
             }
 
-            if (c == '"')
+            if (character == '"')
             {
                 if (!inQuotes)
                 {
@@ -706,7 +706,7 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
                 continue;
             }
 
-            if (c == ',' && !inQuotes)
+            if (character == ',' && !inQuotes)
             {
                 result.Add(sb.ToString());
                 sb.Clear();
@@ -714,23 +714,23 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
                 continue;
             }
 
-            sb.Append(c);
+            sb.Append(character);
             started = true;
         }
     }
 
     private byte[] GenerateCsvBytes(List<string> headers)
     {
-        var sb = new StringBuilder();
-        sb.AppendLine(string.Join(',', headers.Select(this.EscapeCsv)));
+        var csvBuilder = new StringBuilder();
+        csvBuilder.AppendLine(string.Join(',', headers.Select(this.EscapeCsv)));
         foreach (var row in this.currentRows)
         {
-            var vals = headers.Select(h => this.EscapeCsv(FormatCsv(row.TryGetValue(h, out var v) ? v : null)));
-            sb.AppendLine(string.Join(',', vals));
+            var values = headers.Select(h => this.EscapeCsv(FormatCsv(row.TryGetValue(h, out var value) ? value : null)));
+            csvBuilder.AppendLine(string.Join(',', values));
         }
         // UTF-8 with BOM
         var utf8bom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
-        return [.. utf8bom.GetPreamble(), .. utf8bom.GetBytes(sb.ToString())];
+        return [.. utf8bom.GetPreamble(), .. utf8bom.GetBytes(csvBuilder.ToString())];
     }
 
     private string EscapeCsv(string? v)
@@ -752,7 +752,4 @@ public class ReportingService(TickfloDbContext dbContext) : IReportingService
         _ => v.ToString() ?? string.Empty
     };
 }
-
-
-
 
