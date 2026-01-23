@@ -166,7 +166,7 @@ public class InventoryAllocationService(
         if (request.LocationId.HasValue)
         {
             var locationId = request.LocationId.Value;
-            
+
             // Validate location if specified and not null (0 means clear location)
             if (locationId > 0)
             {
