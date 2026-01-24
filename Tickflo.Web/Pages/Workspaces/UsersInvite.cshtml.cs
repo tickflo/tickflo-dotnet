@@ -108,7 +108,12 @@ public class UsersInviteModel(IWorkspaceService workspaceService, IRoleRepositor
                 if (role == null)
                 {
                     var adminFlag = string.Equals(selectedRoleName, "Admin", StringComparison.OrdinalIgnoreCase);
-                    role = await this.roleRepository.AddAsync(workspace.Id, selectedRoleName, adminFlag, currentUserId);
+                    role = await this.roleRepository.AddAsync(new Role
+                    {
+                        WorkspaceId = workspace.Id,
+                        Name = selectedRoleName,
+                        Admin = adminFlag,
+                    });
                 }
                 roleIds = [role.Id];
             }

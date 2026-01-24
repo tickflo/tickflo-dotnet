@@ -110,7 +110,6 @@ public class ProfileModel(
                 InAppEnabled = this.InAppPrefs.ContainsKey(definition.Type) && this.InAppPrefs[definition.Type],
                 SmsEnabled = this.SmsPrefs.ContainsKey(definition.Type) && this.SmsPrefs[definition.Type],
                 PushEnabled = this.PushPrefs.ContainsKey(definition.Type) && this.PushPrefs[definition.Type],
-                CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
 

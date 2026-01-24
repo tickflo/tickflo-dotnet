@@ -63,7 +63,6 @@ public class EmailTemplateRepository(TickfloDbContext dbContext) : IEmailTemplat
             TemplateTypeId = currentTemplate.TemplateTypeId,
             Subject = emailTemplate.Subject,
             Body = emailTemplate.Body,
-            CreatedAt = DateTime.UtcNow,
             CreatedBy = emailTemplate.UpdatedBy,
             UpdatedAt = null,
             UpdatedBy = null

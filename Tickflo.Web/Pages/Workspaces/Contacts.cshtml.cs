@@ -50,7 +50,7 @@ public class ContactsModel(
             return this.Forbid();
         }
 
-        var viewData = await this.workspaceContactsViewService.BuildAsync(this.Workspace!.Id, uid, this.Priority, this.Query);
+        var viewData = await this.workspaceContactsViewService.BuildAsync(this.Workspace.Id, uid, this.Priority, this.Query);
 
         if (this.EnsurePermissionOrForbid(viewData.CanCreateContacts || viewData.CanEditContacts) is IActionResult permCheck)
         {

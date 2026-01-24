@@ -57,7 +57,6 @@ public class NotificationPreferenceService(IUserNotificationPreferenceRepository
                     InAppEnabled = true,
                     SmsEnabled = false,
                     PushEnabled = false,
-                    CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 });
             }
@@ -73,12 +72,6 @@ public class NotificationPreferenceService(IUserNotificationPreferenceRepository
         {
             pref.UserId = userId;
             pref.UpdatedAt = DateTime.UtcNow;
-
-            // Set CreatedAt if not already set
-            if (pref.CreatedAt == default)
-            {
-                pref.CreatedAt = DateTime.UtcNow;
-            }
         }
 
         await this.userNotificationPreferenceRepository.SavePreferencesAsync(preferences);
@@ -96,8 +89,6 @@ public class NotificationPreferenceService(IUserNotificationPreferenceRepository
                 InAppEnabled = true,  // In-app opt-in by default
                 SmsEnabled = false,   // SMS opt-out by default (requires user action)
                 PushEnabled = false,  // Push opt-out by default (requires user action)
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
             })
             .ToList();
 

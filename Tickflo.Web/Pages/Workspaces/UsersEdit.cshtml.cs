@@ -163,7 +163,7 @@ public class UsersEditModel(
             return this.Forbid();
         }
 
-        var viewData = await this.workspaceUsersManageViewService.BuildAsync(this.Workspace!.Id, currentUserId);
+        var viewData = await this.workspaceUsersManageViewService.BuildAsync(this.Workspace.Id, currentUserId);
         if (this.EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck)
         {
             return permCheck;

@@ -24,7 +24,7 @@ public class UserInvitationServiceTests
         var hasher = new Mock<IPasswordHasher>();
         hasher.Setup(h => h.Hash(It.IsAny<string>())).Returns("hash");
         var emailSendService = new Mock<IEmailSendService>();
-        emailSendService.Setup(e => e.SendAsync(
+        emailSendService.Setup(e => e.AddToQueueAsync(
             It.IsAny<string>(),
             It.IsAny<EmailTemplateType>(),
             It.IsAny<Dictionary<string, string>>(),
@@ -44,7 +44,7 @@ public class UserInvitationServiceTests
 
         Assert.NotNull(result.User);
         userWorkspaceRoleRepository.Verify(r => r.AddAsync(It.IsAny<int>(), 2, 1, 9), Times.Once);
-        emailSendService.Verify(e => e.SendAsync(
+        emailSendService.Verify(e => e.AddToQueueAsync(
             It.IsAny<string>(),
             EmailTemplateType.WorkspaceInviteNewUser,
             It.IsAny<Dictionary<string, string>>(),

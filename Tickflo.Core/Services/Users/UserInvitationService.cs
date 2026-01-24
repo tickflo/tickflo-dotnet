@@ -1,5 +1,6 @@
 namespace Tickflo.Core.Services.Users;
 
+using Tickflo.Core.Config;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Email;
@@ -14,7 +15,8 @@ public class UserInvitationService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepository,
     IRoleRepository roleRepository,
     IEmailSendService emailSendService,
-    IWorkspaceRepository workspaceRepository) : IUserInvitationService
+    IWorkspaceRepository workspaceRepository,
+    TickfloConfig config) : IUserInvitationService
 {
     private readonly IUserRepository userRepository = userRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
@@ -22,8 +24,9 @@ public class UserInvitationService(
     private readonly IRoleRepository roleRepository = roleRepository;
     private readonly IEmailSendService emailSendService = emailSendService;
     private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
+    private readonly TickfloConfig config = config;
 
-    public async Task<UserInvitationResult> InviteUserAsync(
+    public async Task InviteUserAsync(
         int workspaceId,
         string email,
         int invitedByUserId,
@@ -34,7 +37,7 @@ public class UserInvitationService(
             throw new InvalidOperationException("Email is required");
         }
 
-        if (roleIds == null || roleIds.Count == 0)
+        if (roleIds.Count == 0)
         {
             throw new InvalidOperationException("At least one role is required");
         }
@@ -45,100 +48,93 @@ public class UserInvitationService(
         var workspace = await this.workspaceRepository.FindByIdAsync(workspaceId) ?? throw new InvalidOperationException("Workspace not found");
 
         // Check if user already exists
-        var existingUser = await this.userRepository.FindByEmailAsync(email);
-        User user;
-        bool isNewUser;
+        var user = await this.userRepository.FindByEmailAsync(email);
+        var isNewUser = user == null;
 
-        if (existingUser == null)
+        if (isNewUser)
         {
-            isNewUser = true;
-
-            // Generate email confirmation code
-            var emailConfirmationCode = TokenGenerator.GenerateToken(16);
-
-            // Create new user without password - they will set it after confirming email
             user = new User
             {
-                Name = email.Split('@')[0], // Default name from email
+                Name = email.Split('@')[0],
                 Email = email,
-                PasswordHash = null, // No password yet - user will set it after email confirmation
-                EmailConfirmed = false,
-                EmailConfirmationCode = emailConfirmationCode,
-                SystemAdmin = false,
-                CreatedAt = DateTime.UtcNow
+                EmailConfirmationCode = TokenGenerator.GenerateToken(16),
             };
 
             await this.userRepository.AddAsync(user);
         }
         else
         {
-            isNewUser = false;
-            user = existingUser;
-        }
-
-        // Generate confirmation code for invitation acceptance
-        var confirmationCode = GenerateConfirmationCode();
-
-        // Create or update workspace membership
-        var existingMembership = await this.userWorkspaceRepository.FindAsync(user.Id, workspaceId);
-
-        if (existingMembership == null)
-        {
-            var membership = new UserWorkspace
+            var existingMembership = await this.userWorkspaceRepository.FindAsync(user!.Id, workspaceId);
+            if (existingMembership != null)
             {
-                UserId = user.Id,
-                WorkspaceId = workspaceId,
-                Accepted = false,
-                CreatedBy = invitedByUserId,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await this.userWorkspaceRepository.AddAsync(membership);
-        }
-
-        // Assign roles
-        foreach (var roleId in roleIds)
-        {
-            // Verify role exists and belongs to workspace
-            var role = await this.roleRepository.FindByIdAsync(roleId);
-            if (role != null && role.WorkspaceId == workspaceId)
-            {
-                // Add role using repository method
-                await this.userWorkspaceRoleRepository.AddAsync(user.Id, workspaceId, roleId, invitedByUserId);
+                throw new InvalidOperationException("User is already invited to this workspace");
             }
         }
 
-        // Build invitation result
-        var result = new UserInvitationResult
+        if (user == null)
         {
-            User = user,
-            ConfirmationCode = confirmationCode,
-            TemporaryPassword = string.Empty, // No longer using temporary passwords
-            ConfirmationLink = $"/email-confirmation/confirm?email={Uri.EscapeDataString(email)}&code={Uri.EscapeDataString(user.EmailConfirmationCode ?? string.Empty)}",
-            AcceptLink = $"/accept-invite?code={confirmationCode}",
-            ResetPasswordLink = $"/reset-password?email={Uri.EscapeDataString(email)}",
-            SetPasswordLink = $"/set-password?userId={user.Id}",
-            IsNewUser = isNewUser
-        };
+            throw new InvalidOperationException("Failed to create or retrieve user");
+        }
 
-        // Send appropriate email based on user type
-        await this.SendInvitationEmailAsync(workspace, user, result, isNewUser);
+        await this.userWorkspaceRepository.AddAsync(new UserWorkspace
+        {
+            UserId = user.Id,
+            WorkspaceId = workspaceId,
+            CreatedBy = invitedByUserId,
+        });
 
-        return result;
+        foreach (var roleId in roleIds)
+        {
+            var role = await this.roleRepository.FindByIdAsync(roleId);
+            if (role == null || role.WorkspaceId != workspaceId)
+            {
+                throw new InvalidOperationException($"Role with ID {roleId} not found in this workspace");
+            }
+
+            await this.userWorkspaceRoleRepository.AddAsync(new UserWorkspaceRole
+            {
+                UserId = user.Id,
+                WorkspaceId = workspaceId,
+                RoleId = roleId,
+                CreatedBy = invitedByUserId,
+            });
+        }
+
+        if (isNewUser)
+        {
+            await this.SendNewUserInvitationEmailAsync(workspace, user, invitedByUserId);
+        }
+        else
+        {
+            await this.SendExistingUserInvitationEmailAsync(workspace, user, invitedByUserId);
+        }
     }
 
-    public async Task<string> ResendInvitationAsync(int workspaceId, int userId, int resentByUserId)
+    public async Task ResendInvitationAsync(int workspaceId, int userId, int resentByUserId)
     {
-        var membership = await this.userWorkspaceRepository.FindAsync(userId, workspaceId) ?? throw new InvalidOperationException("User is not invited to this workspace");
+        var workspace = await this.workspaceRepository.FindByIdAsync(workspaceId)
+            ?? throw new InvalidOperationException("Workspace not found");
 
-        // Generate new confirmation code
-        var confirmationCode = GenerateConfirmationCode();
+        var membership = await this.userWorkspaceRepository.FindAsync(userId, workspaceId)
+            ?? throw new InvalidOperationException("User is not invited to this workspace");
 
-        // Note: ConfirmationCode is not stored in UserWorkspace entity currently
-        // This would need to be added to the entity and database schema
-        // For now, return the new code for the caller to handle
+        var user = await this.userRepository.FindByIdAsync(userId)
+            ?? throw new InvalidOperationException("User not found");
 
-        return confirmationCode;
+        if (user.PasswordHash == null)
+        {
+            await this.SendNewUserInvitationEmailAsync(
+                workspace,
+                user,
+                resentByUserId);
+        }
+        else
+        {
+            await this.SendExistingUserInvitationEmailAsync(
+                workspace,
+                user,
+                resentByUserId);
+        }
     }
 
     public async Task AcceptInvitationAsync(int workspaceId, int userId)
@@ -149,42 +145,47 @@ public class UserInvitationService(
         await this.userWorkspaceRepository.UpdateAsync(membership);
     }
 
-    private async Task SendInvitationEmailAsync(
+    private async Task SendNewUserInvitationEmailAsync(
         Workspace workspace,
         User user,
-        UserInvitationResult invitationResult,
-        bool isNewUser)
+        int invitedByUserId
+    )
     {
         var variables = new Dictionary<string, string>
         {
-            { "WORKSPACE_NAME", workspace.Name },
-            { "USER_NAME", user.Name },
-            { "ACCEPT_LINK", invitationResult.AcceptLink }
+            { "name", user.Name },
+            { "workspace_name", workspace.Name },
+            { "signup_link", $"{this.config.BaseUrl}/signup?email={Uri.EscapeDataString(user.Email)}" },
         };
 
-        EmailTemplateType templateType;
-
-        if (isNewUser)
-        {
-            // For new users, include confirmation link and set password link
-            templateType = EmailTemplateType.WorkspaceInviteNewUser;
-            variables["CONFIRMATION_LINK"] = invitationResult.ConfirmationLink;
-            variables["SET_PASSWORD_LINK"] = invitationResult.SetPasswordLink;
-        }
-        else
-        {
-            // For existing users, just send the accept link
-            templateType = EmailTemplateType.WorkspaceInviteExistingUser;
-        }
-
-        await this.emailSendService.SendAsync(
+        await this.emailSendService.AddToQueueAsync(
             user.Email,
-            templateType,
+            EmailTemplateType.WorkspaceInviteNewUser,
             variables,
-            workspace.Id);
+            invitedByUserId
+        );
     }
 
-    private static string GenerateConfirmationCode() => Guid.NewGuid().ToString("N");
+    private async Task SendExistingUserInvitationEmailAsync(
+        Workspace workspace,
+        User user,
+        int invitedByUserId
+    )
+    {
+        var variables = new Dictionary<string, string>
+        {
+            { "name", user.Name },
+            { "workspace_name", workspace.Name },
+            { "login_link", $"{this.config.BaseUrl}/workspaces" },
+        };
+
+        await this.emailSendService.AddToQueueAsync(
+            user.Email,
+            EmailTemplateType.WorkspaceInviteExistingUser,
+            variables,
+            invitedByUserId
+        );
+    }
 }
 
 

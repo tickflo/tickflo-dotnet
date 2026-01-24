@@ -57,7 +57,7 @@ public class LocationsModel(
             return this.Forbid();
         }
 
-        var viewData = await this.workspaceLocationsViewService.BuildAsync(this.Workspace!.Id, uid);
+        var viewData = await this.workspaceLocationsViewService.BuildAsync(this.Workspace.Id, uid);
         this.Locations = viewData.Locations;
         this.CanCreateLocations = viewData.CanCreateLocations;
         this.CanEditLocations = viewData.CanEditLocations;

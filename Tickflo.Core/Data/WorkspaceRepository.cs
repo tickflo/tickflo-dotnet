@@ -11,10 +11,11 @@ public class WorkspaceRepository(TickfloDbContext dbContext) : IWorkspaceReposit
 
     public Task<Workspace?> FindByIdAsync(int id) => this.dbContext.Workspaces.FirstOrDefaultAsync(w => w.Id == id);
 
-    public async Task AddAsync(Workspace workspace)
+    public async Task<Workspace> AddAsync(Workspace workspace)
     {
         this.dbContext.Workspaces.Add(workspace);
         await this.dbContext.SaveChangesAsync();
+        return workspace;
     }
 
     public async Task UpdateAsync(Workspace workspace)

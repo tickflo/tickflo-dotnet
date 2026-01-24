@@ -29,7 +29,6 @@ public class UserNotificationPreferenceRepository(TickfloDbContext dbContext) : 
         }
         else
         {
-            preference.CreatedAt = DateTime.UtcNow;
             this.dbContext.UserNotificationPreferences.Add(preference);
         }
 

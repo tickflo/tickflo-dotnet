@@ -65,7 +65,7 @@ public class InventoryModel(
             return this.Forbid();
         }
 
-        var viewData = await this.workspaceInventoryViewService.BuildAsync(this.Workspace!.Id, uid);
+        var viewData = await this.workspaceInventoryViewService.BuildAsync(this.Workspace.Id, uid);
         this.IsWorkspaceAdmin = viewData.IsWorkspaceAdmin;
         this.CanCreateInventory = viewData.CanCreateInventory;
         this.CanEditInventory = viewData.CanEditInventory;

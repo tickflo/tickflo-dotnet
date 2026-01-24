@@ -37,36 +37,20 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Configure DateTime properties to use UTC
-        // This ensures all DateTimes are stored and retrieved as UTC in PostgreSQL
-        var dateTimeConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
-            v => v.Kind == DateTimeKind.Utc ? v : v.ToUniversalTime(),
-            v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
-
-        var nullableDateTimeConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime?, DateTime?>(
-            v => v.HasValue ? (v.Value.Kind == DateTimeKind.Utc ? v.Value : v.Value.ToUniversalTime()) : null,
-            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null);
-
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-        {
-            foreach (var property in entityType.GetProperties())
-            {
-                if (property.ClrType == typeof(DateTime))
-                {
-                    property.SetValueConverter(dateTimeConverter);
-                }
-                else if (property.ClrType == typeof(DateTime?))
-                {
-                    property.SetValueConverter(nullableDateTimeConverter);
-                }
-            }
-        }
+        base.OnModelCreating(modelBuilder);
 
         modelBuilder.Entity<Token>()
             .HasKey(t => new { t.UserId, t.Value });
 
-        modelBuilder.Entity<UserWorkspace>()
-            .HasKey(uw => new { uw.UserId, uw.WorkspaceId });
+        modelBuilder.Entity<UserWorkspace>(entity =>
+        {
+            entity.HasKey(uw => new { uw.UserId, uw.WorkspaceId });
+            entity.HasOne(userWorkspace => userWorkspace.Workspace)
+            .WithMany(workspace => workspace.UserWorkspaces)
+            .HasForeignKey(userWorkspace => userWorkspace.WorkspaceId)
+            .OnDelete(DeleteBehavior.Restrict);
+        });
+
 
         modelBuilder.Entity<Role>()
             .HasIndex(r => new { r.WorkspaceId, r.Name })
@@ -178,7 +162,5 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
             .HasConversion(
                 v => JsonSerializer.Serialize(v),
                 v => JsonSerializer.Deserialize<Dictionary<string, string>>(v) ?? new Dictionary<string, string>());
-
-        base.OnModelCreating(modelBuilder);
     }
 }

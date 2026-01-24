@@ -50,7 +50,6 @@ public class UserOnboardingService(
             UserId = user.Id,
             WorkspaceId = workspaceId,
             Accepted = false, // User must accept invitation
-            CreatedAt = DateTime.UtcNow,
             CreatedBy = invitedByUserId
         };
 
@@ -59,7 +58,13 @@ public class UserOnboardingService(
         // Assign default role if provided
         if (roleId > 0)
         {
-            await this.userWorkspaceRoleRepository.AddAsync(user.Id, workspaceId, roleId, invitedByUserId);
+            await this.userWorkspaceRoleRepository.AddAsync(new UserWorkspaceRole
+            {
+                UserId = user.Id,
+                WorkspaceId = workspaceId,
+                RoleId = roleId,
+                CreatedBy = invitedByUserId,
+            });
         }
 
         // Business rule: Could send invitation email here

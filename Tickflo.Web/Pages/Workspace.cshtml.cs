@@ -164,10 +164,7 @@ public class WorkspaceModel : PageModel
 
         try
         {
-            var workspace = await this.workspaceCreationService.CreateWorkspaceAsync(
-                new WorkspaceCreationRequest { Name = trimmedName },
-                userId);
-
+            var workspace = await this.workspaceCreationService.CreateWorkspaceAsync(trimmedName, userId);
             return this.Redirect($"/workspaces/{workspace.Slug}");
         }
         catch (InvalidOperationException ex)

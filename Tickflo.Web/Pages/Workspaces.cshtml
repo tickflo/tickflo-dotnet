@@ -1,17 +1,19 @@
 @page "/workspaces"
 @using System.Text.Json
-@model Tickflo.Web.Pages.WorkspaceModel
+@model Tickflo.Web.Pages.WorkspacesModel
 @{
     ViewData["Title"] = "Workspaces";
 }
 
 <div class="flex flex-row gap-4">
-    <section class="relative overflow-hidden p-6 w-full space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
+    <section
+        class="relative overflow-hidden p-6 w-full space-y-8 text-slate-100 rounded-3xl bg-linear-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
         <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div class="space-y-1">
                 <p class="text-xs uppercase tracking-wide text-slate-400">Workspaces</p>
                 <h1 class="text-2xl font-bold">Choose or create a workspace</h1>
-                <p class="text-sm text-slate-400">Workspaces keep tickets, teams, and permissions scoped to the right group.</p>
+                <p class="text-sm text-slate-400">Workspaces keep tickets, teams, and permissions scoped to the right
+                    group.</p>
             </div>
         </div>
 
@@ -19,8 +21,11 @@
             <div class="card-body">
                 <form method="post" class="flex flex-col gap-4 lg:flex-row lg:items-end lg:gap-6">
                     <div class="flex-1 space-y-2">
-                        <label class="label p-0 text-sm font-semibold text-slate-200" for="NewWorkspaceName">Workspace name</label>
-                        <input asp-for="NewWorkspaceName" id="NewWorkspaceName" name="NewWorkspaceName" class="input input-bordered w-full bg-neutral-800/80" placeholder="Support, Engineering, CS Team" />
+                        <label class="label p-0 text-sm font-semibold text-slate-200" for="NewWorkspaceName">Workspace
+                            name</label>
+                        <input asp-for="NewWorkspaceName" id="NewWorkspaceName" name="NewWorkspaceName"
+                            class="input input-bordered w-full bg-neutral-800/80"
+                            placeholder="Support, Engineering, CS Team" />
                         <span class="text-error text-sm" asp-validation-for="NewWorkspaceName"></span>
                     </div>
                     <div class="flex items-end">
@@ -34,12 +39,15 @@
         @if (!Model.Workspaces.Any())
         {
             <div role="alert" class="alert alert-info rounded-3xl shadow-md border border-base-200/70">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                    class="stroke-current shrink-0 w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
                 <div class="flex flex-col gap-1">
                     <span class="font-semibold">No workspaces yet</span>
-                    <span class="text-sm text-slate-200">Create your first workspace above to start organizing tickets and teams.</span>
+                    <span class="text-sm text-slate-200">Create your first workspace above to start organizing tickets and
+                        teams.</span>
                 </div>
             </div>
         }
@@ -48,16 +56,17 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach (var workspace in Model.Workspaces)
                 {
-                    <div class="card bg-neutral-900/80 backdrop-blur text-slate-100 shadow-xl cursor-pointer hover:shadow-2xl transition-all hover:-translate-y-0.5 rounded-3xl overflow-hidden group">
+                    <div
+                        class="card bg-neutral-900/80 backdrop-blur text-slate-100 shadow-xl cursor-pointer hover:shadow-2xl transition-all hover:-translate-y-0.5 rounded-3xl overflow-hidden group">
                         <div class="card-body">
-                            <h2 class="card-title text-lg">@workspace.Name</h2>
-                            <p class="text-sm text-slate-400">@workspace.Slug</p>
+                            <h2 class="card-title text-lg">@workspace.Workspace.Name</h2>
+                            <p class="text-sm text-slate-400">@workspace.Workspace.Slug</p>
                             @if (!workspace.Accepted)
                             {
                                 <div class="badge badge-warning">Pending Acceptance</div>
                             }
                             <div class="card-actions justify-end mt-4">
-                                <a href="/workspaces/@workspace.Slug" class="btn btn-primary btn-sm rounded-full">
+                                <a href="/workspaces/@workspace.Workspace.Slug" class="btn btn-primary btn-sm rounded-full">
                                     <i class="fa fa-arrow-right"></i> Open
                                 </a>
                             </div>

@@ -20,8 +20,8 @@ using Tickflo.Core.Services.Tickets;
 using Tickflo.Core.Services.Users;
 using Tickflo.Core.Services.Views;
 using Tickflo.Core.Services.Workspace;
+using Tickflo.Web;
 using Tickflo.Web.Authentication;
-using Tickflo.Web.Middleware;
 using AuthenticationService = Tickflo.Core.Services.Authentication.AuthenticationService;
 using IAuthenticationService = Tickflo.Core.Services.Authentication.IAuthenticationService;
 
@@ -44,7 +44,6 @@ var connectionString = $"Host={appConfig.PostgresHost};Port=5432;Database={appCo
 builder.Services.AddSingleton(appConfig);
 builder.Services.AddSingleton(settingsConfig);
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<ITokenRepository, TokenRepository>();
 builder.Services.AddScoped<IPasswordHasher, Argon2idPasswordHasher>();
 builder.Services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
 builder.Services.AddScoped<IUserWorkspaceRepository, UserWorkspaceRepository>();
@@ -70,7 +69,6 @@ builder.Services.AddScoped<IEmailRepository, EmailRepository>();
 builder.Services.AddSignalR();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IFileStorageRepository, FileStorageRepository>();
-builder.Services.AddScoped<IWorkspaceRoleBootstrapper, WorkspaceRoleBootstrapper>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<IPasswordSetupService, PasswordSetupService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
@@ -151,9 +149,11 @@ builder.Services.AddScoped<ITeamListingService, TeamListingService>();
 // RustFS file and image storage services (Web implementations)
 builder.Services.AddScoped<Tickflo.Core.Services.Storage.IFileStorageService, Tickflo.Web.Services.RustFSStorageService>();
 builder.Services.AddScoped<Tickflo.Core.Services.Storage.IImageStorageService, Tickflo.Web.Services.RustFSImageStorageService>();
-builder.Services.AddScoped<IEmailSenderService, EmailSenderService>();
 builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
 builder.Services.AddScoped<IEmailSendService, EmailSendService>();
+builder.Services.AddScoped<IReportingService, ReportingService>();
+builder.Services.AddScoped<IAppContext, Tickflo.Web.AppContext>();
+
 builder.Services.AddDbContext<TickfloDbContext>(options =>
     options.UseNpgsql(connectionString)
         .UseSnakeCaseNamingConvention());
@@ -163,10 +163,6 @@ builder.Services.AddRazorPages(options =>
     // Removed legacy '/new' route mappings; use unified edit/details routes.
 });
 builder.Services.AddControllers();
-
-// Reporting services (moved to Core)
-builder.Services.AddScoped<IReportingService, ReportingService>();
-builder.Services.AddHostedService<Tickflo.Web.Services.ScheduledReportsHostedService>();
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
@@ -215,21 +211,15 @@ else
     app.UseMiniProfiler();
 }
 
-// Add global exception handler middleware
-app.UseGlobalExceptionHandler();
-
-app.UseStatusCodePages(context =>
+app.UseStatusCodePages(async context =>
 {
-    if (context.HttpContext.Response.StatusCode == 401)
+    var response = context.HttpContext.Response;
+
+    if (response.StatusCode == 401)
     {
-        var path = context.HttpContext.Request.Path;
-        context.HttpContext.Response.Redirect($"/login{(path != "/" ? $"?returnUrl={HttpUtility.UrlEncode(path)}" : "")}");
+        var returnUrl = HttpUtility.UrlEncode(context.HttpContext.Request.Path + context.HttpContext.Request.QueryString);
+        response.Redirect($"/login?returnUrl={returnUrl}");
     }
-    else if (context.HttpContext.Response.StatusCode >= 400)
-    {
-        context.HttpContext.Response.Redirect($"/StatusCode?code={context.HttpContext.Response.StatusCode}");
-    }
-    return Task.CompletedTask;
 });
 
 app.UseHttpsRedirection();
@@ -241,9 +231,10 @@ app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseMiddleware<AppContextMiddleware>();
+
 app.MapRazorPages();
 app.MapControllers();
-app.MapHub<Tickflo.Web.Realtime.TicketsHub>("/hubs/tickets");
 
 app.Run();
 

@@ -54,7 +54,6 @@ public class TicketCommentService(ITicketCommentRepository commentRepo) : ITicke
             CreatedByUserId = createdByUserId,
             Content = content.Trim(),
             IsVisibleToClient = isVisibleToClient,
-            CreatedAt = DateTime.UtcNow
         };
 
         return await commentRepo.CreateAsync(comment, ct);
@@ -88,7 +87,6 @@ public class TicketCommentService(ITicketCommentRepository commentRepo) : ITicke
             CreatedByContactId = contactId, // Track actual client
             Content = content.Trim(),
             IsVisibleToClient = true, // Client comments are always visible to client
-            CreatedAt = DateTime.UtcNow
         };
 
         return await commentRepo.CreateAsync(comment, ct);

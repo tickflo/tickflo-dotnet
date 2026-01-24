@@ -46,7 +46,7 @@ public class Notification
     public DateTime? ReadAt { get; set; }
 
     [Column("created_at")]
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [Column("created_by")]
     public int? CreatedBy { get; set; }

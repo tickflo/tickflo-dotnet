@@ -13,6 +13,7 @@ public class TickfloConfig
     public string S3Bucket { get; set; } = string.Empty;
     public string S3Region { get; set; } = string.Empty;
     public int SessionTimeoutMinutes { get; set; }
+    public string SessionCookieName { get; set; } = "tickflo_session";
     public UserConfig User { get; set; } = new();
     public ContactConfig Contact { get; set; } = new();
     public LocationConfig Location { get; set; } = new();
@@ -56,6 +57,6 @@ public class RoleConfig
 
 public class EmailConfig
 {
-    public string FromAddress { get; set; } = "no-reply@tickflo.local";
+    public string FromAddress { get; set; } = "no-reply@tickflo.co";
     public string FromName { get; set; } = "Tickflo";
 }

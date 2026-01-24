@@ -91,7 +91,6 @@ public class ContactRegistrationService(IContactRepository contactRepository) : 
         Phone = TrimOrNull(request.Phone),
         Company = TrimOrNull(request.Company),
         Notes = TrimOrNull(request.Notes),
-        CreatedAt = DateTime.UtcNow
     };
 
     private async Task<Contact> GetContactOrThrowAsync(int workspaceId, int contactId)

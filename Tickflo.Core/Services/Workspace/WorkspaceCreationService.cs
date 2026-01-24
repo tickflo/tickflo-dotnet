@@ -1,22 +1,20 @@
 namespace Tickflo.Core.Services.Workspace;
 
-using System.Text;
+using Tickflo.Core.Config;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Exceptions;
 
 /// <summary>
 /// Handles workspace creation and initialization workflows.
 /// </summary>
 public partial class WorkspaceCreationService(
     IWorkspaceRepository workspaceRepository,
-    IRoleRepository roleRepo,
+    IRoleRepository roleRepository,
     IUserWorkspaceRepository userWorkspaceRepository,
-    IUserWorkspaceRoleRepository userWorkspaceRoleRepository) : IWorkspaceCreationService
+    IUserWorkspaceRoleRepository userWorkspaceRoleRepository,
+    TickfloConfig config) : IWorkspaceCreationService
 {
-    private const int MaxSlugLength = 30;
-    private const string ErrorWorkspaceNameRequired = "Workspace name is required";
-    private static readonly CompositeFormat ErrorSlugInUse = CompositeFormat.Parse("Slug '{0}' is already in use");
-
     private static readonly (string Name, bool IsAdmin)[] DefaultRoles =
     [
         ("Admin", true),
@@ -26,105 +24,83 @@ public partial class WorkspaceCreationService(
     ];
 
     private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
-    private readonly IRoleRepository roleRepository = roleRepo;
+    private readonly IRoleRepository roleRepository = roleRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly IUserWorkspaceRoleRepository userWorkspaceRoleRepository = userWorkspaceRoleRepository;
+    private readonly TickfloConfig config = config;
 
     /// <summary>
     /// Creates a new workspace and initializes default roles.
     /// </summary>
     public async Task<Workspace> CreateWorkspaceAsync(
-        WorkspaceCreationRequest request,
+        string workspaceName,
         int createdByUserId)
     {
-        ValidateWorkspaceRequest(request);
-        var slug = await this.GenerateAndValidateSlugAsync(request.Name);
-
-        var workspace = new Workspace
+        if (string.IsNullOrWhiteSpace(workspaceName)
+            || workspaceName.Length > this.config.Workspace.MaxNameLength
+            || workspaceName.Length < this.config.Workspace.MinNameLength)
         {
-            Name = request.Name.Trim(),
+            throw new BadRequestException($"Invalid workspace name: {workspaceName}");
+        }
+
+        var slug = workspaceName.Trim().ToLowerInvariant().Replace(' ', '-').Trim('-');
+        if (string.IsNullOrWhiteSpace(slug)
+            || slug.Length < this.config.Workspace.MinNameLength
+            || slug.Length > this.config.Workspace.MaxSlugLength)
+        {
+            throw new BadRequestException($"Invalid workspace slug: {slug}");
+        }
+
+        if (await this.workspaceRepository.FindBySlugAsync(slug) != null)
+        {
+            throw new BadRequestException($"Workspace with slug '{slug}' already exists");
+        }
+
+        var workspace = await this.workspaceRepository.AddAsync(new Workspace
+        {
+            Name = workspaceName.Trim(),
             Slug = slug,
-            CreatedAt = DateTime.UtcNow,
             CreatedBy = createdByUserId
-        };
-
-        await this.workspaceRepository.AddAsync(workspace);
-        await this.InitializeDefaultRolesAsync(workspace.Id, createdByUserId);
-        await this.AddCreatorAsAdminAsync(workspace.Id, createdByUserId);
-
-        return workspace;
-    }
-
-    private static void ValidateWorkspaceRequest(WorkspaceCreationRequest request)
-    {
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            throw new InvalidOperationException(ErrorWorkspaceNameRequired);
-        }
-    }
-
-    private async Task<string> GenerateAndValidateSlugAsync(string name)
-    {
-        var slug = GenerateSlug(name);
-        var existingSlug = await this.workspaceRepository.FindBySlugAsync(slug);
-
-        if (existingSlug != null)
-        {
-            throw new InvalidOperationException(string.Format(null, ErrorSlugInUse, slug));
-        }
-
-        return slug;
-    }
-
-    private async Task AddCreatorAsAdminAsync(int workspaceId, int createdByUserId)
-    {
-        var adminRole = await this.roleRepository.FindByNameAsync(workspaceId, "Admin");
-        if (adminRole == null)
-        {
-            return;
-        }
+        });
 
         await this.userWorkspaceRepository.AddAsync(new UserWorkspace
         {
             UserId = createdByUserId,
-            WorkspaceId = workspaceId,
+            WorkspaceId = workspace.Id,
             Accepted = true,
-            CreatedAt = DateTime.UtcNow,
             CreatedBy = createdByUserId
         });
 
-        await this.userWorkspaceRoleRepository.AddAsync(createdByUserId, workspaceId, adminRole.Id, createdByUserId);
-    }
-
-    private async Task InitializeDefaultRolesAsync(int workspaceId, int createdByUserId)
-    {
+        int? adminRoleId = null;
         foreach (var (name, isAdmin) in DefaultRoles)
         {
-            var existingRole = await this.roleRepository.FindByNameAsync(workspaceId, name);
-            if (existingRole == null)
+            var role = await this.roleRepository.AddAsync(new Role
             {
-                await this.roleRepository.AddAsync(workspaceId, name, isAdmin, createdByUserId);
+                WorkspaceId = workspace.Id,
+                Name = name,
+                Admin = isAdmin,
+                CreatedBy = createdByUserId
+            });
+
+            if (name == "Admin")
+            {
+                adminRoleId = role.Id;
             }
         }
+
+        if (adminRoleId == null)
+        {
+            throw new InternalServerErrorException("Failed to create admin role");
+        }
+
+        await this.userWorkspaceRoleRepository.AddAsync(new UserWorkspaceRole
+        {
+            UserId = createdByUserId,
+            WorkspaceId = workspace.Id,
+            RoleId = adminRoleId.Value,
+            CreatedBy = createdByUserId
+        });
+
+        return workspace;
     }
-
-    private static string GenerateSlug(string name)
-    {
-        var normalizedName = name.ToLowerInvariant().Trim();
-        var slug = MyRegex().Replace(normalizedName, string.Empty)
-            .Replace(" ", "-");
-
-        return slug[..Math.Min(MaxSlugLength, slug.Length)];
-    }
-
-    [System.Text.RegularExpressions.GeneratedRegex(@"[^\w\-]")]
-    private static partial System.Text.RegularExpressions.Regex MyRegex();
-}
-
-/// <summary>
-/// Request to create a new workspace.
-/// </summary>
-public class WorkspaceCreationRequest
-{
-    public string Name { get; set; } = string.Empty;
 }

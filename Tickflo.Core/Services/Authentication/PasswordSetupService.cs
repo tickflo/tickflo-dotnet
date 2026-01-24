@@ -1,19 +1,19 @@
 namespace Tickflo.Core.Services.Authentication;
 
+using Microsoft.EntityFrameworkCore;
+using Tickflo.Core.Config;
 using Tickflo.Core.Data;
+using Tickflo.Core.Entities;
 
 public class PasswordSetupService(
-    IUserRepository userRepository,
-    ITokenRepository tokenRepository,
-    IPasswordHasher passwordHasher,
-    IUserWorkspaceRepository userWorkspaceRepository,
-    IWorkspaceRepository workspaceRepository) : IPasswordSetupService
+    TickfloDbContext db,
+    TickfloConfig config,
+    IPasswordHasher passwordHasher
+    ) : IPasswordSetupService
 {
-    private readonly IUserRepository userRepository = userRepository;
-    private readonly ITokenRepository tokenRepository = tokenRepository;
+    private readonly TickfloDbContext db = db;
+    private readonly TickfloConfig config = config;
     private readonly IPasswordHasher passwordHasher = passwordHasher;
-    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
 
     public async Task<TokenValidationResult> ValidateResetTokenAsync(string tokenValue)
     {
@@ -22,13 +22,13 @@ public class PasswordSetupService(
             return new TokenValidationResult(false, "Missing token.", null, null);
         }
 
-        var token = await this.tokenRepository.FindByValueAsync(tokenValue);
+        var token = await this.db.Tokens.FirstOrDefaultAsync(t => t.Value == tokenValue);
         if (token == null)
         {
             return new TokenValidationResult(false, "Invalid or expired token.", null, null);
         }
 
-        var user = await this.userRepository.FindByIdAsync(token.UserId);
+        var user = await this.db.Users.FindAsync(token.UserId);
         if (user == null)
         {
             return new TokenValidationResult(false, "User not found.", null, null);
@@ -44,7 +44,7 @@ public class PasswordSetupService(
             return new TokenValidationResult(false, "Missing user id.", null, null);
         }
 
-        var user = await this.userRepository.FindByIdAsync(userId);
+        var user = await this.db.Users.FindAsync(userId);
         if (user == null)
         {
             return new TokenValidationResult(false, "User not found.", null, null);
@@ -71,7 +71,7 @@ public class PasswordSetupService(
             return new SetPasswordResult(false, "Password must be at least 8 characters long.", null, null, validation.UserId, validation.UserEmail);
         }
 
-        var user = await this.userRepository.FindByIdAsync(validation.UserId.Value);
+        var user = await this.db.Users.FindAsync(validation.UserId.Value);
         if (user == null)
         {
             return new SetPasswordResult(false, "User not found.", null, null, null, null);
@@ -80,14 +80,15 @@ public class PasswordSetupService(
         var passwordHash = this.passwordHasher.Hash($"{user.Email}{newPassword}");
         user.PasswordHash = passwordHash;
         user.UpdatedAt = DateTime.UtcNow;
-        await this.userRepository.UpdateAsync(user);
+        this.db.Users.Update(user);
+        await this.db.SaveChangesAsync();
 
         return new SetPasswordResult(true, null, null, null, user.Id, user.Email);
     }
 
     public async Task<SetPasswordResult> SetInitialPasswordAsync(int userId, string newPassword)
     {
-        var user = await this.userRepository.FindByIdAsync(userId);
+        var user = await this.db.Users.FindAsync(userId);
         if (user == null)
         {
             return new SetPasswordResult(false, "User not found.", null, null, null, null);
@@ -106,19 +107,18 @@ public class PasswordSetupService(
         var passwordHash = this.passwordHasher.Hash($"{user.Email}{newPassword}");
         user.PasswordHash = passwordHash;
         user.UpdatedAt = DateTime.UtcNow;
-        await this.userRepository.UpdateAsync(user);
+        this.db.Users.Update(user);
 
-        var loginToken = await this.tokenRepository.CreateForUserIdAsync(user.Id);
+        var token = new Token(user.Id, this.config.SessionTimeoutMinutes * 60);
+        await this.db.Tokens.AddAsync(token);
 
         string? workspaceSlug = null;
-        var userWorkspace = await this.userWorkspaceRepository.FindAcceptedForUserAsync(user.Id);
+        var userWorkspace = await this.db.UserWorkspaces.Include(w => w.Workspace).FirstOrDefaultAsync(w => w.UserId == user.Id && w.Accepted);
         if (userWorkspace != null)
         {
-            var workspace = await this.workspaceRepository.FindByIdAsync(userWorkspace.WorkspaceId);
-            workspaceSlug = workspace?.Slug;
+            workspaceSlug = userWorkspace.Workspace.Slug;
         }
-
-        return new SetPasswordResult(true, null, loginToken.Value, workspaceSlug, user.Id, user.Email);
+        return new SetPasswordResult(true, null, token.Value, workspaceSlug, user.Id, user.Email);
     }
 }
 

@@ -41,7 +41,7 @@ public class ReportsModel(
             return this.Forbid();
         }
 
-        var viewData = await this.workspaceReportsViewService.BuildAsync(this.Workspace!.Id, uid);
+        var viewData = await this.workspaceReportsViewService.BuildAsync(this.Workspace.Id, uid);
         this.Reports = viewData.Reports;
         this.CanCreateReports = viewData.CanCreateReports;
         this.CanEditReports = viewData.CanEditReports;

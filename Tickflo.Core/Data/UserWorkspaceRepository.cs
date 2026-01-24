@@ -17,6 +17,7 @@ public class UserWorkspaceRepository(TickfloDbContext dbContext) : IUserWorkspac
 
     public Task<List<UserWorkspace>> FindForUserAsync(int userId) => this.dbContext.UserWorkspaces
             .Where(uw => uw.UserId == userId)
+            .Include(uw => uw.Workspace)
             .ToListAsync();
 
     public Task<List<UserWorkspace>> FindForWorkspaceAsync(int workspaceId) => this.dbContext.UserWorkspaces

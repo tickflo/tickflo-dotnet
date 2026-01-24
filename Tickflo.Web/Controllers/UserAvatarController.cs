@@ -37,14 +37,9 @@ public class UserAvatarController(TickfloConfig config, IAmazonS3 amazonS3) : Co
             var contentType = response.Headers.ContentType ?? "image/jpeg";
             return this.File(stream.ToArray(), contentType);
         }
-        catch (AmazonS3Exception)
-        {
-            // If S3 is unavailable or account not signed up, return NotFound so the app doesn't crash.
-            return this.NotFound();
-        }
         catch
         {
-            return this.NotFound();
+            return this.Redirect("/img/avatar.png");
         }
     }
 }

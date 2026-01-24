@@ -1,5 +1,7 @@
 namespace Tickflo.Core.Services.Email;
 
+using Microsoft.EntityFrameworkCore;
+using Tickflo.Core.Config;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
@@ -8,36 +10,34 @@ using Tickflo.Core.Entities;
 /// The actual sending is handled by a CRON job that processes unsent emails.
 /// </summary>
 public class EmailSendService(
-    IEmailRepository emailRepository,
-    IEmailTemplateRepository emailTemplateRepository) : IEmailSendService
+    TickfloDbContext db,
+    TickfloConfig config) : IEmailSendService
 {
-    private readonly IEmailRepository emailRepository = emailRepository;
-    private readonly IEmailTemplateRepository emailTemplateRepository = emailTemplateRepository;
+    private readonly TickfloDbContext db = db;
+    private readonly TickfloConfig config = config;
 
-    public async Task<Email> SendAsync(
+    public async Task AddToQueueAsync(
         string toEmail,
         EmailTemplateType templateType,
-        Dictionary<string, string> variables,
-        int? workspaceId = null)
+        Dictionary<string, string>? variables = null,
+        int? sentByUserId = null
+    )
     {
         if (string.IsNullOrWhiteSpace(toEmail))
         {
             throw new ArgumentException("Email address is required", nameof(toEmail));
         }
 
-        // Get the template ID from the template type
-        var template = await this.emailTemplateRepository.FindByTypeAsync(templateType, workspaceId) ?? throw new InvalidOperationException($"Email template not found for type {templateType}");
+        var template = await this.db.EmailTemplates.Where(t => t.TemplateTypeId == (int)templateType).OrderByDescending(t => t.Version).FirstOrDefaultAsync()
+        ?? throw new InvalidOperationException($"No email template found for type {templateType}");
 
-        // Create email record
-        var email = new Email
+        await this.db.Emails.AddAsync(new Email
         {
             TemplateId = template.Id,
-            Vars = variables ?? [],
-            From = "noreply@tickflo.co",
+            Vars = variables,
+            From = $"{this.config.Email.FromName} <{this.config.Email.FromAddress}>",
             To = toEmail.Trim().ToLowerInvariant(),
-            CreatedAt = DateTime.UtcNow
-        };
-
-        return await this.emailRepository.AddAsync(email);
+            CreatedBy = sentByUserId
+        });
     }
 }

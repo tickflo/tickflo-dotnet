@@ -14,8 +14,7 @@ public interface IUserInvitationService
     /// <param name="email">User's email address</param>
     /// <param name="invitedByUserId">User sending the invitation</param>
     /// <param name="roleIds">Role IDs to assign upon acceptance</param>
-    /// <returns>Invitation details including user, confirmation code, and temp password</returns>
-    public Task<UserInvitationResult> InviteUserAsync(
+    public Task InviteUserAsync(
         int workspaceId,
         string email,
         int invitedByUserId,
@@ -27,8 +26,7 @@ public interface IUserInvitationService
     /// <param name="workspaceId">Workspace context</param>
     /// <param name="userId">User to resend invitation to</param>
     /// <param name="resentByUserId">User triggering the resend</param>
-    /// <returns>New confirmation code</returns>
-    public Task<string> ResendInvitationAsync(int workspaceId, int userId, int resentByUserId);
+    public Task ResendInvitationAsync(int workspaceId, int userId, int resentByUserId);
 
     /// <summary>
     /// Accepts a workspace invitation.
@@ -44,12 +42,7 @@ public interface IUserInvitationService
 public class UserInvitationResult
 {
     public User User { get; set; } = null!;
-    public string ConfirmationCode { get; set; } = string.Empty;
-    public string TemporaryPassword { get; set; } = string.Empty;
-    public string ConfirmationLink { get; set; } = string.Empty;
     public string AcceptLink { get; set; } = string.Empty;
-    public string ResetPasswordLink { get; set; } = string.Empty;
-    public string SetPasswordLink { get; set; } = string.Empty;
     public bool IsNewUser { get; set; }
 }
 

@@ -4,31 +4,31 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Email;
+using Tickflo.Core.Services.Users;
 using Tickflo.Core.Services.Views;
 using Tickflo.Core.Services.Workspace;
-using Tickflo.Core.Utils;
 
 [Authorize]
-public class UsersModel(IWorkspaceService workspaceService, IUserRepository userRepository, IUserWorkspaceRepository userWorkspaceRepository, IEmailSenderService emailSenderService, IEmailTemplateService emailTemplateService, INotificationRepository notificationRepository, IWorkspaceUsersViewService workspaceUsersViewService, IWorkspaceUsersManageViewService workspaceUsersManageViewService) : WorkspacePageModel
+public class UsersModel(
+    IWorkspaceService workspaceService,
+    IUserRepository userRepository,
+    IUserWorkspaceRepository userWorkspaceRepository,
+    IWorkspaceUsersViewService workspaceUsersViewService,
+    IWorkspaceUsersManageViewService workspaceUsersManageViewService,
+    IUserInvitationService userInvitationService
+    ) : WorkspacePageModel
 {
     #region Constants
     private const string InviteAcceptedMessage = "Invite accepted.";
     private const string InviteEmailResentMessage = "Invite email resent.";
-    private const string WorkspaceInviteNotificationType = "workspace_invite";
-    private const string EmailDeliveryMethod = "email";
-    private const string HighPriority = "high";
-    private const string SentStatus = "sent";
     #endregion
 
     private readonly IWorkspaceService workspaceService = workspaceService;
     private readonly IUserRepository userRepository = userRepository;
     private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-    private readonly IEmailSenderService emailSenderService = emailSenderService;
-    private readonly IEmailTemplateService emailTemplateService = emailTemplateService;
-    private readonly INotificationRepository notificationRepository = notificationRepository;
     private readonly IWorkspaceUsersViewService workspaceUsersViewService = workspaceUsersViewService;
     private readonly IWorkspaceUsersManageViewService workspaceUsersManageViewService = workspaceUsersManageViewService;
+    private readonly IUserInvitationService userInvitationService = userInvitationService;
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
 
@@ -56,7 +56,7 @@ public class UsersModel(IWorkspaceService workspaceService, IUserRepository user
             return this.Forbid();
         }
 
-        var viewData = await this.workspaceUsersViewService.BuildAsync(this.Workspace!.Id, uid);
+        var viewData = await this.workspaceUsersViewService.BuildAsync(this.Workspace.Id, uid);
         if (this.EnsurePermissionOrForbid(viewData.CanViewUsers) is IActionResult permCheck)
         {
             return permCheck;
@@ -130,9 +130,7 @@ public class UsersModel(IWorkspaceService workspaceService, IUserRepository user
             return userCheck;
         }
 
-        await this.RegenerateConfirmationCodeAsync(user!);
-        await this.SendInviteEmailAsync(user!, this.Workspace, BuildConfirmationLink(user!));
-        await this.CreateNotificationRecordAsync(userId, this.Workspace.Id, currentUserId);
+        await this.userInvitationService.ResendInvitationAsync(this.Workspace.Id, userId, currentUserId);
 
         this.TempData["Success"] = InviteEmailResentMessage;
         return this.RedirectToUsersPage(slug);
@@ -170,47 +168,6 @@ public class UsersModel(IWorkspaceService workspaceService, IUserRepository user
     {
         userWorkspace.Accepted = true;
         userWorkspace.UpdatedAt = DateTime.UtcNow;
-    }
-
-    private async Task RegenerateConfirmationCodeAsync(User user)
-    {
-        var newCode = TokenGenerator.GenerateToken(16);
-        user.EmailConfirmationCode = newCode;
-        await this.userRepository.UpdateAsync(user);
-    }
-
-    private static string BuildConfirmationLink(User user) => $"/email-confirmation/confirm?email={Uri.EscapeDataString(user.Email)}&code={Uri.EscapeDataString(user.EmailConfirmationCode ?? string.Empty)}";
-
-    private async Task SendInviteEmailAsync(User user, Workspace workspace, string confirmationLink)
-    {
-        var variables = new Dictionary<string, string>
-        {
-            { "WORKSPACE_NAME", workspace.Name },
-            { "CONFIRMATION_LINK", confirmationLink }
-        };
-
-        var (subject, body) = await this.emailTemplateService.RenderTemplateAsync(EmailTemplateType.WorkspaceInviteResend, variables, workspace.Id);
-        await this.emailSenderService.SendAsync(user.Email, subject, body);
-    }
-
-    private async Task CreateNotificationRecordAsync(int userId, int workspaceId, int createdBy)
-    {
-        var notification = new Notification
-        {
-            UserId = userId,
-            WorkspaceId = workspaceId,
-            Type = WorkspaceInviteNotificationType,
-            DeliveryMethod = EmailDeliveryMethod,
-            Priority = HighPriority,
-            Subject = string.Empty,
-            Body = string.Empty,
-            Status = SentStatus,
-            SentAt = DateTime.UtcNow,
-            CreatedAt = DateTime.UtcNow,
-            CreatedBy = createdBy
-        };
-
-        await this.notificationRepository.AddAsync(notification);
     }
 
     private RedirectToPageResult RedirectToUsersPage(string slug) => this.RedirectToPage("/Workspaces/Users", new { slug });
