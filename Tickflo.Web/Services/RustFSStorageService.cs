@@ -54,7 +54,7 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
 
             // Compress and resize the image
             imageStream.Position = 0;
-            Utils.ImageHelper.CompressAndSave(imageStream, compressedStream, maxWidth, maxHeight, quality);
+            Utils.ImageCompressor.CompressAndSave(imageStream, compressedStream, maxWidth, maxHeight, quality);
             compressedStream.Position = 0;
 
             var putRequest = new PutObjectRequest
@@ -96,7 +96,7 @@ public class RustFSStorageService(IAmazonS3 s3Client, TickfloConfig config, ILog
 
             // Create thumbnail
             using var thumbnailStream = new MemoryStream();
-            Utils.ImageHelper.CompressAndSave(originalStream, thumbnailStream, width, height, 80);
+            Utils.ImageCompressor.CompressAndSave(originalStream, thumbnailStream, width, height, 80);
             thumbnailStream.Position = 0;
 
             // Upload thumbnail

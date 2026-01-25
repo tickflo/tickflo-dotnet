@@ -3,7 +3,7 @@ namespace Tickflo.Core.Utils;
 using System.Security.Cryptography;
 using System.Text;
 
-public static class TokenGenerator
+public static class SecureTokenGenerator
 {
     public static string GenerateToken(int byteLength = 32)
     {

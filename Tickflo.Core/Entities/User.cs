@@ -25,7 +25,7 @@ public class User
         this.Email = email;
         this.RecoveryEmail = recoveryEmail;
         this.PasswordHash = passwordHash;
-        this.EmailConfirmationCode = TokenGenerator.GenerateToken(16);
+        this.EmailConfirmationCode = SecureTokenGenerator.GenerateToken(16);
     }
 
     internal User()

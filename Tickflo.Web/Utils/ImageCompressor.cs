@@ -4,7 +4,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 
-public static class ImageHelper
+public static class ImageCompressor
 {
     public static void CompressAndSave(Stream input, string outputPath, int maxWidth = 256, int maxHeight = 256, long quality = 75L)
     {
