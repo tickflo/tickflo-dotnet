@@ -20,7 +20,7 @@ public class Token
     public Token(int userId, int maxAgeInSeconds)
     {
         this.UserId = userId;
-        this.Value = TokenGenerator.GenerateToken(16);
+        this.Value = SecureTokenGenerator.GenerateToken(16);
         this.MaxAge = maxAgeInSeconds;
     }
 }

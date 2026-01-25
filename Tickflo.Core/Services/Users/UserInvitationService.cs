@@ -58,7 +58,7 @@ public class UserInvitationService(
             {
                 Name = email.Split('@')[0],
                 Email = email,
-                EmailConfirmationCode = TokenGenerator.GenerateToken(16),
+                EmailConfirmationCode = SecureTokenGenerator.GenerateToken(16),
             };
 
             await this.userRepository.AddAsync(user);
