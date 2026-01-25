@@ -10,7 +10,7 @@ public enum EmailTemplateType
     ForgotPassword = 2,
     ConfirmNewEmail = 3,
     RevertEmailChange = 4,
-    WorkspaceInviteNewUser = 5,
-    WorkspaceInviteExistingUser = 6,
+    WorkspaceInviteExistingUser = 5,
+    WorkspaceInviteNewUser = 6,
     WorkspaceRemoval = 7,
 }

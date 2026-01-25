@@ -1,0 +1,39 @@
+@page "/system/emails"
+@using Microsoft.AspNetCore.Components
+@model Tickflo.Web.Pages.Admin.EmailLogModel
+@{
+    ViewData["Title"] = "Email Log";
+}
+
+<h1 class="text-2xl font-bold mb-6">Email Log</h1>
+
+<table class="table table-zebra">
+    <thead>
+        <tr>
+            <th>Created</th>
+            <th>To</th>
+            <th>Subject</th>
+            <th>Body</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Emails?.Count > 0)
+        {
+            foreach (var email in Model.Emails)
+            {
+                <tr>
+                    <td>@email.CreatedAt.ToString("g")</td>
+                    <td>@email.To</td>
+                    <td>@email.Subject</td>
+                    <td>@Html.Raw(email.Body))</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="4" class="text-center">No email logs found.</td>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Config;
 using Tickflo.Core.Data;
+using Tickflo.Core.Services.Admin;
 using Tickflo.Core.Services.Authentication;
 using Tickflo.Core.Services.Common;
 using Tickflo.Core.Services.Contacts;
@@ -152,6 +153,7 @@ builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
 builder.Services.AddScoped<IEmailSendService, EmailSendService>();
 builder.Services.AddScoped<IReportingService, ReportingService>();
 builder.Services.AddScoped<IAppContext, Tickflo.Web.AppContext>();
+builder.Services.AddScoped<IEmailLogService, EmailLogService>();
 
 builder.Services.AddDbContext<TickfloDbContext>(options =>
     options.UseNpgsql(connectionString)
