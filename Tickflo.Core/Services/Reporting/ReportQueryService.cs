@@ -1,6 +1,13 @@
 namespace Tickflo.Core.Services.Reporting;
 
 using Tickflo.Core.Data;
+public record ReportListItem(int Id, string Name, bool Ready, DateTime? LastRun);
+
+public interface IReportQueryService
+{
+    public Task<IReadOnlyList<ReportListItem>> ListReportsAsync(int workspaceId, CancellationToken ct = default);
+}
+
 
 public class ReportQueryService(IReportRepository reporyRepository) : IReportQueryService
 {

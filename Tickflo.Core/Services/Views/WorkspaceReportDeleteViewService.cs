@@ -1,6 +1,16 @@
 namespace Tickflo.Core.Services.Views;
 
 using Tickflo.Core.Data;
+public class WorkspaceReportDeleteViewData
+{
+    public bool CanEditReports { get; set; }
+}
+
+public interface IWorkspaceReportDeleteViewService
+{
+    public Task<WorkspaceReportDeleteViewData> BuildAsync(int workspaceId, int userId);
+}
+
 
 public class WorkspaceReportDeleteViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,

@@ -4,6 +4,12 @@ using System.Text;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
+public interface IEmailTemplateService
+{
+    public Task<(string subject, string body)> RenderTemplateAsync(EmailTemplateType templateType, Dictionary<string, string> variables, int? workspaceId = null);
+}
+
+
 public class EmailTemplateService(IEmailTemplateRepository emailTemplateRepository) : IEmailTemplateService
 {
     #region Constants
