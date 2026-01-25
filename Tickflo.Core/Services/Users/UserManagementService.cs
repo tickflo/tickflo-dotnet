@@ -20,7 +20,7 @@ public class UserManagementService(IUserRepository userRepository, IPasswordHash
 
         await this.EnsureEmailNotInUseAsync(normalizedEmail, email);
 
-        var user = this.BuildNewUser(name, normalizedEmail, recoveryEmail, password, systemAdmin);
+        var user = new User(name, normalizedEmail, recoveryEmail, this.passwordHasher.Hash($"{normalizedEmail}{password}"));
         await this.userRepository.AddAsync(user);
 
         return user;
@@ -80,18 +80,6 @@ public class UserManagementService(IUserRepository userRepository, IPasswordHash
         var user = await this.userRepository.FindByIdAsync(userId) ?? throw new InvalidOperationException(string.Format(null, ErrorUserNotFound, userId));
         return user;
     }
-
-    private User BuildNewUser(string name, string normalizedEmail, string? recoveryEmail, string password, bool systemAdmin) => new()
-    {
-        Name = name.Trim(),
-        Email = normalizedEmail,
-        RecoveryEmail = NormalizeEmail(recoveryEmail),
-        SystemAdmin = systemAdmin,
-        EmailConfirmed = false,
-        PasswordHash = this.passwordHasher.Hash(password),
-        CreatedAt = DateTime.UtcNow,
-        UpdatedAt = DateTime.UtcNow
-    };
 
     private static void UpdateUserFields(User user, string name, string normalizedEmail, string? recoveryEmail)
     {

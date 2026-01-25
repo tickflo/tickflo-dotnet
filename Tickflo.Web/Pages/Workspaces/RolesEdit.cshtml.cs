@@ -179,7 +179,13 @@ public class RolesEditModel(IWorkspaceService workspaceService, IRoleRepository 
     private async Task CreateNewRoleAsync(int workspaceId, int userId)
     {
         var nameTrim = this.Name?.Trim() ?? string.Empty;
-        var createdId = (await this.roleRepository.AddAsync(workspaceId, nameTrim, this.Admin, userId))?.Id ?? 0;
+        var createdId = (await this.roleRepository.AddAsync(new Role
+        {
+            WorkspaceId = workspaceId,
+            Name = nameTrim,
+            Admin = this.Admin,
+            CreatedBy = userId,
+        }))?.Id ?? 0;
 
         if (createdId == 0)
         {

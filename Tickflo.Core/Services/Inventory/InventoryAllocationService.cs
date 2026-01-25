@@ -76,7 +76,6 @@ public class InventoryAllocationService(
             Cost = request.UnitCost ?? 0,
             LocationId = request.LocationId,
             Status = string.IsNullOrWhiteSpace(request.Status) ? "active" : request.Status.Trim(),
-            CreatedAt = DateTime.UtcNow
         };
 
         await this.inventoryRepository.CreateAsync(inventory);

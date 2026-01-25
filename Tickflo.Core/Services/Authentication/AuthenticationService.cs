@@ -1,195 +1,156 @@
 namespace Tickflo.Core.Services.Authentication;
 
+using Microsoft.EntityFrameworkCore;
+using Tickflo.Core.Config;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-
-using WorkspaceEntity = Entities.Workspace;
-
-// TODO: This service should _NOT_ have optional dependencies. Refactor tests to provide mocks for all dependencies.
+using Tickflo.Core.Exceptions;
+using Tickflo.Core.Services.Email;
+using Tickflo.Core.Services.Workspace;
 
 public partial class AuthenticationService(
-    IUserRepository userRepository,
+    TickfloDbContext db,
     IPasswordHasher passwordHasher,
-    ITokenRepository tokenRepository,
-    IWorkspaceRepository? workspaceRepository = null,
-    IUserWorkspaceRepository? userWorkspaceRepository = null,
-    IWorkspaceRoleBootstrapper? workspaceRoleBootstrapper = null) : IAuthenticationService
+    IEmailSendService emailSendService,
+    TickfloConfig config,
+    IWorkspaceCreationService workspaceCreationService
+    ) : IAuthenticationService
 {
-    #region Constants
-    private const string InvalidCredentialsError = "Invalid username or password, please try again";
-    private const string AccountExistsError = "An account with that email already exists";
-    private const string WorkspaceRepositoriesNotConfiguredError = "Workspace repositories are not configured.";
-    private const string DummyPasswordHash = "$argon2id$v=19$m=16,t=2,p=1$NlJRdlBSbDZhRVUzdTFYcQ$FbtOcbMs2IMTMHFE8WcSiQ";
-    private const string SlugPattern = "[^a-z0-9\\- ]";
-    private const string WhitespacePattern = "\\s+";
-    private const string HyphenReplacement = "-";
-    private const int MaxSlugLength = 30;
-    #endregion
-
-    private readonly IUserRepository userRepository = userRepository;
+    private readonly TickfloDbContext db = db;
     private readonly IPasswordHasher passwordHasher = passwordHasher;
-    private readonly ITokenRepository tokenRepository = tokenRepository;
-    private readonly IWorkspaceRepository? workspaceRepository = workspaceRepository;
-    private readonly IUserWorkspaceRepository? userWorkspaceRepository = userWorkspaceRepository;
-    private readonly IWorkspaceRoleBootstrapper? workspaceRoleBootstrapper = workspaceRoleBootstrapper;
+    private readonly IEmailSendService emailSendService = emailSendService;
+    private readonly IWorkspaceCreationService workspaceCreationService = workspaceCreationService;
+    private readonly TickfloConfig config = config;
 
     public async Task<AuthenticationResult> AuthenticateAsync(string email, string password)
     {
-        var result = new AuthenticationResult();
-        var user = await this.userRepository.FindByEmailAsync(email);
-
+        var user = await this.db.Users.FirstOrDefaultAsync(u => u.Email == email);
         if (user == null)
         {
-            result.ErrorMessage = InvalidCredentialsError;
             this.PreventTimingAttack();
-            return result;
+            throw new UnauthorizedException("Invalid credentials");
         }
 
         if (user.PasswordHash == null)
         {
-            result.ErrorMessage = InvalidCredentialsError;
-            return result;
+            this.PreventTimingAttack();
+            throw new UnauthorizedException("No password set for this user");
         }
 
         if (!this.passwordHasher.Verify($"{email}{password}", user.PasswordHash))
         {
-            result.ErrorMessage = InvalidCredentialsError;
-            return result;
+            throw new UnauthorizedException("Invalid credentials");
         }
 
-        var token = await this.tokenRepository.CreateForUserIdAsync(user.Id);
-        result.Success = true;
-        result.UserId = user.Id;
-        result.Token = token.Value;
-        result.WorkspaceSlug = await this.GetUserWorkspaceSlugAsync(user.Id);
+        var token = new Token(user.Id, this.config.SessionTimeoutMinutes * 60);
+        await this.db.Tokens.AddAsync(token);
+        await this.db.SaveChangesAsync();
 
-        return result;
+        return new AuthenticationResult
+        {
+            UserId = user.Id,
+            Token = token.Value,
+        };
     }
 
     public async Task<AuthenticationResult> SignupAsync(string name, string email, string recoveryEmail, string workspaceName, string password)
     {
-        var result = new AuthenticationResult();
-
-        if (await this.userRepository.FindByEmailAsync(email) != null)
+        if (await this.db.Users.AnyAsync(user => user.Email == email))
         {
-            result.ErrorMessage = AccountExistsError;
-            return result;
+            throw new BadRequestException("User with this email already exists");
         }
 
-        var user = await this.CreateUserAsync(name, email, recoveryEmail, password);
-        var workspace = await this.CreateWorkspaceWithUserAsync(workspaceName, user.Id);
+        await using var transaction = await this.db.Database.BeginTransactionAsync();
 
-        if (this.workspaceRoleBootstrapper != null)
+        try
         {
-            await this.workspaceRoleBootstrapper.BootstrapAdminAsync(workspace.Id, user.Id);
-        }
 
-        var token = await this.tokenRepository.CreateForUserIdAsync(user.Id);
-        result.Success = true;
-        result.UserId = user.Id;
-        result.Token = token.Value;
-        result.WorkspaceSlug = workspace.Slug;
+            var user = new User(name, email, recoveryEmail, this.passwordHasher.Hash($"{email}{password}"));
+            this.db.Users.Add(user);
+            await this.db.SaveChangesAsync();
 
-        return result;
-    }
+            await this.SendEmailConfirmationAsync(user);
+            await this.workspaceCreationService.CreateWorkspaceAsync(workspaceName, user.Id);
 
-    private void PreventTimingAttack() => this.passwordHasher.Verify("password", DummyPasswordHash);
+            var token = new Token(user.Id, this.config.SessionTimeoutMinutes * 60);
+            await this.db.Tokens.AddAsync(token);
+            await this.db.SaveChangesAsync();
 
-    private async Task<string?> GetUserWorkspaceSlugAsync(int userId)
-    {
-        if (this.userWorkspaceRepository != null && this.workspaceRepository != null)
-        {
-            var userWorkspace = await this.userWorkspaceRepository.FindAcceptedForUserAsync(userId);
-            if (userWorkspace != null)
+            await transaction.CommitAsync();
+
+            System.Diagnostics.Debug.WriteLine($"DbContext Hash: ${this.db.GetHashCode()}");
+
+            return new AuthenticationResult
             {
-                var workspace = await this.workspaceRepository.FindByIdAsync(userWorkspace.WorkspaceId);
-                return workspace?.Slug;
-            }
+                UserId = user.Id,
+                Token = token.Value,
+            };
         }
-        return null;
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
-    private async Task<User> CreateUserAsync(string name, string email, string recoveryEmail, string password)
+    public async Task<AuthenticationResult> SignupInviteeAsync(string name, string email, string recoveryEmail, string password)
     {
-        var passwordHash = this.passwordHasher.Hash($"{email}{password}");
-        var user = new User
+        var user = await this.db.Users.FirstOrDefaultAsync(u => u.Email == email)
+            ?? throw new NotFoundException("User not found");
+
+        var pendingInvites = await this.db.UserWorkspaces.Where(uw => uw.UserId == user.Id && !uw.Accepted).ToListAsync();
+
+        if (pendingInvites.Count == 0)
         {
-            Name = name,
-            Email = email,
-            RecoveryEmail = recoveryEmail,
-            PasswordHash = passwordHash,
-            CreatedAt = DateTime.UtcNow
+            throw new BadRequestException("User has no workspace invitations");
+        }
+
+        foreach (var invite in pendingInvites)
+        {
+            invite.Accepted = true;
+            invite.UpdatedAt = DateTime.UtcNow;
+            invite.UpdatedBy = user.Id;
+            this.db.UserWorkspaces.Update(invite);
+        }
+
+        user.Name = name;
+        user.RecoveryEmail = recoveryEmail;
+        user.PasswordHash = this.passwordHasher.Hash($"{email}{password}");
+        this.db.Users.Update(user);
+
+        await this.SendEmailConfirmationAsync(user);
+
+        var token = new Token(user.Id, this.config.SessionTimeoutMinutes * 60);
+        await this.db.Tokens.AddAsync(token);
+        await this.db.SaveChangesAsync();
+
+        return new AuthenticationResult
+        {
+            UserId = user.Id,
+            Token = token.Value,
         };
-
-        await this.userRepository.AddAsync(user);
-        return user;
     }
 
-    private async Task<WorkspaceEntity> CreateWorkspaceWithUserAsync(string workspaceName, int userId)
+    public async Task ResendEmailConfirmationAsync(int userId)
     {
-        if (this.workspaceRepository == null || this.userWorkspaceRepository == null)
+        var user = await this.db.Users.FirstOrDefaultAsync(u => u.Id == userId)
+            ?? throw new NotFoundException("User not found");
+
+        if (user.EmailConfirmed)
         {
-            throw new InvalidOperationException(WorkspaceRepositoriesNotConfiguredError);
+            throw new BadRequestException("Email is already confirmed");
         }
 
-        var slug = await this.GenerateUniqueSlugAsync(workspaceName);
-        var workspace = new WorkspaceEntity
-        {
-            Name = workspaceName,
-            Slug = slug,
-            CreatedAt = DateTime.UtcNow,
-            CreatedBy = userId
-        };
-
-        await this.workspaceRepository.AddAsync(workspace);
-
-        var userWorkspace = new UserWorkspace
-        {
-            UserId = userId,
-            WorkspaceId = workspace.Id,
-            Accepted = true,
-            CreatedAt = DateTime.UtcNow,
-            CreatedBy = userId
-        };
-
-        await this.userWorkspaceRepository.AddAsync(userWorkspace);
-        return workspace;
+        await this.SendEmailConfirmationAsync(user);
+        await this.db.SaveChangesAsync();
     }
 
-    private async Task<string> GenerateUniqueSlugAsync(string workspaceName)
-    {
-        var baseSlug = Slugify(workspaceName);
-        var slug = baseSlug;
-        var counter = 1;
+    private async Task SendEmailConfirmationAsync(User user) => await this.emailSendService.AddToQueueAsync(user.Email,
+            EmailTemplateType.Signup,
+            new Dictionary<string, string>
+            {
+                { "confirmation_link", $"{this.config.BaseUrl}/confirm-email?email={Uri.EscapeDataString(user.Email)}&code={user.EmailConfirmationCode}" }
+            });
 
-        while (!string.IsNullOrEmpty(slug) && await this.workspaceRepository!.FindBySlugAsync(slug) != null)
-        {
-            slug = $"{baseSlug}-{counter}";
-            counter++;
-        }
-
-        return slug;
-    }
-
-    private static string Slugify(string input)
-    {
-        var lower = input.ToLowerInvariant();
-        var chars = MyRegex().Replace(lower, string.Empty);
-        var collapsed = MyRegex1().Replace(chars, HyphenReplacement);
-
-        if (collapsed.Length > MaxSlugLength)
-        {
-            collapsed = collapsed[..MaxSlugLength];
-        }
-
-        return collapsed.Trim('-');
-    }
-
-    [System.Text.RegularExpressions.GeneratedRegex(SlugPattern)]
-    private static partial System.Text.RegularExpressions.Regex MyRegex();
-    [System.Text.RegularExpressions.GeneratedRegex(WhitespacePattern)]
-    private static partial System.Text.RegularExpressions.Regex MyRegex1();
+    private void PreventTimingAttack() => this.passwordHasher.Verify("password", "$argon2id$v=19$m=16,t=2,p=1$NlJRdlBSbDZhRVUzdTFYcQ$FbtOcbMs2IMTMHFE8WcSiQ");
 }
-
-
-

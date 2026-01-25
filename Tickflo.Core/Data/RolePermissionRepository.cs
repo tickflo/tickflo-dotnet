@@ -103,7 +103,6 @@ public class RolePermissionRepository(TickfloDbContext dbContext, IUserWorkspace
             {
                 RoleId = roleId,
                 PermissionId = pid,
-                CreatedAt = DateTime.UtcNow,
                 CreatedBy = actor
             });
         }

@@ -9,16 +9,8 @@ public class RoleRepository(TickfloDbContext dbContext) : IRoleRepository
 
     public Task<Role?> FindByNameAsync(int workspaceId, string name) => this.dbContext.Roles.FirstOrDefaultAsync(r => r.WorkspaceId == workspaceId && r.Name == name);
 
-    public async Task<Role> AddAsync(int workspaceId, string name, bool admin, int createdBy)
+    public async Task<Role> AddAsync(Role role)
     {
-        var role = new Role
-        {
-            WorkspaceId = workspaceId,
-            Name = name,
-            Admin = admin,
-            CreatedAt = DateTime.UtcNow,
-            CreatedBy = createdBy
-        };
         this.dbContext.Roles.Add(role);
         await this.dbContext.SaveChangesAsync();
         return role;

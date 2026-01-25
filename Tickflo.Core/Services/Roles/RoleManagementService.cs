@@ -24,19 +24,13 @@ public class RoleManagementService(
         }
 
         // Add the assignment
-        await this.userWorkspaceRoleRepository.AddAsync(userId, workspaceId, roleId, assignedByUserId);
-
-        // Return the created assignment
-        var assignment = new UserWorkspaceRole
+        return await this.userWorkspaceRoleRepository.AddAsync(new UserWorkspaceRole
         {
             UserId = userId,
             WorkspaceId = workspaceId,
             RoleId = roleId,
-            CreatedAt = DateTime.UtcNow,
-            CreatedBy = assignedByUserId
-        };
-
-        return assignment;
+            CreatedBy = assignedByUserId,
+        });
     }
 
     public async Task<bool> RemoveRoleFromUserAsync(int userId, int workspaceId, int roleId)

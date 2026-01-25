@@ -28,7 +28,6 @@ public class NotificationService(INotificationRepository notificationRepository)
             Body = body,
             Data = data,
             Status = "pending",
-            CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
 
@@ -52,7 +51,6 @@ public class NotificationService(INotificationRepository notificationRepository)
                 Body = body,
                 Status = "pending",
                 BatchId = batchId,
-                CreatedAt = DateTime.UtcNow,
                 CreatedBy = createdBy
             };
 

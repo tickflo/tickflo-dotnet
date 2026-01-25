@@ -10,6 +10,7 @@ public class UserWorkspaceRepository(TickfloDbContext dbContext) : IUserWorkspac
     public async Task AddAsync(UserWorkspace userWorkspace)
     {
         this.dbContext.UserWorkspaces.Add(userWorkspace);
+        System.Diagnostics.Debug.WriteLine($"DbContext Hash: ${this.dbContext.GetHashCode()}");
         await this.dbContext.SaveChangesAsync();
     }
 
@@ -17,6 +18,7 @@ public class UserWorkspaceRepository(TickfloDbContext dbContext) : IUserWorkspac
 
     public Task<List<UserWorkspace>> FindForUserAsync(int userId) => this.dbContext.UserWorkspaces
             .Where(uw => uw.UserId == userId)
+            .Include(uw => uw.Workspace)
             .ToListAsync();
 
     public Task<List<UserWorkspace>> FindForWorkspaceAsync(int workspaceId) => this.dbContext.UserWorkspaces
@@ -29,6 +31,12 @@ public class UserWorkspaceRepository(TickfloDbContext dbContext) : IUserWorkspac
     public async Task UpdateAsync(UserWorkspace uw)
     {
         this.dbContext.UserWorkspaces.Update(uw);
+        await this.dbContext.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(UserWorkspace uw)
+    {
+        this.dbContext.UserWorkspaces.Remove(uw);
         await this.dbContext.SaveChangesAsync();
     }
 }

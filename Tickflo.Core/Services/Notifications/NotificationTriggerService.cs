@@ -46,7 +46,6 @@ public class NotificationTriggerService(
                 Body = $"{creatorName} assigned you ticket #{ticket.Id}: {ticket.Subject}",
                 Data = ticketData,
                 Status = "sent",
-                CreatedAt = DateTime.UtcNow,
                 CreatedBy = createdByUserId
             });
         }
@@ -68,7 +67,6 @@ public class NotificationTriggerService(
                     Subject = "New Ticket for Team",
                     Body = $"{creatorName} created ticket #{ticket.Id} for team {team.Name}: {ticket.Subject}",
                     Status = "sent",
-                    CreatedAt = DateTime.UtcNow,
                     CreatedBy = createdByUserId
                 });
             }
@@ -109,7 +107,6 @@ public class NotificationTriggerService(
                 Body = $"{changerName} unassigned you from ticket #{ticket.Id}: {ticket.Subject}",
                 Data = ticketData,
                 Status = "sent",
-                CreatedAt = DateTime.UtcNow,
                 CreatedBy = changedByUserId
             });
         }
@@ -128,7 +125,6 @@ public class NotificationTriggerService(
                 Body = $"{changerName} assigned you ticket #{ticket.Id}: {ticket.Subject}",
                 Data = ticketData,
                 Status = "sent",
-                CreatedAt = DateTime.UtcNow,
                 CreatedBy = changedByUserId
             });
         }
@@ -167,7 +163,6 @@ public class NotificationTriggerService(
                 Body = $"{changerName} changed ticket #{ticket.Id} status from {previousStatus} to {newStatus}: {ticket.Subject}",
                 Data = ticketData,
                 Status = "sent",
-                CreatedAt = DateTime.UtcNow,
                 CreatedBy = changedByUserId
             });
         }
@@ -187,7 +182,6 @@ public class NotificationTriggerService(
                     Subject = "Ticket Status Changed",
                     Body = $"{changerName} changed ticket #{ticket.Id} status from {previousStatus} to {newStatus} for team {team.Name}: {ticket.Subject}",
                     Status = "sent",
-                    CreatedAt = DateTime.UtcNow,
                     CreatedBy = changedByUserId
                 });
             }
@@ -259,7 +253,6 @@ public class NotificationTriggerService(
                 Body = $"{commenterName} added a comment to ticket #{ticket.Id}: {ticket.Subject}",
                 Data = ticketData,
                 Status = "sent",
-                CreatedAt = DateTime.UtcNow,
                 CreatedBy = commentedByUserId
             });
 
@@ -275,7 +268,6 @@ public class NotificationTriggerService(
                 Body = $"{commenterName} added a comment to ticket #{ticket.Id}: {ticket.Subject}",
                 Data = ticketData,
                 Status = "pending", // queued for batch email sender
-                CreatedAt = DateTime.UtcNow,
                 CreatedBy = commentedByUserId
             });
         }
@@ -305,7 +297,6 @@ public class NotificationTriggerService(
             Subject = "Added to Workspace",
             Body = $"{adderName} added you to a workspace",
             Status = "sent",
-            CreatedAt = DateTime.UtcNow,
             CreatedBy = addedByUserId
         };
 
@@ -325,7 +316,6 @@ public class NotificationTriggerService(
             WorkspaceId = workspaceId,
             Type = "admin_alert",
             DeliveryMethod = "email",
-            CreatedAt = DateTime.UtcNow
         };
 
         await this.notificationRepository.AddAsync(notification);
@@ -348,7 +338,6 @@ public class NotificationTriggerService(
                 WorkspaceId = workspaceId,
                 Type = "bulk_notification",
                 DeliveryMethod = "email",
-                CreatedAt = DateTime.UtcNow
             });
         }
 
@@ -380,7 +369,6 @@ public class NotificationTriggerService(
             WorkspaceId = workspaceId,
             Type = "workflow_completed",
             DeliveryMethod = "email",
-            CreatedAt = DateTime.UtcNow
         };
 
         await this.notificationRepository.AddAsync(notification);

@@ -2,81 +2,68 @@ namespace Tickflo.Web.Controllers;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Tickflo.Core.Data;
-using Tickflo.Core.Entities;
+using Tickflo.Core.Services.Users;
 
 [ApiController]
-public class WorkspaceInviteController(IWorkspaceRepository workspaceRepository, ITokenRepository tokenRepository, IUserRepository users, IUserWorkspaceRepository userWorkspaceRepository) : ControllerBase
+public class WorkspaceInviteController(
+    IUserInvitationService userInvitationService,
+    ILogger<WorkspaceInviteController> logger
+    ) : ControllerBase
 {
-    #region Constants
-    private const string InvalidTokenError = "Invalid or expired token.";
-    #endregion
+    private readonly IUserInvitationService userInvitationService = userInvitationService;
+    private readonly ILogger<WorkspaceInviteController> logger = logger;
 
-    private readonly IWorkspaceRepository workspaceRepository = workspaceRepository;
-    private readonly ITokenRepository tokenRepository = tokenRepository;
-    private readonly IUserRepository userRepository = users;
-    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
-
-    [HttpGet("workspaces/{slug}/accept")]
-    [AllowAnonymous]
-    public async Task<IActionResult> Accept(string slug, [FromQuery] string token)
+    [HttpPost("workspaces/{slug}/accept")]
+    [Authorize]
+    public async Task<IActionResult> Accept([FromServices] IAppContext appContext, string slug)
     {
-        if (!ValidateInput(slug, token))
-        {
-            return this.BadRequest(InvalidTokenError);
-        }
-
-        var workspace = await this.workspaceRepository.FindBySlugAsync(slug);
-        if (workspace == null)
-        {
-            return this.NotFound();
-        }
-
-        var tok = await this.tokenRepository.FindByValueAsync(token);
-        if (tok == null)
-        {
-            return this.BadRequest(InvalidTokenError);
-        }
-
-        var user = await this.userRepository.FindByIdAsync(tok.UserId);
+        var user = appContext.CurrentUser;
         if (user == null)
         {
-            return this.NotFound();
+            return this.Unauthorized();
         }
 
-        var userWorkspace = await this.userWorkspaceRepository.FindAsync(user.Id, workspace.Id);
-        if (userWorkspace == null)
+        if (string.IsNullOrWhiteSpace(slug))
         {
-            return this.NotFound();
+            return this.Redirect("/workspaces");
         }
 
-        await this.AcceptWorkspaceInviteAsync(userWorkspace, user);
-        await this.ConfirmUserEmailIfNeededAsync(user);
-
-        var reset = await this.tokenRepository.CreatePasswordResetForUserIdAsync(user.Id);
-        return this.Redirect($"/account/set-password?token={Uri.EscapeDataString(reset.Value)}");
-    }
-
-    private static bool ValidateInput(string slug, string token) => !string.IsNullOrWhiteSpace(slug) && !string.IsNullOrWhiteSpace(token);
-
-    private async Task AcceptWorkspaceInviteAsync(UserWorkspace userWorkspace, User user)
-    {
-        if (!userWorkspace.Accepted)
+        try
         {
-            userWorkspace.Accepted = true;
-            userWorkspace.UpdatedAt = DateTime.UtcNow;
-            userWorkspace.UpdatedBy = user.Id;
-            await this.userWorkspaceRepository.UpdateAsync(userWorkspace);
+            await this.userInvitationService.AcceptInvitationAsync(slug, user.Id);
+            return this.Redirect($"/workspaces/{slug}");
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error accepting invitation for user {UserId} to workspace {Slug}", user.Id, slug);
+            return this.Redirect("/workspaces");
         }
     }
 
-    private async Task ConfirmUserEmailIfNeededAsync(User user)
+    [HttpPost("workspaces/{slug}/decline")]
+    [Authorize]
+    public async Task<IActionResult> Decline([FromServices] IAppContext appContext, string slug)
     {
-        if (!user.EmailConfirmed && !string.IsNullOrEmpty(user.EmailConfirmationCode))
+        var user = appContext.CurrentUser;
+        if (user == null)
         {
-            user.EmailConfirmed = true;
-            user.EmailConfirmationCode = null;
-            await this.userRepository.UpdateAsync(user);
+            return this.Unauthorized();
         }
+
+        if (string.IsNullOrWhiteSpace(slug))
+        {
+            return this.Redirect("/workspaces");
+        }
+
+        try
+        {
+            await this.userInvitationService.DeclineInvitationAsync(slug, user.Id);
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error declining invitation for user {UserId} to workspace {Slug}", user.Id, slug);
+        }
+
+        return this.Redirect("/workspaces");
     }
 }

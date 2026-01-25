@@ -4,13 +4,17 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Tickflo.Core.Config;
 using Tickflo.Core.Services.Authentication;
 
 [AllowAnonymous]
 public class SetPasswordModel(
-    IPasswordSetupService passwordSetupService) : PageModel
+    IPasswordSetupService passwordSetupService,
+    TickfloConfig config
+    ) : PageModel
 {
     private readonly IPasswordSetupService passwordSetupService = passwordSetupService;
+    private readonly TickfloConfig config = config;
 
     [BindProperty]
     public SetPasswordInput Input { get; set; } = new();
@@ -54,12 +58,12 @@ public class SetPasswordModel(
             this.UserEmail = validation.UserEmail;
             return this.Page();
         }
-        this.Response.Cookies.Append("user_token", result.LoginToken, new CookieOptions
+        this.Response.Cookies.Append(this.config.SessionCookieName, result.LoginToken, new CookieOptions
         {
             HttpOnly = true,
             Secure = this.Request.IsHttps,
             SameSite = SameSiteMode.Lax,
-            Expires = DateTimeOffset.UtcNow.AddDays(30)
+            Expires = DateTimeOffset.UtcNow.AddMinutes(this.config.SessionTimeoutMinutes)
         });
 
         if (!string.IsNullOrWhiteSpace(result.WorkspaceSlug))

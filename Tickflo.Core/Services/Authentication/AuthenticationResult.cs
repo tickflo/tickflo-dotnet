@@ -2,11 +2,7 @@ namespace Tickflo.Core.Services.Authentication;
 
 public class AuthenticationResult
 {
-    public bool Success { get; set; }
-    public int? UserId { get; set; }
-    public string? ErrorMessage { get; set; }
-    public string? Token { get; set; }
-    public string? WorkspaceSlug { get; set; }
-    public bool RequiresPasswordSetup { get; set; }
+    public int UserId { get; set; }
+    public required string Token { get; set; }
 }
 

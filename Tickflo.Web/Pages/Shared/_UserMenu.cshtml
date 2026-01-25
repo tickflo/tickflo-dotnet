@@ -1,23 +1,22 @@
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@inject IAppContext AppContext
 @using Microsoft.AspNetCore.Identity
 @using System.Security.Claims
 
 @{
-    var user = HttpContextAccessor?.HttpContext?.User;
-    var userName = user?.FindFirst(ClaimTypes.Name)?.Value;
-    var userId = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    var user = AppContext.CurrentUser;
 }
 
-@if (user?.Identity?.IsAuthenticated == true)
+@if (user != null)
 {
     <div class="dropdown dropdown-end">
         <div tabindex="0" role="button" class="btn btn-soft rounded-full">
             <div class="avatar mr-2" id="userAvatarContainer">
                 <div class="w-8 rounded-full ring ring-white/15 ring-offset-2 ring-offset-transparent">
-                    <img src="/users/@userId/avatar" alt="Avatar Preview" onerror="document.getElementById('userAvatarContainer').style.display='none';" />
+                    <img src="/users/@user.Id/avatar" alt="Avatar" />
                 </div>
             </div>
-            <span class="max-w-40 truncate text-slate-100">@userName</span>
+            <span class="max-w-40 truncate text-slate-100">@user.Name</span>
         </div>
         <ul class="dropdown-content menu user-menu-panel w-56 p-2">
             <li>
@@ -31,6 +30,14 @@
                     Workspaces
                 </a>
             </li>
+            @if (user.SystemAdmin)
+            {
+                <li class="menu-title">System</li>
+                <li><a href="/system/emails">
+                        <i class="fa fa-envelope"></i>
+                        Email Log
+                    </a></li>
+            }
             <li>
                 <form method="post" asp-page="/Logout">
                     <button type="submit" class="rounded-xl hover:bg-white/5">

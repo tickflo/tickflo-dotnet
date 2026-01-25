@@ -23,7 +23,6 @@ public class TeamRepository(TickfloDbContext dbContext) : ITeamRepository
             WorkspaceId = workspaceId,
             Name = name,
             Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
-            CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
         this.dbContext.Teams.Add(team);

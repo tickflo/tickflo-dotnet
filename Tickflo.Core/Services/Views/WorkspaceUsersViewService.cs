@@ -55,7 +55,6 @@ public class WorkspaceUsersViewService(
             {
                 UserId = user.Id,
                 Email = user.Email,
-                CreatedAt = membership.CreatedAt,
                 Roles = roles
             });
         }

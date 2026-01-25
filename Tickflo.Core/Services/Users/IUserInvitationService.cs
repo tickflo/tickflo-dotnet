@@ -13,13 +13,12 @@ public interface IUserInvitationService
     /// <param name="workspaceId">Target workspace</param>
     /// <param name="email">User's email address</param>
     /// <param name="invitedByUserId">User sending the invitation</param>
-    /// <param name="roleIds">Optional role IDs to assign upon acceptance</param>
-    /// <returns>Invitation details including user, confirmation code, and temp password</returns>
-    public Task<UserInvitationResult> InviteUserAsync(
+    /// <param name="roleIds">Role IDs to assign upon acceptance</param>
+    public Task InviteUserAsync(
         int workspaceId,
         string email,
         int invitedByUserId,
-        List<int>? roleIds = null);
+        List<int> roleIds);
 
     /// <summary>
     /// Resends an invitation email with a new confirmation code.
@@ -27,22 +26,15 @@ public interface IUserInvitationService
     /// <param name="workspaceId">Workspace context</param>
     /// <param name="userId">User to resend invitation to</param>
     /// <param name="resentByUserId">User triggering the resend</param>
-    /// <returns>New confirmation code</returns>
-    public Task<string> ResendInvitationAsync(int workspaceId, int userId, int resentByUserId);
+    public Task ResendInvitationAsync(int workspaceId, int userId, int resentByUserId);
 
     /// <summary>
     /// Accepts a workspace invitation.
     /// </summary>
-    /// <param name="workspaceId">Workspace to accept</param>
+    /// <param name="slug">Workspace to accept</param>
     /// <param name="userId">User accepting the invitation</param>
-    public Task AcceptInvitationAsync(int workspaceId, int userId);
-
-    /// <summary>
-    /// Generates a secure temporary password.
-    /// </summary>
-    /// <param name="length">Password length</param>
-    /// <returns>Temporary password string</returns>
-    public string GenerateTemporaryPassword(int length = 12);
+    public Task AcceptInvitationAsync(string slug, int userId);
+    public Task DeclineInvitationAsync(string slug, int userId);
 }
 
 /// <summary>
@@ -51,11 +43,8 @@ public interface IUserInvitationService
 public class UserInvitationResult
 {
     public User User { get; set; } = null!;
-    public string ConfirmationCode { get; set; } = string.Empty;
-    public string TemporaryPassword { get; set; } = string.Empty;
-    public string ConfirmationLink { get; set; } = string.Empty;
     public string AcceptLink { get; set; } = string.Empty;
-    public string ResetPasswordLink { get; set; } = string.Empty;
+    public bool IsNewUser { get; set; }
 }
 
 

@@ -1,6 +1,7 @@
 namespace Tickflo.Core.Data;
 
 using Microsoft.EntityFrameworkCore;
+using Tickflo.Core.Entities;
 
 public class UserWorkspaceRoleRepository(TickfloDbContext dbContext) : IUserWorkspaceRoleRepository
 {
@@ -16,20 +17,14 @@ public class UserWorkspaceRoleRepository(TickfloDbContext dbContext) : IUserWork
             .Join(this.dbContext.Roles, userWorkspaceRoleRepository => userWorkspaceRoleRepository.RoleId, r => r.Id, (userWorkspaceRoleRepository, r) => r.Name)
             .ToListAsync();
 
-    public async Task AddAsync(int userId, int workspaceId, int roleId, int createdBy)
+    public async Task<UserWorkspaceRole> AddAsync(UserWorkspaceRole userWorkspaceRole)
     {
-        this.dbContext.UserWorkspaceRoles.Add(new Entities.UserWorkspaceRole
-        {
-            UserId = userId,
-            WorkspaceId = workspaceId,
-            RoleId = roleId,
-            CreatedAt = DateTime.UtcNow,
-            CreatedBy = createdBy
-        });
+        this.dbContext.UserWorkspaceRoles.Add(userWorkspaceRole);
         await this.dbContext.SaveChangesAsync();
+        return userWorkspaceRole;
     }
 
-    public Task<List<Entities.Role>> GetRolesAsync(int userId, int workspaceId) => this.dbContext.UserWorkspaceRoles
+    public Task<List<Role>> GetRolesAsync(int userId, int workspaceId) => this.dbContext.UserWorkspaceRoles
             .Where(userWorkspaceRoleRepository => userWorkspaceRoleRepository.UserId == userId && userWorkspaceRoleRepository.WorkspaceId == workspaceId)
             .Join(this.dbContext.Roles, userWorkspaceRoleRepository => userWorkspaceRoleRepository.RoleId, r => r.Id, (userWorkspaceRoleRepository, r) => r)
             .ToListAsync();

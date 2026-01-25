@@ -5,18 +5,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
-using Tickflo.Core.Services.Email;
 using Tickflo.Core.Services.Users;
 using Tickflo.Core.Services.Views;
 using Tickflo.Core.Services.Workspace;
 
 [Authorize]
-public class UsersInviteModel(IWorkspaceService workspaceService, IEmailTemplateService emailTemplateService, IEmailSenderService emailSenderService, INotificationRepository notificationRepository, IRoleRepository roleRepository, IUserInvitationService userInvitationService, IWorkspaceUsersInviteViewService workspaceUsersInviteViewService) : WorkspacePageModel
+public class UsersInviteModel(IWorkspaceService workspaceService, IRoleRepository roleRepository, IUserInvitationService userInvitationService, IWorkspaceUsersInviteViewService workspaceUsersInviteViewService) : WorkspacePageModel
 {
     private readonly IWorkspaceService workspaceService = workspaceService;
-    private readonly IEmailTemplateService emailTemplateService = emailTemplateService;
-    private readonly IEmailSenderService emailSenderService = emailSenderService;
-    private readonly INotificationRepository notificationRepository = notificationRepository;
     private readonly IRoleRepository roleRepository = roleRepository;
     private readonly IUserInvitationService userInvitationService = userInvitationService;
     private readonly IWorkspaceUsersInviteViewService workspaceUsersInviteViewService = workspaceUsersInviteViewService;
@@ -104,7 +100,7 @@ public class UsersInviteModel(IWorkspaceService workspaceService, IEmailTemplate
 
         try
         {
-            List<int>? roleIds = null;
+            List<int> roleIds;
             var selectedRoleName = this.Role?.Trim();
             if (!string.IsNullOrWhiteSpace(selectedRoleName))
             {
@@ -112,48 +108,22 @@ public class UsersInviteModel(IWorkspaceService workspaceService, IEmailTemplate
                 if (role == null)
                 {
                     var adminFlag = string.Equals(selectedRoleName, "Admin", StringComparison.OrdinalIgnoreCase);
-                    role = await this.roleRepository.AddAsync(workspace.Id, selectedRoleName, adminFlag, currentUserId);
+                    role = await this.roleRepository.AddAsync(new Role
+                    {
+                        WorkspaceId = workspace.Id,
+                        Name = selectedRoleName,
+                        Admin = adminFlag,
+                    });
                 }
                 roleIds = [role.Id];
             }
-
-            var result = await this.userInvitationService.InviteUserAsync(workspace.Id, this.Email.Trim(), currentUserId, roleIds);
-
-            var baseUrl = $"{this.Request.Scheme}://{this.Request.Host}";
-            var confirmationLink = baseUrl + result.ConfirmationLink;
-            var acceptLink = baseUrl + result.AcceptLink;
-            var setPasswordLink = baseUrl + result.ResetPasswordLink;
-
-            // Template Type ID 2 = Workspace Invite (new user)
-            var variables = new Dictionary<string, string>
+            else
             {
-                { "WORKSPACE_NAME", workspace.Name },
-                { "TEMPORARY_PASSWORD", result.TemporaryPassword },
-                { "CONFIRMATION_LINK", confirmationLink },
-                { "ACCEPT_LINK", acceptLink },
-                { "SET_PASSWORD_LINK", setPasswordLink }
-            };
+                this.SetErrorMessage("Role is required");
+                return this.Page();
+            }
 
-            var (subject, body) = await this.emailTemplateService.RenderTemplateAsync(EmailTemplateType.WorkspaceInviteNewUser, variables, workspace.Id);
-            await this.emailSenderService.SendAsync(result.User.Email!, subject, body);
-
-            // Create a notification record in the database
-            var notification = new Notification
-            {
-                UserId = result.User.Id,
-                WorkspaceId = workspace.Id,
-                Type = "workspace_invite",
-                DeliveryMethod = "email",
-                Priority = "high",
-                Subject = subject,
-                Body = body,
-                Status = "sent",
-                SentAt = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUserId
-            };
-
-            await this.notificationRepository.AddAsync(notification);
+            await this.userInvitationService.InviteUserAsync(workspace.Id, this.Email.Trim(), currentUserId, roleIds);
 
             this.SetSuccessMessage($"Invite created for '{this.Email}'" + (!string.IsNullOrWhiteSpace(this.Role) ? $" as {this.Role}" : "") + ".");
         }

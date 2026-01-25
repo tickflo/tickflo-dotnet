@@ -9,10 +9,11 @@ public class UserRepository(TickfloDbContext dbContext) : IUserRepository
 
     public Task<User?> FindByEmailAsync(string email) => this.dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
 
-    public async Task AddAsync(User user)
+    public async Task<User> AddAsync(User user)
     {
         this.dbContext.Users.Add(user);
         await this.dbContext.SaveChangesAsync();
+        return user;
     }
 
     public Task<User?> FindByIdAsync(int userId) => this.dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId);

@@ -40,7 +40,7 @@ public class RolesModel(
             return this.Forbid();
         }
 
-        var viewData = await this.workspaceRolesViewService.BuildAsync(this.Workspace!.Id, uid);
+        var viewData = await this.workspaceRolesViewService.BuildAsync(this.Workspace.Id, uid);
 
         if (!viewData.IsAdmin)
         {

@@ -42,7 +42,7 @@ public class TeamsModel(
             return this.Forbid();
         }
 
-        var viewData = await this.workspaceTeamsViewService.BuildAsync(this.Workspace!.Id, uid);
+        var viewData = await this.workspaceTeamsViewService.BuildAsync(this.Workspace.Id, uid);
 
         if (this.EnsurePermissionOrForbid(viewData.CanViewTeams) is IActionResult permCheck)
         {

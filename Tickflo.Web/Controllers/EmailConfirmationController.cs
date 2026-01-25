@@ -3,23 +3,17 @@ namespace Tickflo.Web.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Data;
-using Tickflo.Core.Entities;
+using Tickflo.Core.Services.Authentication;
 using Tickflo.Core.Services.Common;
-using Tickflo.Core.Services.Email;
-using Tickflo.Core.Utils;
 
 [ApiController]
 public class EmailConfirmationController(
     IUserRepository users,
-    IEmailSenderService emailSenderService,
-    IEmailTemplateService emailTemplateService,
-    INotificationRepository notificationRepository,
-    ICurrentUserService currentUserService) : ControllerBase
+    ICurrentUserService currentUserService,
+    IAuthenticationService authenticationService) : ControllerBase
 {
     private readonly IUserRepository userRepository = users;
-    private readonly IEmailSenderService emailSenderService = emailSenderService;
-    private readonly IEmailTemplateService emailTemplateService = emailTemplateService;
-    private readonly INotificationRepository notificationRepository = notificationRepository;
+    private readonly IAuthenticationService authenticationService = authenticationService;
     private readonly ICurrentUserService currentUserService = currentUserService;
 
     [HttpGet("email-confirmation/confirm")]
@@ -40,7 +34,7 @@ public class EmailConfirmationController(
 
         if (user.EmailConfirmed)
         {
-            return this.Redirect("/email-confirmation/thank-you");
+            return this.Redirect("/workspaces");
         }
 
         if (user.EmailConfirmationCode != code)
@@ -50,8 +44,11 @@ public class EmailConfirmationController(
 
         user.EmailConfirmed = true;
         user.EmailConfirmationCode = null;
+        user.UpdatedBy = user.Id;
+        user.UpdatedAt = DateTime.UtcNow;
         await this.userRepository.UpdateAsync(user);
-        return this.Redirect("/email-confirmation/thank-you");
+
+        return this.Redirect("/workspaces");
     }
 
     [HttpPost("email-confirmation/resend")]
@@ -65,54 +62,21 @@ public class EmailConfirmationController(
         }
 
         var user = await this.userRepository.FindByIdAsync(userId);
-        if (user == null)
+        if (user == null || user.EmailConfirmed)
         {
-            return this.NotFound("User not found.");
+            return this.Redirect("/workspaces");
         }
 
-        if (user.EmailConfirmed)
+        try
         {
-            return this.BadRequest("Email is already confirmed.");
+            await this.authenticationService.ResendEmailConfirmationAsync(user.Id);
+            return this.Ok(new { message = "Confirmation email resent successfully." });
+        }
+        catch (Exception ex)
+        {
+            return this.StatusCode(500, new { message = "Failed to resend confirmation email.", detail = ex.Message });
         }
 
-        // Generate a new confirmation code
-        var newCode = TokenGenerator.GenerateToken(16);
-        user.EmailConfirmationCode = newCode;
-        await this.userRepository.UpdateAsync(user);
-
-        // Create confirmation link
-        var confirmationLink = $"{this.Request.Scheme}://{this.Request.Host}/email-confirmation/confirm?email={Uri.EscapeDataString(user.Email)}&code={Uri.EscapeDataString(newCode)}";
-
-        var variables = new Dictionary<string, string>
-        {
-            { "USER_NAME", user.Name },
-            { "CONFIRMATION_LINK", confirmationLink }
-        };
-
-        var (subject, body) = await this.emailTemplateService.RenderTemplateAsync(EmailTemplateType.EmailConfirmationRequest, variables);
-
-        // Send the email
-        await this.emailSenderService.SendAsync(user.Email, subject, body);
-
-        // Create a notification record in the database
-        var notification = new Notification
-        {
-            UserId = userId,
-            WorkspaceId = null,
-            Type = "email_confirmation",
-            DeliveryMethod = "email",
-            Priority = "high",
-            Subject = subject,
-            Body = body,
-            Status = "sent",
-            SentAt = DateTime.UtcNow,
-            CreatedAt = DateTime.UtcNow,
-            CreatedBy = userId
-        };
-
-        await this.notificationRepository.AddAsync(notification);
-
-        return this.Ok(new { message = "Confirmation email resent successfully." });
     }
 
     [HttpPost("email-confirmation/dismiss")]

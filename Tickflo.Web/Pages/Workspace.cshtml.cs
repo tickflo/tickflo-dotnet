@@ -130,6 +130,10 @@ public class WorkspaceModel : PageModel
         await this.LoadUserWorkspacesAsync(userId, userMemberships);
 
         this.IsMember = userMemberships.Any(m => m.WorkspaceId == found.Id && m.Accepted);
+        if (!this.IsMember)
+        {
+            return this.Forbid();
+        }
 
         if (this.Workspace != null && this.IsMember)
         {
@@ -164,10 +168,7 @@ public class WorkspaceModel : PageModel
 
         try
         {
-            var workspace = await this.workspaceCreationService.CreateWorkspaceAsync(
-                new WorkspaceCreationRequest { Name = trimmedName },
-                userId);
-
+            var workspace = await this.workspaceCreationService.CreateWorkspaceAsync(trimmedName, userId);
             return this.Redirect($"/workspaces/{workspace.Slug}");
         }
         catch (InvalidOperationException ex)

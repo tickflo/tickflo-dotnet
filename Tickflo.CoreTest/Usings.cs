@@ -1,7 +1,6 @@
 global using Tickflo.Core.Services.Authentication;
 global using Tickflo.Core.Services.Common;
 global using Tickflo.Core.Services.Contacts;
-global using Tickflo.Core.Services.Email;
 global using Tickflo.Core.Services.Export;
 global using Tickflo.Core.Services.Inventory;
 global using Tickflo.Core.Services.Locations;

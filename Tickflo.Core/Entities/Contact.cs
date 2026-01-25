@@ -16,5 +16,5 @@ public class Contact
     public string? Status { get; set; } // Active, Archived
     public int? AssignedUserId { get; set; }
     public DateTime? LastInteraction { get; set; }
-    public DateTime CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

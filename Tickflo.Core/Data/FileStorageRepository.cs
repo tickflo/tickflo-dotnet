@@ -11,7 +11,6 @@ public class FileStorageRepository(TickfloDbContext dbContext) : IFileStorageRep
     private readonly TickfloDbContext dbContext = dbContext;
     public async Task<FileStorage> CreateAsync(FileStorage file)
     {
-        file.CreatedAt = DateTime.UtcNow;
         this.dbContext.FileStorages.Add(file);
         await this.dbContext.SaveChangesAsync();
         return file;

@@ -3,10 +3,12 @@ namespace Tickflo.Web.Pages;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Tickflo.Core.Config;
 
 [AllowAnonymous]
-public class LogoutModel : PageModel
+public class LogoutModel(TickfloConfig config) : PageModel
 {
+    private readonly TickfloConfig config = config;
     public IActionResult OnGet() => this.SignOutAndRedirect();
 
     public IActionResult OnPost() => this.SignOutAndRedirect();
@@ -14,7 +16,7 @@ public class LogoutModel : PageModel
     private RedirectResult SignOutAndRedirect()
     {
         // Delete the auth cookie and clear session to fully sign out.
-        this.Response.Cookies.Delete("user_token", new CookieOptions
+        this.Response.Cookies.Delete(this.config.SessionCookieName, new CookieOptions
         {
             Path = "/",
             HttpOnly = true,
