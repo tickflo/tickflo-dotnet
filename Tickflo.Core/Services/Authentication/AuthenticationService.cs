@@ -60,21 +60,37 @@ public partial class AuthenticationService(
             throw new BadRequestException("User with this email already exists");
         }
 
-        var user = new User(name, email, recoveryEmail, this.passwordHasher.Hash($"{email}{password}"));
-        this.db.Users.Add(user);
+        await using var transaction = await this.db.Database.BeginTransactionAsync();
 
-        await this.SendEmailConfirmationAsync(user);
-
-        await this.workspaceCreationService.CreateWorkspaceAsync(workspaceName, user.Id);
-        var token = new Token(user.Id, this.config.SessionTimeoutMinutes * 60);
-        await this.db.Tokens.AddAsync(token);
-        await this.db.SaveChangesAsync();
-
-        return new AuthenticationResult
+        try
         {
-            UserId = user.Id,
-            Token = token.Value,
-        };
+
+            var user = new User(name, email, recoveryEmail, this.passwordHasher.Hash($"{email}{password}"));
+            this.db.Users.Add(user);
+            await this.db.SaveChangesAsync();
+
+            await this.SendEmailConfirmationAsync(user);
+            await this.workspaceCreationService.CreateWorkspaceAsync(workspaceName, user.Id);
+
+            var token = new Token(user.Id, this.config.SessionTimeoutMinutes * 60);
+            await this.db.Tokens.AddAsync(token);
+            await this.db.SaveChangesAsync();
+
+            await transaction.CommitAsync();
+
+            System.Diagnostics.Debug.WriteLine($"DbContext Hash: ${this.db.GetHashCode()}");
+
+            return new AuthenticationResult
+            {
+                UserId = user.Id,
+                Token = token.Value,
+            };
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task<AuthenticationResult> SignupInviteeAsync(string name, string email, string recoveryEmail, string password)

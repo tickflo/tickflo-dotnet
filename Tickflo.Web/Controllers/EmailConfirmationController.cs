@@ -44,6 +44,8 @@ public class EmailConfirmationController(
 
         user.EmailConfirmed = true;
         user.EmailConfirmationCode = null;
+        user.UpdatedBy = user.Id;
+        user.UpdatedAt = DateTime.UtcNow;
         await this.userRepository.UpdateAsync(user);
 
         return this.Redirect("/workspaces");

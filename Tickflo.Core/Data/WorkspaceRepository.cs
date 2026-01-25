@@ -15,6 +15,7 @@ public class WorkspaceRepository(TickfloDbContext dbContext) : IWorkspaceReposit
     {
         this.dbContext.Workspaces.Add(workspace);
         await this.dbContext.SaveChangesAsync();
+        System.Diagnostics.Debug.WriteLine($"DbContext Hash: ${this.dbContext.GetHashCode()}");
         return workspace;
     }
 

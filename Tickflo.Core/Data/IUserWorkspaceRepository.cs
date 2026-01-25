@@ -10,4 +10,5 @@ public interface IUserWorkspaceRepository
     public Task<List<UserWorkspace>> FindForWorkspaceAsync(int workspaceId);
     public Task<UserWorkspace?> FindAsync(int userId, int workspaceId);
     public Task UpdateAsync(UserWorkspace uw);
+    public Task DeleteAsync(UserWorkspace uw);
 }

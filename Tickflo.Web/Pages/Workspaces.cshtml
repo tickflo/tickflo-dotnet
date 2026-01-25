@@ -61,14 +61,28 @@
                         <div class="card-body">
                             <h2 class="card-title text-lg">@workspace.Workspace.Name</h2>
                             <p class="text-sm text-slate-400">@workspace.Workspace.Slug</p>
-                            @if (!workspace.Accepted)
-                            {
-                                <div class="badge badge-warning">Pending Acceptance</div>
-                            }
                             <div class="card-actions justify-end mt-4">
-                                <a href="/workspaces/@workspace.Workspace.Slug" class="btn btn-primary btn-sm rounded-full">
-                                    <i class="fa fa-arrow-right"></i> Open
-                                </a>
+                                @if (!workspace.Accepted)
+                                {
+                                    <form method="post" action="/workspaces/@workspace.Workspace.Slug/accept">
+                                        <button type="submit" name="action" value="accept-invite"
+                                            class="btn btn-success btn-sm rounded-full">
+                                            <i class="fa fa-check"></i> Accept Invite
+                                        </button>
+                                    </form>
+                                    <form method="post" action="/workspaces/@workspace.Workspace.Slug/decline">
+                                        <button type="submit" name="action" value="decline-invite"
+                                            class="btn btn-error btn-sm rounded-full">
+                                            <i class="fa fa-times"></i> Decline
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <a href="/workspaces/@workspace.Workspace.Slug" class="btn btn-primary btn-sm rounded-full">
+                                        <i class="fa fa-arrow-right"></i> Open
+                                    </a>
+                                }
                             </div>
                         </div>
                     </div>

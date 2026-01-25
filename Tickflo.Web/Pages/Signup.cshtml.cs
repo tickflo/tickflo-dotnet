@@ -34,7 +34,7 @@ public class SignupModel(IAuthenticationService authenticationService, TickfloCo
 
     [Display(Name = "Workspace Name")]
     [BindProperty]
-    public string WorkspaceName { get; set; } = "";
+    public string? WorkspaceName { get; set; } = null;
 
     [Required]
     [DataType(DataType.Password)]
@@ -50,8 +50,20 @@ public class SignupModel(IAuthenticationService authenticationService, TickfloCo
 
     public string? ErrorMessage { get; set; }
 
-    public async Task<IActionResult> OnPostAsync()
+    public bool Invited { get; set; }
+
+    public async Task OnGetAsync([FromQuery] string? email)
     {
+        if (!string.IsNullOrEmpty(email))
+        {
+            this.Email = email;
+            this.Invited = true;
+        }
+    }
+
+    public async Task<IActionResult> OnPostAsync([FromQuery] string? email)
+    {
+        this.Invited = !string.IsNullOrEmpty(email);
         this.ValidateRecoveryEmailDifference();
         if (!this.ModelState.IsValid)
         {
@@ -88,7 +100,9 @@ public class SignupModel(IAuthenticationService authenticationService, TickfloCo
         var recoveryEmail = this.RecoveryEmail?.Trim() ?? string.Empty;
         var workspaceName = this.WorkspaceName?.Trim() ?? string.Empty;
         var password = this.Password ?? string.Empty;
-        return await this.authenticationService.SignupAsync(name, email, recoveryEmail, workspaceName, password);
+        return workspaceName.Length > 0
+            ? await this.authenticationService.SignupAsync(name, email, recoveryEmail, workspaceName, password)
+            : await this.authenticationService.SignupInviteeAsync(name, email, recoveryEmail, password);
     }
 
     private void AppendAuthenticationCookie(string token) => this.Response.Cookies.Append(this.config.SessionCookieName, token, new CookieOptions

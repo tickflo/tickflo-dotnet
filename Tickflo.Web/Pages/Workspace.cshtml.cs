@@ -130,6 +130,10 @@ public class WorkspaceModel : PageModel
         await this.LoadUserWorkspacesAsync(userId, userMemberships);
 
         this.IsMember = userMemberships.Any(m => m.WorkspaceId == found.Id && m.Accepted);
+        if (!this.IsMember)
+        {
+            return this.Forbid();
+        }
 
         if (this.Workspace != null && this.IsMember)
         {

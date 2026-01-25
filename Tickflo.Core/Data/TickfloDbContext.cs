@@ -59,9 +59,14 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
         modelBuilder.Entity<UserWorkspaceRole>()
             .HasKey(userWorkspaceRoleRepository => new { userWorkspaceRoleRepository.UserId, userWorkspaceRoleRepository.WorkspaceId, userWorkspaceRoleRepository.RoleId });
 
-        modelBuilder.Entity<Workspace>()
-            .HasIndex(w => w.Slug)
-            .IsUnique();
+        modelBuilder.Entity<Workspace>(e =>
+        {
+            e.HasIndex(w => w.Slug).IsUnique();
+            e.HasOne(w => w.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(w => w.CreatedBy)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
 
         modelBuilder.Entity<Location>()
             .HasIndex(l => new { l.WorkspaceId, l.Name })

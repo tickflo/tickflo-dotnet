@@ -31,9 +31,10 @@ public interface IUserInvitationService
     /// <summary>
     /// Accepts a workspace invitation.
     /// </summary>
-    /// <param name="workspaceId">Workspace to accept</param>
+    /// <param name="slug">Workspace to accept</param>
     /// <param name="userId">User accepting the invitation</param>
-    public Task AcceptInvitationAsync(int workspaceId, int userId);
+    public Task AcceptInvitationAsync(string slug, int userId);
+    public Task DeclineInvitationAsync(string slug, int userId);
 }
 
 /// <summary>

@@ -3,6 +3,7 @@ namespace Tickflo.Core.Services.Users;
 using Tickflo.Core.Config;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Exceptions;
 using Tickflo.Core.Services.Email;
 using Tickflo.Core.Utils;
 
@@ -137,12 +138,39 @@ public class UserInvitationService(
         }
     }
 
-    public async Task AcceptInvitationAsync(int workspaceId, int userId)
+    public async Task AcceptInvitationAsync(string slug, int userId)
     {
-        var membership = await this.userWorkspaceRepository.FindAsync(userId, workspaceId) ?? throw new InvalidOperationException("Invitation not found");
+        var workspace = await this.workspaceRepository.FindBySlugAsync(slug)
+            ?? throw new NotFoundException("Workspace not found");
+
+        var membership = await this.userWorkspaceRepository.FindAsync(userId, workspace.Id)
+            ?? throw new InvalidOperationException("Invitation not found");
+
+        if (membership.Accepted)
+        {
+            return;
+        }
 
         membership.Accepted = true;
+        membership.UpdatedAt = DateTime.UtcNow;
+        membership.UpdatedBy = userId;
         await this.userWorkspaceRepository.UpdateAsync(membership);
+    }
+
+    public async Task DeclineInvitationAsync(string slug, int userId)
+    {
+        var workspace = await this.workspaceRepository.FindBySlugAsync(slug)
+            ?? throw new NotFoundException("Workspace not found");
+
+        var membership = await this.userWorkspaceRepository.FindAsync(userId, workspace.Id)
+            ?? throw new InvalidOperationException("Invitation not found");
+
+        if (membership.Accepted)
+        {
+            throw new InvalidOperationException("Cannot decline an accepted invitation");
+        }
+
+        await this.userWorkspaceRepository.DeleteAsync(membership);
     }
 
     private async Task SendNewUserInvitationEmailAsync(

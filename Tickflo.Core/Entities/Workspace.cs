@@ -11,4 +11,5 @@ public class Workspace
     public int? UpdatedBy { get; set; }
 
     public List<UserWorkspace> UserWorkspaces { get; set; } = [];
+    public virtual User CreatedByUser { get; set; } = null!;
 }

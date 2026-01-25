@@ -39,5 +39,7 @@ public class EmailSendService(
             To = toEmail.Trim().ToLowerInvariant(),
             CreatedBy = sentByUserId
         });
+
+        await this.db.SaveChangesAsync();
     }
 }

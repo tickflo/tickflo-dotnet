@@ -129,7 +129,6 @@ builder.Services.AddScoped<ITicketClosingService, TicketClosingService>();
 builder.Services.AddScoped<ITicketCreationService, TicketCreationService>();
 builder.Services.AddScoped<ITicketUpdateService, TicketUpdateService>();
 builder.Services.AddScoped<ITicketSearchService, TicketSearchService>();
-builder.Services.AddScoped<IUserOnboardingService, UserOnboardingService>();
 builder.Services.AddScoped<IWorkspaceCreationService, WorkspaceCreationService>();
 builder.Services.AddScoped<INotificationTriggerService, NotificationTriggerService>();
 builder.Services.AddScoped<IValidationService, ValidationService>();

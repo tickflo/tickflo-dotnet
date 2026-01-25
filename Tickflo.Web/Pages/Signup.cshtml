@@ -38,17 +38,19 @@
                     <div id="recoveryEmailWarning" style="display: none;">
                         @await Html.PartialAsync("_WarningAlert", Html.Raw("We <strong>strongly</strong> recommend using                a <strong>different</strong> email address in case your primary address is compromised."))
                     </div>
-                    <span asp-validation-for="RecoveryEmail" class="validator-hint"></span>
-                    <label class="label" for="workspaceName">
-                        <span class="label-text text-slate-300">Workspace Name</span>
-                    </label>
-                    <em id="workspaceSlugPreview" title="Workspace URL Preview" style="display: none;"
-                        class="text-xs text-slate-400"></em>
-                    <input id="workspaceName" asp-for="WorkspaceName" type="text"
-                        class="input validator bg-neutral-800/50 border-white/10 text-slate-100 focus:border-primary h-12 w-full"
-                        placeholder="Your workspace name" oninput="updateWorkspaceSlug()" />
-                    <span asp-validation-for="WorkspaceName" class="validator-hint"></span>
-
+                    @if (!Model.Invited)
+                    {
+                        <span asp-validation-for="RecoveryEmail" class="validator-hint"></span>
+                        <label class="label" for="workspaceName">
+                            <span class="label-text text-slate-300">Workspace Name</span>
+                        </label>
+                        <em id="workspaceSlugPreview" title="Workspace URL Preview" style="display: none;"
+                            class="text-xs text-slate-400"></em>
+                        <input id="workspaceName" asp-for="WorkspaceName" type="text"
+                            class="input validator bg-neutral-800/50 border-white/10 text-slate-100 focus:border-primary h-12 w-full"
+                            placeholder="Your workspace name" oninput="updateWorkspaceSlug()" />
+                        <span asp-validation-for="WorkspaceName" class="validator-hint"></span>
+                    }
                     <label class="label" for="password">
                         <span class="label-text text-slate-300">Password</span>
                     </label>
