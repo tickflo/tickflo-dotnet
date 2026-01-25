@@ -2,7 +2,6 @@ namespace Tickflo.Web.Pages.Workspaces;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Users;
 using Tickflo.Core.Services.Views;
@@ -11,8 +10,6 @@ using Tickflo.Core.Services.Workspace;
 [Authorize]
 public class UsersModel(
     IWorkspaceService workspaceService,
-    IUserRepository userRepository,
-    IUserWorkspaceRepository userWorkspaceRepository,
     IWorkspaceUsersViewService workspaceUsersViewService,
     IWorkspaceUsersManageViewService workspaceUsersManageViewService,
     IUserInvitationService userInvitationService
@@ -24,8 +21,6 @@ public class UsersModel(
     #endregion
 
     private readonly IWorkspaceService workspaceService = workspaceService;
-    private readonly IUserRepository userRepository = userRepository;
-    private readonly IUserWorkspaceRepository userWorkspaceRepository = userWorkspaceRepository;
     private readonly IWorkspaceUsersViewService workspaceUsersViewService = workspaceUsersViewService;
     private readonly IWorkspaceUsersManageViewService workspaceUsersManageViewService = workspaceUsersManageViewService;
     private readonly IUserInvitationService userInvitationService = userInvitationService;
@@ -85,14 +80,7 @@ public class UsersModel(
             return authResult;
         }
 
-        var userWorkspace = await this.userWorkspaceRepository.FindAsync(userId, this.Workspace!.Id);
-        if (userWorkspace == null)
-        {
-            return this.NotFound();
-        }
-
-        AcceptUserInvite(userWorkspace);
-        await this.userWorkspaceRepository.UpdateAsync(userWorkspace);
+        await this.userInvitationService.AcceptInvitationAsync(slug, userId);
 
         this.SetSuccessMessage(InviteAcceptedMessage);
         return this.RedirectToUsersPage(slug);
@@ -116,18 +104,6 @@ public class UsersModel(
         if (this.EnsurePermissionOrForbid(viewData.CanEditUsers) is IActionResult permCheck)
         {
             return permCheck;
-        }
-
-        var userWorkspace = await this.userWorkspaceRepository.FindAsync(userId, this.Workspace.Id);
-        if (userWorkspace == null || userWorkspace.Accepted)
-        {
-            return this.NotFound();
-        }
-
-        var user = await this.userRepository.FindByIdAsync(userId);
-        if (this.EnsureEntityExistsOrNotFound(user) is IActionResult userCheck)
-        {
-            return userCheck;
         }
 
         await this.userInvitationService.ResendInvitationAsync(this.Workspace.Id, userId, currentUserId);
@@ -162,12 +138,6 @@ public class UsersModel(
         }
 
         return null;
-    }
-
-    private static void AcceptUserInvite(UserWorkspace userWorkspace)
-    {
-        userWorkspace.Accepted = true;
-        userWorkspace.UpdatedAt = DateTime.UtcNow;
     }
 
     private RedirectToPageResult RedirectToUsersPage(string slug) => this.RedirectToPage("/Workspaces/Users", new { slug });
