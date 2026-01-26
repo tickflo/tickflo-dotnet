@@ -1,6 +1,16 @@
 namespace Tickflo.Core.Services.Views;
 
 using Tickflo.Core.Data;
+public class WorkspaceUsersManageViewData
+{
+    public bool CanEditUsers { get; set; }
+}
+
+public interface IWorkspaceUsersManageViewService
+{
+    public Task<WorkspaceUsersManageViewData> BuildAsync(int workspaceId, int userId);
+}
+
 
 public class WorkspaceUsersManageViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,

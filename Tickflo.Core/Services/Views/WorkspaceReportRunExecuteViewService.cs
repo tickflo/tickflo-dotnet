@@ -1,6 +1,16 @@
 namespace Tickflo.Core.Services.Views;
 
 using Tickflo.Core.Data;
+public class WorkspaceReportRunExecuteData
+{
+    public bool CanEditReports { get; set; }
+}
+
+public interface IWorkspaceReportRunExecuteViewService
+{
+    public Task<WorkspaceReportRunExecuteData> BuildAsync(int workspaceId, int userId);
+}
+
 
 public class WorkspaceReportRunExecuteViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,

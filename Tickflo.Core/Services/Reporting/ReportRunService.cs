@@ -4,6 +4,14 @@ using Microsoft.Extensions.Logging;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 
+public interface IReportRunService
+{
+    public Task<ReportRun?> RunReportAsync(int workspaceId, int reportId, CancellationToken ct = default);
+    public Task<(Report? report, IReadOnlyList<ReportRun> runs)> GetReportRunsAsync(int workspaceId, int reportId, int take = 100, CancellationToken ct = default);
+    public Task<ReportRun?> GetRunAsync(int workspaceId, int runId, CancellationToken ct = default);
+}
+
+
 public class ReportRunService(IReportRepository reporyRepository, IReportRunRepository reportRunRepository, IReportingService reportingService, ILogger<ReportRunService> logger) : IReportRunService
 {
     private readonly IReportRepository reporyRepository = reporyRepository;

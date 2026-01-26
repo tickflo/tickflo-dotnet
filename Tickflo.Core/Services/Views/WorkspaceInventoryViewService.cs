@@ -2,6 +2,21 @@ namespace Tickflo.Core.Services.Views;
 
 using Tickflo.Core.Services.Inventory;
 using Tickflo.Core.Services.Workspace;
+using InventoryEntity = Entities.Inventory;
+
+public interface IWorkspaceInventoryViewService
+{
+    public Task<WorkspaceInventoryViewData> BuildAsync(int workspaceId, int userId);
+}
+
+public class WorkspaceInventoryViewData
+{
+    public IEnumerable<InventoryEntity> Items { get; set; } = [];
+    public bool CanCreateInventory { get; set; }
+    public bool CanEditInventory { get; set; }
+    public bool IsWorkspaceAdmin { get; set; }
+}
+
 
 public class WorkspaceInventoryViewService(
     IWorkspaceAccessService workspaceAccessService,

@@ -1,7 +1,21 @@
 namespace Tickflo.Core.Services.Views;
 
+using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Roles;
 using Tickflo.Core.Services.Workspace;
+
+public interface IWorkspaceRolesViewService
+{
+    public Task<WorkspaceRolesViewData> BuildAsync(int workspaceId, int userId);
+}
+
+public class WorkspaceRolesViewData
+{
+    public List<Role> Roles { get; set; } = [];
+    public Dictionary<int, int> RoleAssignmentCounts { get; set; } = [];
+    public bool IsAdmin { get; set; }
+}
+
 
 public class WorkspaceRolesViewService(
     IWorkspaceAccessService workspaceAccessService,

@@ -8,6 +8,20 @@ using Tickflo.Core.Exceptions;
 /// <summary>
 /// Handles workspace creation and initialization workflows.
 /// </summary>
+/// <summary>
+/// Handles workspace creation and initialization workflows.
+/// </summary>
+public interface IWorkspaceCreationService
+{
+    /// <summary>
+    /// Creates a new workspace with default roles and structure.
+    /// </summary>
+    /// <param name="request">Workspace creation details</param>
+    /// <param name="createdByUserId">User creating the workspace</param>
+    /// <returns>The created workspace</returns>
+    public Task<Workspace> CreateWorkspaceAsync(string workspaceName, int createdByUserId);
+}
+
 public partial class WorkspaceCreationService(
     IWorkspaceRepository workspaceRepository,
     IRoleRepository roleRepository,

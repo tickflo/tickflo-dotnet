@@ -3,6 +3,13 @@ namespace Tickflo.Core.Data;
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Entities;
 
+public interface ITicketHistoryRepository
+{
+    public Task CreateAsync(TicketHistory history);
+    public Task<IReadOnlyList<TicketHistory>> ListForTicketAsync(int workspaceId, int ticketId);
+}
+
+
 public class TicketHistoryRepository(TickfloDbContext dbContext) : ITicketHistoryRepository
 {
     private readonly TickfloDbContext dbContext = dbContext;

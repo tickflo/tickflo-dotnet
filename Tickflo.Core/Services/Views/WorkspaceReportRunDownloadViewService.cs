@@ -1,8 +1,20 @@
 namespace Tickflo.Core.Services.Views;
 
 using Tickflo.Core.Data;
-
+using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Reporting;
+
+public class WorkspaceReportRunDownloadViewData
+{
+    public bool CanViewReports { get; set; }
+    public ReportRun? Run { get; set; }
+}
+
+public interface IWorkspaceReportRunDownloadViewService
+{
+    public Task<WorkspaceReportRunDownloadViewData> BuildAsync(int workspaceId, int userId, int reportId, int runId);
+}
+
 
 public class WorkspaceReportRunDownloadViewService(
     IUserWorkspaceRoleRepository userWorkspaceRoleRepo,

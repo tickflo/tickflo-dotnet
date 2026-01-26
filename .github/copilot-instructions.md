@@ -16,9 +16,7 @@ Includes:
 
 * Domain entities and value objects
 * Aggregates and domain services
-* Repository interfaces **and implementations**
 * Entity Framework Core DbContext and mappings
-* Domain events
 * Application services / use cases
 * Business rules and invariants
 
