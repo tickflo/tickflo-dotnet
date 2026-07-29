@@ -74,10 +74,11 @@ public class InboundEmailConfig
     public string MailgunApiKey { get; set; } = string.Empty;
 
     /// <summary>
-    /// The email domain for inbound email (e.g. tickflo.co).
-    /// Must match the domain configured in Mailgun for receiving.
+    /// The email domain for inbound email (e.g. inbound.tickflo.co).
+    /// Mailgun will route email for this domain to the webhook.
+    /// Use a subdomain to avoid conflicting with existing email hosting.
     /// </summary>
-    public string Domain { get; set; } = "tickflo.co";
+    public string Domain { get; set; } = "inbound.tickflo.co";
 
     /// <summary>
     /// Secret used to validate Mailgun webhook HMAC signatures.

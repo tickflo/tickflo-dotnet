@@ -102,7 +102,7 @@ public class InboundEmailServiceTests
     {
         return new InboundEmailConfig
         {
-            Domain = "tickflo.co",
+            Domain = "inbound.tickflo.co",
             WebhookSigningKey = "test-webhook-key",
             MaxAttachmentSize = 25 * 1024 * 1024,
             AllowedMimeTypes = "image/jpeg,image/png,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -150,7 +150,7 @@ public class InboundEmailServiceTests
             FromName = "Jane Customer",
             Subject = "Need help with my account",
             BodyPlain = "I can't log in to the portal.",
-            Recipient = "support@tickflo.co",
+            Recipient = "support@inbound.tickflo.co",
             MessageId = "<msg-001@example.com>",
             Signature = new MailgunSignature
             {
@@ -184,7 +184,7 @@ public class InboundEmailServiceTests
         var stored = await db.InboundEmails.FirstOrDefaultAsync();
         Assert.NotNull(stored);
         Assert.Equal("customer@example.com", stored.FromEmail);
-        Assert.Equal("support@tickflo.co", stored.ToEmail);
+        Assert.Equal("support@inbound.tickflo.co", stored.ToEmail);
         Assert.Equal("Processed", stored.Status);
         Assert.NotNull(stored.ProcessedAt);
         Assert.Equal(100, stored.TicketId);
@@ -231,7 +231,7 @@ public class InboundEmailServiceTests
             Sender = "spammer@evil.com",
             Subject = "Buy cheap stuff",
             BodyPlain = "Click here!",
-            Recipient = "unknown@tickflo.co",
+            Recipient = "unknown@inbound.tickflo.co",
             MessageId = "<msg-spam@evil.com>",
             Signature = new MailgunSignature
             {
@@ -271,7 +271,7 @@ public class InboundEmailServiceTests
             WorkspaceId = 1,
             MessageId = "<msg-duplicate@example.com>",
             FromEmail = "prev@example.com",
-            ToEmail = "test@tickflo.co",
+            ToEmail = "test@inbound.tickflo.co",
             Subject = "Previous",
             BodyPlain = "Already processed",
             Status = "Processed",
@@ -289,7 +289,7 @@ public class InboundEmailServiceTests
             Sender = "customer@example.com",
             Subject = "Duplicate",
             BodyPlain = "This is a dup",
-            Recipient = "test@tickflo.co",
+            Recipient = "test@inbound.tickflo.co",
             MessageId = "<msg-duplicate@example.com>",
             Signature = new MailgunSignature
             {
@@ -333,7 +333,7 @@ public class InboundEmailServiceTests
             Sender = "hacker@evil.com",
             Subject = "Hack attempt",
             BodyPlain = "Malicious content",
-            Recipient = "support@tickflo.co",
+            Recipient = "support@inbound.tickflo.co",
             MessageId = "<msg-hack@evil.com>",
             Signature = new MailgunSignature
             {
@@ -398,7 +398,7 @@ public class InboundEmailServiceTests
             Sender = "vendor@supplier.com",
             Subject = "Invoice for March",
             BodyPlain = "Please find attached invoice.",
-            Recipient = "support@tickflo.co",
+            Recipient = "support@inbound.tickflo.co",
             MessageId = "<msg-attach@supplier.com>",
             Signature = new MailgunSignature
             {
@@ -440,7 +440,7 @@ public class InboundEmailServiceTests
         {
             InboundEmail = new InboundEmailConfig
             {
-                Domain = "tickflo.co",
+                Domain = "inbound.tickflo.co",
                 WebhookSigningKey = "test-key",
                 MaxAttachmentSize = 100, // Only allow 100 bytes
             },
@@ -476,7 +476,7 @@ public class InboundEmailServiceTests
             Sender = "user@example.com",
             Subject = "Test large file",
             BodyPlain = "Has large attachment",
-            Recipient = "support@tickflo.co",
+            Recipient = "support@inbound.tickflo.co",
             MessageId = "<msg-large@example.com>",
             Signature = new MailgunSignature { Timestamp = "1", Token = "t", Signature = "s" },
         };
@@ -547,7 +547,7 @@ public class InboundEmailServiceTests
             Sender = "returning@example.com",
             Subject = "Back again",
             BodyPlain = "Need more help",
-            Recipient = "support@tickflo.co",
+            Recipient = "support@inbound.tickflo.co",
             MessageId = "<msg-return@example.com>",
             Signature = new MailgunSignature { Timestamp = "1", Token = "t", Signature = "s" },
         };
