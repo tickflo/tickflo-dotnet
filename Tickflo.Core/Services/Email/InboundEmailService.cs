@@ -71,7 +71,7 @@ public class InboundEmailService(
         if (route == null)
         {
             this.logger.LogWarning("No active route found for local part: {LocalPart}", localPart);
-            return InboundEmailResult.FailedResult(0, $"No active route for {localPart}@{config.InboundEmail.Domain}");
+            return InboundEmailResult.FailedResult(0, $"No active route for {localPart}@{this.config.InboundEmail.Domain}");
         }
 
         // Step 4: Create InboundEmail record
@@ -81,7 +81,7 @@ public class InboundEmailService(
             RouteId = route.Id,
             FromEmail = payload.GetSenderEmail(),
             FromName = payload.FromName,
-            ToEmail = $"{localPart}@{config.InboundEmail.Domain}",
+            ToEmail = $"{localPart}@{this.config.InboundEmail.Domain}",
             Subject = payload.Subject ?? "(no subject)",
             BodyPlain = payload.BodyPlain ?? payload.StrippedText ?? string.Empty,
             BodyHtml = payload.BodyHtml ?? payload.StrippedHtml,
@@ -116,11 +116,11 @@ public class InboundEmailService(
 
             // Step 7: Store attachments
             var storedAttachments = await this.ProcessAttachmentsAsync(
-                inboundEmail, route.WorkspaceId, payload, attachmentStreams, cancellationToken);
+                inboundEmail, route.WorkspaceId, attachmentStreams, cancellationToken);
 
             // Step 8: Create ticket
             var ticket = await this.CreateTicketAsync(
-                route, inboundEmail, contact, cancellationToken);
+                route, inboundEmail, contact);
 
             // Step 9: Update inbound email with success
             inboundEmail.TicketId = ticket.Id;
@@ -136,7 +136,7 @@ public class InboundEmailService(
             }
 
             // Step 11: Send confirmation email (fire-and-forget; failures are logged, not thrown)
-            await this.SendConfirmationAsync(inboundEmail, contact, route, cancellationToken);
+            await this.SendConfirmationAsync(inboundEmail);
 
             this.logger.LogInformation(
                 "Inbound email {EmailId} processed into ticket {TicketId}",
@@ -167,14 +167,14 @@ public class InboundEmailService(
             return false;
         }
 
-        var signingKey = config.InboundEmail.WebhookSigningKey;
+        var signingKey = this.config.InboundEmail.WebhookSigningKey;
         if (string.IsNullOrWhiteSpace(signingKey))
         {
             this.logger.LogWarning("InboundEmail:WebhookSigningKey is not configured — skipping HMAC validation");
             return true; // Allow when not configured (dev mode)
         }
 
-        return hmacValidator.Validate(
+        return this.hmacValidator.Validate(
             payload.Signature.Timestamp,
             payload.Signature.Token,
             payload.Signature.Signature,
@@ -215,7 +215,6 @@ public class InboundEmailService(
     private async Task<List<InboundEmailAttachment>> ProcessAttachmentsAsync(
         InboundEmail inboundEmail,
         int workspaceId,
-        InboundEmailPayload payload,
         Dictionary<string, (Stream Stream, string ContentType, long Size)>? attachmentStreams,
         CancellationToken ct)
     {
@@ -226,8 +225,8 @@ public class InboundEmailService(
             return stored;
         }
 
-        var maxSize = config.InboundEmail.MaxAttachmentSize;
-        var allowedTypes = config.InboundEmail.AllowedMimeTypes?
+        var maxSize = this.config.InboundEmail.MaxAttachmentSize;
+        var allowedTypes = this.config.InboundEmail.AllowedMimeTypes?
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(t => t.ToLowerInvariant())
             .ToHashSet() ?? [];
@@ -275,7 +274,7 @@ public class InboundEmailService(
             try
             {
                 var storagePath = $"inbound/{workspaceId}/{inboundEmail.Id}/{Guid.NewGuid():N}_{fileName}";
-                var publicUrl = await fileStorageService.UploadFileAsync(storagePath, stream, contentType);
+                var publicUrl = await this.fileStorageService.UploadFileAsync(storagePath, stream, contentType);
 
                 attachment.StoragePath = storagePath;
                 attachment.PublicUrl = publicUrl;
@@ -305,8 +304,7 @@ public class InboundEmailService(
     private async Task<Ticket> CreateTicketAsync(
         InboundEmailRoute route,
         InboundEmail inboundEmail,
-        Contact? contact,
-        CancellationToken ct)
+        Contact? contact)
     {
         var request = new TicketCreationRequest
         {
@@ -318,7 +316,7 @@ public class InboundEmailService(
             ContactId = contact?.Id,
         };
 
-        return await ticketCreationService.CreateTicketAsync(
+        return await this.ticketCreationService.CreateTicketAsync(
             route.WorkspaceId,
             request,
             SystemUserId);
@@ -364,10 +362,7 @@ public class InboundEmailService(
     }
 
     private async Task SendConfirmationAsync(
-        InboundEmail inboundEmail,
-        Contact? contact,
-        InboundEmailRoute route,
-        CancellationToken ct)
+        InboundEmail inboundEmail)
     {
         try
         {
@@ -378,7 +373,7 @@ public class InboundEmailService(
                 ["contact_name"] = inboundEmail.FromName ?? inboundEmail.FromEmail,
             };
 
-            await emailSendService.AddToQueueAsync(
+            await this.emailSendService.AddToQueueAsync(
                 inboundEmail.FromEmail,
                 EmailTemplateType.TicketReceived,
                 variables,

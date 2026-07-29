@@ -2,7 +2,6 @@ namespace Tickflo.Web.Pages.Workspaces;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
@@ -183,11 +182,8 @@ public class InboundEmailRoutesModel(
         return this.RedirectToPage(new { slug });
     }
 
-    private async Task LoadRoutesAsync(int workspaceId)
-    {
-        this.Routes = await this.dbContext.InboundEmailRoutes
+    private async Task LoadRoutesAsync(int workspaceId) => this.Routes = await this.dbContext.InboundEmailRoutes
             .Where(r => r.WorkspaceId == workspaceId)
             .OrderBy(r => r.LocalPart)
             .ToListAsync();
-    }
 }

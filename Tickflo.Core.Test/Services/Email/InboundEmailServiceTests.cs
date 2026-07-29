@@ -98,16 +98,13 @@ public class InboundEmailServiceTests
         return new TickfloDbContext(options);
     }
 
-    private static InboundEmailConfig CreateTestConfig()
+    private static InboundEmailConfig CreateTestConfig() => new()
     {
-        return new InboundEmailConfig
-        {
-            Domain = "inbound.tickflo.co",
-            WebhookSigningKey = "test-webhook-key",
-            MaxAttachmentSize = 25 * 1024 * 1024,
-            AllowedMimeTypes = "image/jpeg,image/png,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        };
-    }
+        Domain = "inbound.tickflo.co",
+        WebhookSigningKey = "test-webhook-key",
+        MaxAttachmentSize = 25 * 1024 * 1024,
+        AllowedMimeTypes = "image/jpeg,image/png,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    };
 
     [Fact]
     public async Task ProcessAsync_WithMatchingRoute_CreatesTicket()

@@ -20,7 +20,7 @@ public interface IInboundEmailService
     /// </param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Result of processing</returns>
-    Task<InboundEmailResult> ProcessAsync(
+    public Task<InboundEmailResult> ProcessAsync(
         InboundEmailPayload payload,
         Dictionary<string, (Stream Stream, string ContentType, long Size)>? attachmentStreams,
         CancellationToken cancellationToken = default);
