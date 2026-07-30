@@ -491,13 +491,13 @@ public class InboundEmailService(
         // Update inbound email record
         inboundEmail.TicketId = replyTicket.Id;
         inboundEmail.ContactId = contact?.Id;
-        inboundEmail.InReplyToEmailId = (await this.dbContext.InboundEmails
+        inboundEmail.InReplyToEmailId = await this.dbContext.InboundEmails
             .AsNoTracking()
             .Where(e => e.WorkspaceId == replyTicket.WorkspaceId
                 && e.TicketId == replyTicket.Id)
             .OrderBy(e => e.Id)
             .Select(e => (int?)e.Id)
-            .FirstOrDefaultAsync(ct));
+            .FirstOrDefaultAsync(ct);
         inboundEmail.Status = "Processed";
         inboundEmail.ProcessedAt = DateTime.UtcNow;
         await this.dbContext.SaveChangesAsync(ct);
