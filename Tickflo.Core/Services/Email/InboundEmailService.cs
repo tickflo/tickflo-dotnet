@@ -278,13 +278,13 @@ public class InboundEmailService(
             }
 
             // Compute content hash and build storage path
-            var storageResult = await this.StoreAttachmentWithHashAsync(
+            var (storagePath, publicUrl) = await this.StoreAttachmentWithHashAsync(
                 stream, inboundEmail.Id, fileName, contentType);
 
-            if (storageResult.StoragePath != null)
+            if (storagePath != null)
             {
-                attachment.StoragePath = storageResult.StoragePath;
-                attachment.PublicUrl = storageResult.PublicUrl;
+                attachment.StoragePath = storagePath;
+                attachment.PublicUrl = publicUrl;
                 attachment.IsStored = true;
 
                 this.dbContext.InboundEmailAttachments.Add(attachment);
@@ -292,7 +292,7 @@ public class InboundEmailService(
                 stored.Add(attachment);
 
                 this.logger.LogInformation(
-                    "Stored attachment {FileName} → {StoragePath}", fileName, storageResult.StoragePath);
+                    "Stored attachment {FileName} → {StoragePath}", fileName, storagePath);
             }
             else
             {
@@ -309,14 +309,9 @@ public class InboundEmailService(
     /// <summary>
     /// Computes a SHA256 hash of the attachment content and stores it under
     /// inbound/{inboundEmailId}/{hash}{extension}.
-    /// Returns the storage path, or null on failure.
-    /// </summary>
-    /// <summary>
-    /// Computes a SHA256 hash of the attachment content and stores it under
-    /// inbound/{inboundEmailId}/{hash}{extension}.
     /// Returns (storagePath, publicUrl) on success, or null values on failure.
     /// </summary>
-    private async Task<(string? StoragePath, string? PublicUrl)> StoreAttachmentWithHashAsync(
+    private async Task<(string? storagePath, string? publicUrl)> StoreAttachmentWithHashAsync(
         Stream stream,
         int inboundEmailId,
         string fileName,
@@ -444,33 +439,5 @@ public class InboundEmailService(
                 "Failed to queue confirmation email for inbound email {EmailId}: {Message}",
                 inboundEmail.Id, ex.Message);
         }
-    }
-
-    /// <summary>
-    /// Extracts a clean Message-ID from an In-Reply-To or References header value.
-    /// Reserved for Phase 2 (reply threading via email).
-    /// </summary>
-    private static string? ExtractMessageId(string? reference)
-    {
-        if (string.IsNullOrWhiteSpace(reference))
-        {
-            return null;
-        }
-
-        var trimmed = reference.Trim();
-        if (trimmed.StartsWith('<'))
-        {
-            var end = trimmed.IndexOf('>');
-            return end > 1 ? trimmed[1..end] : trimmed;
-        }
-
-        var spaceIndex = trimmed.IndexOf(' ');
-        if (spaceIndex > 0)
-        {
-            var first = trimmed[..spaceIndex];
-            return first.StartsWith('<') ? first[1..^1] : first;
-        }
-
-        return trimmed;
     }
 }

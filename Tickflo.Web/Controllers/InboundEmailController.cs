@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Tickflo.Core.Data;
-using Tickflo.Core.Exceptions;
 using Tickflo.Core.DTOs;
+using Tickflo.Core.Exceptions;
 using Tickflo.Core.Services.Email;
 
 /// <summary>
@@ -168,7 +168,10 @@ public class InboundEmailController(
     /// </summary>
     private async Task MarkEmailFailedByMessageId(string messageId, string error)
     {
-        if (string.IsNullOrWhiteSpace(messageId)) return;
+        if (string.IsNullOrWhiteSpace(messageId))
+        {
+            return;
+        }
 
         try
         {
