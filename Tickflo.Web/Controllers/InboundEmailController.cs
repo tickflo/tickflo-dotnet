@@ -137,6 +137,10 @@ public class InboundEmailController(
 
         payload.Signature = signature;
 
+        // Parse In-Reply-To from message-headers for reply detection
+        payload.InReplyTo = InboundEmailPayload.ExtractHeaderValue(
+            payload.MessageHeaders, "In-Reply-To");
+
         return payload;
     }
 

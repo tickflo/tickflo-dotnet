@@ -19,6 +19,7 @@ public class InboundEmailService(
     IInboundEmailHMACValidator hmacValidator,
     IEmailSendService emailSendService,
     ITicketCreationService ticketCreationService,
+    ITicketCommentService ticketCommentService,
     IFileStorageService fileStorageService,
     ILogger<InboundEmailService> logger) : IInboundEmailService
 {
@@ -27,6 +28,7 @@ public class InboundEmailService(
     private readonly IInboundEmailHMACValidator hmacValidator = hmacValidator;
     private readonly IEmailSendService emailSendService = emailSendService;
     private readonly ITicketCreationService ticketCreationService = ticketCreationService;
+    private readonly ITicketCommentService ticketCommentService = ticketCommentService;
     private readonly IFileStorageService fileStorageService = fileStorageService;
     private readonly ILogger<InboundEmailService> logger = logger;
     private const int SystemUserId = 1; // System-level user for automated operations
@@ -69,23 +71,39 @@ public class InboundEmailService(
         var storedAttachments = await this.ProcessAttachmentsAsync(
             inboundEmail, route.WorkspaceId, attachmentStreams, cancellationToken);
 
-        // Step 7: Create ticket
+        // Step 7: Try to resolve this as a reply to an existing ticket
+        var replyTicket = await this.TryResolveReplyTicketAsync(payload, route, contact, cancellationToken);
+
+        if (replyTicket != null)
+        {
+            // This email is a reply — add comment on the existing ticket
+            await this.HandleReplyAsync(inboundEmail, replyTicket, contact, storedAttachments, cancellationToken);
+
+            this.logger.LogInformation(
+                "Inbound email {EmailId} processed as reply → ticket {TicketId}",
+                inboundEmail.Id,
+                replyTicket.Id);
+
+            return InboundEmailResult.SuccessResult(inboundEmail.Id, replyTicket.Id);
+        }
+
+        // Step 8: Create new ticket (no matching thread found)
         var ticket = await this.CreateTicketAsync(route, inboundEmail, contact);
 
-        // Step 8: Update inbound email with success
+        // Step 9: Update inbound email with success
         inboundEmail.TicketId = ticket.Id;
         inboundEmail.ContactId = contact?.Id;
         inboundEmail.Status = "Processed";
         inboundEmail.ProcessedAt = DateTime.UtcNow;
         await this.dbContext.SaveChangesAsync(cancellationToken);
 
-        // Step 9: Link attachments to ticket
+        // Step 10: Link attachments to ticket
         if (storedAttachments.Count > 0)
         {
             await this.LinkAttachmentsToTicketAsync(storedAttachments, ticket.Id, route.WorkspaceId, cancellationToken);
         }
 
-        // Step 10: Send confirmation email (fire-and-forget; failures are logged, not thrown)
+        // Step 11: Send confirmation email (fire-and-forget; failures are logged, not thrown)
         await this.SendConfirmationAsync(inboundEmail);
 
         this.logger.LogInformation(
@@ -368,6 +386,161 @@ public class InboundEmailService(
             route.WorkspaceId,
             request,
             SystemUserId);
+    }
+
+    /// <summary>
+    /// Attempts to resolve this inbound email as a reply to an existing ticket.
+    /// Strategy: (1) In-Reply-To header matching → (2) subject + contact matching.
+    /// Returns the matched ticket, or null if no match.
+    /// </summary>
+    private async Task<Ticket?> TryResolveReplyTicketAsync(
+        InboundEmailPayload payload,
+        InboundEmailRoute route,
+        Contact? contact,
+        CancellationToken ct)
+    {
+        // Strategy 1: Match by In-Reply-To header → previous InboundEmail.MessageId
+        if (!string.IsNullOrWhiteSpace(payload.InReplyTo))
+        {
+            var originalInbound = await this.dbContext.InboundEmails
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => e.MessageId == payload.InReplyTo, ct);
+
+            if (originalInbound?.TicketId != null)
+            {
+                var ticket = await this.dbContext.Tickets
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.Id == originalInbound.TicketId
+                        && t.WorkspaceId == route.WorkspaceId, ct);
+
+                if (ticket != null)
+                {
+                    this.logger.LogInformation(
+                        "Resolved reply via In-Reply-To: {InReplyTo} → ticket {TicketId}",
+                        payload.InReplyTo, ticket.Id);
+                    return ticket;
+                }
+            }
+        }
+
+        // Strategy 2: Subject-based matching (strip Re:/Fwd: prefixes)
+        if (contact == null || string.IsNullOrWhiteSpace(payload.Subject))
+        {
+            return null;
+        }
+
+        var cleanSubject = StripReplyPrefix(payload.Subject);
+        if (string.IsNullOrWhiteSpace(cleanSubject))
+        {
+            return null;
+        }
+
+        var contactEmail = contact.Email.Trim().ToLowerInvariant();
+
+        var matchedTicket = await this.dbContext.Tickets
+            .AsNoTracking()
+            .Where(t => t.WorkspaceId == route.WorkspaceId
+                && t.ContactId == contact.Id
+                && t.Subject.ToLower() == cleanSubject.ToLowerInvariant())
+            .OrderByDescending(t => t.UpdatedAt ?? t.CreatedAt)
+            .FirstOrDefaultAsync(ct);
+
+        if (matchedTicket != null)
+        {
+            this.logger.LogInformation(
+                "Resolved reply via subject match: '{Subject}' → ticket {TicketId}",
+                cleanSubject, matchedTicket.Id);
+        }
+
+        return matchedTicket;
+    }
+
+    /// <summary>
+    /// Handles an inbound email that was resolved as a reply to an existing ticket.
+    /// Adds the email body as a client-visible comment and links attachments.
+    /// </summary>
+    private async Task HandleReplyAsync(
+        InboundEmail inboundEmail,
+        Ticket replyTicket,
+        Contact? contact,
+        List<InboundEmailAttachment> storedAttachments,
+        CancellationToken ct)
+    {
+        // Build the comment body from the inbound email
+        var commentBody = inboundEmail.BodyPlain ?? inboundEmail.BodyHtml ?? "(no content)";
+        var prefix = inboundEmail.FromName != null
+            ? $"**{inboundEmail.FromName}** <{inboundEmail.FromEmail}> replied via email:\n\n"
+            : $"**{inboundEmail.FromEmail}** replied via email:\n\n";
+
+        // Add comment and notify assignees (visible to client since it's from the contact)
+        await this.ticketCommentService.AddCommentAndNotifyAsync(
+            replyTicket.WorkspaceId,
+            replyTicket.Id,
+            SystemUserId,
+            prefix + commentBody,
+            isVisibleToClient: true,
+            ct);
+
+        // Link attachments to the reply ticket
+        if (storedAttachments.Count > 0)
+        {
+            await this.LinkAttachmentsToTicketAsync(
+                storedAttachments, replyTicket.Id, replyTicket.WorkspaceId, ct);
+        }
+
+        // Update inbound email record
+        inboundEmail.TicketId = replyTicket.Id;
+        inboundEmail.ContactId = contact?.Id;
+        inboundEmail.InReplyToEmailId = (await this.dbContext.InboundEmails
+            .AsNoTracking()
+            .Where(e => e.WorkspaceId == replyTicket.WorkspaceId
+                && e.TicketId == replyTicket.Id)
+            .OrderBy(e => e.Id)
+            .Select(e => (int?)e.Id)
+            .FirstOrDefaultAsync(ct));
+        inboundEmail.Status = "Processed";
+        inboundEmail.ProcessedAt = DateTime.UtcNow;
+        await this.dbContext.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Strips common reply/forward prefixes from a subject line.
+    /// Returns the cleaned subject, or null if empty.
+    /// </summary>
+    public static string? StripReplyPrefix(string subject)
+    {
+        if (string.IsNullOrWhiteSpace(subject))
+        {
+            return null;
+        }
+
+        var trimmed = subject.Trim();
+
+        // Strip leading "Re:", "RE:", "Fwd:", "FW:" (with optional whitespace and brackets)
+        while (true)
+        {
+            var lower = trimmed.ToLowerInvariant();
+            var changed = false;
+
+            if (lower.StartsWith("re:", StringComparison.Ordinal))
+            {
+                trimmed = trimmed[3..].TrimStart();
+                changed = true;
+            }
+            else if (lower.StartsWith("fwd:", StringComparison.Ordinal)
+                || lower.StartsWith("fw:", StringComparison.Ordinal))
+            {
+                trimmed = trimmed[(lower.StartsWith("fwd:", StringComparison.Ordinal) ? 4 : 3)..].TrimStart();
+                changed = true;
+            }
+
+            if (!changed)
+            {
+                break;
+            }
+        }
+
+        return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
     }
 
     /// <summary>

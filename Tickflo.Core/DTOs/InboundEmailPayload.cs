@@ -1,5 +1,6 @@
 namespace Tickflo.Core.DTOs;
 
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 /// <summary>
@@ -55,6 +56,12 @@ public class InboundEmailPayload
     [JsonPropertyName("message-headers")]
     public string? MessageHeaders { get; set; }
 
+    /// <summary>
+    /// The Message-Id this email is replying to, extracted from the In-Reply-To header.
+    /// Null if this is not a reply.
+    /// </summary>
+    public string? InReplyTo { get; set; }
+
     // --- Attachments ---
 
     [JsonPropertyName("attachment-count")]
@@ -95,6 +102,37 @@ public class InboundEmailPayload
         var addr = !string.IsNullOrWhiteSpace(this.Recipient) ? this.Recipient : this.To;
         var atIndex = addr?.IndexOf('@') ?? -1;
         return atIndex > 0 ? addr![..atIndex].ToLowerInvariant() : string.Empty;
+    }
+
+    /// <summary>
+    /// Parses Mailgun's message-headers JSON (array of [name, value] pairs)
+    /// and extracts the value of the first matching header name.
+    /// </summary>
+    public static string? ExtractHeaderValue(string? messageHeadersJson, string headerName)
+    {
+        if (string.IsNullOrWhiteSpace(messageHeadersJson))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(messageHeadersJson);
+            foreach (var element in doc.RootElement.EnumerateArray())
+            {
+                if (element.GetArrayLength() >= 2
+                    && string.Equals(element[0].GetString(), headerName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return element[1].GetString();
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            // Malformed JSON — ignore, header extraction is best-effort
+        }
+
+        return null;
     }
 }
 

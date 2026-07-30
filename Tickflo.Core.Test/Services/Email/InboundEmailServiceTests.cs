@@ -117,6 +117,7 @@ public class InboundEmailServiceTests
         var emailSendService = new Mock<IEmailSendService>();
         var ticketCreationService = new Mock<ITicketCreationService>();
         var fileStorageService = new Mock<IFileStorageService>();
+        var ticketCommentService = new Mock<ITicketCommentService>();
         var logger = new Mock<ILogger<InboundEmailService>>();
 
         hmacValidator.Setup(v => v.Validate(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
@@ -139,7 +140,7 @@ public class InboundEmailServiceTests
 
         var service = new InboundEmailService(
             db, config, hmacValidator.Object, emailSendService.Object,
-            ticketCreationService.Object, fileStorageService.Object, logger.Object);
+            ticketCreationService.Object, ticketCommentService.Object, fileStorageService.Object, logger.Object);
 
         var payload = new InboundEmailPayload
         {
@@ -214,6 +215,7 @@ public class InboundEmailServiceTests
         var emailSendService = new Mock<IEmailSendService>();
         var ticketCreationService = new Mock<ITicketCreationService>();
         var fileStorageService = new Mock<IFileStorageService>();
+        var ticketCommentService = new Mock<ITicketCommentService>();
         var logger = new Mock<ILogger<InboundEmailService>>();
 
         hmacValidator.Setup(v => v.Validate(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
@@ -221,7 +223,7 @@ public class InboundEmailServiceTests
 
         var service = new InboundEmailService(
             db, config, hmacValidator.Object, emailSendService.Object,
-            ticketCreationService.Object, fileStorageService.Object, logger.Object);
+            ticketCreationService.Object, ticketCommentService.Object, fileStorageService.Object, logger.Object);
 
         var payload = new InboundEmailPayload
         {
@@ -255,6 +257,7 @@ public class InboundEmailServiceTests
         var emailSendService = new Mock<IEmailSendService>();
         var ticketCreationService = new Mock<ITicketCreationService>();
         var fileStorageService = new Mock<IFileStorageService>();
+        var ticketCommentService = new Mock<ITicketCommentService>();
         var logger = new Mock<ILogger<InboundEmailService>>();
 
         hmacValidator.Setup(v => v.Validate(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
@@ -276,7 +279,7 @@ public class InboundEmailServiceTests
 
         var service = new InboundEmailService(
             db, config, hmacValidator.Object, emailSendService.Object,
-            ticketCreationService.Object, fileStorageService.Object, logger.Object);
+            ticketCreationService.Object, ticketCommentService.Object, fileStorageService.Object, logger.Object);
 
         var payload = new InboundEmailPayload
         {
@@ -312,6 +315,7 @@ public class InboundEmailServiceTests
         var emailSendService = new Mock<IEmailSendService>();
         var ticketCreationService = new Mock<ITicketCreationService>();
         var fileStorageService = new Mock<IFileStorageService>();
+        var ticketCommentService = new Mock<ITicketCommentService>();
         var logger = new Mock<ILogger<InboundEmailService>>();
 
         // HMAC validation fails
@@ -320,7 +324,7 @@ public class InboundEmailServiceTests
 
         var service = new InboundEmailService(
             db, config, hmacValidator.Object, emailSendService.Object,
-            ticketCreationService.Object, fileStorageService.Object, logger.Object);
+            ticketCreationService.Object, ticketCommentService.Object, fileStorageService.Object, logger.Object);
 
         var payload = new InboundEmailPayload
         {
@@ -353,6 +357,7 @@ public class InboundEmailServiceTests
         var emailSendService = new Mock<IEmailSendService>();
         var ticketCreationService = new Mock<ITicketCreationService>();
         var fileStorageService = new Mock<IFileStorageService>();
+        var ticketCommentService = new Mock<ITicketCommentService>();
         var logger = new Mock<ILogger<InboundEmailService>>();
 
         hmacValidator.Setup(v => v.Validate(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
@@ -382,7 +387,7 @@ public class InboundEmailServiceTests
 
         var service = new InboundEmailService(
             db, config, hmacValidator.Object, emailSendService.Object,
-            ticketCreationService.Object, fileStorageService.Object, logger.Object);
+            ticketCreationService.Object, ticketCommentService.Object, fileStorageService.Object, logger.Object);
 
         var payload = new InboundEmailPayload
         {
@@ -441,6 +446,7 @@ public class InboundEmailServiceTests
         var emailSendService = new Mock<IEmailSendService>();
         var ticketCreationService = new Mock<ITicketCreationService>();
         var fileStorageService = new Mock<IFileStorageService>();
+        var ticketCommentService = new Mock<ITicketCommentService>();
         var logger = new Mock<ILogger<InboundEmailService>>();
 
         hmacValidator.Setup(v => v.Validate(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
@@ -460,7 +466,7 @@ public class InboundEmailServiceTests
 
         var service = new InboundEmailService(
             db, config, hmacValidator.Object, emailSendService.Object,
-            ticketCreationService.Object, fileStorageService.Object, logger.Object);
+            ticketCreationService.Object, ticketCommentService.Object, fileStorageService.Object, logger.Object);
 
         var payload = new InboundEmailPayload
         {
@@ -501,6 +507,7 @@ public class InboundEmailServiceTests
         var emailSendService = new Mock<IEmailSendService>();
         var ticketCreationService = new Mock<ITicketCreationService>();
         var fileStorageService = new Mock<IFileStorageService>();
+        var ticketCommentService = new Mock<ITicketCommentService>();
         var logger = new Mock<ILogger<InboundEmailService>>();
 
         hmacValidator.Setup(v => v.Validate(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
@@ -531,7 +538,7 @@ public class InboundEmailServiceTests
 
         var service = new InboundEmailService(
             db, config, hmacValidator.Object, emailSendService.Object,
-            ticketCreationService.Object, fileStorageService.Object, logger.Object);
+            ticketCreationService.Object, ticketCommentService.Object, fileStorageService.Object, logger.Object);
 
         var payload = new InboundEmailPayload
         {
@@ -554,5 +561,278 @@ public class InboundEmailServiceTests
         var contacts = await db.Contacts.Where(c => c.Email == "returning@example.com").ToListAsync();
         Assert.Single(contacts);
         Assert.Equal(contactId, contacts[0].Id);
+    }
+
+    // ──── Reply detection: StripReplyPrefix unit tests ────
+
+    [Theory]
+    [InlineData("Re: Need help", "Need help")]
+    [InlineData("RE: Need help", "Need help")]
+    [InlineData("re: Need help", "Need help")]
+    [InlineData("Fwd: Invoice", "Invoice")]
+    [InlineData("FW: Invoice", "Invoice")]
+    [InlineData("Re: Fwd: Original subject", "Original subject")]
+    [InlineData("   Re: Extra spaces   ", "Extra spaces")]
+    [InlineData("No prefix here", "No prefix here")]
+    [InlineData("", null)]
+    [InlineData("   ", null)]
+    public void StripReplyPrefix_ReturnsExpected(string input, string? expected)
+    {
+        var result = InboundEmailService.StripReplyPrefix(input);
+        Assert.Equal(expected, result);
+    }
+
+    // ──── Reply detection: In-Reply-To header matching ────
+
+    [Fact]
+    public async Task ProcessAsync_WithInReplyToHeader_AddsCommentToExistingTicket()
+    {
+        // Arrange
+        var db = CreateDbContext();
+        var config = new TickfloConfig { InboundEmail = CreateTestConfig() };
+        var hmacValidator = new Mock<IInboundEmailHMACValidator>();
+        var emailSendService = new Mock<IEmailSendService>();
+        var ticketCreationService = new Mock<ITicketCreationService>();
+        var ticketCommentService = new Mock<ITicketCommentService>();
+        var fileStorageService = new Mock<IFileStorageService>();
+        var logger = new Mock<ILogger<InboundEmailService>>();
+
+        hmacValidator.Setup(v => v.Validate(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(true);
+
+        var workspace = new Workspace { Name = "Test WS", Slug = "test" };
+        db.Workspaces.Add(workspace);
+        await db.SaveChangesAsync();
+
+        var route = new InboundEmailRoute
+        {
+            WorkspaceId = workspace.Id,
+            LocalPart = "support",
+            Label = "Support",
+            Active = true,
+        };
+        db.InboundEmailRoutes.Add(route);
+
+        var contact = new Contact
+        {
+            WorkspaceId = workspace.Id,
+            Name = "Jane",
+            Email = "jane@example.com",
+        };
+        db.Contacts.Add(contact);
+        await db.SaveChangesAsync();
+
+        var ticket = new Ticket
+        {
+            WorkspaceId = workspace.Id,
+            Subject = "Need help with login",
+            ContactId = contact.Id,
+        };
+        db.Tickets.Add(ticket);
+        await db.SaveChangesAsync();
+
+        // Add an existing InboundEmail record (simulating a previously processed inbound email)
+        var previousInbound = new InboundEmail
+        {
+            WorkspaceId = workspace.Id,
+            RouteId = route.Id,
+            FromEmail = "jane@example.com",
+            Subject = "Need help with login",
+            MessageId = "<msg-original@example.com>",
+            TicketId = ticket.Id,
+            Status = "Processed",
+        };
+        db.InboundEmails.Add(previousInbound);
+        await db.SaveChangesAsync();
+
+        var payload = new InboundEmailPayload
+        {
+            From = "jane@example.com",
+            Sender = "jane@example.com",
+            FromName = "Jane",
+            Subject = "Re: Need help with login",
+            BodyPlain = "I tried resetting but still can't log in.",
+            Recipient = "support@inbound.tickflo.co",
+            MessageId = "<msg-reply@example.com>",
+            InReplyTo = "<msg-original@example.com>", // Matches previous inbound
+            Signature = new MailgunSignature { Timestamp = "1", Token = "t", Signature = "s" },
+        };
+
+        // Act
+        var result = await new InboundEmailService(
+            db, config, hmacValidator.Object, emailSendService.Object,
+            ticketCreationService.Object, ticketCommentService.Object, fileStorageService.Object, logger.Object)
+            .ProcessAsync(payload, null);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal(ticket.Id, result.TicketId);
+
+        // Verify no new ticket was created
+        var ticketCount = await db.Tickets.CountAsync();
+        Assert.Equal(1, ticketCount);
+
+        // Verify comment was added
+        ticketCommentService.Verify(
+            c => c.AddCommentAndNotifyAsync(
+                workspace.Id, ticket.Id, It.IsAny<int>(),
+                It.Is<string>(s => s.Contains("I tried resetting")),
+                true, It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        // Verify ticket creation was NOT called
+        ticketCreationService.Verify(
+            c => c.CreateTicketAsync(It.IsAny<int>(), It.IsAny<TicketCreationRequest>(), It.IsAny<int>()),
+            Times.Never);
+    }
+
+    // ──── Reply detection: Subject-based matching (no In-Reply-To) ────
+
+    [Fact]
+    public async Task ProcessAsync_WithReSubject_MatchesTicketByContactAndSubject()
+    {
+        // Arrange
+        var db = CreateDbContext();
+        var config = new TickfloConfig { InboundEmail = CreateTestConfig() };
+        var hmacValidator = new Mock<IInboundEmailHMACValidator>();
+        var emailSendService = new Mock<IEmailSendService>();
+        var ticketCreationService = new Mock<ITicketCreationService>();
+        var ticketCommentService = new Mock<ITicketCommentService>();
+        var fileStorageService = new Mock<IFileStorageService>();
+        var logger = new Mock<ILogger<InboundEmailService>>();
+
+        hmacValidator.Setup(v => v.Validate(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(true);
+
+        var workspace = new Workspace { Name = "Test WS", Slug = "test" };
+        db.Workspaces.Add(workspace);
+        await db.SaveChangesAsync();
+
+        var route = new InboundEmailRoute
+        {
+            WorkspaceId = workspace.Id,
+            LocalPart = "support",
+            Label = "Support",
+            Active = true,
+        };
+        db.InboundEmailRoutes.Add(route);
+
+        var contact = new Contact
+        {
+            WorkspaceId = workspace.Id,
+            Name = "Bob",
+            Email = "bob@example.com",
+        };
+        db.Contacts.Add(contact);
+        await db.SaveChangesAsync();
+
+        var ticket = new Ticket
+        {
+            WorkspaceId = workspace.Id,
+            Subject = "Billing question",
+            ContactId = contact.Id,
+        };
+        db.Tickets.Add(ticket);
+        await db.SaveChangesAsync();
+
+        var payload = new InboundEmailPayload
+        {
+            From = "bob@example.com",
+            Sender = "bob@example.com",
+            FromName = "Bob",
+            Subject = "Re: Billing question", // Matches ticket subject (stripped)
+            BodyPlain = "Can you send me the invoice for last month?",
+            Recipient = "support@inbound.tickflo.co",
+            MessageId = "<msg-no-inreplyto@example.com>",
+            InReplyTo = null, // No In-Reply-To header — falls back to subject matching
+            Signature = new MailgunSignature { Timestamp = "1", Token = "t", Signature = "s" },
+        };
+
+        // Act
+        var result = await new InboundEmailService(
+            db, config, hmacValidator.Object, emailSendService.Object,
+            ticketCreationService.Object, ticketCommentService.Object, fileStorageService.Object, logger.Object)
+            .ProcessAsync(payload, null);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal(ticket.Id, result.TicketId);
+        Assert.Equal(1, await db.Tickets.CountAsync());
+
+        ticketCommentService.Verify(
+            c => c.AddCommentAndNotifyAsync(
+                workspace.Id, ticket.Id, It.IsAny<int>(),
+                It.Is<string>(s => s.Contains("invoice for last month")),
+                true, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    // ──── Reply detection: No match → still creates ticket ────
+
+    [Fact]
+    public async Task ProcessAsync_WithNoReplyMatch_CreatesNewTicket()
+    {
+        // Arrange
+        var db = CreateDbContext();
+        var config = new TickfloConfig { InboundEmail = CreateTestConfig() };
+        var hmacValidator = new Mock<IInboundEmailHMACValidator>();
+        var emailSendService = new Mock<IEmailSendService>();
+        var ticketCreationService = new Mock<ITicketCreationService>();
+        var ticketCommentService = new Mock<ITicketCommentService>();
+        var fileStorageService = new Mock<IFileStorageService>();
+        var logger = new Mock<ILogger<InboundEmailService>>();
+
+        hmacValidator.Setup(v => v.Validate(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(true);
+
+        var workspace = new Workspace { Name = "Test WS", Slug = "test" };
+        db.Workspaces.Add(workspace);
+        await db.SaveChangesAsync();
+
+        var route = new InboundEmailRoute
+        {
+            WorkspaceId = workspace.Id,
+            LocalPart = "support",
+            Label = "Support",
+            Active = true,
+        };
+        db.InboundEmailRoutes.Add(route);
+        await db.SaveChangesAsync();
+
+        var createdTicket = new Ticket { WorkspaceId = workspace.Id, Subject = "New Issue" };
+        ticketCreationService
+            .Setup(s => s.CreateTicketAsync(workspace.Id, It.IsAny<TicketCreationRequest>(), It.IsAny<int>()))
+            .ReturnsAsync(createdTicket);
+
+        var payload = new InboundEmailPayload
+        {
+            From = "new@example.com",
+            Sender = "new@example.com",
+            Subject = "Brand new issue",
+            BodyPlain = "This is a new request.",
+            Recipient = "support@inbound.tickflo.co",
+            MessageId = "<msg-new@example.com>",
+            InReplyTo = null, // No In-Reply-To
+            Signature = new MailgunSignature { Timestamp = "1", Token = "t", Signature = "s" },
+        };
+
+        // Act
+        var result = await new InboundEmailService(
+            db, config, hmacValidator.Object, emailSendService.Object,
+            ticketCreationService.Object, ticketCommentService.Object, fileStorageService.Object, logger.Object)
+            .ProcessAsync(payload, null);
+
+        // Assert
+        Assert.True(result.Success);
+
+        // Verify ticket WAS created (not matched as reply)
+        ticketCreationService.Verify(
+            c => c.CreateTicketAsync(workspace.Id, It.IsAny<TicketCreationRequest>(), It.IsAny<int>()),
+            Times.Once);
+
+        // Verify no comment was added (not a reply)
+        ticketCommentService.Verify(
+            c => c.AddCommentAndNotifyAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }
