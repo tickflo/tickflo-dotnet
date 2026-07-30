@@ -2,7 +2,8 @@ namespace Tickflo.Core.Entities;
 
 /// <summary>
 /// Represents a file attached to an inbound email.
-/// Attachments are downloaded from Mailgun's temp URLs and stored in RustFS.
+/// Attachments arrive as multipart form-data in the webhook request
+/// and are stored in RustFS during pipeline processing.
 /// </summary>
 public class InboundEmailAttachment
 {
@@ -24,12 +25,6 @@ public class InboundEmailAttachment
     /// File size in bytes.
     /// </summary>
     public long Size { get; set; }
-
-    /// <summary>
-    /// The Mailgun temporary URL used to download the attachment content.
-    /// Saved for reprocessing if needed.
-    /// </summary>
-    public string? MailgunUrl { get; set; }
 
     /// <summary>
     /// The RustFS path where the attachment was stored after processing.

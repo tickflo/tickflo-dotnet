@@ -1,12 +1,14 @@
 namespace Tickflo.Core.Services.Email;
 
 using System.Globalization;
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Tickflo.Core.Config;
 using Tickflo.Core.Data;
 using Tickflo.Core.DTOs;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Exceptions;
 using Tickflo.Core.Services.Storage;
 using Tickflo.Core.Services.Tickets;
 
@@ -36,16 +38,13 @@ public class InboundEmailService(
         CancellationToken cancellationToken = default)
     {
         // Step 1: Validate HMAC signature
-        if (!this.ValidateSignature(payload))
-        {
-            return InboundEmailResult.FailedResult(0, "Invalid HMAC signature");
-        }
+        this.ValidateSignature(payload);
 
         // Step 2: Deduplicate by MessageId
         var messageId = payload.GetMessageId();
         if (string.IsNullOrWhiteSpace(messageId))
         {
-            return InboundEmailResult.FailedResult(0, "No message ID in payload");
+            throw new BadRequestException("No message ID in payload");
         }
 
         var existing = await this.dbContext.InboundEmails
@@ -58,23 +57,107 @@ public class InboundEmailService(
         }
 
         // Step 3: Resolve workspace route by recipient local part
+        var route = await this.ResolveRouteAsync(payload);
+
+        // Step 4: Create InboundEmail record
+        var inboundEmail = await this.CreateInboundEmailRecordAsync(payload, route, cancellationToken);
+
+        // Step 5: Find or create contact
+        var contact = await this.ResolveContactAsync(inboundEmail, cancellationToken);
+
+        // Step 6: Validate and store attachments
+        var storedAttachments = await this.ProcessAttachmentsAsync(
+            inboundEmail, route.WorkspaceId, attachmentStreams, cancellationToken);
+
+        // Step 7: Create ticket
+        var ticket = await this.CreateTicketAsync(route, inboundEmail, contact);
+
+        // Step 8: Update inbound email with success
+        inboundEmail.TicketId = ticket.Id;
+        inboundEmail.ContactId = contact?.Id;
+        inboundEmail.Status = "Processed";
+        inboundEmail.ProcessedAt = DateTime.UtcNow;
+        await this.dbContext.SaveChangesAsync(cancellationToken);
+
+        // Step 9: Link attachments to ticket
+        if (storedAttachments.Count > 0)
+        {
+            await this.LinkAttachmentsToTicketAsync(storedAttachments, ticket.Id, route.WorkspaceId, cancellationToken);
+        }
+
+        // Step 10: Send confirmation email (fire-and-forget; failures are logged, not thrown)
+        await this.SendConfirmationAsync(inboundEmail);
+
+        this.logger.LogInformation(
+            "Inbound email {EmailId} processed into ticket {TicketId}",
+            inboundEmail.Id,
+            ticket.Id);
+
+        return InboundEmailResult.SuccessResult(inboundEmail.Id, ticket.Id);
+    }
+
+    /// <summary>
+    /// Validates the Mailgun HMAC signature. Throws if invalid when signing key is configured.
+    /// </summary>
+    private void ValidateSignature(InboundEmailPayload payload)
+    {
+        if (payload.Signature == null)
+        {
+            throw new BadRequestException("Mailgun webhook missing signature block");
+        }
+
+        var signingKey = this.config.InboundEmail.WebhookSigningKey;
+        if (string.IsNullOrWhiteSpace(signingKey))
+        {
+            this.logger.LogWarning("InboundEmail:WebhookSigningKey is not configured — skipping HMAC validation");
+            return;
+        }
+
+        if (!this.hmacValidator.Validate(
+                payload.Signature.Timestamp,
+                payload.Signature.Token,
+                payload.Signature.Signature,
+                signingKey))
+        {
+            throw new BadRequestException("Invalid HMAC signature");
+        }
+    }
+
+    /// <summary>
+    /// Resolves the workspace route for the recipient local part.
+    /// Throws if no active route matches.
+    /// </summary>
+    private async Task<InboundEmailRoute> ResolveRouteAsync(InboundEmailPayload payload)
+    {
         var localPart = payload.GetRecipientLocalPart();
         if (string.IsNullOrWhiteSpace(localPart))
         {
-            return InboundEmailResult.FailedResult(0, "Could not determine recipient local part");
+            throw new BadRequestException("Could not determine recipient local part");
         }
 
         var route = await this.dbContext.InboundEmailRoutes
             .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.LocalPart == localPart && r.Active, cancellationToken);
+            .FirstOrDefaultAsync(r => r.LocalPart == localPart && r.Active);
 
         if (route == null)
         {
             this.logger.LogWarning("No active route found for local part: {LocalPart}", localPart);
-            return InboundEmailResult.FailedResult(0, $"No active route for {localPart}@{this.config.InboundEmail.Domain}");
+            throw new BadRequestException($"No active route for {localPart}@{this.config.InboundEmail.Domain}");
         }
 
-        // Step 4: Create InboundEmail record
+        return route;
+    }
+
+    /// <summary>
+    /// Creates the InboundEmail entity record from the payload.
+    /// </summary>
+    private async Task<InboundEmail> CreateInboundEmailRecordAsync(
+        InboundEmailPayload payload,
+        InboundEmailRoute route,
+        CancellationToken ct)
+    {
+        var localPart = payload.GetRecipientLocalPart();
+
         var inboundEmail = new InboundEmail
         {
             WorkspaceId = route.WorkspaceId,
@@ -85,107 +168,29 @@ public class InboundEmailService(
             Subject = payload.Subject ?? "(no subject)",
             BodyPlain = payload.BodyPlain ?? payload.StrippedText ?? string.Empty,
             BodyHtml = payload.BodyHtml ?? payload.StrippedHtml,
-            MessageId = messageId,
-            InReplyToEmailId = null, // Reply detection done below
+            MessageId = payload.GetMessageId(),
+
+            // InReplyToEmailId is reserved for Phase 2 (reply threading)
+            InReplyToEmailId = null,
+
             Status = "Pending",
             RawPayload = System.Text.Json.JsonSerializer.Serialize(payload),
             ReceivedAt = DateTime.UtcNow,
         };
 
-        // Step 5: Reply detection
-        if (!string.IsNullOrWhiteSpace(payload.InReplyTo))
-        {
-            var parentMessageId = ExtractMessageId(payload.InReplyTo);
-            var parentEmail = await this.dbContext.InboundEmails
-                .AsNoTracking()
-                .FirstOrDefaultAsync(e => e.MessageId == parentMessageId, cancellationToken);
-
-            if (parentEmail != null)
-            {
-                inboundEmail.InReplyToEmailId = parentEmail.Id;
-            }
-        }
-
         this.dbContext.InboundEmails.Add(inboundEmail);
-        await this.dbContext.SaveChangesAsync(cancellationToken);
+        await this.dbContext.SaveChangesAsync(ct);
 
-        try
-        {
-            // Step 6: Find or create contact
-            var contact = await this.ResolveContactAsync(inboundEmail, cancellationToken);
-
-            // Step 7: Store attachments
-            var storedAttachments = await this.ProcessAttachmentsAsync(
-                inboundEmail, route.WorkspaceId, attachmentStreams, cancellationToken);
-
-            // Step 8: Create ticket
-            var ticket = await this.CreateTicketAsync(
-                route, inboundEmail, contact);
-
-            // Step 9: Update inbound email with success
-            inboundEmail.TicketId = ticket.Id;
-            inboundEmail.ContactId = contact?.Id;
-            inboundEmail.Status = "Processed";
-            inboundEmail.ProcessedAt = DateTime.UtcNow;
-            await this.dbContext.SaveChangesAsync(cancellationToken);
-
-            // Step 10: Link attachments to ticket
-            if (storedAttachments.Count > 0)
-            {
-                await this.LinkAttachmentsToTicketAsync(storedAttachments, ticket.Id, route.WorkspaceId, cancellationToken);
-            }
-
-            // Step 11: Send confirmation email (fire-and-forget; failures are logged, not thrown)
-            await this.SendConfirmationAsync(inboundEmail);
-
-            this.logger.LogInformation(
-                "Inbound email {EmailId} processed into ticket {TicketId}",
-                inboundEmail.Id,
-                ticket.Id);
-
-            return InboundEmailResult.SuccessResult(inboundEmail.Id, ticket.Id);
-        }
-        catch (Exception ex)
-        {
-            inboundEmail.Status = "Failed";
-            inboundEmail.ErrorMessage = ex.Message;
-            await this.dbContext.SaveChangesAsync(cancellationToken);
-
-            this.logger.LogError(ex,
-                "Failed to process inbound email {EmailId}: {Message}",
-                inboundEmail.Id, ex.Message);
-
-            return InboundEmailResult.FailedResult(inboundEmail.Id, ex.Message);
-        }
+        return inboundEmail;
     }
 
-    private bool ValidateSignature(InboundEmailPayload payload)
-    {
-        if (payload.Signature == null)
-        {
-            this.logger.LogWarning("Mailgun webhook missing signature block");
-            return false;
-        }
-
-        var signingKey = this.config.InboundEmail.WebhookSigningKey;
-        if (string.IsNullOrWhiteSpace(signingKey))
-        {
-            this.logger.LogWarning("InboundEmail:WebhookSigningKey is not configured — skipping HMAC validation");
-            return true; // Allow when not configured (dev mode)
-        }
-
-        return this.hmacValidator.Validate(
-            payload.Signature.Timestamp,
-            payload.Signature.Token,
-            payload.Signature.Signature,
-            signingKey);
-    }
-
+    /// <summary>
+    /// Finds an existing contact by email, or creates one from the sender info.
+    /// </summary>
     private async Task<Contact?> ResolveContactAsync(InboundEmail inboundEmail, CancellationToken ct)
     {
         var email = inboundEmail.FromEmail.Trim().ToLowerInvariant();
 
-        // Look for an existing contact with this email
         var contact = await this.dbContext.Contacts
             .FirstOrDefaultAsync(c => c.Email.ToLower() == email
                 && c.WorkspaceId == inboundEmail.WorkspaceId, ct);
@@ -195,7 +200,6 @@ public class InboundEmailService(
             return contact;
         }
 
-        // Create a new contact from the sender info
         var displayName = inboundEmail.FromName ?? inboundEmail.FromEmail;
         contact = new Contact
         {
@@ -212,6 +216,10 @@ public class InboundEmailService(
         return contact;
     }
 
+    /// <summary>
+    /// Validates attachment size and MIME type, computes a content-hash storage path,
+    /// and uploads each attachment to RustFS.
+    /// </summary>
     private async Task<List<InboundEmailAttachment>> ProcessAttachmentsAsync(
         InboundEmail inboundEmail,
         int workspaceId,
@@ -240,7 +248,6 @@ public class InboundEmailService(
                 FileName = fileName,
                 ContentType = contentType,
                 Size = size,
-                MailgunUrl = null, // Content is in the request stream, not a URL
                 CreatedAt = DateTime.UtcNow,
             };
 
@@ -270,14 +277,14 @@ public class InboundEmailService(
                 continue;
             }
 
-            // Store to RustFS
-            try
-            {
-                var storagePath = $"inbound/{workspaceId}/{inboundEmail.Id}/{Guid.NewGuid():N}_{fileName}";
-                var publicUrl = await this.fileStorageService.UploadFileAsync(storagePath, stream, contentType);
+            // Compute content hash and build storage path
+            var storageResult = await this.StoreAttachmentWithHashAsync(
+                stream, inboundEmail.Id, fileName, contentType);
 
-                attachment.StoragePath = storagePath;
-                attachment.PublicUrl = publicUrl;
+            if (storageResult.StoragePath != null)
+            {
+                attachment.StoragePath = storageResult.StoragePath;
+                attachment.PublicUrl = storageResult.PublicUrl;
                 attachment.IsStored = true;
 
                 this.dbContext.InboundEmailAttachments.Add(attachment);
@@ -285,12 +292,10 @@ public class InboundEmailService(
                 stored.Add(attachment);
 
                 this.logger.LogInformation(
-                    "Stored attachment {FileName} → {StoragePath}", fileName, storagePath);
+                    "Stored attachment {FileName} → {StoragePath}", fileName, storageResult.StoragePath);
             }
-            catch (Exception ex)
+            else
             {
-                this.logger.LogError(ex, "Failed to store attachment {FileName}", fileName);
-
                 attachment.IsStored = false;
                 this.dbContext.InboundEmailAttachments.Add(attachment);
                 await this.dbContext.SaveChangesAsync(ct);
@@ -301,6 +306,54 @@ public class InboundEmailService(
         return stored;
     }
 
+    /// <summary>
+    /// Computes a SHA256 hash of the attachment content and stores it under
+    /// inbound/{inboundEmailId}/{hash}{extension}.
+    /// Returns the storage path, or null on failure.
+    /// </summary>
+    /// <summary>
+    /// Computes a SHA256 hash of the attachment content and stores it under
+    /// inbound/{inboundEmailId}/{hash}{extension}.
+    /// Returns (storagePath, publicUrl) on success, or null values on failure.
+    /// </summary>
+    private async Task<(string? StoragePath, string? PublicUrl)> StoreAttachmentWithHashAsync(
+        Stream stream,
+        int inboundEmailId,
+        string fileName,
+        string contentType)
+    {
+        // Compute SHA256 hash from the stream content
+        byte[] hashBytes;
+        var originalPosition = stream.Position;
+
+        try
+        {
+            hashBytes = await SHA256.HashDataAsync(stream);
+        }
+        finally
+        {
+            stream.Position = originalPosition;
+        }
+
+        var hash = Convert.ToHexString(hashBytes).ToLowerInvariant();
+        var extension = Path.GetExtension(fileName);
+        var storagePath = $"inbound/{inboundEmailId}/{hash}{extension}";
+
+        try
+        {
+            var publicUrl = await this.fileStorageService.UploadFileAsync(storagePath, stream, contentType);
+            return (storagePath, publicUrl);
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Failed to store attachment {FileName} at {Path}", fileName, storagePath);
+            return (null, null);
+        }
+    }
+
+    /// <summary>
+    /// Creates a ticket from the inbound email using the route's defaults.
+    /// </summary>
     private async Task<Ticket> CreateTicketAsync(
         InboundEmailRoute route,
         InboundEmail inboundEmail,
@@ -322,6 +375,9 @@ public class InboundEmailService(
             SystemUserId);
     }
 
+    /// <summary>
+    /// Links successfully stored attachments to the created ticket via FileStorage records.
+    /// </summary>
     private async Task LinkAttachmentsToTicketAsync(
         List<InboundEmailAttachment> attachments,
         int ticketId,
@@ -361,8 +417,11 @@ public class InboundEmailService(
         await this.dbContext.SaveChangesAsync(ct);
     }
 
-    private async Task SendConfirmationAsync(
-        InboundEmail inboundEmail)
+    /// <summary>
+    /// Sends a confirmation email for the processed inbound ticket.
+    /// Failures are logged but do not block the pipeline.
+    /// </summary>
+    private async Task SendConfirmationAsync(InboundEmail inboundEmail)
     {
         try
         {
@@ -381,7 +440,6 @@ public class InboundEmailService(
         }
         catch (Exception ex)
         {
-            // Confirmation is best-effort; log failure but don't fail the whole pipeline
             this.logger.LogWarning(ex,
                 "Failed to queue confirmation email for inbound email {EmailId}: {Message}",
                 inboundEmail.Id, ex.Message);
@@ -390,7 +448,7 @@ public class InboundEmailService(
 
     /// <summary>
     /// Extracts a clean Message-ID from an In-Reply-To or References header value.
-    /// Handles angle brackets, whitespace, and multi-reference lists.
+    /// Reserved for Phase 2 (reply threading via email).
     /// </summary>
     private static string? ExtractMessageId(string? reference)
     {
@@ -406,7 +464,6 @@ public class InboundEmailService(
             return end > 1 ? trimmed[1..end] : trimmed;
         }
 
-        // If there are multiple references, take the first one
         var spaceIndex = trimmed.IndexOf(' ');
         if (spaceIndex > 0)
         {

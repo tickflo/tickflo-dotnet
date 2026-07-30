@@ -7,6 +7,7 @@ using Tickflo.Core.Config;
 using Tickflo.Core.Data;
 using Tickflo.Core.DTOs;
 using Tickflo.Core.Entities;
+using Tickflo.Core.Exceptions;
 using Tickflo.Core.Services.Email;
 using Tickflo.Core.Services.Storage;
 using Tickflo.Core.Services.Tickets;
@@ -204,7 +205,7 @@ public class InboundEmailServiceTests
     }
 
     [Fact]
-    public async Task ProcessAsync_WithUnknownLocalPart_ReturnsRejected()
+    public async Task ProcessAsync_WithUnknownLocalPart_ThrowsBadRequest()
     {
         // Arrange
         var db = CreateDbContext();
@@ -238,12 +239,9 @@ public class InboundEmailServiceTests
             },
         };
 
-        // Act
-        var result = await service.ProcessAsync(payload, null);
-
-        // Assert
-        Assert.False(result.Success);
-        Assert.Contains("No active route", result.Message);
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<BadRequestException>(() => service.ProcessAsync(payload, null));
+        Assert.Contains("No active route", ex.Message);
         emailSendService.Verify(s => s.AddToQueueAsync(It.IsAny<string>(), It.IsAny<EmailTemplateType>(), It.IsAny<Dictionary<string, string>>(), It.IsAny<int>()), Times.Never);
     }
 
@@ -305,7 +303,7 @@ public class InboundEmailServiceTests
     }
 
     [Fact]
-    public async Task ProcessAsync_WithInvalidHmac_ReturnsFailed()
+    public async Task ProcessAsync_WithInvalidHmac_ThrowsBadRequest()
     {
         // Arrange
         var db = CreateDbContext();
@@ -340,12 +338,9 @@ public class InboundEmailServiceTests
             },
         };
 
-        // Act
-        var result = await service.ProcessAsync(payload, null);
-
-        // Assert
-        Assert.False(result.Success);
-        Assert.Contains("Invalid HMAC", result.Message);
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<BadRequestException>(() => service.ProcessAsync(payload, null));
+        Assert.Contains("Invalid HMAC", ex.Message);
     }
 
     [Fact]

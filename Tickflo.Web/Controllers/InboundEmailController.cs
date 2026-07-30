@@ -1,10 +1,12 @@
 namespace Tickflo.Web.Controllers;
 
 using System.Globalization;
-using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Tickflo.Core.Data;
+using Tickflo.Core.Exceptions;
 using Tickflo.Core.DTOs;
 using Tickflo.Core.Services.Email;
 
@@ -18,56 +20,82 @@ using Tickflo.Core.Services.Email;
 [Route("api/inbound-email")]
 public class InboundEmailController(
     IInboundEmailService inboundEmailService,
+    TickfloDbContext dbContext,
     ILogger<InboundEmailController> logger) : Controller
 {
     private readonly IInboundEmailService inboundEmailService = inboundEmailService;
+    private readonly TickfloDbContext dbContext = dbContext;
     private readonly ILogger<InboundEmailController> logger = logger;
 
     /// <summary>
     /// Mailgun forwards inbound emails here via POST with multipart/form-data.
     /// The body contains email fields (from, subject, body-plain, etc.),
     /// signature fields (timestamp, token, signature), and file attachments.
+    /// Always returns 200 per Mailgun spec — errors are persisted on the record,
+    /// not returned to the caller to prevent Mailgun retries on expected failures.
     /// </summary>
     [HttpPost]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> Receive()
     {
+        InboundEmailPayload payload;
+        Dictionary<string, (Stream Stream, string ContentType, long Size)>? attachmentStreams;
+
         try
         {
-            var payload = await this.ParsePayloadAsync();
-            var attachmentStreams = this.ExtractAttachments();
-
-            var result = await this.inboundEmailService.ProcessAsync(payload, attachmentStreams);
-
-            if (result.Success)
-            {
-                this.logger.LogInformation(
-                    "Inbound email {EmailId} processed → ticket {TicketId}",
-                    result.InboundEmailId,
-                    result.TicketId);
-            }
-            else
-            {
-                this.logger.LogWarning(
-                    "Inbound email processing result: {Status} — {Message}",
-                    result.Status,
-                    result.Message);
-            }
+            payload = this.ParsePayload();
+            attachmentStreams = this.ExtractAttachments();
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Failed to process inbound email webhook: {Message}", ex.Message);
+            // Payload parsing failure — nothing to persist, just log
+            this.logger.LogError(ex, "Failed to parse inbound email payload: {Message}", ex.Message);
+            return this.Ok();
         }
 
-        // Mailgun expects 200 to acknowledge receipt; non-200 triggers retry.
-        // Processing errors are persisted in the InboundEmail record, not returned.
+        InboundEmailResult result;
+
+        try
+        {
+            result = await this.inboundEmailService.ProcessAsync(payload, attachmentStreams);
+        }
+        catch (HttpException ex)
+        {
+            // Expected validation failure (HMAC, unknown route, etc.)
+            // The service creates the InboundEmail record early; update it to Failed
+            this.logger.LogWarning("Inbound email rejected: {Message}", ex.Message);
+            await this.MarkEmailFailedByMessageId(payload.GetMessageId(), ex.Message);
+            return this.Ok();
+        }
+        catch (Exception ex)
+        {
+            // Unexpected pipeline failure
+            this.logger.LogError(ex, "Failed to process inbound email: {Message}", ex.Message);
+            await this.MarkEmailFailedByMessageId(payload.GetMessageId(), ex.Message);
+            return this.Ok();
+        }
+
+        if (result.Success)
+        {
+            this.logger.LogInformation(
+                "Inbound email {EmailId} processed → ticket {TicketId}",
+                result.InboundEmailId,
+                result.TicketId);
+        }
+        else
+        {
+            this.logger.LogWarning(
+                "Inbound email processing result: {Status} — {Message}",
+                result.Status,
+                result.Message);
+        }
+
         return this.Ok();
     }
 
-    private async Task<InboundEmailPayload> ParsePayloadAsync()
+    private InboundEmailPayload ParsePayload()
     {
-        var request = this.Request;
-        var form = await request.ReadFormAsync();
+        var form = this.Request.Form;
 
         var payload = new InboundEmailPayload
         {
@@ -80,20 +108,15 @@ public class InboundEmailController(
             StrippedHtml = form["stripped-html"].FirstOrDefault(),
             StrippedSignature = form["stripped-signature"].FirstOrDefault(),
             Recipient = form["recipient"].FirstOrDefault() ?? string.Empty,
-            To = form["To"].FirstOrDefault() ?? string.Empty,
-            Cc = form["Cc"].FirstOrDefault(),
+            To = form["To"].FirstOrDefault(),
             MessageId = form["message-id"].FirstOrDefault() ?? string.Empty,
-            MessageIdAlt = form["Message-Id"].FirstOrDefault() ?? string.Empty,
             MessageHeaders = form["message-headers"].FirstOrDefault(),
-            InReplyTo = form["In-Reply-To"].FirstOrDefault(),
-            References = form["References"].FirstOrDefault(),
             FromName = form["from-name"].FirstOrDefault(),
             Timestamp = long.TryParse(form["timestamp"].FirstOrDefault(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var ts) ? ts : 0,
             Date = form["Date"].FirstOrDefault(),
 
             // Attachment info
             AttachmentCount = int.TryParse(form["attachment-count"].FirstOrDefault(), out var count) ? count : 0,
-            AttachmentInfo = form["attachment-info"].FirstOrDefault(),
         };
 
         // Parse Mailgun signature
@@ -102,8 +125,6 @@ public class InboundEmailController(
             Timestamp = form["signature[timestamp]"].FirstOrDefault() ?? string.Empty,
             Token = form["signature[token]"].FirstOrDefault() ?? string.Empty,
             Signature = form["signature[signature]"].FirstOrDefault() ?? string.Empty,
-
-            // Also try flattened format: Mailgun may send as top-level fields
         };
 
         // If structured signature wasn't found, try top-level fields
@@ -115,33 +136,6 @@ public class InboundEmailController(
         }
 
         payload.Signature = signature;
-
-        // Parse attachment metadata if available
-        if (!string.IsNullOrWhiteSpace(payload.AttachmentInfo))
-        {
-            try
-            {
-                var attachmentDict = JsonSerializer.Deserialize<Dictionary<string, MailgunAttachmentJson>>(payload.AttachmentInfo);
-                if (attachmentDict != null)
-                {
-                    foreach (var (key, value) in attachmentDict)
-                    {
-                        payload.Attachments.Add(new MailgunAttachment
-                        {
-                            Name = value.Name,
-                            ContentType = value.ContentType,
-                            Size = value.Size,
-                            Url = value.Url,
-                        });
-                    }
-                }
-            }
-            catch (JsonException)
-            {
-                // attachment-info is best-effort; log and continue
-                this.logger.LogWarning("Failed to parse attachment-info JSON");
-            }
-        }
 
         return payload;
     }
@@ -169,13 +163,28 @@ public class InboundEmailController(
     }
 
     /// <summary>
-    /// JSON structure from the attachment-info field for parsing.
+    /// Marks the InboundEmail record as Failed when the pipeline throws after record creation.
+    /// Looks up the record by its MessageId (set early in the pipeline).
     /// </summary>
-    private sealed class MailgunAttachmentJson
+    private async Task MarkEmailFailedByMessageId(string messageId, string error)
     {
-        public string Name { get; set; } = string.Empty;
-        public string ContentType { get; set; } = string.Empty;
-        public long Size { get; set; }
-        public string Url { get; set; } = string.Empty;
+        if (string.IsNullOrWhiteSpace(messageId)) return;
+
+        try
+        {
+            var email = await this.dbContext.InboundEmails
+                .FirstOrDefaultAsync(e => e.MessageId == messageId);
+
+            if (email != null && email.Status == "Pending")
+            {
+                email.Status = "Failed";
+                email.ErrorMessage = error;
+                await this.dbContext.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Failed to mark inbound email as Failed: {Message}", ex.Message);
+        }
     }
 }

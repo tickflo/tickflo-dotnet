@@ -503,9 +503,6 @@ namespace Tickflo.Core.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_stored");
 
-                    b.Property<string>("MailgunUrl")
-                        .HasColumnType("text")
-                        .HasColumnName("mailgun_url");
 
                     b.Property<string>("PublicUrl")
                         .HasColumnType("text")

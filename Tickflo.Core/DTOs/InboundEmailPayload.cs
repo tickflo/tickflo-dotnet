@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 /// <summary>
 /// Represents the Mailgun inbound email webhook payload.
 /// Mailgun sends multipart/form-data; these fields are parsed from the POST body.
+/// Only documented Mailgun parameters are included here.
 /// </summary>
 public class InboundEmailPayload
 {
@@ -39,48 +40,32 @@ public class InboundEmailPayload
     [JsonPropertyName("recipient")]
     public string Recipient { get; set; } = string.Empty;
 
+    /// <summary>
+    /// The To header value from the original email (MIME header posted by Mailgun).
+    /// Routing uses <see cref="Recipient"/> instead; this is informational.
+    /// </summary>
     [JsonPropertyName("To")]
-    public string To { get; set; } = string.Empty;
-
-    [JsonPropertyName("Cc")]
-    public string? Cc { get; set; }
+    public string? To { get; set; }
 
     // --- Message identification ---
 
     [JsonPropertyName("message-id")]
     public string MessageId { get; set; } = string.Empty;
 
-    [JsonPropertyName("Message-Id")]
-    public string MessageIdAlt { get; set; } = string.Empty;
-
     [JsonPropertyName("message-headers")]
     public string? MessageHeaders { get; set; }
-
-    // --- Reply tracking ---
-
-    [JsonPropertyName("In-Reply-To")]
-    public string? InReplyTo { get; set; }
-
-    [JsonPropertyName("References")]
-    public string? References { get; set; }
 
     // --- Attachments ---
 
     [JsonPropertyName("attachment-count")]
     public int AttachmentCount { get; set; }
 
-    [JsonPropertyName("attachment-info")]
-    public string? AttachmentInfo { get; set; }
-
-    /// <summary>
-    /// Individual attachment entries are sent as attachment-N fields.
-    /// We parse them from the form data; this is a convenience lookup.
-    /// </summary>
-    [JsonIgnore]
-    public List<MailgunAttachment> Attachments { get; set; } = [];
-
     // --- Sender info ---
 
+    /// <summary>
+    /// Best-effort display name extracted by Mailgun from the From header.
+    /// Not guaranteed to be present; the service falls back to the email address.
+    /// </summary>
     [JsonPropertyName("from-name")]
     public string? FromName { get; set; }
 
@@ -97,8 +82,7 @@ public class InboundEmailPayload
     [JsonPropertyName("signature")]
     public MailgunSignature? Signature { get; set; }
 
-    public string GetMessageId()
-        => !string.IsNullOrWhiteSpace(this.MessageId) ? this.MessageId : this.MessageIdAlt;
+    public string GetMessageId() => this.MessageId;
 
     public string GetSenderEmail()
         => !string.IsNullOrWhiteSpace(this.Sender) ? this.Sender : this.From;
@@ -109,8 +93,8 @@ public class InboundEmailPayload
     public string GetRecipientLocalPart()
     {
         var addr = !string.IsNullOrWhiteSpace(this.Recipient) ? this.Recipient : this.To;
-        var atIndex = addr.IndexOf('@');
-        return atIndex > 0 ? addr[..atIndex].ToLowerInvariant() : string.Empty;
+        var atIndex = addr?.IndexOf('@') ?? -1;
+        return atIndex > 0 ? addr![..atIndex].ToLowerInvariant() : string.Empty;
     }
 }
 
@@ -127,42 +111,4 @@ public class MailgunSignature
 
     [JsonPropertyName("signature")]
     public string Signature { get; set; } = string.Empty;
-}
-
-/// <summary>
-/// Represents a file attachment from Mailgun.
-/// Mailgun sends attachments as multipart form-data fields named "attachment-N".
-/// Each has a URL for temporary download, filename, content-type, and size.
-/// </summary>
-public class MailgunAttachment
-{
-    /// <summary>
-    /// The temporary Mailgun URL to download the attachment content.
-    /// </summary>
-    public string Url { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Original filename.
-    /// </summary>
-    public string Name { get; set; } = string.Empty;
-
-    /// <summary>
-    /// MIME content type.
-    /// </summary>
-    public string ContentType { get; set; } = string.Empty;
-
-    /// <summary>
-    /// File size in bytes.
-    /// </summary>
-    public long Size { get; set; }
-
-    /// <summary>
-    /// Whether this attachment should be rejected (too large, wrong type, etc.).
-    /// </summary>
-    public bool IsRejected { get; set; }
-
-    /// <summary>
-    /// Reason for rejection, if applicable.
-    /// </summary>
-    public string? RejectionReason { get; set; }
 }

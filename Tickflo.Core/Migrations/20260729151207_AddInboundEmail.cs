@@ -79,7 +79,6 @@ public partial class AddInboundEmail : Migration
                 file_name = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: false),
                 content_type = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
                 size = table.Column<long>(type: "bigint", nullable: false),
-                mailgun_url = table.Column<string>(type: "text", nullable: true),
                 storage_path = table.Column<string>(type: "text", nullable: true),
                 public_url = table.Column<string>(type: "text", nullable: true),
                 is_stored = table.Column<bool>(type: "boolean", nullable: false),
