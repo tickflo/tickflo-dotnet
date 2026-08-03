@@ -3,6 +3,7 @@ namespace Tickflo.Web.Pages.Workspaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Tickflo.Core.Config;
 using Tickflo.Core.Data;
 using Tickflo.Core.Entities;
 using Tickflo.Core.Services.Workspace;
@@ -10,15 +11,18 @@ using Tickflo.Core.Services.Workspace;
 [Authorize]
 public class InboundEmailRoutesModel(
     TickfloDbContext dbContext,
-    IWorkspaceService workspaceService) : WorkspacePageModel
+    IWorkspaceService workspaceService,
+    TickfloConfig config) : WorkspacePageModel
 {
     private readonly TickfloDbContext dbContext = dbContext;
     private readonly IWorkspaceService workspaceService = workspaceService;
+    private readonly TickfloConfig config = config;
 
     public string WorkspaceSlug { get; private set; } = string.Empty;
     public Workspace? Workspace { get; private set; }
     public List<InboundEmailRoute> Routes { get; private set; } = [];
     public int? EditRouteId { get; set; }
+    public string InboundDomain => this.config.InboundEmail.Domain;
 
     [BindProperty]
     public string LocalPart { get; set; } = string.Empty;

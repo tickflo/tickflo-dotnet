@@ -21,7 +21,7 @@
                     <div>
                         <h2 class="card-title">Inbound Email Routes</h2>
                         <p class="text-sm text-base-content/70">
-                            Each route maps an email address (e.g. support@@tickflo.co) to this workspace.
+                            Each route maps an email address (e.g. support@@@Model.InboundDomain) to this workspace.
                             Only emails matching an active route are accepted.
                         </p>
                     </div>
@@ -39,7 +39,7 @@
                         <label class="form-control">
                             <span class="label-text text-slate-300">Local Part</span>
                             <input asp-for="LocalPart" class="input input-bordered bg-neutral-800 text-slate-100" placeholder="support" required />
-                            <span class="text-xs text-base-content/70 mt-1">The part before @@ (e.g. "support" for support@@tickflo.co)</span>
+                            <span class="text-xs text-base-content/70 mt-1">The part before @@ (e.g. "support" for support@@@Model.InboundDomain)</span>
                         </label>
                         <label class="form-control">
                             <span class="label-text text-slate-300">Label</span>
@@ -79,7 +79,7 @@
                         <label class="form-control">
                             <span class="label-text text-slate-300">Local Part</span>
                             <input asp-for="LocalPart" class="input input-bordered bg-neutral-800 text-slate-100" placeholder="support" required />
-                            <span class="text-xs text-base-content/70 mt-1">e.g. "support" for support@@tickflo.co</span>
+                            <span class="text-xs text-base-content/70 mt-1">e.g. "support" for support@@@Model.InboundDomain</span>
                         </label>
                         <label class="form-control">
                             <span class="label-text text-slate-300">Label</span>
@@ -121,7 +121,7 @@
                                     var isEditing = Model.EditRouteId == route.Id;
                                     <tr class="@(isEditing ? "bg-primary/10" : "")">
                                         <td>
-                                            <div class="font-mono text-sm">@route.LocalPart@@tickflo.co</div>
+                                            <div class="font-mono text-sm">@route.LocalPart@@@Model.InboundDomain</div>
                                         </td>
                                         <td>
                                             <div class="font-medium">@(string.IsNullOrWhiteSpace(route.Label) ? "(untitled)" : route.Label)</div>
@@ -146,7 +146,7 @@
                                             <div class="flex gap-2">
                                                 <a class="btn btn-ghost btn-xs" asp-page="InboundEmailRoutes" asp-route-slug="@Model.WorkspaceSlug" asp-route-edit="@route.Id">Edit</a>
                                                 <form method="post" action="@Url.Page("InboundEmailRoutes", "Delete", new { slug = Model.WorkspaceSlug, id = route.Id })"
-                                                      onsubmit="return confirm('Delete route @route.LocalPart@@tickflo.co?');">
+                                                      onsubmit="return confirm('Delete route @route.LocalPart@@@Model.InboundDomain?');">
                                                     <button type="submit" class="btn btn-ghost btn-xs text-error">Delete</button>
                                                 </form>
                                             </div>
