@@ -1,0 +1,163 @@
+@page "/workspaces/{slug}/inbound-email-routes"
+@model Tickflo.Web.Pages.Workspaces.InboundEmailRoutesModel
+@{
+    ViewData["Title"] = "Inbound Email Routes";
+}
+
+<div class="flex flex-row gap-2 md:gap-4">
+    @await Html.PartialAsync("_WorkspaceSidebar", Model.WorkspaceSlug)
+    <section class="relative overflow-hidden p-3 md:p-6 flex-1 min-w-0 space-y-6 md:space-y-8 text-slate-100 rounded-3xl bg-gradient-to-br from-[#0c1220] via-[#0b101b] to-[#0a0f18]">
+        @await Html.PartialAsync("_WorkspaceHeader", new Tickflo.Web.Pages.Shared.WorkspaceHeaderView {
+            Slug = Model.WorkspaceSlug,
+            Name = Model.Workspace?.Name ?? "Workspace",
+            SectionTitle = "Inbound Email",
+            NewActionLabel = "New Route",
+            NewActionHref = null,
+            AllowNewAction = true
+        })
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+            <div class="card-body">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="card-title">Inbound Email Routes</h2>
+                        <p class="text-sm text-base-content/70">
+                            Each route maps an email address (e.g. support@@tickflo.co) to this workspace.
+                            Only emails matching an active route are accepted.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- New / Edit Route Form -->
+        @if (Model.EditRouteId.HasValue)
+        {
+            <form method="post" action="@Url.Page("InboundEmailRoutes", "Update", new { slug = Model.WorkspaceSlug, id = Model.EditRouteId.Value })" class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+                <div class="card-body">
+                    <h3 class="card-title">Edit Route</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <label class="form-control">
+                            <span class="label-text text-slate-300">Local Part</span>
+                            <input asp-for="LocalPart" class="input input-bordered bg-neutral-800 text-slate-100" placeholder="support" required />
+                            <span class="text-xs text-base-content/70 mt-1">The part before @@ (e.g. "support" for support@@tickflo.co)</span>
+                        </label>
+                        <label class="form-control">
+                            <span class="label-text text-slate-300">Label</span>
+                            <input asp-for="Label" class="input input-bordered bg-neutral-800 text-slate-100" placeholder="Support Inbox" />
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                        <label class="form-control">
+                            <span class="label-text text-slate-300">Default Ticket Type</span>
+                            <input asp-for="DefaultTicketType" class="input input-bordered bg-neutral-800 text-slate-100" placeholder="e.g. Service" />
+                        </label>
+                        <label class="form-control">
+                            <span class="label-text text-slate-300">Default Priority</span>
+                            <input asp-for="DefaultTicketPriority" class="input input-bordered bg-neutral-800 text-slate-100" placeholder="e.g. Normal" />
+                        </label>
+                        <label class="form-control">
+                            <span class="label-text text-slate-300">Active</span>
+                            <select asp-for="Active" class="select select-bordered bg-neutral-800 text-slate-100">
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <a asp-page="InboundEmailRoutes" asp-route-slug="@Model.WorkspaceSlug" class="btn btn-ghost">Cancel</a>
+                    </div>
+                </div>
+            </form>
+        }
+        else
+        {
+            <form method="post" action="@Url.Page("InboundEmailRoutes", "Create", new { slug = Model.WorkspaceSlug })" class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+                <div class="card-body">
+                    <h3 class="card-title">Add New Route</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <label class="form-control">
+                            <span class="label-text text-slate-300">Local Part</span>
+                            <input asp-for="LocalPart" class="input input-bordered bg-neutral-800 text-slate-100" placeholder="support" required />
+                            <span class="text-xs text-base-content/70 mt-1">e.g. "support" for support@@tickflo.co</span>
+                        </label>
+                        <label class="form-control">
+                            <span class="label-text text-slate-300">Label</span>
+                            <input asp-for="Label" class="input input-bordered bg-neutral-800 text-slate-100" placeholder="Support Inbox" />
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-4 self-start">Create Route</button>
+                </div>
+            </form>
+        }
+
+        <!-- Routes List -->
+        <div class="card bg-neutral-900/85 backdrop-blur shadow-2xl rounded-3xl text-slate-100">
+            <div class="card-body p-0">
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra table-md table-stack">
+                        <thead>
+                            <tr>
+                                <th>Email Address</th>
+                                <th>Label</th>
+                                <th class="hidden sm:table-cell">Defaults</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Routes.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="5">
+                                        <div class="alert p-4 text-sm">No routes configured. Add one above.</div>
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                foreach (var route in Model.Routes)
+                                {
+                                    var isEditing = Model.EditRouteId == route.Id;
+                                    <tr class="@(isEditing ? "bg-primary/10" : "")">
+                                        <td>
+                                            <div class="font-mono text-sm">@route.LocalPart@@tickflo.co</div>
+                                        </td>
+                                        <td>
+                                            <div class="font-medium">@(string.IsNullOrWhiteSpace(route.Label) ? "(untitled)" : route.Label)</div>
+                                        </td>
+                                        <td class="hidden sm:table-cell">
+                                            <div class="flex flex-wrap gap-1">
+                                                @if (!string.IsNullOrWhiteSpace(route.DefaultTicketType)) { <span class="badge badge-soft badge-sm">type: @route.DefaultTicketType</span> }
+                                                @if (!string.IsNullOrWhiteSpace(route.DefaultTicketPriority)) { <span class="badge badge-soft badge-sm">priority: @route.DefaultTicketPriority</span> }
+                                            </div>
+                                        </td>
+                                        <td>
+                                            @if (route.Active)
+                                            {
+                                                <span class="badge badge-soft badge-success badge-sm">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge badge-soft badge-error badge-sm">Inactive</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="flex gap-2">
+                                                <a class="btn btn-ghost btn-xs" asp-page="InboundEmailRoutes" asp-route-slug="@Model.WorkspaceSlug" asp-route-edit="@route.Id">Edit</a>
+                                                <form method="post" action="@Url.Page("InboundEmailRoutes", "Delete", new { slug = Model.WorkspaceSlug, id = route.Id })"
+                                                      onsubmit="return confirm('Delete route @route.LocalPart@@tickflo.co?');">
+                                                    <button type="submit" class="btn btn-ghost btn-xs text-error">Delete</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
