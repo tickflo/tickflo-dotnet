@@ -129,6 +129,46 @@ public partial class WorkspaceCreationService(
         this.dbContext.UserWorkspaceRoles.Add(roleAssignment);
         await this.dbContext.SaveChangesAsync();
 
+        await this.CreateDefaultInboundEmailRouteAsync(workspace, slug, createdByUserId);
+
         return workspace;
+    }
+
+    /// <summary>
+    /// Creates a default inbound email route for the workspace using its slug as the local part.
+    /// If the slug collides with an existing route's local part (local parts are globally unique),
+    /// a numeric suffix is appended. If no unique local part can be found, the route is skipped —
+    /// workspace creation must not fail because of an email route.
+    /// </summary>
+    private async Task CreateDefaultInboundEmailRouteAsync(Workspace workspace, string slug, int createdByUserId)
+    {
+        var existingLocalParts = (await this.dbContext.InboundEmailRoutes
+            .Select(r => r.LocalPart)
+            .ToListAsync())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var localPart = slug;
+        for (var suffix = 2; existingLocalParts.Contains(localPart) && suffix <= 11; suffix++)
+        {
+            localPart = $"{slug}-{suffix}";
+        }
+
+        if (existingLocalParts.Contains(localPart))
+        {
+            return;
+        }
+
+        var defaultRoute = new InboundEmailRoute
+        {
+            WorkspaceId = workspace.Id,
+            LocalPart = localPart,
+            Label = "Default",
+            Active = true,
+            CreatedByUserId = createdByUserId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        this.dbContext.InboundEmailRoutes.Add(defaultRoute);
+        await this.dbContext.SaveChangesAsync();
     }
 }

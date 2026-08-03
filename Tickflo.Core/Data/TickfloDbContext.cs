@@ -203,7 +203,7 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
         modelBuilder.Entity<InboundEmailRoute>(entity =>
         {
             entity.ToTable("inbound_email_routes");
-            entity.HasIndex(r => new { r.WorkspaceId, r.LocalPart }).IsUnique();
+            entity.HasIndex(r => r.LocalPart).IsUnique();
             entity.Property(r => r.LocalPart).IsRequired().HasMaxLength(128);
             entity.Property(r => r.Label).IsRequired().HasMaxLength(256);
         });
