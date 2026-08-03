@@ -451,6 +451,84 @@
   }
 }
 
+/* ── Inbox shell ──────────────────────────────────────────────────────────
+   The global overrides above are legacy (late-2000s CMS glass theme) and
+   will be removed as the inbox migration rolls out. Inside `.inbox-shell`
+   we restore stock daisyUI semantics so the new UI uses pure daisyUI. */
+.inbox-shell {
+  @apply text-base-content;
+}
+
+.inbox-shell .menu {
+  background: transparent;
+  border: none;
+  backdrop-filter: none;
+}
+
+.inbox-shell .card {
+  @apply rounded-box border-base-300 bg-base-100 shadow-sm;
+  backdrop-filter: none;
+}
+
+.inbox-shell .badge {
+  @apply border-transparent bg-base-300 text-base-content;
+}
+.inbox-shell .badge-primary {
+  @apply bg-primary text-primary-content;
+}
+.inbox-shell .badge-info {
+  @apply bg-info text-info-content;
+}
+.inbox-shell .badge-success {
+  @apply bg-success text-success-content;
+}
+.inbox-shell .badge-warning {
+  @apply bg-warning text-warning-content;
+}
+.inbox-shell .badge-error {
+  @apply bg-error text-error-content;
+}
+.inbox-shell .badge-neutral {
+  @apply bg-neutral text-neutral-content;
+}
+.inbox-shell .badge-outline {
+  background-color: transparent;
+  border-color: currentColor;
+}
+.inbox-shell .badge-outline.badge-success {
+  @apply text-success;
+}
+.inbox-shell .badge-outline.badge-warning {
+  @apply text-warning;
+}
+.inbox-shell .badge-outline.badge-error {
+  @apply text-error;
+}
+
+.inbox-shell .btn {
+  @apply rounded-field;
+}
+.inbox-shell .btn-primary {
+  @apply border-primary bg-primary text-primary-content shadow-none hover:bg-primary/85;
+}
+.inbox-shell .btn-success {
+  @apply border-success bg-success text-success-content shadow-none hover:bg-success/85;
+}
+.inbox-shell .btn-ghost {
+  @apply text-base-content/70 shadow-none hover:text-base-content;
+  background: transparent;
+}
+.inbox-shell .btn-outline.btn-success {
+  background-color: transparent;
+  @apply text-success hover:bg-success hover:text-success-content;
+}
+
+.inbox-shell .textarea-ghost {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
 /* Header user menu styling for consistent glass look */
 .user-menu-panel {
   @apply rounded-2xl shadow-2xl;

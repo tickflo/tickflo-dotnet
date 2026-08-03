@@ -1,0 +1,419 @@
+@page "/workspaces/{slug}/inbox"
+@model Tickflo.Web.Pages.Workspaces.InboxModel
+@{
+    ViewData["Title"] = "Inbox";
+    ViewData["ShellFullHeight"] = true;
+
+    var defaultViews = Model.Views.Where(v => !v.IsCustom).ToList();
+    var customViews = Model.Views.Where(v => v.IsCustom).ToList();
+    string ViewUrl(string view) => $"?view={view}";
+    string TicketUrl(int id) => $"?view={Model.View}&ticket={id}";
+}
+
+<div class="inbox-shell flex h-full min-h-0 overflow-hidden rounded-box border border-base-300 bg-base-100 text-base-content">
+    @await Html.PartialAsync("_InboxIconRail", Model.WorkspaceSlug)
+
+    @* ── Column 1: views ──────────────────────────────────────────────── *@
+    <nav class="hidden lg:flex w-56 shrink-0 flex-col border-r border-base-300 bg-base-200/40" aria-label="Inbox views">
+        <div class="border-b border-base-300 p-3">
+            <div class="text-xs uppercase tracking-wide text-base-content/50">@Model.Workspace?.Name</div>
+            <h2 class="font-semibold">Inbox</h2>
+        </div>
+        <ul class="menu menu-sm w-full flex-1 overflow-y-auto p-2">
+            <li class="menu-title">Views</li>
+            @foreach (var view in defaultViews)
+            {
+                <li>
+                    <a href="@ViewUrl(view.Key)" class="flex items-center gap-2 @(Model.View == view.Key ? "menu-active" : null)">
+                        <i class="fa @view.Icon w-4 text-center"></i>
+                        <span class="flex-1">@view.Label</span>
+                        <span class="badge badge-sm">@view.Count</span>
+                    </a>
+                </li>
+            }
+            <li class="menu-title mt-2 flex items-center justify-between">
+                <span>Custom views</span>
+                <button type="button" class="btn btn-ghost btn-xs btn-circle" title="New view" aria-label="New view">
+                    <i class="fa fa-plus"></i>
+                </button>
+            </li>
+            @foreach (var view in customViews)
+            {
+                <li>
+                    <a href="@ViewUrl(view.Key)" class="flex items-center gap-2 @(Model.View == view.Key ? "menu-active" : null)">
+                        <i class="fa @view.Icon w-4 text-center"></i>
+                        <span class="flex-1">@view.Label</span>
+                        <span class="badge badge-sm">@view.Count</span>
+                    </a>
+                </li>
+            }
+        </ul>
+    </nav>
+
+    @* ── Column 2: ticket list ────────────────────────────────────────── *@
+    <section class="@(Model.HasSelection ? "hidden md:flex" : "flex") w-full md:w-80 shrink-0 flex-col border-r border-base-300" aria-label="Conversations">
+        <div class="space-y-2 border-b border-base-300 p-3">
+            <div class="flex items-center gap-2">
+                <div class="dropdown lg:hidden">
+                    <div tabindex="0" role="button" class="btn btn-ghost btn-sm gap-1 px-2 font-semibold">
+                        @Model.ActiveViewLabel
+                        <i class="fa fa-chevron-down text-xs opacity-60"></i>
+                    </div>
+                    <ul tabindex="0" class="dropdown-content menu menu-sm z-30 w-56 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg">
+                        @foreach (var view in Model.Views)
+                        {
+                            <li>
+                                <a href="@ViewUrl(view.Key)" class="flex items-center gap-2">
+                                    <i class="fa @view.Icon w-4 text-center"></i>
+                                    <span class="flex-1">@view.Label</span>
+                                    <span class="badge badge-xs">@view.Count</span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+                <h2 class="hidden lg:block flex-1 truncate font-semibold">
+                    @Model.ActiveViewLabel
+                    <span class="badge badge-sm align-middle">@Model.Tickets.Count</span>
+                </h2>
+                <div class="flex-1 lg:hidden"></div>
+                <a asp-page="/Workspaces/TicketsDetails" asp-route-slug="@Model.WorkspaceSlug" asp-route-id="0" class="btn btn-primary btn-sm">
+                    <i class="fa fa-plus"></i>
+                    <span class="hidden sm:inline">New</span>
+                </a>
+            </div>
+            <label class="input input-sm w-full">
+                <i class="fa fa-search opacity-50"></i>
+                <input type="search" placeholder="Search conversations" />
+            </label>
+        </div>
+
+        @if (Model.Tickets.Count == 0)
+        {
+            <div class="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center text-base-content/50">
+                <i class="fa fa-inbox text-3xl"></i>
+                <p class="text-sm">No conversations in this view</p>
+            </div>
+        }
+        else
+        {
+            <ul class="list flex-1 overflow-y-auto">
+                @foreach (var ticket in Model.Tickets)
+                {
+                    var isSelected = Model.SelectedTicket?.Id == ticket.Id;
+                    <li class="list-row relative rounded-none hover:bg-base-200 @(isSelected ? "bg-base-300/60" : null)">
+                        <a href="@TicketUrl(ticket.Id)" class="absolute inset-0 z-10" aria-label="Open conversation: @ticket.Subject"></a>
+                        <div class="avatar avatar-placeholder self-center">
+                            <div class="w-10 rounded-full bg-neutral text-neutral-content">
+                                <span class="text-xs">@ticket.Contact.Initials</span>
+                            </div>
+                        </div>
+                        <div class="min-w-0 self-center">
+                            <div class="flex items-center gap-1.5">
+                                <span class="truncate text-sm font-medium">@ticket.Contact.Name</span>
+                                @if (ticket.Unread)
+                                {
+                                    <span class="badge badge-primary badge-xs h-2 w-2 rounded-full p-0" aria-label="Unread"></span>
+                                }
+                            </div>
+                            <div class="truncate text-sm @(ticket.Unread ? "font-semibold" : "text-base-content/70")">@ticket.Subject</div>
+                            <div class="truncate text-xs text-base-content/50">@ticket.Snippet</div>
+                            <div class="mt-1 flex items-center gap-1">
+                                <span class="badge badge-xs badge-@ticket.StatusColor">@ticket.Status</span>
+                                <span class="badge badge-xs badge-outline badge-@ticket.PriorityColor">@ticket.Priority</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end gap-1 self-center">
+                            <span class="text-xs whitespace-nowrap text-base-content/50">@ticket.LastActivity</span>
+                            @if (ticket.Assignee != null)
+                            {
+                                <div class="avatar avatar-placeholder" title="Assigned to @ticket.Assignee">
+                                    <div class="w-5 rounded-full bg-base-300 text-base-content">
+                                        <span class="text-[9px]">@(ticket.Assignee == "You" ? "YO" : ticket.Assignee == "Mike Chen" ? "MC" : "SJ")</span>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="badge badge-xs badge-ghost">Unassigned</span>
+                            }
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+
+    @* ── Column 3: conversation ───────────────────────────────────────── *@
+    <section class="@(Model.HasSelection ? "flex" : "hidden md:flex") min-w-0 flex-1 flex-col" aria-label="Conversation">
+        @if (Model.SelectedTicket is { } t)
+        {
+            <header class="flex items-center gap-2 border-b border-base-300 px-3 py-2.5">
+                <a href="@ViewUrl(Model.View)" class="btn btn-ghost btn-sm btn-circle md:hidden" aria-label="Back to list">
+                    <i class="fa fa-arrow-left"></i>
+                </a>
+                <div class="min-w-0 flex-1">
+                    <h1 class="truncate font-semibold">
+                        @t.Subject
+                        <span class="font-normal text-base-content/40">#@t.Id</span>
+                    </h1>
+                    <div class="mt-0.5 flex items-center gap-1">
+                        <span class="badge badge-xs badge-@t.StatusColor">@t.Status</span>
+                        <span class="badge badge-xs badge-outline badge-@t.PriorityColor">@t.Priority</span>
+                        <span class="badge badge-xs badge-ghost">@t.Type</span>
+                    </div>
+                </div>
+                <div class="dropdown dropdown-end">
+                    <div tabindex="0" role="button" class="btn btn-ghost btn-sm gap-1">
+                        <i class="fa fa-user"></i>
+                        <span class="hidden sm:inline">@(t.Assignee ?? "Unassigned")</span>
+                        <i class="fa fa-chevron-down text-xs opacity-60"></i>
+                    </div>
+                    <ul tabindex="0" class="dropdown-content menu menu-sm z-30 w-44 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg">
+                        @foreach (var agent in InboxModel.Agents)
+                        {
+                            <li><a class="@(t.Assignee == agent ? "menu-active" : null)">@agent</a></li>
+                        }
+                        <li><a>Unassigned</a></li>
+                    </ul>
+                </div>
+                @if (t.IsClosed)
+                {
+                    <button type="button" class="btn btn-outline btn-success btn-sm">Reopen</button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-success btn-sm">
+                        <i class="fa fa-check"></i>
+                        <span class="hidden sm:inline">Close</span>
+                    </button>
+                }
+                <button type="button" id="context-toggle" class="btn btn-ghost btn-sm btn-circle xl:hidden" aria-label="Toggle details panel">
+                    <i class="fa fa-circle-info"></i>
+                </button>
+            </header>
+
+            <div class="flex-1 space-y-4 overflow-y-auto p-4">
+                @foreach (var message in Model.Messages)
+                {
+                    switch (message.Kind)
+                    {
+                        case MockMessageKind.System:
+                            <div class="divider my-1 text-xs text-base-content/50">@message.Body</div>
+                            break;
+                        case MockMessageKind.Inbound:
+                            <div class="chat chat-start">
+                                <div class="chat-image avatar avatar-placeholder">
+                                    <div class="w-8 rounded-full bg-neutral text-neutral-content">
+                                        <span class="text-xs">@message.Initials</span>
+                                    </div>
+                                </div>
+                                <div class="chat-header flex items-center gap-2">
+                                    @message.Author
+                                    <time class="text-xs opacity-50">@message.Time</time>
+                                    @if (message.Channel == "email")
+                                    {
+                                        <span class="badge badge-xs badge-ghost"><i class="fa fa-envelope"></i> email</span>
+                                    }
+                                </div>
+                                <div class="chat-bubble whitespace-pre-line">@message.Body</div>
+                            </div>
+                            break;
+                        case MockMessageKind.Outbound:
+                            <div class="chat chat-end">
+                                <div class="chat-image avatar avatar-placeholder">
+                                    <div class="w-8 rounded-full bg-primary text-primary-content">
+                                        <span class="text-xs">@message.Initials</span>
+                                    </div>
+                                </div>
+                                <div class="chat-header flex items-center gap-2">
+                                    @message.Author
+                                    <time class="text-xs opacity-50">@message.Time</time>
+                                    @if (message.Channel == "email")
+                                    {
+                                        <span class="badge badge-xs badge-ghost"><i class="fa fa-envelope"></i> email</span>
+                                    }
+                                </div>
+                                <div class="chat-bubble chat-bubble-primary whitespace-pre-line text-left">@message.Body</div>
+                            </div>
+                            break;
+                        case MockMessageKind.Note:
+                            <div class="chat chat-end">
+                                <div class="chat-image avatar avatar-placeholder">
+                                    <div class="w-8 rounded-full bg-warning text-warning-content">
+                                        <span class="text-xs">@message.Initials</span>
+                                    </div>
+                                </div>
+                                <div class="chat-header flex items-center gap-2">
+                                    @message.Author
+                                    <time class="text-xs opacity-50">@message.Time</time>
+                                    <span class="badge badge-xs badge-warning"><i class="fa fa-lock"></i> internal note</span>
+                                </div>
+                                <div class="chat-bubble chat-bubble-warning whitespace-pre-line text-left">@message.Body</div>
+                            </div>
+                            break;
+                    }
+                }
+            </div>
+
+            <div class="border-t border-base-300 p-3">
+                <div class="rounded-box border border-base-300 bg-base-200/40 focus-within:border-primary/60">
+                    <div role="tablist" class="tabs tabs-border px-2">
+                        <a role="tab" class="tab tab-active text-sm">Reply</a>
+                        <a role="tab" class="tab gap-1 text-sm"><i class="fa fa-lock text-xs"></i>Internal note</a>
+                    </div>
+                    <textarea class="textarea textarea-ghost w-full resize-none border-0 focus:outline-none" rows="3" placeholder="Write a reply…"></textarea>
+                    <div class="flex items-center gap-1 px-2 pb-2">
+                        <button type="button" class="btn btn-ghost btn-xs btn-circle" title="Attach file" aria-label="Attach file"><i class="fa fa-paperclip"></i></button>
+                        <button type="button" class="btn btn-ghost btn-xs btn-circle" title="Mention teammate" aria-label="Mention teammate"><i class="fa fa-at"></i></button>
+                        <div class="flex-1"></div>
+                        <button type="button" class="btn btn-primary btn-sm gap-1">
+                            Send
+                            <i class="fa fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center text-base-content/50">
+                <i class="fa fa-comments text-4xl"></i>
+                <p>Select a conversation to start reading</p>
+            </div>
+        }
+    </section>
+
+    @* ── Column 4: contact & ticket details ───────────────────────────── *@
+    @if (Model.SelectedTicket is { } st)
+    {
+        <aside id="context-panel" class="hidden xl:flex w-80 shrink-0 flex-col gap-3 overflow-y-auto border-l border-base-300 bg-base-200/40 p-3" aria-label="Contact and ticket details">
+            <div class="flex items-center justify-between xl:hidden">
+                <span class="text-sm font-semibold">Details</span>
+                <button type="button" id="context-close" class="btn btn-ghost btn-sm btn-circle" aria-label="Close details">
+                    <i class="fa fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="card border border-base-300 bg-base-100">
+                <div class="card-body items-center gap-2 p-4 text-center">
+                    <div class="avatar avatar-placeholder">
+                        <div class="w-16 rounded-full bg-neutral text-neutral-content">
+                            <span class="text-xl">@st.Contact.Initials</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="font-semibold">@st.Contact.Name</div>
+                        <div class="text-sm text-base-content/60">@st.Contact.Title · @st.Contact.Company</div>
+                    </div>
+                    <div class="w-full space-y-1 text-left text-sm">
+                        <div class="flex items-center gap-2 truncate">
+                            <i class="fa fa-envelope w-4 text-center text-base-content/50"></i>
+                            <a class="link link-hover truncate" href="mailto:@st.Contact.Email">@st.Contact.Email</a>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fa fa-phone w-4 text-center text-base-content/50"></i>
+                            <span>@st.Contact.Phone</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fa fa-location-dot w-4 text-center text-base-content/50"></i>
+                            <span>@st.Location</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap justify-center gap-1">
+                        @foreach (var tag in st.Contact.Tags)
+                        {
+                            <span class="badge badge-sm badge-outline">@tag</span>
+                        }
+                    </div>
+                    <a asp-page="/Workspaces/Contacts" asp-route-slug="@Model.WorkspaceSlug" class="link link-primary text-sm">View contact</a>
+                </div>
+            </div>
+
+            <div class="card border border-base-300 bg-base-100">
+                <div class="card-body gap-2 p-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-semibold">Ticket details</h3>
+                        <button type="button" class="btn btn-ghost btn-xs btn-circle" title="Edit ticket" aria-label="Edit ticket">
+                            <i class="fa fa-pen"></i>
+                        </button>
+                    </div>
+                    <dl class="space-y-1.5 text-sm">
+                        <div class="flex items-center justify-between gap-2">
+                            <dt class="text-base-content/60">Status</dt>
+                            <dd><span class="badge badge-xs badge-@st.StatusColor">@st.Status</span></dd>
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <dt class="text-base-content/60">Priority</dt>
+                            <dd><span class="badge badge-xs badge-outline badge-@st.PriorityColor">@st.Priority</span></dd>
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <dt class="text-base-content/60">Type</dt>
+                            <dd>@st.Type</dd>
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <dt class="text-base-content/60">Assignee</dt>
+                            <dd>@(st.Assignee ?? "Unassigned")</dd>
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <dt class="text-base-content/60">Channel</dt>
+                            <dd><i class="fa fa-envelope mr-1 text-base-content/50"></i>Email</dd>
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <dt class="text-base-content/60">Last activity</dt>
+                            <dd>@st.LastActivity ago</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card border border-base-300 bg-base-100">
+                <div class="card-body gap-2 p-4">
+                    <h3 class="text-sm font-semibold">Recent from @st.Contact.Name.Split(' ')[0]</h3>
+                    @if (Model.RecentContactTickets.Count == 0)
+                    {
+                        <p class="text-sm text-base-content/50">No other conversations</p>
+                    }
+                    else
+                    {
+                        <ul class="space-y-1">
+                            @foreach (var recent in Model.RecentContactTickets)
+                            {
+                                <li>
+                                    <a href="@TicketUrl(recent.Id)" class="flex items-center gap-2 rounded-lg px-1 py-1.5 hover:bg-base-200">
+                                        <span class="badge badge-xs badge-@recent.StatusColor">@recent.Status</span>
+                                        <span class="min-w-0 flex-1 truncate text-sm">@recent.Subject</span>
+                                        <span class="text-xs text-base-content/50">@recent.LastActivity</span>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </aside>
+    }
+</div>
+
+<script>
+    // Context panel overlay toggle for screens below xl. Mockup-only.
+    (function () {
+        var panel = document.getElementById('context-panel');
+        var toggle = document.getElementById('context-toggle');
+        var closeBtn = document.getElementById('context-close');
+        if (!panel || !toggle) return;
+        var overlayClasses = ['fixed', 'inset-y-0', 'right-0', 'z-40', 'flex', 'shadow-2xl', 'max-w-[85vw]'];
+        function openPanel() {
+            panel.classList.remove('hidden');
+            overlayClasses.forEach(function (c) { panel.classList.add(c); });
+        }
+        function closePanel() {
+            overlayClasses.forEach(function (c) { panel.classList.remove(c); });
+            panel.classList.add('hidden');
+        }
+        toggle.addEventListener('click', function () {
+            if (panel.classList.contains('hidden')) openPanel(); else closePanel();
+        });
+        if (closeBtn) closeBtn.addEventListener('click', closePanel);
+    })();
+</script>

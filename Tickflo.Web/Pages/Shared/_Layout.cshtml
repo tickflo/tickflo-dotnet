@@ -8,6 +8,9 @@
     var theme = Context.Request.Cookies["theme"] ?? "dark";
     var path = Context.Request.Path.Value ?? "";
     var isAuthenticated = Context.User?.Identity?.IsAuthenticated == true;
+    // Pages can opt into a full-height app shell (no document scroll, no max-width container)
+    // by setting ViewData["ShellFullHeight"] = true. Used by the Inbox.
+    var shellFullHeight = ViewData["ShellFullHeight"] as bool? == true;
 
     const string lastWorkspaceCookieName = "last_workspace_slug";
     var lastWorkspaceSlug = Context.Request.Cookies[lastWorkspaceCookieName];
@@ -79,7 +82,7 @@
     <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" asp-append-version="true" />
 </head>
 
-<body data-theme="@theme" class="shell-outer">
+<body data-theme="@theme" class="shell-outer @(shellFullHeight ? "h-dvh overflow-hidden flex flex-col" : null)">
     <mini-profiler />
     @if (Context.Request.Path.Value?.ToLower() == "/login" || Context.Request.Path.Value?.ToLower() == "/signup")
     {
@@ -95,7 +98,7 @@
     }
     else
     {
-        <header class="navbar glass-panel shadow-xl rounded-3xl sticky top-2 md:top-4 max-w-7xl mx-auto px-3 md:px-6">
+        <header class="navbar glass-panel shadow-xl rounded-3xl sticky top-2 md:top-4 @(shellFullHeight ? "shrink-0 mx-2 md:mx-4" : "max-w-7xl mx-auto") px-3 md:px-6">
             <div class="w-full flex items-center gap-2 md:gap-4">
                 @if (isAuthenticated)
                 {
@@ -126,9 +129,18 @@
         </header>
     }
 
-    <main class="max-w-7xl mx-auto px-3 md:px-6 lg:px-8 py-4 md:py-8">
-        @RenderBody()
-    </main>
+    @if (shellFullHeight)
+    {
+        <main class="flex-1 min-h-0 w-full px-2 pb-2 md:px-4 md:pb-4">
+            @RenderBody()
+        </main>
+    }
+    else
+    {
+        <main class="max-w-7xl mx-auto px-3 md:px-6 lg:px-8 py-4 md:py-8">
+            @RenderBody()
+        </main>
+    }
 
     <div class="mobile-drawer-backdrop" id="drawer-backdrop" aria-hidden="true"></div>
 

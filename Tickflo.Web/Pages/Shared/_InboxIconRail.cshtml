@@ -1,0 +1,60 @@
+@model string
+@{
+    var slug = Model ?? string.Empty;
+    var path = ViewContext?.HttpContext?.Request?.Path.Value ?? "";
+    bool IsActive(string segment) => path.Contains(segment, StringComparison.OrdinalIgnoreCase);
+    var isDashboard = path.TrimEnd('/').Equals($"/workspaces/{slug}", StringComparison.OrdinalIgnoreCase);
+    string ItemClass(bool active) => active
+        ? "menu-active bg-base-300 text-primary"
+        : "text-base-content/70 hover:text-base-content";
+}
+@* Slim workspace navigation rail for full-height app pages (Inbox).
+   Mockup version: no permission gating yet. *@
+<aside class="hidden sm:flex w-14 shrink-0 flex-col items-center border-r border-base-300 bg-base-100 py-2"
+    aria-label="Workspace navigation">
+    <ul class="menu menu-sm gap-1 p-0 w-full items-center">
+        <li>
+            <a asp-page="/Workspace" asp-route-slug="@slug" class="tooltip tooltip-right rounded-xl w-10 h-10 flex items-center justify-center @ItemClass(isDashboard)" data-tip="Dashboard" aria-label="Dashboard">
+                <i class="fa fa-house"></i>
+            </a>
+        </li>
+        <li>
+            <a asp-page="/Workspaces/Inbox" asp-route-slug="@slug" class="tooltip tooltip-right rounded-xl w-10 h-10 flex items-center justify-center @ItemClass(IsActive("/inbox"))" data-tip="Inbox" aria-label="Inbox">
+                <i class="fa fa-inbox"></i>
+            </a>
+        </li>
+        <li>
+            <a asp-page="/Workspaces/Contacts" asp-route-slug="@slug" class="tooltip tooltip-right rounded-xl w-10 h-10 flex items-center justify-center @ItemClass(IsActive("/contacts"))" data-tip="Contacts" aria-label="Contacts">
+                <i class="fa fa-address-book"></i>
+            </a>
+        </li>
+        <li>
+            <a asp-page="/Workspaces/Reports" asp-route-slug="@slug" class="tooltip tooltip-right rounded-xl w-10 h-10 flex items-center justify-center @ItemClass(IsActive("/reports"))" data-tip="Reports" aria-label="Reports">
+                <i class="fa fa-file-alt"></i>
+            </a>
+        </li>
+        <li>
+            <a asp-page="/Workspaces/Locations" asp-route-slug="@slug" class="tooltip tooltip-right rounded-xl w-10 h-10 flex items-center justify-center @ItemClass(IsActive("/locations"))" data-tip="Locations" aria-label="Locations">
+                <i class="fa fa-map-marker-alt"></i>
+            </a>
+        </li>
+        <li>
+            <a asp-page="/Workspaces/Inventory" asp-route-slug="@slug" class="tooltip tooltip-right rounded-xl w-10 h-10 flex items-center justify-center @ItemClass(IsActive("/inventory"))" data-tip="Inventory" aria-label="Inventory">
+                <i class="fa fa-boxes"></i>
+            </a>
+        </li>
+        <li>
+            <a asp-page="/Workspaces/Users" asp-route-slug="@slug" class="tooltip tooltip-right rounded-xl w-10 h-10 flex items-center justify-center @ItemClass(IsActive("/users"))" data-tip="Members" aria-label="Members">
+                <i class="fa fa-users"></i>
+            </a>
+        </li>
+    </ul>
+    <div class="flex-1"></div>
+    <ul class="menu menu-sm gap-1 p-0 w-full items-center">
+        <li>
+            <a asp-page="/Workspaces/Settings" asp-route-slug="@slug" class="tooltip tooltip-right rounded-xl w-10 h-10 flex items-center justify-center @ItemClass(IsActive("/settings"))" data-tip="Settings" aria-label="Settings">
+                <i class="fa fa-cog"></i>
+            </a>
+        </li>
+    </ul>
+</aside>
