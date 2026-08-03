@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Tickflo.Core.Data;
@@ -11,9 +12,11 @@ using Tickflo.Core.Data;
 namespace Tickflo.Core.Migrations
 {
     [DbContext(typeof(TickfloDbContext))]
-    partial class TickfloDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260729151207_AddInboundEmail")]
+    partial class AddInboundEmail
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -503,6 +506,7 @@ namespace Tickflo.Core.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_stored");
 
+
                     b.Property<string>("PublicUrl")
                         .HasColumnType("text")
                         .HasColumnName("public_url");
@@ -588,9 +592,9 @@ namespace Tickflo.Core.Migrations
                     b.HasKey("Id")
                         .HasName("pk_inbound_email_routes");
 
-                    b.HasIndex("LocalPart")
+                    b.HasIndex("WorkspaceId", "LocalPart")
                         .IsUnique()
-                        .HasDatabaseName("ix_inbound_email_routes_local_part");
+                        .HasDatabaseName("ix_inbound_email_routes_workspace_id_local_part");
 
                     b.ToTable("inbound_email_routes", (string)null);
                 });

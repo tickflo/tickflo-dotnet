@@ -35,6 +35,9 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
     public DbSet<EmailTemplate> EmailTemplates => this.Set<EmailTemplate>();
     public DbSet<Email> Emails => this.Set<Email>();
     public DbSet<UserEmailChange> UserEmailChanges => this.Set<UserEmailChange>();
+    public DbSet<InboundEmailRoute> InboundEmailRoutes => this.Set<InboundEmailRoute>();
+    public DbSet<InboundEmail> InboundEmails => this.Set<InboundEmail>();
+    public DbSet<InboundEmailAttachment> InboundEmailAttachments => this.Set<InboundEmailAttachment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -194,6 +197,41 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
             entity.HasKey(uec => uec.UserId);
             entity.Property(uec => uec.OldEmail).HasColumnName("old");
             entity.Property(uec => uec.NewEmail).HasColumnName("new");
+        });
+
+        // Inbound email routing
+        modelBuilder.Entity<InboundEmailRoute>(entity =>
+        {
+            entity.ToTable("inbound_email_routes");
+            entity.HasIndex(r => r.LocalPart).IsUnique();
+            entity.Property(r => r.LocalPart).IsRequired().HasMaxLength(128);
+            entity.Property(r => r.Label).IsRequired().HasMaxLength(256);
+        });
+
+        modelBuilder.Entity<InboundEmail>(entity =>
+        {
+            entity.ToTable("inbound_emails");
+            entity.Property(e => e.FromEmail).IsRequired().HasMaxLength(320);
+            entity.Property(e => e.ToEmail).IsRequired().HasMaxLength(320);
+            entity.Property(e => e.Subject).IsRequired().HasMaxLength(998);
+            entity.Property(e => e.MessageId).IsRequired().HasMaxLength(512);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(32).HasDefaultValue("Pending");
+            entity.HasIndex(e => e.MessageId).IsUnique();
+            entity.HasIndex(e => new { e.WorkspaceId, e.ReceivedAt });
+            entity.HasIndex(e => new { e.WorkspaceId, e.Status });
+
+            entity.HasOne(e => e.Route)
+                .WithMany()
+                .HasForeignKey(e => e.RouteId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<InboundEmailAttachment>(entity =>
+        {
+            entity.ToTable("inbound_email_attachments");
+            entity.Property(a => a.FileName).IsRequired().HasMaxLength(512);
+            entity.Property(a => a.ContentType).IsRequired().HasMaxLength(256);
+            entity.HasIndex(a => new { a.InboundEmailId });
         });
     }
 }

@@ -129,6 +129,8 @@ builder.Services.AddScoped<Tickflo.Core.Services.Storage.IFileStorageService, Ru
 builder.Services.AddScoped<Tickflo.Core.Services.Storage.IImageStorageService, RustFSImageStorageService>();
 builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
 builder.Services.AddScoped<IEmailSendService, EmailSendService>();
+builder.Services.AddScoped<IInboundEmailHMACValidator, InboundEmailHMACValidator>();
+builder.Services.AddScoped<IInboundEmailService, InboundEmailService>();
 builder.Services.AddScoped<IReportingService, ReportingService>();
 builder.Services.AddScoped<IAppContext, Tickflo.Web.AppContext>();
 builder.Services.AddScoped<IEmailLogService, EmailLogService>();

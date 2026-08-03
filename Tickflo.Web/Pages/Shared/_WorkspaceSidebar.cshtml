@@ -49,6 +49,7 @@
     var canRoles = Can("roles");
     var canTeams = Can("teams");
     var canSettings = Can("settings");
+    var canInboundEmail = Can("settings");
 }
 <aside class="mobile-drawer block sticky top-6 h-[calc(100vh-2rem)] w-64 shrink-0 overflow-y-auto px-3 mr-3"
     aria-labelledby="workspace-nav">
@@ -98,6 +99,12 @@
                     <li><a class="@(IsActive("/inventory") ? "active menu-active" : null) rounded-2xl flex items-center gap-2"
                             asp-page="/Workspaces/Inventory" asp-route-slug="@slug"><i
                                 class="fa fa-boxes"></i><span>Inventory</span></a></li>
+                }
+                @if (canInboundEmail)
+                {
+                    <li><a class="@(IsActive("/inbound-email-routes") ? "active menu-active" : null) rounded-2xl flex items-center gap-2"
+                            asp-page="/Workspaces/InboundEmailRoutes" asp-route-slug="@slug"><i
+                                class="fa fa-envelope-open-text"></i><span>Inbound Email</span></a></li>
                 }
                 @if (canUsers || canRoles || canTeams || isAdmin)
                 {

@@ -16,4 +16,10 @@ public enum EmailTemplateType
     TicketAssigned = 8,
     TicketUpdated = 9,
     TicketComment = 10,
+
+    /// <summary>
+    /// Auto-reply sent when a ticket is created from an inbound email.
+    /// Variables: ticket_id, subject, contact_name
+    /// </summary>
+    TicketReceived = 11,
 }
