@@ -1,5 +1,6 @@
 namespace Tickflo.Web.TagHelpers;
 
+using System.Web;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.AspNetCore.Razor.TagHelpers;
@@ -34,12 +35,12 @@ public class PreserveQueryAnchorTagHelper : TagHelper
 
         if (href.Contains('?'))
         {
-            var append = queryString.StartsWith('?') ? "&" + queryString[1..] : (queryString.StartsWith('&') ? queryString : "&" + queryString);
+            var append = queryString.StartsWith('?') ? "&" + HttpUtility.UrlEncode(queryString[1..]) : (queryString.StartsWith('&') ? HttpUtility.UrlEncode(queryString) : "&" + HttpUtility.UrlEncode(queryString));
             output.Attributes.SetAttribute("href", href + append);
         }
         else
         {
-            output.Attributes.SetAttribute("href", href + queryString);
+            output.Attributes.SetAttribute("href", href + HttpUtility.UrlEncode(queryString));
         }
     }
 }
