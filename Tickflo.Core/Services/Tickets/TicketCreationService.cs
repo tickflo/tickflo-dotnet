@@ -66,6 +66,12 @@ public class TicketCreationService(TickfloDbContext dbContext) : ITicketCreation
 
         var ticket = BuildTicket(workspaceId, request, typeId, priorityId, statusId);
 
+        // Ensure WorkspaceId is set on all ticket-inventory join records
+        foreach (var ti in ticket.TicketInventories)
+        {
+            ti.WorkspaceId = workspaceId;
+        }
+
         await this.AssignUserToTicketAsync(workspaceId, ticket, request);
         await this.AssignTeamToTicketAsync(workspaceId, ticket, request);
 
