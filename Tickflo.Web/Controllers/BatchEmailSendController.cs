@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Jobs;
 
-[AllowAnonymous]
+[Authorize]
 [Route("api/send-emails")]
 public class BatchEmailSendController(IBatchEmailSendService batchEmailSendService) : Controller
 {
