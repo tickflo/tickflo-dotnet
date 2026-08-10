@@ -43,8 +43,8 @@ public class EmailConfirmationController(
         }
 
         if (!CryptographicOperations.FixedTimeEquals(
-                System.Text.Encoding.UTF8.GetBytes(user.EmailConfirmationCode),
-                System.Text.Encoding.UTF8.GetBytes(normalizedCode)))
+                System.Text.Encoding.UTF8.GetBytes(user.EmailConfirmationCode ?? string.Empty),
+                System.Text.Encoding.UTF8.GetBytes(normalizedCode ?? string.Empty)))
         {
             return this.BadRequest("Invalid confirmation code.");
         }
@@ -79,7 +79,7 @@ public class EmailConfirmationController(
             await this.authenticationService.ResendEmailConfirmationAsync(user.Id);
             return this.Ok(new { message = "Confirmation email resent successfully." });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return this.StatusCode(500, new { message = "Failed to resend confirmation email." });
         }
