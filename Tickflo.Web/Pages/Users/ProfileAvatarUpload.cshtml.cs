@@ -11,6 +11,7 @@ public class ProfileAvatarUploadModel(IImageStorageService imageStorageService, 
 {
     private readonly IImageStorageService imageStorageService = imageStorageService;
     private readonly ICurrentUserService currentUserService = currentUserService;
+    private const long MaxAvatarSize = 5 * 1024 * 1024; // 5 MB
     public string UserId { get; set; } = "";
     public string Message { get; set; } = "";
 
@@ -26,37 +27,47 @@ public class ProfileAvatarUploadModel(IImageStorageService imageStorageService, 
         this.UserId = uid.ToString();
         var file = this.Request.Form.Files["AvatarImage"];
 
-        if (file != null && file.Length > 0)
+        if (file == null || file.Length == 0)
         {
-            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-            if (ext is not ".jpg" and not ".jpeg" and not ".png" and not ".gif")
+            this.Message = "No file selected.";
+            return this.Page();
+        }
+
+        // Validate file size
+        if (file.Length > MaxAvatarSize)
+        {
+            this.Message = "Image too large. Maximum size: 5 MB.";
+            return this.Page();
+        }
+
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (ext is not ".jpg" and not ".jpeg" and not ".png" and not ".gif")
+        {
+            this.Message = "Only JPG, PNG, or GIF images are allowed.";
+            return this.Page();
+        }
+
+        try
+        {
+            // Validate magic bytes before processing (prevents renamed file attacks)
+            using var validationStream = file.OpenReadStream();
+            if (!this.imageStorageService.IsValidImage(validationStream))
             {
-                this.Message = "Only JPG, PNG, or GIF images are allowed.";
+                this.Message = "Invalid image file. The file content does not match its extension.";
                 return this.Page();
             }
 
-            try
-            {
-                using var stream = new MemoryStream();
-                await file.CopyToAsync(stream);
-                stream.Position = 0;
+            // Stream directly to the upload service — no MemoryStream buffering
+            using var uploadStream = file.OpenReadStream();
+            await this.imageStorageService.UploadUserAvatarAsync(uid, uploadStream);
 
-                // Use the image storage service to upload avatar
-                await this.imageStorageService.UploadUserAvatarAsync(uid, stream);
-
-                this.Message = "Avatar updated successfully.";
-            }
-            catch (Exception ex)
-            {
-                this.Message = $"Error uploading avatar: {ex.Message}";
-            }
+            this.Message = "Avatar updated successfully.";
         }
-        else
+        catch (Exception ex)
         {
-            this.Message = "No file selected.";
+            this.Message = $"Error uploading avatar: {ex.Message}";
         }
+
         return this.Page();
     }
 }
-
-
