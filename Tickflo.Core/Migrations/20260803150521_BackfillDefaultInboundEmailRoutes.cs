@@ -22,7 +22,8 @@ public partial class BackfillDefaultInboundEmailRoutes : Migration
             )
             AND NOT EXISTS (
                 SELECT 1 FROM inbound_email_routes r2 WHERE r2.local_part = w.slug
-            );
+            )
+            ON CONFLICT (local_part) DO NOTHING;
             """);
 
     /// <inheritdoc />
