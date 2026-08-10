@@ -3,6 +3,7 @@ namespace Tickflo.Web.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 using Tickflo.Core.Data;
 using Tickflo.Core.Services.Authentication;
 using Tickflo.Core.Services.Common;
@@ -41,7 +42,9 @@ public class EmailConfirmationController(
             return this.Redirect("/workspaces");
         }
 
-        if (user.EmailConfirmationCode != normalizedCode)
+        if (!CryptographicOperations.FixedTimeEquals(
+                System.Text.Encoding.UTF8.GetBytes(user.EmailConfirmationCode),
+                System.Text.Encoding.UTF8.GetBytes(normalizedCode)))
         {
             return this.BadRequest("Invalid confirmation code.");
         }
@@ -78,7 +81,7 @@ public class EmailConfirmationController(
         }
         catch (Exception ex)
         {
-            return this.StatusCode(500, new { message = "Failed to resend confirmation email.", detail = ex.Message });
+            return this.StatusCode(500, new { message = "Failed to resend confirmation email." });
         }
 
     }
