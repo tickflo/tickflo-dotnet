@@ -1,9 +1,27 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# RustFS local data
+rustfs-data/
+
+# Hermes agent files
+.hermes/
+
+# Build output
 **/bin/
 **/obj/
-**/node_modules/
-.git
-.github
-.vscode
-Dockerfile
-README.md
-.env
+
+# IDE
+.idea/
+.vs/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
