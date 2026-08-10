@@ -57,7 +57,7 @@ COPY --from=build /app/publish .
 COPY --from=node-build /src/wwwroot/css/dist.css ./wwwroot/css/dist.css
 
 # Remove the original site.css if it exists
-RUN rm ./wwwroot/css/site.css
+RUN rm -f ./wwwroot/css/site.css
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -sf http://localhost:8080/ || exit 1
