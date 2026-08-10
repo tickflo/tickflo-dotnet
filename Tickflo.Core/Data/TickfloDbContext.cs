@@ -181,6 +181,12 @@ public class TickfloDbContext(DbContextOptions<TickfloDbContext> options) : DbCo
             entity.HasIndex(fs => new { fs.WorkspaceId, fs.Category });
             entity.HasIndex(fs => fs.Path);
             entity.HasIndex(fs => new { fs.RelatedEntityType, fs.RelatedEntityId });
+
+            // Cascade delete FileStorage records when workspace is deleted
+            entity.HasOne<Workspace>()
+                .WithMany()
+                .HasForeignKey(fs => fs.WorkspaceId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Email>(entity =>

@@ -22,18 +22,15 @@ public partial class BackfillDefaultInboundEmailRoutes : Migration
             )
             AND NOT EXISTS (
                 SELECT 1 FROM inbound_email_routes r2 WHERE r2.local_part = w.slug
-            );
+            )
+            ON CONFLICT (local_part) DO NOTHING;
             """);
 
     /// <inheritdoc />
-    protected override void Down(MigrationBuilder migrationBuilder) =>
-        // Best-effort reverse: remove the auto-created default routes (identified by
-        // label 'Default' and local part matching the workspace slug).
-        migrationBuilder.Sql("""
-            DELETE FROM inbound_email_routes r
-            USING workspaces w
-            WHERE r.workspace_id = w.id
-              AND r.label = 'Default'
-              AND r.local_part = w.slug;
-            """);
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        // No-op: heuristic matching is too risky for a destructive Down().
+        // Manually-created routes could be mistakenly deleted.
+        // Manual cleanup is preferred if a rollback is needed.
+    }
 }

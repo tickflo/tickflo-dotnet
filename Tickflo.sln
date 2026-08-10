@@ -9,8 +9,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tickflo.Core.Test", "Tickfl
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tickflo.Web", "Tickflo.Web\Tickflo.Web.csproj", "{556E76C4-1DA7-49C4-AA30-26B2DBD571EC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tickflo.API", "Tickflo.API\Tickflo.API.csproj", "{6EFC2791-2959-4B51-8F56-6F8DD334CCCE}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,9 +30,5 @@ Global
 		{556E76C4-1DA7-49C4-AA30-26B2DBD571EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{556E76C4-1DA7-49C4-AA30-26B2DBD571EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{556E76C4-1DA7-49C4-AA30-26B2DBD571EC}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6EFC2791-2959-4B51-8F56-6F8DD334CCCE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6EFC2791-2959-4B51-8F56-6F8DD334CCCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6EFC2791-2959-4B51-8F56-6F8DD334CCCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6EFC2791-2959-4B51-8F56-6F8DD334CCCE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

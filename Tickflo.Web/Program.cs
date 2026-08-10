@@ -24,6 +24,7 @@ using Tickflo.Core.Services.Web;
 using Tickflo.Core.Services.Workspace;
 using Tickflo.Web;
 using Tickflo.Web.Authentication;
+using Tickflo.Web.Realtime;
 using Tickflo.Web.Services;
 
 DotNetEnv.Env.Load();
@@ -47,6 +48,12 @@ builder.Services.AddSingleton(settingsConfig);
 builder.Services.AddScoped<IPasswordHasher, Argon2idPasswordHasher>();
 builder.Services.AddScoped<IPasswordValidationService, PasswordValidationService>();
 builder.Services.AddSignalR();
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(180);
+    options.IncludeSubDomains = true;
+    options.Preload = true;
+});
 builder.Services.AddScoped<Tickflo.Core.Services.Authentication.IAuthenticationService, Tickflo.Core.Services.Authentication.AuthenticationService>();
 builder.Services.AddScoped<IPasswordSetupService, PasswordSetupService>();
 builder.Services.AddScoped<IPasswordResetRequestService, PasswordResetRequestService>();
@@ -157,7 +164,9 @@ builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(appConfig.SessionTimeoutMinutes);
     options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.IsEssential = true;
 });
@@ -204,7 +213,6 @@ using (var scope = app.Services.CreateScope())
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 else
@@ -238,6 +246,7 @@ app.UseMiddleware<AppContextMiddleware>();
 
 app.MapRazorPages();
 app.MapControllers();
+app.MapHub<TicketsHub>("/hubs/tickets");
 
 app.Run();
 

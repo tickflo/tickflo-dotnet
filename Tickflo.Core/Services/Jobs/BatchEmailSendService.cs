@@ -19,7 +19,6 @@ public class MailgunEmailSendService(
     TickfloConfig config,
     ILogger<MailgunEmailSendService> logger) : IBatchEmailSendService
 {
-    private const string MailgunApiBaseUrl = "https://api.mailgun.net/";
     private readonly TickfloDbContext db = db;
     private readonly TickfloConfig config = config;
     private readonly ILogger<MailgunEmailSendService> logger = logger;
@@ -28,7 +27,7 @@ public class MailgunEmailSendService(
     {
         if (string.IsNullOrEmpty(this.config.MailgunApiKey))
         {
-            this.logger.LogWarning("Mailgun API key is not configured. Skipping email sending.");
+            this.logger.LogError("Mailgun API key is not configured. Email queue is blocked — no emails will be sent until configured.");
             return;
         }
 
@@ -53,7 +52,7 @@ public class MailgunEmailSendService(
 
         var httpClient = new HttpClient()
         {
-            BaseAddress = new Uri(MailgunApiBaseUrl),
+            BaseAddress = new Uri(this.config.Email.MailgunApiBaseUrl),
             Timeout = TimeSpan.FromSeconds(10),
             DefaultRequestHeaders =
             {
@@ -72,7 +71,7 @@ public class MailgunEmailSendService(
                     { "from", $"{this.config.Email.FromName} <{this.config.Email.FromAddress}>" },
                     { "to", email.To },
                     { "subject", RenderTemplate(emailTemplates[email.TemplateId].Subject, email.Vars) },
-                    { "html", RenderTemplate(emailTemplates[email.TemplateId].Body, email.Vars).Replace("\n", "<br>") }
+                    { "html", RenderTemplate(emailTemplates[email.TemplateId].Body, email.Vars) }
                 };
 
                 if (this.config.AppEnv != "Production")
@@ -80,7 +79,7 @@ public class MailgunEmailSendService(
                     formData.Add("o:testmode", "true");
                 }
 
-                var response = await httpClient.PostAsync($"v3/tickflo.co/messages", new FormUrlEncodedContent(formData));
+                var response = await httpClient.PostAsync($"v3/{this.config.Email.MailgunDomain}/messages", new FormUrlEncodedContent(formData));
                 if (response.IsSuccessStatusCode)
                 {
                     email.SentAt = DateTime.UtcNow;
@@ -91,7 +90,7 @@ public class MailgunEmailSendService(
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
                     this.logger.LogError("Failed to send email with ID {EmailId}. Status: {StatusCode}, Response: {Response}", email.Id, response.StatusCode, errorContent);
-                    email.State = "error";
+                    email.State = "failed";
                     email.ErrorMessage = $"Status: {response.StatusCode}, Response: {errorContent}";
                 }
 
@@ -100,7 +99,7 @@ public class MailgunEmailSendService(
             catch (Exception ex)
             {
                 this.logger.LogError(ex, "Failed to send email with ID {EmailId}", email.Id);
-                email.State = "error";
+                email.State = "failed";
                 email.ErrorMessage = ex.Message;
                 await this.db.SaveChangesAsync();
             }

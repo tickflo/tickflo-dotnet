@@ -36,6 +36,12 @@ public class LoginModel(IAuthenticationService authenticationService, TickfloCon
             var result = await this.authenticationService.AuthenticateAsync(email, password);
 
             this.AppendAuthenticationCookie(result.Token);
+
+            if (!string.IsNullOrWhiteSpace(this.ReturnUrl) && this.Url.IsLocalUrl(this.ReturnUrl))
+            {
+                return this.Redirect(this.ReturnUrl);
+            }
+
             return this.Redirect("/workspaces");
         }
         catch (HttpException ex)

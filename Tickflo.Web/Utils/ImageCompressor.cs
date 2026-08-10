@@ -6,8 +6,22 @@ using SixLabors.ImageSharp.Processing;
 
 public static class ImageCompressor
 {
+    private const int MaxPixelCount = 50_000_000; // ~50 megapixels
+
     public static void CompressAndSave(Stream input, string outputPath, int maxWidth = 256, int maxHeight = 256, long quality = 75L)
     {
+        // Use Identify() to read dimensions without fully decoding the image
+        // (prevents decompression bomb / OOM attacks)
+        var info = Image.Identify(input) ?? throw new InvalidOperationException("Unable to identify image format.");
+
+        var pixelCount = (long)info.Width * info.Height;
+        if (pixelCount > MaxPixelCount)
+        {
+            throw new InvalidOperationException(
+                $"Image dimensions ({info.Width}x{info.Height} = {pixelCount}px) exceed the maximum allowed ({MaxPixelCount}px).");
+        }
+
+        input.Position = 0;
         using var image = Image.Load(input);
         var width = image.Width;
         var height = image.Height;
@@ -24,6 +38,17 @@ public static class ImageCompressor
 
     public static void CompressAndSave(Stream input, Stream output, int maxWidth = 256, int maxHeight = 256, long quality = 75L)
     {
+        // Use Identify() to read dimensions without fully decoding the image
+        var info = Image.Identify(input) ?? throw new InvalidOperationException("Unable to identify image format.");
+
+        var pixelCount = (long)info.Width * info.Height;
+        if (pixelCount > MaxPixelCount)
+        {
+            throw new InvalidOperationException(
+                $"Image dimensions ({info.Width}x{info.Height} = {pixelCount}px) exceed the maximum allowed ({MaxPixelCount}px).");
+        }
+
+        input.Position = 0;
         using var image = Image.Load(input);
         var width = image.Width;
         var height = image.Height;

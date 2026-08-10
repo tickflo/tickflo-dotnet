@@ -22,6 +22,6 @@ public class ToggleThemeController : Controller
 
         var referer = this.Request.Headers.Referer.ToString();
         var redirectUrl = string.IsNullOrWhiteSpace(referer) ? "/" : referer;
-        return this.Redirect(redirectUrl);
+        return this.LocalRedirect(redirectUrl);
     }
 }
