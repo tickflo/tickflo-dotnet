@@ -12,12 +12,14 @@ public class UserAvatarController(TickfloConfig config, IAmazonS3 amazonS3) : Co
     private readonly TickfloConfig config = config;
     private readonly IAmazonS3 amazonS3 = amazonS3;
 
-    [HttpGet]
-    public async Task<IActionResult> GetAvatar(string id)
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetAvatar(int id)
     {
-        if (string.IsNullOrWhiteSpace(id))
+        // Only allow users to access their own avatar
+        var userIdClaim = this.User?.FindFirst("userId")?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var currentUserId) || currentUserId != id)
         {
-            return this.NotFound();
+            return this.Forbid();
         }
 
         var bucket = this.config.S3Bucket;
