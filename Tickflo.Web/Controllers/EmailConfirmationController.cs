@@ -1,9 +1,9 @@
 namespace Tickflo.Web.Controllers;
 
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Cryptography;
 using Tickflo.Core.Data;
 using Tickflo.Core.Services.Authentication;
 using Tickflo.Core.Services.Common;

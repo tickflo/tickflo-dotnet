@@ -12,11 +12,7 @@ public static class ImageCompressor
     {
         // Use Identify() to read dimensions without fully decoding the image
         // (prevents decompression bomb / OOM attacks)
-        var info = Image.Identify(input);
-        if (info == null)
-        {
-            throw new InvalidOperationException("Unable to identify image format.");
-        }
+        var info = Image.Identify(input) ?? throw new InvalidOperationException("Unable to identify image format.");
 
         var pixelCount = (long)info.Width * info.Height;
         if (pixelCount > MaxPixelCount)
@@ -43,11 +39,7 @@ public static class ImageCompressor
     public static void CompressAndSave(Stream input, Stream output, int maxWidth = 256, int maxHeight = 256, long quality = 75L)
     {
         // Use Identify() to read dimensions without fully decoding the image
-        var info = Image.Identify(input);
-        if (info == null)
-        {
-            throw new InvalidOperationException("Unable to identify image format.");
-        }
+        var info = Image.Identify(input) ?? throw new InvalidOperationException("Unable to identify image format.");
 
         var pixelCount = (long)info.Width * info.Height;
         if (pixelCount > MaxPixelCount)

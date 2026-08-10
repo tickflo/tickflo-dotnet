@@ -273,13 +273,10 @@ public class TicketSearchService(TickfloDbContext dbContext) : ITicketSearchServ
 
     public async Task<List<Ticket>> GetContactTicketsAsync(
         int workspaceId,
-        int contactId)
-    {
-        return await this.dbContext.Tickets
+        int contactId) => await this.dbContext.Tickets
             .Where(t => t.WorkspaceId == workspaceId && t.ContactId == contactId)
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync();
-    }
 
     public async Task<List<Ticket>> GetUnassignedTicketsAsync(
         int workspaceId,
