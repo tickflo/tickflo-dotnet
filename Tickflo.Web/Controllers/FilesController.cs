@@ -8,6 +8,7 @@ using Tickflo.Core.Entities;
 
 using Tickflo.Core.Services.Common;
 using Tickflo.Core.Services.Storage;
+using Tickflo.Core.Services.Workspace;
 
 // TODO: This should NOT be using TickfloDbContext directly. The logic on this page/controller needs moved into a Tickflo.Core service
 
@@ -22,13 +23,15 @@ public class FilesController(
     IImageStorageService imageStorageService,
     TickfloDbContext dbContext,
     ILogger<FilesController> logger,
-    ICurrentUserService currentUserService) : ControllerBase
+    ICurrentUserService currentUserService,
+    IWorkspaceAccessService workspaceAccessService) : ControllerBase
 {
     private readonly IFileStorageService fileStorageService = fileStorageService;
     private readonly IImageStorageService imageStorageService = imageStorageService;
     private readonly TickfloDbContext dbContext = dbContext;
     private readonly ILogger<FilesController> logger = logger;
     private readonly ICurrentUserService currentUserService = currentUserService;
+    private readonly IWorkspaceAccessService workspaceAccessService = workspaceAccessService;
 
     private const long MaxFileSize = 50 * 1024 * 1024; // 50 MB
     private const long MaxImageSize = 10 * 1024 * 1024; // 10 MB
@@ -46,11 +49,16 @@ public class FilesController(
                 return this.Unauthorized();
             }
 
-            // Verify workspace access
+            // Verify workspace exists and user is a member
             var workspace = await this.dbContext.Workspaces.FindAsync(workspaceId);
             if (workspace == null)
             {
                 return this.NotFound();
+            }
+
+            if (!await this.workspaceAccessService.UserHasAccessAsync(userId, workspaceId))
+            {
+                return this.Forbid();
             }
 
             if (file == null || file.Length == 0)
@@ -114,11 +122,16 @@ public class FilesController(
                 return this.Unauthorized();
             }
 
-            // Verify workspace access
+            // Verify workspace exists and user is a member
             var workspace = await this.dbContext.Workspaces.FindAsync(workspaceId);
             if (workspace == null)
             {
                 return this.NotFound();
+            }
+
+            if (!await this.workspaceAccessService.UserHasAccessAsync(userId, workspaceId))
+            {
+                return this.Forbid();
             }
 
             if (image == null || image.Length == 0)
@@ -200,6 +213,12 @@ public class FilesController(
                 return this.NotFound();
             }
 
+            // Verify user has access to the file's workspace
+            if (!await this.workspaceAccessService.UserHasAccessAsync(userId, file.WorkspaceId))
+            {
+                return this.Forbid();
+            }
+
             // Delete from storage
             await this.fileStorageService.DeleteFileAsync(file.Path);
 
@@ -228,10 +247,21 @@ public class FilesController(
     {
         try
         {
+            if (!this.currentUserService.TryGetUserId(this.User, out var userId))
+            {
+                return this.Unauthorized();
+            }
+
             var file = await this.dbContext.FileStorages.FindAsync(fileId);
             if (file == null)
             {
                 return this.NotFound();
+            }
+
+            // Verify user has access to the file's workspace
+            if (!await this.workspaceAccessService.UserHasAccessAsync(userId, file.WorkspaceId))
+            {
+                return this.Forbid();
             }
 
             var stream = await this.fileStorageService.DownloadFileAsync(file.Path);
