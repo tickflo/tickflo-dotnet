@@ -142,29 +142,33 @@ public class TicketSearchService(TickfloDbContext dbContext) : ITicketSearchServ
         int requestingUserId)
     {
         // Validation: User has access to workspace
-        var userAccess = await this.dbContext.UserWorkspaces.FirstOrDefaultAsync(uw => uw.UserId == requestingUserId && uw.WorkspaceId == workspaceId);
+        var userAccess = await this.dbContext.UserWorkspaces
+            .FirstOrDefaultAsync(uw => uw.UserId == requestingUserId && uw.WorkspaceId == workspaceId);
         if (userAccess == null || !userAccess.Accepted)
         {
             throw new InvalidOperationException("User does not have access to this workspace.");
         }
 
-        // Get all tickets in workspace
-        var allTickets = await this.dbContext.Tickets.Where(t => t.WorkspaceId == workspaceId).ToListAsync();
+        // Compose query at the database level — no in-memory loading
+        var query = this.dbContext.Tickets.Where(t => t.WorkspaceId == workspaceId);
 
-        // Apply filters
-        var filtered = ApplyFilters(allTickets, criteria);
+        // Apply filters at the database level
+        query = ApplyFilters(query, criteria);
 
-        // Apply pagination
-        var total = filtered.Count;
+        // Get total count before pagination (single DB round-trip)
+        var total = await query.CountAsync();
+
+        // Apply pagination at the database level
         var skip = (criteria.PageNumber - 1) * criteria.PageSize;
-        var paginated = filtered
+        var tickets = await query
+            .OrderByDescending(t => t.UpdatedAt)
             .Skip(skip)
             .Take(criteria.PageSize)
-            .ToList();
+            .ToListAsync();
 
         return new TicketSearchResult
         {
-            Tickets = paginated,
+            Tickets = tickets,
             TotalCount = total,
             PageNumber = criteria.PageNumber,
             PageSize = criteria.PageSize
@@ -176,45 +180,53 @@ public class TicketSearchService(TickfloDbContext dbContext) : ITicketSearchServ
         int userId,
         string? statusFilter = null)
     {
-        var allTickets = await this.dbContext.Tickets.Where(t => t.WorkspaceId == workspaceId).ToListAsync();
+        // Preload team memberships into a HashSet to avoid sync-over-async deadlock
+        // in filter lambdas (#143 fix)
+        var teamIds = await this.dbContext.TeamMembers
+            .Where(tm => tm.UserId == userId)
+            .Select(tm => tm.TeamId)
+            .ToListAsync();
+        var teamIdSet = new HashSet<int>(teamIds);
 
-        var myTickets = allTickets
+        var query = this.dbContext.Tickets
+            .Where(t => t.WorkspaceId == workspaceId)
             .Where(t => t.AssignedUserId == userId ||
-                       (t.AssignedTeamId.HasValue &&
-                        this.IsUserInTeam(userId, t.AssignedTeamId.Value).GetAwaiter().GetResult()))
-            .ToList();
+                       (t.AssignedTeamId.HasValue && teamIdSet.Contains(t.AssignedTeamId.Value)));
 
         if (!string.IsNullOrEmpty(statusFilter))
         {
-            var statusFilterLower = statusFilter.ToLower();
-            var statusId = (await this.dbContext.TicketStatuses.FirstOrDefaultAsync(s => s.WorkspaceId == workspaceId && s.Name.ToLower() == statusFilterLower))?.Id;
+            var statusId = await this.dbContext.TicketStatuses
+                .Where(s => s.WorkspaceId == workspaceId && s.Name.ToLower() == statusFilter.ToLower())
+                .Select(s => (int?)s.Id)
+                .FirstOrDefaultAsync();
             if (statusId.HasValue)
             {
-                myTickets = [.. myTickets.Where(t => t.StatusId == statusId.Value)];
+                query = query.Where(t => t.StatusId == statusId.Value);
             }
         }
 
-        return myTickets;
+        return await query.ToListAsync();
     }
 
     public async Task<List<Ticket>> GetActiveTicketsAsync(
         int workspaceId,
         int? limitToTeamId = null)
     {
-        var allTickets = await this.dbContext.Tickets.Where(t => t.WorkspaceId == workspaceId).ToListAsync();
-        var statuses = await this.dbContext.TicketStatuses.Where(s => s.WorkspaceId == workspaceId).ToListAsync();
-        var closedIds = statuses.Where(s => s.IsClosedState).Select(s => s.Id).ToHashSet();
+        var closedIds = await this.dbContext.TicketStatuses
+            .Where(s => s.WorkspaceId == workspaceId && s.IsClosedState)
+            .Select(s => (int?)s.Id)
+            .ToListAsync();
 
-        var active = allTickets
-            .Where(t => !t.StatusId.HasValue || !closedIds.Contains(t.StatusId.Value))
-            .ToList();
+        var query = this.dbContext.Tickets
+            .Where(t => t.WorkspaceId == workspaceId)
+            .Where(t => !t.StatusId.HasValue || !closedIds.Contains(t.StatusId.Value));
 
         if (limitToTeamId.HasValue)
         {
-            active = [.. active.Where(t => t.AssignedTeamId == limitToTeamId)];
+            query = query.Where(t => t.AssignedTeamId == limitToTeamId);
         }
 
-        return active;
+        return await query.ToListAsync();
     }
 
     public async Task<List<Ticket>> GetRecentlyUpdatedAsync(
@@ -223,89 +235,91 @@ public class TicketSearchService(TickfloDbContext dbContext) : ITicketSearchServ
         int take = 20)
     {
         var cutoffDate = DateTime.UtcNow.AddDays(-limitToLastDays);
-        var allTickets = await this.dbContext.Tickets.Where(t => t.WorkspaceId == workspaceId).ToListAsync();
 
-        var recent = allTickets
+        return await this.dbContext.Tickets
+            .Where(t => t.WorkspaceId == workspaceId)
             .Where(t => t.UpdatedAt.HasValue && t.UpdatedAt.Value >= cutoffDate)
             .OrderByDescending(t => t.UpdatedAt)
             .Take(take)
-            .ToList();
-
-        return recent;
+            .ToListAsync();
     }
 
     public async Task<List<Ticket>> GetHighPriorityTicketsAsync(
         int workspaceId,
         int? limitToTeamId = null)
     {
-        var allTickets = await this.dbContext.Tickets.Where(t => t.WorkspaceId == workspaceId).ToListAsync();
-        var priorities = await this.dbContext.TicketPriorities.Where(p => p.WorkspaceId == workspaceId).ToListAsync();
-        var statuses = await this.dbContext.TicketStatuses.Where(s => s.WorkspaceId == workspaceId).ToListAsync();
-        var highPriorityIds = priorities.Where(p => p.Name is "Critical" or "High").Select(p => p.Id).ToHashSet();
-        var closedIds = statuses.Where(s => s.IsClosedState).Select(s => s.Id).ToHashSet();
+        var highPriorityIds = await this.dbContext.TicketPriorities
+            .Where(p => p.WorkspaceId == workspaceId && (p.Name == "Critical" || p.Name == "High"))
+            .Select(p => (int?)p.Id)
+            .ToListAsync();
 
-        var highPriority = allTickets
-            .Where(t => t.PriorityId.HasValue && highPriorityIds.Contains(t.PriorityId.Value) &&
-                       (!t.StatusId.HasValue || !closedIds.Contains(t.StatusId.Value)))
-            .OrderByDescending(t => t.CreatedAt)
-            .ToList();
+        var closedIds = await this.dbContext.TicketStatuses
+            .Where(s => s.WorkspaceId == workspaceId && s.IsClosedState)
+            .Select(s => (int?)s.Id)
+            .ToListAsync();
+
+        var query = this.dbContext.Tickets
+            .Where(t => t.WorkspaceId == workspaceId)
+            .Where(t => t.PriorityId.HasValue && highPriorityIds.Contains(t.PriorityId.Value))
+            .Where(t => !t.StatusId.HasValue || !closedIds.Contains(t.StatusId.Value));
 
         if (limitToTeamId.HasValue)
         {
-            highPriority = [.. highPriority.Where(t => t.AssignedTeamId == limitToTeamId)];
+            query = query.Where(t => t.AssignedTeamId == limitToTeamId);
         }
 
-        return highPriority;
+        return await query.OrderByDescending(t => t.CreatedAt).ToListAsync();
     }
 
     public async Task<List<Ticket>> GetContactTicketsAsync(
         int workspaceId,
         int contactId)
     {
-        var allTickets = await this.dbContext.Tickets.Where(t => t.WorkspaceId == workspaceId).ToListAsync();
-
-        return [.. allTickets
-            .Where(t => t.ContactId == contactId)
-            .OrderByDescending(t => t.CreatedAt)];
+        return await this.dbContext.Tickets
+            .Where(t => t.WorkspaceId == workspaceId && t.ContactId == contactId)
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync();
     }
 
     public async Task<List<Ticket>> GetUnassignedTicketsAsync(
         int workspaceId,
         int? limitToTeamId = null)
     {
-        var allTickets = await this.dbContext.Tickets.Where(t => t.WorkspaceId == workspaceId).ToListAsync();
-        var statuses = await this.dbContext.TicketStatuses.Where(s => s.WorkspaceId == workspaceId).ToListAsync();
-        var closedIds = statuses.Where(s => s.IsClosedState).Select(s => s.Id).ToHashSet();
+        var closedIds = await this.dbContext.TicketStatuses
+            .Where(s => s.WorkspaceId == workspaceId && s.IsClosedState)
+            .Select(s => (int?)s.Id)
+            .ToListAsync();
 
-        var unassigned = allTickets
-            .Where(t => t.AssignedUserId == null && t.AssignedTeamId == null &&
-                       (!t.StatusId.HasValue || !closedIds.Contains(t.StatusId.Value)))
-            .OrderByDescending(t => t.CreatedAt)
-            .ToList();
+        var query = this.dbContext.Tickets
+            .Where(t => t.WorkspaceId == workspaceId)
+            .Where(t => t.AssignedUserId == null && t.AssignedTeamId == null)
+            .Where(t => !t.StatusId.HasValue || !closedIds.Contains(t.StatusId.Value));
 
         if (limitToTeamId.HasValue)
         {
-            unassigned = [.. unassigned.Where(t => t.AssignedTeamId == limitToTeamId)];
+            query = query.Where(t => t.AssignedTeamId == limitToTeamId);
         }
 
-        return unassigned;
+        return await query.OrderByDescending(t => t.CreatedAt).ToListAsync();
     }
 
     public async Task<List<Ticket>> GetSLAAtRiskAsync(
         int workspaceId,
         int hoursUntilDueWarning = 24)
     {
-        var allTickets = await this.dbContext.Tickets.Where(t => t.WorkspaceId == workspaceId).ToListAsync();
-        var statuses = await this.dbContext.TicketStatuses.Where(s => s.WorkspaceId == workspaceId).ToListAsync();
-        var closedIds = statuses.Where(s => s.IsClosedState).Select(s => s.Id).ToHashSet();
+        var closedIds = await this.dbContext.TicketStatuses
+            .Where(s => s.WorkspaceId == workspaceId && s.IsClosedState)
+            .Select(s => (int?)s.Id)
+            .ToListAsync();
+
         var warningThreshold = DateTime.UtcNow.AddHours(hoursUntilDueWarning);
 
-        // Tickets don't have DueDate; check UpdatedAt + hours
-        return [.. allTickets
-            .Where(t => t.UpdatedAt.HasValue &&
-                       t.UpdatedAt.Value.AddHours(hoursUntilDueWarning) <= warningThreshold &&
-                       (!t.StatusId.HasValue || !closedIds.Contains(t.StatusId.Value)))
-            .OrderBy(t => t.UpdatedAt)];
+        return await this.dbContext.Tickets
+            .Where(t => t.WorkspaceId == workspaceId)
+            .Where(t => t.UpdatedAt.HasValue && t.UpdatedAt.Value.AddHours(hoursUntilDueWarning) <= warningThreshold)
+            .Where(t => !t.StatusId.HasValue || !closedIds.Contains(t.StatusId.Value))
+            .OrderBy(t => t.UpdatedAt)
+            .ToListAsync();
     }
 
     public Task<List<Ticket>> GetByTagAsync(
@@ -318,8 +332,12 @@ public class TicketSearchService(TickfloDbContext dbContext) : ITicketSearchServ
         TicketSearchCriteria criteria)
     {
         var searchResult = await this.SearchAsync(workspaceId, criteria, 0); // System execution
-        var statuses = await this.dbContext.TicketStatuses.Where(s => s.WorkspaceId == workspaceId).ToListAsync();
-        var priorities = await this.dbContext.TicketPriorities.Where(p => p.WorkspaceId == workspaceId).ToListAsync();
+        var statuses = await this.dbContext.TicketStatuses
+            .Where(s => s.WorkspaceId == workspaceId)
+            .ToListAsync();
+        var priorities = await this.dbContext.TicketPriorities
+            .Where(p => p.WorkspaceId == workspaceId)
+            .ToListAsync();
         var statusMap = statuses.ToDictionary(s => s.Id, s => s.Name);
         var priorityMap = priorities.ToDictionary(p => p.Id, p => p.Name);
 
@@ -340,76 +358,75 @@ public class TicketSearchService(TickfloDbContext dbContext) : ITicketSearchServ
         })];
     }
 
-    private static List<Ticket> ApplyFilters(List<Ticket> tickets, TicketSearchCriteria criteria)
+    /// <summary>
+    /// Applies search criteria as EF Core-compatible IQueryable filters.
+    /// All filtering happens at the database level — no in-memory materialization.
+    /// </summary>
+    private static IQueryable<Ticket> ApplyFilters(IQueryable<Ticket> query, TicketSearchCriteria criteria)
     {
-        var result = tickets;
-
         if (criteria.AssignedToUserId.HasValue)
         {
-            result = [.. result.Where(t => t.AssignedUserId == criteria.AssignedToUserId.Value)];
+            query = query.Where(t => t.AssignedUserId == criteria.AssignedToUserId.Value);
         }
 
         if (criteria.AssignedToTeamId.HasValue)
         {
-            result = [.. result.Where(t => t.AssignedTeamId == criteria.AssignedToTeamId.Value)];
+            query = query.Where(t => t.AssignedTeamId == criteria.AssignedToTeamId.Value);
         }
 
         if (criteria.StatusId.HasValue)
         {
-            result = [.. result.Where(t => t.StatusId == criteria.StatusId.Value)];
+            query = query.Where(t => t.StatusId == criteria.StatusId.Value);
         }
 
         if (criteria.PriorityId.HasValue)
         {
-            result = [.. result.Where(t => t.PriorityId == criteria.PriorityId.Value)];
+            query = query.Where(t => t.PriorityId == criteria.PriorityId.Value);
         }
 
         if (criteria.TypeId.HasValue)
         {
-            result = [.. result.Where(t => t.TicketTypeId == criteria.TypeId.Value)];
+            query = query.Where(t => t.TicketTypeId == criteria.TypeId.Value);
         }
 
         if (criteria.ContactId.HasValue)
         {
-            result = [.. result.Where(t => t.ContactId == criteria.ContactId.Value)];
+            query = query.Where(t => t.ContactId == criteria.ContactId.Value);
         }
 
         if (criteria.LocationId.HasValue)
         {
-            result = [.. result.Where(t => t.LocationId == criteria.LocationId.Value)];
+            query = query.Where(t => t.LocationId == criteria.LocationId.Value);
         }
 
         if (criteria.CreatedAfter.HasValue)
         {
-            result = [.. result.Where(t => t.CreatedAt >= criteria.CreatedAfter.Value)];
+            query = query.Where(t => t.CreatedAt >= criteria.CreatedAfter.Value);
         }
 
         if (criteria.CreatedBefore.HasValue)
         {
-            result = [.. result.Where(t => t.CreatedAt <= criteria.CreatedBefore.Value)];
+            query = query.Where(t => t.CreatedAt <= criteria.CreatedBefore.Value);
         }
 
         if (criteria.UpdatedAfter.HasValue)
         {
-            result = [.. result.Where(t => t.UpdatedAt.HasValue && t.UpdatedAt.Value >= criteria.UpdatedAfter.Value)];
+            query = query.Where(t => t.UpdatedAt.HasValue && t.UpdatedAt.Value >= criteria.UpdatedAfter.Value);
         }
 
         if (criteria.UpdatedBefore.HasValue)
         {
-            result = [.. result.Where(t => t.UpdatedAt.HasValue && t.UpdatedAt.Value <= criteria.UpdatedBefore.Value)];
+            query = query.Where(t => t.UpdatedAt.HasValue && t.UpdatedAt.Value <= criteria.UpdatedBefore.Value);
         }
 
         if (!string.IsNullOrEmpty(criteria.SearchTerm))
         {
             var term = criteria.SearchTerm.ToLower();
-            result = [.. result.Where(t =>
-                (t.Subject?.ToLower().Contains(term, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
-                (t.Description?.ToLower().Contains(term, StringComparison.InvariantCultureIgnoreCase) ?? false)
-            )];
+            query = query.Where(t =>
+                (t.Subject != null && t.Subject.ToLower().Contains(term)) ||
+                (t.Description != null && t.Description.ToLower().Contains(term)));
         }
 
-        return result;
+        return query;
     }
-
-    private async Task<bool> IsUserInTeam(int userId, int teamId) => await this.dbContext.TeamMembers.AnyAsync(tm => tm.TeamId == teamId && tm.UserId == userId);
 }
