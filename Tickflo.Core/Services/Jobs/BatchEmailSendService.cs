@@ -27,7 +27,7 @@ public class MailgunEmailSendService(
     {
         if (string.IsNullOrEmpty(this.config.MailgunApiKey))
         {
-            this.logger.LogWarning("Mailgun API key is not configured. Skipping email sending.");
+            this.logger.LogError("Mailgun API key is not configured. Email queue is blocked — no emails will be sent until configured.");
             return;
         }
 
@@ -90,7 +90,7 @@ public class MailgunEmailSendService(
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
                     this.logger.LogError("Failed to send email with ID {EmailId}. Status: {StatusCode}, Response: {Response}", email.Id, response.StatusCode, errorContent);
-                    email.State = "error";
+                    email.State = "failed";
                     email.ErrorMessage = $"Status: {response.StatusCode}, Response: {errorContent}";
                 }
 
@@ -99,7 +99,7 @@ public class MailgunEmailSendService(
             catch (Exception ex)
             {
                 this.logger.LogError(ex, "Failed to send email with ID {EmailId}", email.Id);
-                email.State = "error";
+                email.State = "failed";
                 email.ErrorMessage = ex.Message;
                 await this.db.SaveChangesAsync();
             }
