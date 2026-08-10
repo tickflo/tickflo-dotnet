@@ -48,6 +48,12 @@ builder.Services.AddSingleton(settingsConfig);
 builder.Services.AddScoped<IPasswordHasher, Argon2idPasswordHasher>();
 builder.Services.AddScoped<IPasswordValidationService, PasswordValidationService>();
 builder.Services.AddSignalR();
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(180);
+    options.IncludeSubDomains = true;
+    options.Preload = true;
+});
 builder.Services.AddScoped<Tickflo.Core.Services.Authentication.IAuthenticationService, Tickflo.Core.Services.Authentication.AuthenticationService>();
 builder.Services.AddScoped<IPasswordSetupService, PasswordSetupService>();
 builder.Services.AddScoped<IPasswordResetRequestService, PasswordResetRequestService>();
@@ -207,7 +213,6 @@ using (var scope = app.Services.CreateScope())
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 else
