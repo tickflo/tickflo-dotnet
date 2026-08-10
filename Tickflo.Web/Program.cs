@@ -24,6 +24,7 @@ using Tickflo.Core.Services.Web;
 using Tickflo.Core.Services.Workspace;
 using Tickflo.Web;
 using Tickflo.Web.Authentication;
+using Tickflo.Web.Realtime;
 using Tickflo.Web.Services;
 
 DotNetEnv.Env.Load();
@@ -238,6 +239,7 @@ app.UseMiddleware<AppContextMiddleware>();
 
 app.MapRazorPages();
 app.MapControllers();
+app.MapHub<TicketsHub>("/hubs/tickets");
 
 app.Run();
 
