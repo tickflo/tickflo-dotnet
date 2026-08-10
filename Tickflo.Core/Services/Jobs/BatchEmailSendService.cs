@@ -71,7 +71,7 @@ public class MailgunEmailSendService(
                     { "from", $"{this.config.Email.FromName} <{this.config.Email.FromAddress}>" },
                     { "to", email.To },
                     { "subject", RenderTemplate(emailTemplates[email.TemplateId].Subject, email.Vars) },
-                    { "html", RenderTemplate(emailTemplates[email.TemplateId].Body, email.Vars).Replace("\n", "<br>") }
+                    { "html", RenderTemplate(emailTemplates[email.TemplateId].Body, email.Vars) }
                 };
 
                 if (this.config.AppEnv != "Production")
