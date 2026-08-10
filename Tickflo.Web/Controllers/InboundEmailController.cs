@@ -35,6 +35,7 @@ public class InboundEmailController(
     /// not returned to the caller to prevent Mailgun retries on expected failures.
     /// </summary>
     [HttpPost]
+    [RequestSizeLimit(25_000_000)]
     public async Task<IActionResult> Receive()
     {
         InboundEmailPayload payload;
