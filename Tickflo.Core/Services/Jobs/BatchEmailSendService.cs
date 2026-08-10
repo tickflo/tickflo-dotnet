@@ -19,7 +19,6 @@ public class MailgunEmailSendService(
     TickfloConfig config,
     ILogger<MailgunEmailSendService> logger) : IBatchEmailSendService
 {
-    private const string MailgunApiBaseUrl = "https://api.mailgun.net/";
     private readonly TickfloDbContext db = db;
     private readonly TickfloConfig config = config;
     private readonly ILogger<MailgunEmailSendService> logger = logger;
@@ -53,7 +52,7 @@ public class MailgunEmailSendService(
 
         var httpClient = new HttpClient()
         {
-            BaseAddress = new Uri(MailgunApiBaseUrl),
+            BaseAddress = new Uri(this.config.Email.MailgunApiBaseUrl),
             Timeout = TimeSpan.FromSeconds(10),
             DefaultRequestHeaders =
             {
@@ -80,7 +79,7 @@ public class MailgunEmailSendService(
                     formData.Add("o:testmode", "true");
                 }
 
-                var response = await httpClient.PostAsync($"v3/tickflo.co/messages", new FormUrlEncodedContent(formData));
+                var response = await httpClient.PostAsync($"v3/{this.config.Email.MailgunDomain}/messages", new FormUrlEncodedContent(formData));
                 if (response.IsSuccessStatusCode)
                 {
                     email.SentAt = DateTime.UtcNow;

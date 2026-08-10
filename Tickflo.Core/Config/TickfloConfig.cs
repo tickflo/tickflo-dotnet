@@ -64,6 +64,8 @@ public class EmailConfig
     public string FromAddress { get; set; } = "no-reply@tickflo.co";
     public string FromName { get; set; } = "Tickflo";
     public int BatchSize { get; set; } = 100;
+    public string MailgunDomain { get; set; } = "tickflo.co";
+    public string MailgunApiBaseUrl { get; set; } = "https://api.mailgun.net/";
 }
 
 public class InboundEmailConfig
