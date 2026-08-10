@@ -24,6 +24,7 @@ using Tickflo.Core.Services.Web;
 using Tickflo.Core.Services.Workspace;
 using Tickflo.Web;
 using Tickflo.Web.Authentication;
+using Tickflo.Web.Middleware;
 using Tickflo.Web.Realtime;
 using Tickflo.Web.Services;
 
@@ -237,6 +238,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+app.UseMiddleware<RateLimitMiddleware>();
 app.UseSession();
 
 app.UseAuthentication();
