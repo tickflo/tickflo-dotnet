@@ -44,11 +44,8 @@ RUN dotnet publish -c Release --no-restore -o /app/publish
 FROM ${RUNTIME_IMAGE} AS runtime
 WORKDIR /app
 
-# Create non-root user and install curl for healthcheck
-RUN adduser --disabled-password --gecos "" appuser && \
-    chown -R appuser:appuser /app && \
-    apk add --no-cache curl
-USER appuser
+# Install curl for healthcheck
+RUN apk add --no-cache curl
 
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
@@ -58,6 +55,10 @@ COPY --from=node-build /src/wwwroot/css/dist.css ./wwwroot/css/dist.css
 
 # Remove the original site.css if it exists
 RUN rm -f ./wwwroot/css/site.css
+
+# Create non-root user and transfer ownership
+RUN adduser --disabled-password --gecos "" appuser && chown -R appuser:appuser /app
+USER appuser
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -sf http://localhost:8080/ || exit 1
