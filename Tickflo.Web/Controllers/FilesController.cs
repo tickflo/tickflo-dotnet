@@ -158,8 +158,14 @@ public class FilesController(
                 return this.BadRequest($"Image type not allowed. Allowed types: {string.Join(", ", allowedExtensions)}");
             }
 
+            // Sanitize category to prevent path traversal
+            var sanitizedCategory = (category ?? "document")
+                .Replace("..", "")
+                .Replace("/", "")
+                .Replace("\\", "");
+
             var fileName = $"{Guid.NewGuid()}.jpg";
-            var filePath = $"workspace-images/{workspaceId}/{category ?? "document"}/{fileName}";
+            var filePath = $"workspace-images/{workspaceId}/{sanitizedCategory}/{fileName}";
 
             using var imageStream = image.OpenReadStream();
             var imageUrl = await this.fileStorageService.UploadImageAsync(filePath, imageStream, 1200, 900, 80);
