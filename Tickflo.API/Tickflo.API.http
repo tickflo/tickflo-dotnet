@@ -1,6 +1,0 @@
-@Tickflo.API_HostAddress = http://localhost:5093
-
-GET {{Tickflo.API_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
