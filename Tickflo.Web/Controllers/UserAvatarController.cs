@@ -6,13 +6,13 @@ using Microsoft.AspNetCore.Mvc;
 using Tickflo.Core.Config;
 
 [Authorize]
-[Route("users/{id}/avatar")]
+[Route("users")]
 public class UserAvatarController(TickfloConfig config, IAmazonS3 amazonS3) : Controller
 {
     private readonly TickfloConfig config = config;
     private readonly IAmazonS3 amazonS3 = amazonS3;
 
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:int}/avatar")]
     public async Task<IActionResult> GetAvatar(int id)
     {
         // Only allow users to access their own avatar
