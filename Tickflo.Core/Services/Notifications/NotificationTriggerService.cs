@@ -161,20 +161,27 @@ public class NotificationTriggerService(
             var team = await this.dbContext.Teams.FindAsync(ticket.AssignedTeamId.Value);
             if (team != null)
             {
-                // Team notification - would need ITeamMemberRepository for this
-                // For now, just queue the team notification
-                notifications.Add(new Notification
+                var teamMemberIds = await this.dbContext.TeamMembers
+                    .Where(tm => tm.TeamId == team.Id)
+                    .Select(tm => tm.UserId)
+                    .ToListAsync();
+
+                foreach (var memberId in teamMemberIds)
                 {
-                    WorkspaceId = workspaceId,
-                    Type = "ticket_created_team",
-                    DeliveryMethod = "in_app",
-                    Priority = "normal",
-                    Subject = "New Ticket for Team",
-                    Body = $"{creatorName} created ticket #{ticket.Id} for team {team.Name}: {ticket.Subject}",
-                    Status = "sent",
-                    CreatedBy = createdByUserId,
-                    CreatedAt = DateTime.UtcNow
-                });
+                    notifications.Add(new Notification
+                    {
+                        UserId = memberId,
+                        WorkspaceId = workspaceId,
+                        Type = "ticket_created_team",
+                        DeliveryMethod = "in_app",
+                        Priority = "normal",
+                        Subject = "New Ticket for Team",
+                        Body = $"{creatorName} created ticket #{ticket.Id} for team {team.Name}: {ticket.Subject}",
+                        Status = "sent",
+                        CreatedBy = createdByUserId,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
             }
         }
 
@@ -286,19 +293,27 @@ public class NotificationTriggerService(
             var team = await this.dbContext.Teams.FindAsync(ticket.AssignedTeamId.Value);
             if (team != null)
             {
-                // Team notification queued
-                notifications.Add(new Notification
+                var teamMemberIds = await this.dbContext.TeamMembers
+                    .Where(tm => tm.TeamId == team.Id)
+                    .Select(tm => tm.UserId)
+                    .ToListAsync();
+
+                foreach (var memberId in teamMemberIds)
                 {
-                    WorkspaceId = workspaceId,
-                    Type = "ticket_status_changed_team",
-                    DeliveryMethod = "in_app",
-                    Priority = "normal",
-                    Subject = "Ticket Status Changed",
-                    Body = $"{changerName} changed ticket #{ticket.Id} status from {previousStatus} to {newStatus} for team {team.Name}: {ticket.Subject}",
-                    Status = "sent",
-                    CreatedBy = changedByUserId,
-                    CreatedAt = DateTime.UtcNow
-                });
+                    notifications.Add(new Notification
+                    {
+                        UserId = memberId,
+                        WorkspaceId = workspaceId,
+                        Type = "ticket_status_changed_team",
+                        DeliveryMethod = "in_app",
+                        Priority = "normal",
+                        Subject = "Ticket Status Changed",
+                        Body = $"{changerName} changed ticket #{ticket.Id} status from {previousStatus} to {newStatus} for team {team.Name}: {ticket.Subject}",
+                        Status = "sent",
+                        CreatedBy = changedByUserId,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
             }
         }
 
