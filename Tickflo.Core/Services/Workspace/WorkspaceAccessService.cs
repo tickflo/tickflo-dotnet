@@ -3,6 +3,7 @@ namespace Tickflo.Core.Services.Workspace;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Tickflo.Core.Data;
+using Tickflo.Core.Exceptions;
 
 /// <summary>
 /// Implementation of IWorkspaceAccessService.
@@ -247,7 +248,7 @@ public class WorkspaceAccessService(TickfloDbContext dbContext) : IWorkspaceAcce
         var isAdmin = await this.UserIsWorkspaceAdminAsync(userId, workspaceId);
         if (!isAdmin)
         {
-            throw new UnauthorizedAccessException(string.Format(null, UserNotAdminErrorFormat, userId, workspaceId));
+            throw new ForbiddenException(string.Format(null, UserNotAdminErrorFormat, userId, workspaceId));
         }
     }
 
@@ -256,7 +257,7 @@ public class WorkspaceAccessService(TickfloDbContext dbContext) : IWorkspaceAcce
         var hasAccess = await this.UserHasAccessAsync(userId, workspaceId);
         if (!hasAccess)
         {
-            throw new UnauthorizedAccessException(string.Format(null, UserNoAccessErrorFormat, userId, workspaceId));
+            throw new ForbiddenException(string.Format(null, UserNoAccessErrorFormat, userId, workspaceId));
         }
     }
 
