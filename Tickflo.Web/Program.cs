@@ -238,6 +238,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+app.UseMiddleware<RateLimitMiddleware>();
 app.UseMiddleware<HttpExceptionMiddleware>();
 app.UseSession();
 
