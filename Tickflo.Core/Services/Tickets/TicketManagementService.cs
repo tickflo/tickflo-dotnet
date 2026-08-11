@@ -198,6 +198,12 @@ public class TicketManagementService(
             CreatedAt = DateTime.UtcNow
         };
 
+        // Ensure WorkspaceId is set on ticket-inventory join records
+        foreach (var ti in ticket.TicketInventories)
+        {
+            ti.WorkspaceId = request.WorkspaceId;
+        }
+
         await this.AssignTicketUserAsync(ticket, request.AssignedUserId, request.LocationId, request.WorkspaceId);
         await this.AssignTicketTeamAsync(ticket, request.AssignedTeamId, request.WorkspaceId);
 
@@ -327,6 +333,10 @@ public class TicketManagementService(
         if (request.Inventories != null)
         {
             ticket.TicketInventories = request.Inventories;
+            foreach (var ti in ticket.TicketInventories)
+            {
+                ti.WorkspaceId = request.WorkspaceId;
+            }
         }
 
         await this.dbContext.SaveChangesAsync();
