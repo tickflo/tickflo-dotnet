@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore.Migrations;
+
 #nullable disable
 
 namespace Tickflo.Core.Migrations;
