@@ -7,6 +7,7 @@ public class TicketInventory
     public int Id { get; set; }
     public int TicketId { get; set; }
     public int InventoryId { get; set; }
+    public int WorkspaceId { get; set; }
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal TotalPrice => this.Quantity * this.UnitPrice;
