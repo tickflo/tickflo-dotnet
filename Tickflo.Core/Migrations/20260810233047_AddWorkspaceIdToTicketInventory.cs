@@ -1,8 +1,8 @@
-using Microsoft.EntityFrameworkCore.Migrations;
-
 #nullable disable
 
 namespace Tickflo.Core.Migrations;
+
+using Microsoft.EntityFrameworkCore.Migrations;
 
 /// <inheritdoc />
 public partial class AddWorkspaceIdToTicketInventory : Migration
