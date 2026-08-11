@@ -6,9 +6,9 @@ using System.Collections.Concurrent;
 /// Simple in-memory rate limiting middleware for auth endpoints.
 /// Tracks requests per IP per endpoint with a fixed window.
 /// </summary>
-public class RateLimitMiddleware
+public class RateLimitMiddleware(RequestDelegate next)
 {
-    private readonly RequestDelegate next;
+    private readonly RequestDelegate next = next;
     private static readonly ConcurrentDictionary<string, RateLimitEntry> Buckets = new();
     private const int MaxRequests = 10;
     private static readonly TimeSpan Window = TimeSpan.FromMinutes(1);
@@ -25,11 +25,6 @@ public class RateLimitMiddleware
         "/email-confirmation/confirm",
         "/email-confirmation/resend"
     ];
-
-    public RateLimitMiddleware(RequestDelegate next)
-    {
-        this.next = next;
-    }
 
     public async Task InvokeAsync(HttpContext context)
     {
@@ -87,7 +82,7 @@ public class RateLimitMiddleware
         return false;
     }
 
-    private class RateLimitEntry
+    private sealed class RateLimitEntry
     {
         public DateTime WindowStart { get; set; }
         public int Count { get; set; }
